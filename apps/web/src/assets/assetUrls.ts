@@ -12,7 +12,12 @@ export { resolveAssetUrl } from "@ras-code/client-runtime/state/assets";
 export type AssetUrlState =
   | { readonly _tag: "Loading" }
   | { readonly _tag: "Failure" }
-  | { readonly _tag: "Success"; readonly url: string; readonly sourcePath?: string };
+  | {
+      readonly _tag: "Success";
+      readonly url: string;
+      readonly sourcePath?: string;
+      readonly iconEmoji?: string;
+    };
 
 export function useAssetUrlState(
   environmentId: EnvironmentId,
@@ -38,6 +43,7 @@ export function useAssetUrlState(
         _tag: "Success",
         url,
         ...(result.value.sourcePath !== undefined ? { sourcePath: result.value.sourcePath } : {}),
+        ...(result.value.iconEmoji !== undefined ? { iconEmoji: result.value.iconEmoji } : {}),
       };
 }
 

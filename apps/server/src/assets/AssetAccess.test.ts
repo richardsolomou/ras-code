@@ -266,6 +266,26 @@ describe("AssetAccess", () => {
     }).pipe(Effect.provide(testLayer)),
   );
 
+  it.effect("reports the ras.json icon emoji with a project favicon url", () =>
+    Effect.gen(function* () {
+      const fileSystem = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const root = yield* fileSystem.makeTempDirectoryScoped({
+        prefix: "ras-code-asset-favicon-emoji-",
+      });
+      yield* fileSystem.writeFileString(
+        path.join(root, "ras.json"),
+        '{ "iconEmoji": "\u{1F680}" }',
+      );
+
+      const result = yield* issueAssetUrl({
+        resource: { _tag: "project-favicon", cwd: root },
+      });
+
+      expect(result.iconEmoji).toBe("\u{1F680}");
+    }).pipe(Effect.provide(testLayer)),
+  );
+
   it.effect("issues project favicon capabilities for a saved override", () =>
     Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
@@ -428,6 +448,7 @@ describe("AssetAccess", () => {
       });
       const resolver = ProjectFaviconResolver.ProjectFaviconResolver.of({
         resolvePath: () => Effect.fail(resolutionCause),
+        resolveIconEmoji: () => Effect.succeed(null),
       });
 
       const error = yield* issueAssetUrl({

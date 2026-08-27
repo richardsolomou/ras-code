@@ -243,6 +243,31 @@ export const ProjectFaviconPath = TrimmedNonEmptyString.check(
 );
 export type ProjectFaviconPath = typeof ProjectFaviconPath.Type;
 
+// Emoji validation is intentionally shallow: one grapheme that starts with a
+// pictographic code point or a regional-indicator pair. Runtimes without
+// `Intl.Segmenter` (older mobile JS engines) fall back to the pattern alone.
+const EMOJI_START_PATTERN = /^(?:\p{Extended_Pictographic}|\p{Regional_Indicator}{2})/u;
+const graphemeSegmenter =
+  typeof Intl !== "undefined" && typeof Intl.Segmenter === "function"
+    ? new Intl.Segmenter(undefined, { granularity: "grapheme" })
+    : null;
+
+const isSingleEmojiGrapheme = (value: string) =>
+  EMOJI_START_PATTERN.test(value) &&
+  (graphemeSegmenter === null || Array.from(graphemeSegmenter.segment(value)).length === 1);
+
+/** A single emoji used as a project icon, e.g. "\u{1F680}". */
+export const ProjectIconEmoji = TrimmedNonEmptyString.check(
+  Schema.isMaxLength(32),
+  Schema.makeFilter(
+    (value: string) => isSingleEmojiGrapheme(value) || "Project icon must be a single emoji.",
+  ),
+);
+export type ProjectIconEmoji = typeof ProjectIconEmoji.Type;
+
+/** Whether a value is accepted as a project icon emoji, for client-side input validation. */
+export const isProjectIconEmoji = (value: string) => isSingleEmojiGrapheme(value.trim());
+
 export const OrchestrationProject = Schema.Struct({
   id: ProjectId,
   title: TrimmedNonEmptyString,
@@ -254,6 +279,7 @@ export const OrchestrationProject = Schema.Struct({
   defaultThreadEnvMode: Schema.optional(Schema.NullOr(ThreadEnvMode)),
   // Optional on the wire so cached snapshots from older servers still decode.
   faviconPath: Schema.optional(Schema.NullOr(ProjectFaviconPath)),
+  iconEmoji: Schema.optional(Schema.NullOr(ProjectIconEmoji)),
   scripts: Schema.Array(ProjectScript),
   createdAt: IsoDateTime,
   updatedAt: IsoDateTime,
@@ -465,6 +491,7 @@ export const OrchestrationProjectShell = Schema.Struct({
   defaultThreadEnvMode: Schema.optional(Schema.NullOr(ThreadEnvMode)),
   // Optional on the wire so cached snapshots from older servers still decode.
   faviconPath: Schema.optional(Schema.NullOr(ProjectFaviconPath)),
+  iconEmoji: Schema.optional(Schema.NullOr(ProjectIconEmoji)),
   scripts: Schema.Array(ProjectScript),
   createdAt: IsoDateTime,
   updatedAt: IsoDateTime,
@@ -683,6 +710,7 @@ const ProjectMetaUpdateCommand = Schema.Struct({
   // Absent = leave unchanged; null = clear the override.
   defaultThreadEnvMode: Schema.optional(Schema.NullOr(ThreadEnvMode)),
   faviconPath: Schema.optional(Schema.NullOr(ProjectFaviconPath)),
+  iconEmoji: Schema.optional(Schema.NullOr(ProjectIconEmoji)),
   scripts: Schema.optional(Schema.Array(ProjectScript)),
 });
 
@@ -1130,6 +1158,7 @@ export const ProjectCreatedPayload = Schema.Struct({
   defaultModelSelection: Schema.NullOr(ModelSelection),
   // Optional so persisted events from older servers still decode.
   faviconPath: Schema.optional(Schema.NullOr(ProjectFaviconPath)),
+  iconEmoji: Schema.optional(Schema.NullOr(ProjectIconEmoji)),
   scripts: Schema.Array(ProjectScript),
   createdAt: IsoDateTime,
   updatedAt: IsoDateTime,
@@ -1143,6 +1172,7 @@ export const ProjectMetaUpdatedPayload = Schema.Struct({
   defaultModelSelection: Schema.optional(Schema.NullOr(ModelSelection)),
   defaultThreadEnvMode: Schema.optional(Schema.NullOr(ThreadEnvMode)),
   faviconPath: Schema.optional(Schema.NullOr(ProjectFaviconPath)),
+  iconEmoji: Schema.optional(Schema.NullOr(ProjectIconEmoji)),
   scripts: Schema.optional(Schema.Array(ProjectScript)),
   updatedAt: IsoDateTime,
 });

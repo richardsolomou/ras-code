@@ -58,6 +58,7 @@ interface ChatHeaderProps {
   activeProjectName: string | undefined;
   activeProjectCwd: string | null;
   activeProjectFaviconPath: string | null;
+  activeProjectIconEmoji: string | null;
   openInCwd: string | null;
   activeProjectScripts: ReadonlyArray<ProjectScript> | undefined;
   preferredScriptId: string | null;
@@ -127,6 +128,7 @@ export const ChatHeader = memo(function ChatHeader({
   activeProjectName,
   activeProjectCwd,
   activeProjectFaviconPath,
+  activeProjectIconEmoji,
   openInCwd,
   activeProjectScripts,
   preferredScriptId,
@@ -310,6 +312,7 @@ export const ChatHeader = memo(function ChatHeader({
                     environmentId={activeThreadEnvironmentId}
                     cwd={activeProjectCwd ?? ""}
                     faviconPath={activeProjectFaviconPath}
+                    iconEmoji={activeProjectIconEmoji}
                     className="size-3.5"
                   />
                   <span className="max-w-40 truncate">{activeProjectName}</span>

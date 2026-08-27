@@ -96,6 +96,15 @@ export class ProjectFaviconResolver extends Context.Service<
       cwd: string,
       faviconPath?: string,
     ) => Effect.Effect<string | null, ProjectFaviconResolutionError>;
+
+    /**
+     * Read the `ras.json` icon emoji for the provided workspace root.
+     *
+     * Returns `null` when the project file is absent or declares no emoji.
+     */
+    readonly resolveIconEmoji: (
+      cwd: string,
+    ) => Effect.Effect<string | null, ProjectFaviconResolutionError>;
   }
 >()("ras-code/project/ProjectFaviconResolver") {}
 
@@ -267,7 +276,24 @@ export const make = Effect.gen(function* () {
     return null;
   });
 
-  return ProjectFaviconResolver.of({ resolvePath });
+  const resolveIconEmoji: ProjectFaviconResolver["Service"]["resolveIconEmoji"] = Effect.fn(
+    "ProjectFaviconResolver.resolveIconEmoji",
+  )(function* (cwd) {
+    const projectCwd = yield* workspacePaths.normalizeWorkspaceRoot(cwd).pipe(
+      Effect.mapError(
+        (cause) =>
+          new ProjectFaviconResolutionError({
+            operation: "normalize-workspace",
+            workspaceRoot: cwd,
+            cause,
+          }),
+      ),
+    );
+    const projectFile = yield* projectFileLoader.load(projectCwd);
+    return Option.isSome(projectFile) ? (projectFile.value.iconEmoji ?? null) : null;
+  });
+
+  return ProjectFaviconResolver.of({ resolvePath, resolveIconEmoji });
 });
 
 export const layer = Layer.effect(ProjectFaviconResolver, make);

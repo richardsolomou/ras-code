@@ -53,6 +53,12 @@ describe("RasProjectFile", () => {
     ).toThrow();
   });
 
+  it("decodes a single icon emoji and rejects anything else", () => {
+    expect(decode({ iconEmoji: " \u{1F680} " }).iconEmoji).toBe("\u{1F680}");
+    expect(() => decode({ iconEmoji: "\u{1F680}\u{1F680}" })).toThrow();
+    expect(() => decode({ iconEmoji: "ras" })).toThrow();
+  });
+
   it("decodes defaultThreadEnvMode and rejects unknown modes", () => {
     expect(decode({ defaultThreadEnvMode: "worktree" }).defaultThreadEnvMode).toBe("worktree");
     expect(decode({ defaultThreadEnvMode: "local" }).defaultThreadEnvMode).toBe("local");

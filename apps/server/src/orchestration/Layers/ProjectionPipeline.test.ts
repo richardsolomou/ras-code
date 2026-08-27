@@ -2918,17 +2918,20 @@ engineLayer("OrchestrationProjectionPipeline via engine dispatch", (it) => {
           model: "gpt-5",
         },
         faviconPath: "brand/icon.svg",
+        iconEmoji: "\u{1F680}",
       });
 
       const projectRows = yield* sql<{
         readonly scriptsJson: string;
         readonly defaultModelSelection: string;
         readonly faviconPath: string | null;
+        readonly iconEmoji: string | null;
       }>`
         SELECT
           scripts_json AS "scriptsJson",
           default_model_selection_json AS "defaultModelSelection",
-          favicon_path AS "faviconPath"
+          favicon_path AS "faviconPath",
+          icon_emoji AS "iconEmoji"
         FROM projection_projects
         WHERE project_id = 'project-scripts'
       `;
@@ -2938,6 +2941,7 @@ engineLayer("OrchestrationProjectionPipeline via engine dispatch", (it) => {
             '[{"id":"script-1","name":"Build","command":"bun run build","icon":"build","runOnWorktreeCreate":false}]',
           defaultModelSelection: '{"instanceId":"codex","model":"gpt-5"}',
           faviconPath: "brand/icon.svg",
+          iconEmoji: "\u{1F680}",
         },
       ]);
     }),

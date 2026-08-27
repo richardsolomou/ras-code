@@ -15,12 +15,33 @@ export function ProjectFavicon(input: {
   environmentId: EnvironmentId;
   cwd: string;
   faviconPath?: string | null | undefined;
+  iconEmoji?: string | null | undefined;
+  className?: string | undefined;
+  fallbackIcon?: ComponentType<{ className?: string }>;
+}) {
+  // A saved emoji wins over the file favicon and needs no asset request.
+  if (input.iconEmoji) {
+    return <ProjectFaviconEmoji emoji={input.iconEmoji} className={input.className} />;
+  }
+  return <ProjectFaviconAsset {...input} />;
+}
+
+function ProjectFaviconAsset(input: {
+  environmentId: EnvironmentId;
+  cwd: string;
+  faviconPath?: string | null | undefined;
   className?: string | undefined;
   fallbackIcon?: ComponentType<{ className?: string }>;
 }) {
   const state = useProjectFaviconAsset(input);
   const src = state._tag === "Success" ? state.url : null;
   const FallbackIcon = input.fallbackIcon ?? FolderIcon;
+
+  // The server reports a ras.json emoji alongside the URL for projects that
+  // declare one but have no icon saved in RAS Code.
+  if (state._tag === "Success" && state.iconEmoji) {
+    return <ProjectFaviconEmoji emoji={state.iconEmoji} className={input.className} />;
+  }
 
   if (!src || isProjectFaviconFallbackUrl(src)) {
     return <ProjectFaviconFallback className={input.className} icon={FallbackIcon} />;
@@ -49,6 +70,27 @@ export function useProjectFaviconAsset(input: {
     cwd: input.cwd,
     ...(input.faviconPath ? { path: input.faviconPath } : {}),
   });
+}
+
+function ProjectFaviconEmoji({
+  emoji,
+  className,
+}: {
+  readonly emoji: string;
+  readonly className?: string | undefined;
+}) {
+  return (
+    <span
+      role="img"
+      aria-label="Project icon"
+      className={cn(
+        "inline-flex size-3.5 shrink-0 select-none items-center justify-center leading-none",
+        className,
+      )}
+    >
+      {emoji}
+    </span>
+  );
 }
 
 function ProjectFaviconFallback({

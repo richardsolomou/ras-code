@@ -12,6 +12,7 @@ import {
   deriveProjectGroupingOverrideKey,
   selectProjectGroupingSettings,
 } from "../../logicalProject";
+import { isProjectIconEmoji } from "@ras-code/contracts";
 import type {
   ContextMenuItem,
   ModelSelection,
@@ -365,6 +366,7 @@ function ProjectDetail({ group }: { group: SidebarProjectSnapshot }) {
         defaultModelSelection: ModelSelection | null;
         defaultThreadEnvMode: ThreadEnvMode | null;
         faviconPath: string | null;
+        iconEmoji: string | null;
       }>,
       failureTitle: string,
     ): Promise<AtomCommandResult<void, unknown>> => {
@@ -465,6 +467,26 @@ function ProjectDetail({ group }: { group: SidebarProjectSnapshot }) {
       }
     },
     [updateAllMembers],
+  );
+
+  // ----- icon emoji -----
+  const iconEmoji = representative.iconEmoji ?? null;
+  const [iconEmojiRejected, setIconEmojiRejected] = useState(false);
+  const saveIconEmoji = useCallback(
+    async (value: string) => {
+      const next = value.trim();
+      if (next !== "" && !isProjectIconEmoji(next)) {
+        setIconEmojiRejected(true);
+        return;
+      }
+      setIconEmojiRejected(false);
+      if (next === (iconEmoji ?? "")) return;
+      await updateAllMembers(
+        { iconEmoji: next === "" ? null : next },
+        "Failed to update project emoji",
+      );
+    },
+    [iconEmoji, updateAllMembers],
   );
 
   // ----- checkout selection and scripts -----
@@ -808,6 +830,7 @@ function ProjectDetail({ group }: { group: SidebarProjectSnapshot }) {
                   environmentId={representative.environmentId}
                   cwd={representative.workspaceRoot}
                   faviconPath={faviconPath}
+                  iconEmoji={iconEmoji}
                   className="size-6"
                 />
                 <Button
@@ -821,6 +844,31 @@ function ProjectDetail({ group }: { group: SidebarProjectSnapshot }) {
                   Choose file
                 </Button>
               </div>
+            }
+          />
+          <SettingsRow
+            title="Emoji"
+            description={
+              iconEmojiRejected ? "Enter a single emoji." : "Shown instead of the icon file."
+            }
+            resetAction={
+              iconEmoji !== null ? (
+                <SettingResetButton label="project emoji" onClick={() => void saveIconEmoji("")} />
+              ) : null
+            }
+            control={
+              <Input
+                key={`${group.projectKey}:${iconEmoji ?? ""}`}
+                className="w-full sm:w-24"
+                aria-label="Project emoji"
+                aria-invalid={iconEmojiRejected || undefined}
+                defaultValue={iconEmoji ?? ""}
+                onChange={() => setIconEmojiRejected(false)}
+                onBlur={(event) => void saveIconEmoji(event.currentTarget.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") event.currentTarget.blur();
+                }}
+              />
             }
           />
         </SettingsSection>

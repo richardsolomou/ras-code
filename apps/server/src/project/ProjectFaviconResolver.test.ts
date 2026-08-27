@@ -402,4 +402,26 @@ it.layer(TestLayer)("ProjectFaviconResolverLive", (it) => {
       }),
     );
   });
+
+  describe("resolveIconEmoji", () => {
+    it.effect("reads the ras.json icon emoji", () =>
+      Effect.gen(function* () {
+        const resolver = yield* ProjectFaviconResolver.ProjectFaviconResolver;
+        const cwd = yield* makeTempDir;
+        yield* writeTextFile(cwd, "ras.json", '{ "iconEmoji": "\u{1F680}" }');
+
+        expect(yield* resolver.resolveIconEmoji(cwd)).toBe("\u{1F680}");
+      }),
+    );
+
+    it.effect("returns null without a ras.json icon emoji", () =>
+      Effect.gen(function* () {
+        const resolver = yield* ProjectFaviconResolver.ProjectFaviconResolver;
+        const cwd = yield* makeTempDir;
+        yield* writeTextFile(cwd, "ras.json", '{ "iconPath": "brand/mark.svg" }');
+
+        expect(yield* resolver.resolveIconEmoji(cwd)).toBeNull();
+      }),
+    );
+  });
 });

@@ -1016,6 +1016,33 @@ it.effect("project favicon overrides accept only supported image files", () =>
   }),
 );
 
+it.effect("project icon emoji accepts one emoji grapheme and rejects anything else", () =>
+  Effect.gen(function* () {
+    const valid = yield* decodeOrchestrationCommand({
+      type: "project.meta.update",
+      commandId: "cmd-project-emoji",
+      projectId: "project-1",
+      iconEmoji: " \u{1F469}\u{1F3FD}\u200D\u{1F680} ",
+    });
+    assert.strictEqual(
+      valid.type === "project.meta.update" ? valid.iconEmoji : null,
+      "\u{1F469}\u{1F3FD}\u200D\u{1F680}",
+    );
+
+    for (const iconEmoji of ["ab", "\u{1F680}\u{1F680}", "\u{1F680}x"]) {
+      const invalid = yield* Effect.exit(
+        decodeOrchestrationCommand({
+          type: "project.meta.update",
+          commandId: "cmd-project-emoji-invalid",
+          projectId: "project-1",
+          iconEmoji,
+        }),
+      );
+      assert.strictEqual(invalid._tag, "Failure");
+    }
+  }),
+);
+
 it("isProviderSendTurnSupportedImageMimeType accepts raster formats and rejects svg", () => {
   assert.strictEqual(isProviderSendTurnSupportedImageMimeType("image/png"), true);
   assert.strictEqual(isProviderSendTurnSupportedImageMimeType("IMAGE/JPEG"), true);

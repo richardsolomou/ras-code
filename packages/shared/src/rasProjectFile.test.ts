@@ -36,11 +36,13 @@ describe("buildRasProjectFileJsonSchema", () => {
     expect(Object.keys(schema.properties).sort()).toEqual([
       "$schema",
       "defaultThreadEnvMode",
+      "iconEmoji",
       "iconPath",
       "scripts",
     ]);
     expect(schema.required).toBeUndefined();
     expect(schema.properties.iconPath?.description).toContain("Workspace-relative path");
+    expect(schema.properties.iconEmoji?.description).toContain("Single emoji");
     expect(schema.properties.defaultThreadEnvMode?.description).toContain("new threads start");
 
     const script = schema.properties.scripts?.items;

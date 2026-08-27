@@ -14,3 +14,22 @@ RAS Code supports SVG, PNG, ICO, JPEG, GIF, AVIF, and WebP files. The selected p
 each checkout in the project group and appears on your connected clients.
 
 To use automatic detection again, select **Automatic**.
+
+## Use an emoji
+
+To show an emoji instead of an icon file:
+
+1. Open **Settings** and select **Projects**.
+2. Select the project.
+3. In the **Emoji** box, type or paste one emoji.
+
+The emoji replaces the icon file everywhere the project appears. Clear the box to show the icon
+file again.
+
+A project can also declare its emoji in `ras.json`:
+
+```json
+{ "iconEmoji": "🚀" }
+```
+
+RAS Code uses the `ras.json` emoji when the project has no emoji set in **Settings**.

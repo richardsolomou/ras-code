@@ -176,6 +176,7 @@ function projectFavicon(project: Project) {
       environmentId={project.environmentId}
       cwd={project.workspaceRoot}
       faviconPath={project.faviconPath}
+      iconEmoji={project.iconEmoji}
       className={ITEM_ICON_CLASS}
     />
   );
@@ -872,6 +873,10 @@ function OpenCommandPaletteDialog(props: {
     () => new Map(projects.map((project) => [project.id, project.faviconPath ?? null] as const)),
     [projects],
   );
+  const projectIconEmojiById = useMemo(
+    () => new Map(projects.map((project) => [project.id, project.iconEmoji ?? null] as const)),
+    [projects],
+  );
   const projectTitleById = useMemo(
     () => new Map<ProjectId, string>(projects.map((project) => [project.id, project.title])),
     [projects],
@@ -1103,6 +1108,7 @@ function OpenCommandPaletteDialog(props: {
               environmentId={thread.environmentId}
               projectCwd={projectCwdById.get(thread.projectId) ?? null}
               projectFaviconPath={projectFaviconPathById.get(thread.projectId) ?? null}
+              projectIconEmoji={projectIconEmojiById.get(thread.projectId) ?? null}
               projectTitle={projectTitle ?? null}
               branch={thread.branch}
               worktreePath={thread.worktreePath}
@@ -1142,6 +1148,7 @@ function OpenCommandPaletteDialog(props: {
       navigate,
       projectCwdById,
       projectFaviconPathById,
+      projectIconEmojiById,
       projectTitleById,
       providerEntryByEnvironmentAndInstanceId,
       threadContentMatchByKey,

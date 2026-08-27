@@ -2,7 +2,7 @@ import * as Schema from "effect/Schema";
 import * as SchemaTransformation from "effect/SchemaTransformation";
 
 import { ThreadEnvMode } from "./environment.ts";
-import { ProjectScriptIcon } from "./orchestration.ts";
+import { ProjectIconEmoji, ProjectScriptIcon } from "./orchestration.ts";
 
 /** File name of the checked-in RAS Code project file, resolved at the workspace root. */
 export const RAS_PROJECT_FILE_NAME = "ras.json";
@@ -74,6 +74,12 @@ export const RasProjectFile = Schema.Struct({
       },
       RAS_PROJECT_FILE_PATH_MAX_LENGTH,
     ),
+  ),
+  iconEmoji: Schema.optionalKey(
+    Schema.String.annotate({
+      description:
+        'Single emoji used as the project icon (e.g. "\u{1F680}"). Takes precedence over `iconPath` when RAS Code has no per-project icon saved.',
+    }).pipe(Schema.decodeTo(ProjectIconEmoji, SchemaTransformation.trim())),
   ),
   defaultThreadEnvMode: Schema.optionalKey(
     ThreadEnvMode.annotate({

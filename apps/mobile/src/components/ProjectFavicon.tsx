@@ -1,7 +1,7 @@
 import { SymbolView } from "./AppSymbol";
 import { Image } from "expo-image";
 import { useLayoutEffect, useMemo, useState } from "react";
-import { View } from "react-native";
+import { Text, View } from "react-native";
 import type { EnvironmentId } from "@ras-code/contracts";
 import {
   getProjectFaviconCacheKey,
@@ -25,11 +25,12 @@ export function ProjectFavicon(props: {
   readonly projectTitle: string;
   readonly workspaceRoot?: string | null;
   readonly faviconPath?: string | null;
+  readonly iconEmoji?: string | null;
 }) {
   const size = props.size ?? 42;
   const faviconUrl = useAssetUrl(
     props.environmentId,
-    props.workspaceRoot === null || props.workspaceRoot === undefined
+    props.iconEmoji || props.workspaceRoot === null || props.workspaceRoot === undefined
       ? null
       : {
           _tag: "project-favicon",
@@ -37,6 +38,27 @@ export function ProjectFavicon(props: {
           ...(props.faviconPath ? { path: props.faviconPath } : {}),
         },
   );
+  if (props.iconEmoji) {
+    return (
+      <View
+        style={{
+          width: size,
+          height: size,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Text
+          accessibilityRole="image"
+          accessibilityLabel={`${props.projectTitle} icon`}
+          style={{ fontSize: size * 0.64, lineHeight: size * 0.8 }}
+        >
+          {props.iconEmoji}
+        </Text>
+      </View>
+    );
+  }
+
   const renderableFaviconUrl = isProjectFaviconFallbackUrl(faviconUrl) ? null : faviconUrl;
   const cacheKey =
     renderableFaviconUrl && props.workspaceRoot

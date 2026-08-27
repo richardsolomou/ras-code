@@ -135,6 +135,47 @@ it.layer(NodeServices.layer)("decider project scripts", (it) => {
     }),
   );
 
+  it.effect("propagates a project icon emoji in project.meta.update", () =>
+    Effect.gen(function* () {
+      const now = "2026-01-01T00:00:00.000Z";
+      const readModel = yield* projectEvent(createEmptyReadModel(now), {
+        sequence: 1,
+        eventId: asEventId("evt-project-create-emoji"),
+        aggregateKind: "project",
+        aggregateId: asProjectId("project-emoji"),
+        type: "project.created",
+        occurredAt: now,
+        commandId: CommandId.make("cmd-project-create-emoji"),
+        causationEventId: null,
+        correlationId: CommandId.make("cmd-project-create-emoji"),
+        metadata: {},
+        payload: {
+          projectId: asProjectId("project-emoji"),
+          title: "Emoji",
+          workspaceRoot: "/tmp/emoji",
+          defaultModelSelection: null,
+          scripts: [],
+          createdAt: now,
+          updatedAt: now,
+        },
+      });
+
+      const result = yield* decideOrchestrationCommand({
+        command: {
+          type: "project.meta.update",
+          commandId: CommandId.make("cmd-project-update-emoji"),
+          projectId: asProjectId("project-emoji"),
+          iconEmoji: "\u{1F680}",
+        },
+        readModel,
+      });
+
+      const event = Array.isArray(result) ? result[0] : result;
+      expect(event.type).toBe("project.meta-updated");
+      expect((event.payload as { iconEmoji?: string }).iconEmoji).toBe("\u{1F680}");
+    }),
+  );
+
   it.effect("rejects project.create for an active workspace root that already exists", () =>
     Effect.gen(function* () {
       const now = "2026-01-01T00:00:00.000Z";

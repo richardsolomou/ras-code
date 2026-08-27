@@ -82,11 +82,14 @@ function resolveImageComponent(): {
   readonly Component: (props: ProjectFaviconImageProps) => ProjectFaviconImageElement;
   readonly props: ProjectFaviconImageProps;
 } {
-  hooks.beginRender();
-  const element = ProjectFavicon({
+  const asset = ProjectFavicon({
     environmentId: "environment-test" as EnvironmentId,
     cwd: "/workspace-test",
-  }) as ReactElement<ProjectFaviconImageProps>;
+  }) as ReactElement<{ readonly environmentId: EnvironmentId; readonly cwd: string }>;
+  hooks.beginRender();
+  const element = (
+    asset.type as (props: typeof asset.props) => ReactElement<ProjectFaviconImageProps>
+  )(asset.props);
   hooks.reset();
 
   return {
@@ -106,6 +109,18 @@ function renderImage(
 describe("ProjectFavicon", () => {
   beforeEach(() => {
     hooks.reset();
+  });
+
+  it("renders a saved emoji instead of requesting the favicon asset", () => {
+    testState.lastResource = null;
+    const element = ProjectFavicon({
+      environmentId: "environment-test" as EnvironmentId,
+      cwd: "/workspace-test",
+      iconEmoji: "\u{1F680}",
+    }) as ReactElement<{ readonly emoji: string }>;
+
+    expect(element.props.emoji).toBe("\u{1F680}");
+    expect(testState.lastResource).toBeNull();
   });
 
   it("falls back when the displayed favicon fails without discarding a valid older image early", () => {
@@ -131,11 +146,13 @@ describe("ProjectFavicon", () => {
   });
 
   it("requests a saved favicon path when one is set", () => {
-    ProjectFavicon({
+    const asset = ProjectFavicon({
       environmentId: "environment-test" as EnvironmentId,
       cwd: "/workspace-test",
       faviconPath: "brand/icon.svg",
-    });
+    }) as ReactElement<{ readonly cwd: string }>;
+    hooks.beginRender();
+    (asset.type as (props: typeof asset.props) => unknown)(asset.props);
 
     expect(testState.lastResource).toEqual({
       _tag: "project-favicon",

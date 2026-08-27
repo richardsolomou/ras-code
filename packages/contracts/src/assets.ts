@@ -5,6 +5,7 @@ import {
   PROVIDER_SEND_TURN_MAX_IMAGE_BYTES,
   PROVIDER_SEND_TURN_SUPPORTED_IMAGE_MIME_TYPES,
   ProjectFaviconPath,
+  ProjectIconEmoji,
 } from "./orchestration.ts";
 
 const ASSET_PATH_MAX_LENGTH = 1024;
@@ -37,6 +38,9 @@ export const AssetCreateUrlResult = Schema.Struct({
   sourcePath: Schema.optional(
     TrimmedNonEmptyString.check(Schema.isMaxLength(ASSET_PATH_MAX_LENGTH)),
   ),
+  // Project favicons only: the emoji a workspace declares in ras.json, used
+  // when the project has no icon saved in RAS Code.
+  iconEmoji: Schema.optional(ProjectIconEmoji),
 });
 export type AssetCreateUrlResult = typeof AssetCreateUrlResult.Type;
 

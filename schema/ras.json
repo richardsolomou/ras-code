@@ -19,6 +19,10 @@
         }
       ]
     },
+    "iconEmoji": {
+      "type": "string",
+      "description": "Single emoji used as the project icon (e.g. \"🚀\"). Takes precedence over `iconPath` when RAS Code has no per-project icon saved."
+    },
     "defaultThreadEnvMode": {
       "type": "string",
       "enum": ["local", "worktree"],

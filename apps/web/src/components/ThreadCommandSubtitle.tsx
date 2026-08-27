@@ -38,6 +38,7 @@ export function ThreadCommandSubtitle(props: {
   environmentId: EnvironmentId;
   projectCwd: string | null;
   projectFaviconPath?: string | null;
+  projectIconEmoji?: string | null;
   projectTitle: string | null;
   branch: string | null;
   worktreePath: string | null;
@@ -73,6 +74,7 @@ export function ThreadCommandSubtitle(props: {
               environmentId={props.environmentId}
               cwd={props.projectCwd}
               faviconPath={props.projectFaviconPath}
+              iconEmoji={props.projectIconEmoji}
               className="size-3 shrink-0"
             />
           ) : null}
