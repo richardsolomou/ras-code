@@ -1,120 +1,76 @@
-# T3 Code
+<div align="center">
 
-T3 Code is an "agent harness control surface". It enables control of the agents on your machine with a best-in-class mobile app ([iOS](https://apps.apple.com/us/app/t3-code-remote-claude-more/id6787819824), [Android](https://play.google.com/store/apps/details?id=com.t3tools.t3code)), [web app](https://app.t3.codes) and [Electron-based desktop app](https://t3.codes).
+<img src="assets/prod/logo.svg" width="96" height="96" alt="RAS Code logo">
 
-Works with your subscriptions on Claude Code, Codex, Cursor, Grok Build, and OpenCode. If they're set up on your computer, T3 Code can control them.
+# RAS Code
 
-## "Wait, what are you selling me?"
+**An opinionated control surface for the coding agents on your machine.**
 
-Nothing. We built T3 Code because we wanted the best possible development experience with agents. We were inspired by existing solutions like the Codex desktop app, Conductor, Claude Desktop and Cursor Glass, but none met our bar.
+[![Build](https://img.shields.io/github/actions/workflow/status/richardsolomou/ras-code/ci.yml?branch=main)](https://github.com/richardsolomou/ras-code/actions/workflows/ci.yml) [![License](https://img.shields.io/github/license/richardsolomou/ras-code)](LICENSE)
 
-We wanted something performant, remote-ready, and truly open. If we ever go the wrong direction, we want you to have everything you need to fork and build the editor that you want.
+</div>
 
-## Installation
+## Product
 
-> [!WARNING]
-> T3 Code currently supports Codex, Claude, Cursor, Grok Build and OpenCode. Install and authenticate at least one provider before use:
->
-> - Codex: install [Codex CLI](https://developers.openai.com/codex/cli) and run `codex login`
-> - Claude: install [Claude Code](https://claude.com/product/claude-code) and run `claude auth login`
-> - Cursor: install [Cursor CLI](https://cursor.com/cli) and run `agent login`
-> - Grok Build: install [Grok Build CLI](https://x.ai/cli) and run `grok login`
-> - OpenCode: install [OpenCode](https://opencode.ai) and run `opencode auth login`
+RAS Code brings the best parts of [T3 Code](https://github.com/pingdotgg/t3code), [Conductor](https://conductor.build), and [PostHog Desktop](https://posthog.com) into one project. It runs the agent CLIs you already pay for — Claude Code, Codex, Cursor, Grok Build, and OpenCode — and gives you one place to direct them from a desktop app, a browser, or your phone.
 
-### Try it out (install-free)
+You can:
 
-The easiest way to test T3 Code is to run the server in your terminal (requires Node.js 22.16+, 23.11+, or 24.10+):
+- Run several agents in parallel, each in its own git worktree, and review their diffs before you merge.
+- Drive the same session from the desktop app, the web app, or the official T3 Code mobile app.
+- Reach your machine remotely over your local network, Tailscale, or a tunnel.
+- Restore any turn from its checkpoint when an agent goes wrong.
 
-```bash
-npx t3@latest
-```
+The server is event-sourced: clients send typed commands, a pure decider turns them into events, and a projector derives the state the UI renders. Provider CLIs run as subprocesses behind per-provider adapters.
 
-This will launch T3 Code's backend on your machine as well as the local web app to control your agents.
+## Scope
 
-Tip: Use `npx t3@latest --help` for the full CLI reference.
+RAS Code is a personal, opinionated fork. It tracks upstream T3 Code and merges its releases, so it stays compatible with the official T3 Code mobile app and keeps the T3 Code wire contracts as an append-only API. It does not ship its own mobile app or hosted service.
 
-### Desktop app
+## Use
 
-Install the latest version of the desktop app from [GitHub Releases](https://github.com/pingdotgg/t3code/releases), or from your favorite package registry:
+Install and authenticate at least one provider first:
 
-#### Windows (`winget`)
+- Codex: install [Codex CLI](https://developers.openai.com/codex/cli) and run `codex login`
+- Claude: install [Claude Code](https://claude.com/product/claude-code) and run `claude auth login`
+- Cursor: install [Cursor CLI](https://cursor.com/cli) and run `agent login`
+- Grok Build: install [Grok Build CLI](https://x.ai/cli) and run `grok login`
+- OpenCode: install [OpenCode](https://opencode.ai) and run `opencode auth login`
 
-```bash
-winget install T3Tools.T3Code
-```
+Build the desktop app or run the server from source (see Development). Pair a browser or the mobile app with the pairing URL the server prints on start.
 
-#### macOS (Homebrew)
+User guides live in [docs/user](docs/user): [install](docs/user/install.md), [remote access](docs/user/remote-access.md), [keyboard shortcuts](docs/user/keybindings.md), [permission modes](docs/user/permission-modes.md), [source control](docs/user/source-control.md).
 
-```bash
-brew install --cask t3-code
-```
+## Development
 
-#### Arch Linux (AUR)
+Development requires Node 24.x, pnpm 11.10.0, and the [Vite+](https://viteplus.dev/guide/) `vp` CLI.
 
-Stable:
-
-```bash
-yay -S t3code-bin
-```
-
-Nightly:
-
-```bash
-yay -S t3code-nightly-bin
-```
-
-The AUR packaging is maintained in this repository under [`packaging/aur`](./packaging/aur).
-
-## Some notes
-
-We are very very early in this project. Expect bugs.
-
-We are (mostly) not accepting contributions yet. Small fixes may be considered. Big features will not be.
-
-## Documentation
-
-Full docs live in [docs/](./docs). There's no docs site yet.
-
-- [Install and first run](./docs/user/install.md)
-- [Permission modes](./docs/user/permission-modes.md)
-- [Keyboard shortcuts](./docs/user/keybindings.md)
-- [Customize a project icon](./docs/user/project-settings.md)
-- [Remote access from a phone or another machine](./docs/user/remote-access.md)
-- [Keeping app and server in sync](./docs/user/updating.md)
-- [Source control integrations](./docs/user/source-control.md)
-- Multiple accounts: [Codex](./docs/user/providers-codex.md) · [Claude](./docs/user/providers-claude.md)
-- Linux: [run T3 Code as a background service](./docs/user/background-service.md)
-
-Building from source? Start at [docs/internals/overview.md](./docs/internals/overview.md).
-
-## If you REALLY want to contribute still.... read this first
-
-### Install `vp`
-
-T3 Code uses Vite+ so you'll need to install the global `vp` command-line tool.
-
-#### macOS / Linux
-
-```bash
-curl -fsSL https://vite.plus | bash
-```
-
-#### Windows
-
-```bash
-irm https://vite.plus/ps1 | iex
-```
-
-Checkout their getting started guide for more information: https://viteplus.dev/guide/
-
-### Install dependencies
-
-```bash
+```sh
 vp i
+vp run dev
 ```
 
-Read [CONTRIBUTING.md](./CONTRIBUTING.md) before reporting a bug or opening a PR.
+`vp run dev` starts the server and web app; `vp run dev:desktop` starts the Electron shell. Run `vp check` before you submit a change. Read [CONTRIBUTING.md](CONTRIBUTING.md) for setup and test details. Read [AGENTS.md](AGENTS.md) for architecture rules.
 
-Have a feature request? Start an [Ideas discussion](https://github.com/pingdotgg/t3code/discussions/categories/ideas).
+To sync with upstream:
 
-Need support? Join the [Discord](https://discord.gg/jn4EGJjrvv).
+```sh
+git fetch upstream
+git merge upstream/main
+```
+
+## Architecture
+
+- `apps/server` contains the WebSocket server, orchestration, provider adapters, and checkpointing.
+- `apps/web` contains the React UI; `apps/desktop` wraps it in Electron; `apps/mobile` is the React Native app.
+- `packages/contracts` contains the Effect Schema wire contracts shared by every surface.
+- `packages/client-runtime` contains client logic shared by web and mobile.
+- `packages/shared` contains runtime utilities shared by server and clients.
+
+See [docs/internals/overview.md](docs/internals/overview.md) for the full picture.
+
+## Credits and license
+
+RAS Code is a fork of [T3 Code](https://github.com/pingdotgg/t3code) by Ping Labs. T3 Code and T3 are marks of Ping Labs; RAS Code is unofficial and is not endorsed by them.
+
+RAS Code is licensed under the [MIT License](LICENSE).
