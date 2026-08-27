@@ -23,7 +23,7 @@ import {
   ServerSettings,
   ServerSettingsError,
   type ServerSettingsPatch,
-} from "@t3tools/contracts";
+} from "@ras-code/contracts";
 import * as Cache from "effect/Cache";
 import * as Cause from "effect/Cause";
 import * as Context from "effect/Context";
@@ -45,15 +45,15 @@ import * as Stream from "effect/Stream";
 import * as SqlClient from "effect/unstable/sql/SqlClient";
 import { writeFileStringAtomically } from "./atomicWrite.ts";
 import * as ServerConfig from "./config.ts";
-import { type DeepPartial, deepMerge } from "@t3tools/shared/Struct";
-import { fromJsonStringPretty, fromLenientJson } from "@t3tools/shared/schemaJson";
+import { type DeepPartial, deepMerge } from "@ras-code/shared/Struct";
+import { fromJsonStringPretty, fromLenientJson } from "@ras-code/shared/schemaJson";
 import {
   applyServerSettingsPatch,
   isModelSelectionProviderEnabled,
-} from "@t3tools/shared/serverSettings";
+} from "@ras-code/shared/serverSettings";
 import * as ServerSecretStore from "./auth/ServerSecretStore.ts";
 
-export { resolveSourceControlWriterModelSelection } from "@t3tools/shared/serverSettings";
+export { resolveSourceControlWriterModelSelection } from "@ras-code/shared/serverSettings";
 
 const encodeServerSettings = Schema.encodeEffect(ServerSettings);
 const encodeServerSettingsJson = Schema.encodeUnknownEffect(fromJsonStringPretty(ServerSettings));
@@ -189,7 +189,7 @@ export class ServerSettingsService extends Context.Service<
      */
     readonly subscribeChanges: Effect.Effect<Stream.Stream<ServerSettings>, never, Scope.Scope>;
   }
->()("t3/serverSettings/ServerSettingsService") {
+>()("ras-code/serverSettings/ServerSettingsService") {
   /** @deprecated Import and use `layerTest` from this module. */
   static readonly layerTest = (overrides: DeepPartial<ServerSettings> = {}) => layerTest(overrides);
 }

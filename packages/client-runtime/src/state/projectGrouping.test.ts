@@ -1,4 +1,4 @@
-import { EnvironmentId, ProjectId } from "@t3tools/contracts";
+import { EnvironmentId, ProjectId } from "@ras-code/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import type { EnvironmentProject } from "./models.ts";
@@ -10,16 +10,16 @@ import {
 
 const environmentId = EnvironmentId.make("environment");
 const repositoryIdentity = {
-  canonicalKey: "github.com/t3tools/t3code",
+  canonicalKey: "github.com/t3tools/ras-code",
   locator: {
     source: "git-remote" as const,
     remoteName: "upstream",
-    remoteUrl: "https://github.com/t3tools/t3code.git",
+    remoteUrl: "https://github.com/t3tools/ras-code.git",
   },
   provider: "github",
   owner: "t3tools",
-  name: "t3code",
-  displayName: "T3 Code",
+  name: "ras-code",
+  displayName: "RAS Code",
 };
 
 function makeProject(
@@ -54,18 +54,18 @@ function settings(
 describe("buildProjectGroups", () => {
   it("preserves every physical clone as a selectable member in repository modes", () => {
     const projects = [
-      makeProject("t3code", "/work/t3code"),
-      makeProject("t3code-2", "/work/t3code-2"),
-      makeProject("t3code-3", "/work/t3code-3"),
+      makeProject("ras-code", "/work/t3code"),
+      makeProject("ras-code-2", "/work/t3code-2"),
+      makeProject("ras-code-3", "/work/t3code-3"),
     ];
 
     for (const mode of ["repository", "repository_path"] as const) {
       const groups = buildProjectGroups({ projects, settings: settings(mode) });
       expect(groups).toHaveLength(1);
       expect(groups[0]?.members.map((member) => member.project.id)).toEqual([
-        "t3code",
-        "t3code-2",
-        "t3code-3",
+        "ras-code",
+        "ras-code-2",
+        "ras-code-3",
       ]);
       expect(groups[0]?.memberProjectRefs).toHaveLength(3);
     }
@@ -84,32 +84,32 @@ describe("buildProjectGroups", () => {
 
   it("keeps the repository label when shared titles match its repository name", () => {
     const projects = [
-      makeProject("first", "/work/t3code", { title: "t3code" }),
-      makeProject("second", "/work/t3code-2", { title: "t3code" }),
+      makeProject("first", "/work/t3code", { title: "ras-code" }),
+      makeProject("second", "/work/t3code-2", { title: "ras-code" }),
     ];
 
     expect(buildProjectGroups({ projects, settings: settings("repository") })[0]?.label).toBe(
-      "T3 Code",
+      "RAS Code",
     );
   });
 
   it("keeps physical clones in separate groups when requested", () => {
     const projects = [
-      makeProject("t3code", "/work/t3code"),
-      makeProject("t3code-2", "/work/t3code-2"),
-      makeProject("t3code-3", "/work/t3code-3"),
+      makeProject("ras-code", "/work/t3code"),
+      makeProject("ras-code-2", "/work/t3code-2"),
+      makeProject("ras-code-3", "/work/t3code-3"),
     ];
 
     const groups = buildProjectGroups({ projects, settings: settings("separate") });
     expect(groups).toHaveLength(3);
     expect(groups.flatMap((group) => group.members)).toHaveLength(3);
-    expect(groups.map((group) => group.label)).toEqual(["t3code", "t3code-2", "t3code-3"]);
+    expect(groups.map((group) => group.label)).toEqual(["ras-code", "ras-code-2", "ras-code-3"]);
   });
 
   it("applies a physical-project override without dropping its siblings", () => {
-    const first = makeProject("t3code", "/work/t3code");
-    const second = makeProject("t3code-2", "/work/t3code-2");
-    const third = makeProject("t3code-3", "/work/t3code-3");
+    const first = makeProject("ras-code", "/work/t3code");
+    const second = makeProject("ras-code-2", "/work/t3code-2");
+    const third = makeProject("ras-code-3", "/work/t3code-3");
     const groups = buildProjectGroups({
       projects: [first, second, third],
       settings: settings("repository", {
@@ -119,9 +119,9 @@ describe("buildProjectGroups", () => {
 
     expect(groups).toHaveLength(2);
     expect(groups.flatMap((group) => group.members.map((member) => member.project.id))).toEqual([
-      "t3code",
-      "t3code-3",
-      "t3code-2",
+      "ras-code",
+      "ras-code-3",
+      "ras-code-2",
     ]);
   });
 

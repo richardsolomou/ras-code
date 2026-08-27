@@ -4,8 +4,8 @@
  *
  * @module usageChartData
  */
-import type { UsageProviderKind } from "@t3tools/contracts";
-import type { DailyTotals } from "@t3tools/shared/usageMerge";
+import type { UsageProviderKind } from "@ras-code/contracts";
+import type { DailyTotals } from "@ras-code/shared/usageMerge";
 
 import { PROVIDER_ORDER } from "./usageProviders";
 

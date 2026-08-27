@@ -1,0 +1,10 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["RasCodeReviewDiffModule"],
+    "podspecPath": "RasCodeReviewDiffNative.podspec"
+  },
+  "android": {
+    "modules": ["expo.modules.ras_code.reviewdiff.RasCodeReviewDiffModule"]
+  }
+}

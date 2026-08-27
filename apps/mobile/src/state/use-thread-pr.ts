@@ -1,8 +1,8 @@
-import type { EnvironmentThreadShell } from "@t3tools/client-runtime/state/shell";
+import type { EnvironmentThreadShell } from "@ras-code/client-runtime/state/shell";
 import {
   createLinkedPullRequestDetailAtomFamily,
   pullRequestDetailToVcsStatus,
-} from "@t3tools/client-runtime/state/pull-requests";
+} from "@ras-code/client-runtime/state/pull-requests";
 
 import { connectionAtomRuntime } from "../connection/runtime";
 import { useEnvironmentQuery } from "./query";

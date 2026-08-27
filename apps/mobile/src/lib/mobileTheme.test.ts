@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
 import * as NodeFS from "node:fs";
 
-import { BUILT_IN_THEME_IDS, BUILT_IN_THEMES } from "@t3tools/shared/themePalettes";
+import { BUILT_IN_THEME_IDS, BUILT_IN_THEMES } from "@ras-code/shared/themePalettes";
 import { DEFAULT_MOBILE_THEME_VARIABLES } from "./mobileDefaultTheme";
 
 import {
@@ -129,11 +129,11 @@ describe("mobile themes", () => {
   });
 
   it("changes either theme without switching the active appearance", () => {
-    const themeIds = { light: "t3-chat", dark: "grove" } as const;
+    const themeIds = { light: "ras-code", dark: "grove" } as const;
     expect(createMobileThemeSelectionPatch(themeIds, "light", "dark", "ocean")).toEqual({
-      lightThemeId: "t3-chat",
+      lightThemeId: "ras-code",
       darkThemeId: "ocean",
-      themeId: "t3-chat",
+      themeId: "ras-code",
     });
     expect(createMobileThemeSelectionPatch(themeIds, "light", "light", "iris")).toEqual({
       lightThemeId: "iris",

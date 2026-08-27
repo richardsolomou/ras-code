@@ -14,10 +14,10 @@ import * as Option from "effect/Option";
 
 import * as Electron from "electron";
 
-import * as NetService from "@t3tools/shared/Net";
-import { HostProcessArchitecture, HostProcessPlatform } from "@t3tools/shared/hostProcess";
-import { resolveRemoteT3CliPackageSpec } from "@t3tools/ssh/command";
-import type { RemoteT3RunnerOptions } from "@t3tools/ssh/tunnel";
+import * as NetService from "@ras-code/shared/Net";
+import { HostProcessArchitecture, HostProcessPlatform } from "@ras-code/shared/hostProcess";
+import { resolveRemoteRasCodeCliPackageSpec } from "@ras-code/ssh/command";
+import type { RemoteRasCodeRunnerOptions } from "@ras-code/ssh/tunnel";
 import serverPackageJson from "../../server/package.json" with { type: "json" };
 
 import * as DesktopIpc from "./ipc/DesktopIpc.ts";
@@ -84,8 +84,8 @@ const desktopEnvironmentLayer = Layer.unwrap(
 const resolveDesktopSshCliRunner = (
   environment: DesktopEnvironment.DesktopEnvironment["Service"],
   settings: DesktopAppSettings.DesktopSettings,
-): RemoteT3RunnerOptions => {
-  const devRemoteEntryPath = Option.getOrUndefined(environment.devRemoteT3ServerEntryPath);
+): RemoteRasCodeRunnerOptions => {
+  const devRemoteEntryPath = Option.getOrUndefined(environment.devRemoteServerEntryPath);
   if (environment.isDevelopment && devRemoteEntryPath !== undefined) {
     return {
       nodeScriptPath: devRemoteEntryPath,
@@ -93,7 +93,7 @@ const resolveDesktopSshCliRunner = (
     };
   }
   return {
-    packageSpec: resolveRemoteT3CliPackageSpec({
+    packageSpec: resolveRemoteRasCodeCliPackageSpec({
       appVersion: environment.appVersion,
       updateChannel: settings.updateChannel,
       isDevelopment: environment.isDevelopment,

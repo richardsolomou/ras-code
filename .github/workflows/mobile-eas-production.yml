@@ -76,7 +76,7 @@ concurrency:
 jobs:
   production:
     name: EAS Production ${{ github.event_name == 'push' && 'auto' || inputs.mode }}
-    runs-on: blacksmith-8vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     permissions:
       contents: read
     env:
@@ -123,7 +123,7 @@ jobs:
           cache: true
           run-install: |
             args:
-              - --filter=@t3tools/mobile...
+              - --filter=@ras-code/mobile...
 
       - name: Expose pnpm
         if: steps.expo-token.outputs.present == 'true'

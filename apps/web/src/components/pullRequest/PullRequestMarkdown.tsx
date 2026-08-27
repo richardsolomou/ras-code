@@ -1,5 +1,5 @@
 import { ExternalLinkIcon, PaperclipIcon, PlayIcon } from "lucide-react";
-import type { EnvironmentId } from "@t3tools/contracts";
+import type { EnvironmentId } from "@ras-code/contracts";
 
 import { cn } from "~/lib/utils";
 

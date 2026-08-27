@@ -1,4 +1,4 @@
-import { ThreadId } from "@t3tools/contracts";
+import { ThreadId } from "@ras-code/contracts";
 import { describe, expect, it } from "@effect/vitest";
 
 import {

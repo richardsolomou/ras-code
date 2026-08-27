@@ -14,7 +14,7 @@ import type {
   OrchestrationClientOrigin,
   OrchestrationCommand,
   OrchestrationEvent,
-} from "@t3tools/contracts";
+} from "@ras-code/contracts";
 import * as Context from "effect/Context";
 import type * as Effect from "effect/Effect";
 import type * as Stream from "effect/Stream";
@@ -86,4 +86,4 @@ export interface OrchestrationEngineShape {
 export class OrchestrationEngineService extends Context.Service<
   OrchestrationEngineService,
   OrchestrationEngineShape
->()("t3/orchestration/Services/OrchestrationEngine/OrchestrationEngineService") {}
+>()("ras-code/orchestration/Services/OrchestrationEngine/OrchestrationEngineService") {}

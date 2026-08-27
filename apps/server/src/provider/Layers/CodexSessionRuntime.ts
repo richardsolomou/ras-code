@@ -16,9 +16,9 @@ import {
   RuntimeMode,
   ThreadId,
   TurnId,
-} from "@t3tools/contracts";
-import { resolveSpawnCommand } from "@t3tools/shared/shell";
-import { normalizeModelSlug } from "@t3tools/shared/model";
+} from "@ras-code/contracts";
+import { resolveSpawnCommand } from "@ras-code/shared/shell";
+import { normalizeModelSlug } from "@ras-code/shared/model";
 import * as Crypto from "effect/Crypto";
 import * as DateTime from "effect/DateTime";
 import * as Deferred from "effect/Deferred";
@@ -400,7 +400,7 @@ export function describeMcpElicitation(
   };
 }
 
-/** Converts a T3 approval decision into the MCP elicitation wire response. */
+/** Converts a RAS Code approval decision into the MCP elicitation wire response. */
 export function toMcpElicitationResponse(
   payload: EffectCodexSchema.McpServerElicitationRequestParams,
   decision: ProviderApprovalDecision,

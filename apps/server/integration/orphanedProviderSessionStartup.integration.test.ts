@@ -8,7 +8,7 @@ import {
   ProviderDriverKind,
   ProviderInstanceId,
   ThreadId,
-} from "@t3tools/contracts";
+} from "@ras-code/contracts";
 import { assert, it } from "@effect/vitest";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
@@ -352,7 +352,7 @@ it.effect(
     }).pipe(
       Effect.provide(
         ServerConfig.layerTest(process.cwd(), {
-          prefix: "t3-orphaned-provider-session-startup-",
+          prefix: "ras-code-orphaned-provider-session-startup-",
         }).pipe(Layer.provideMerge(NodeServices.layer)),
       ),
     ),

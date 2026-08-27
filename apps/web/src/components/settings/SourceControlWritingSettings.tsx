@@ -1,9 +1,9 @@
 import { useAtomValue } from "@effect/atom-react";
 import { useRef } from "react";
-import type { SourceControlWritingStyleMode } from "@t3tools/contracts";
-import { DEFAULT_UNIFIED_SETTINGS } from "@t3tools/contracts/settings";
-import { createModelSelection } from "@t3tools/shared/model";
-import { resolveSourceControlWriterModelSelection } from "@t3tools/shared/serverSettings";
+import type { SourceControlWritingStyleMode } from "@ras-code/contracts";
+import { DEFAULT_UNIFIED_SETTINGS } from "@ras-code/contracts/settings";
+import { createModelSelection } from "@ras-code/shared/model";
+import { resolveSourceControlWriterModelSelection } from "@ras-code/shared/serverSettings";
 
 import { usePrimarySettings, useUpdatePrimarySettings } from "../../hooks/useSettings";
 import {

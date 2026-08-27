@@ -1,0 +1,10 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["RasCodeTerminalModule"],
+    "podspecPath": "RasCodeTerminalNative.podspec"
+  },
+  "android": {
+    "modules": ["expo.modules.ras_code.terminal.RasCodeTerminalModule"]
+  }
+}

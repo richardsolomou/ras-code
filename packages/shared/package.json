@@ -1,5 +1,5 @@
 {
-  "name": "@t3tools/shared",
+  "name": "@ras-code/shared",
   "private": true,
   "type": "module",
   "exports": {
@@ -103,9 +103,9 @@
       "types": "./src/threadEnvMode.ts",
       "import": "./src/threadEnvMode.ts"
     },
-    "./t3ProjectFile": {
-      "types": "./src/t3ProjectFile.ts",
-      "import": "./src/t3ProjectFile.ts"
+    "./rasProjectFile": {
+      "types": "./src/rasProjectFile.ts",
+      "import": "./src/rasProjectFile.ts"
     },
     "./orchestrationTiming": {
       "types": "./src/orchestrationTiming.ts",
@@ -239,7 +239,7 @@
   "dependencies": {
     "@noble/curves": "catalog:",
     "@noble/hashes": "catalog:",
-    "@t3tools/contracts": "workspace:*",
+    "@ras-code/contracts": "workspace:*",
     "effect": "catalog:",
     "jose": "catalog:",
     "yaml": "catalog:"

@@ -11,54 +11,55 @@ import * as EffectAcpAgent from "effect-acp/agent";
 import * as AcpError from "effect-acp/errors";
 import type * as AcpSchema from "effect-acp/schema";
 
-const requestLogPath = process.env.T3_ACP_REQUEST_LOG_PATH;
-const exitLogPath = process.env.T3_ACP_EXIT_LOG_PATH;
-const emitToolCalls = process.env.T3_ACP_EMIT_TOOL_CALLS === "1";
+const requestLogPath = process.env.RAS_ACP_REQUEST_LOG_PATH;
+const exitLogPath = process.env.RAS_ACP_EXIT_LOG_PATH;
+const emitToolCalls = process.env.RAS_ACP_EMIT_TOOL_CALLS === "1";
 const emitInterleavedAssistantToolCalls =
-  process.env.T3_ACP_EMIT_INTERLEAVED_ASSISTANT_TOOL_CALLS === "1";
-const emitGenericToolPlaceholders = process.env.T3_ACP_EMIT_GENERIC_TOOL_PLACEHOLDERS === "1";
-const emitAskQuestion = process.env.T3_ACP_EMIT_ASK_QUESTION === "1";
-const emitXAiAskUserQuestion = process.env.T3_ACP_EMIT_XAI_ASK_USER_QUESTION === "1";
-const emitXAiExitPlanMode = process.env.T3_ACP_EMIT_XAI_EXIT_PLAN_MODE === "1";
-const emitXAiPlanMdWrite = process.env.T3_ACP_EMIT_XAI_PLAN_MD_WRITE === "1";
-const emitXAiPromptCompleteThenHang = process.env.T3_ACP_EMIT_XAI_PROMPT_COMPLETE_THEN_HANG === "1";
-const emitXAiRateLimitThenHang = process.env.T3_ACP_EMIT_XAI_RATE_LIMIT_THEN_HANG === "1";
+  process.env.RAS_ACP_EMIT_INTERLEAVED_ASSISTANT_TOOL_CALLS === "1";
+const emitGenericToolPlaceholders = process.env.RAS_ACP_EMIT_GENERIC_TOOL_PLACEHOLDERS === "1";
+const emitAskQuestion = process.env.RAS_ACP_EMIT_ASK_QUESTION === "1";
+const emitXAiAskUserQuestion = process.env.RAS_ACP_EMIT_XAI_ASK_USER_QUESTION === "1";
+const emitXAiExitPlanMode = process.env.RAS_ACP_EMIT_XAI_EXIT_PLAN_MODE === "1";
+const emitXAiPlanMdWrite = process.env.RAS_ACP_EMIT_XAI_PLAN_MD_WRITE === "1";
+const emitXAiPromptCompleteThenHang =
+  process.env.RAS_ACP_EMIT_XAI_PROMPT_COMPLETE_THEN_HANG === "1";
+const emitXAiRateLimitThenHang = process.env.RAS_ACP_EMIT_XAI_RATE_LIMIT_THEN_HANG === "1";
 const emitXAiAskUserQuestionThenHang =
-  process.env.T3_ACP_EMIT_XAI_ASK_USER_QUESTION_THEN_HANG === "1";
-const emitContentThenHang = process.env.T3_ACP_EMIT_CONTENT_THEN_HANG === "1";
-const emitPlanThenHang = process.env.T3_ACP_EMIT_PLAN_THEN_HANG === "1";
-const emitActiveToolThenHang = process.env.T3_ACP_EMIT_ACTIVE_TOOL_THEN_HANG === "1";
-const emitForeignSessionUpdates = process.env.T3_ACP_EMIT_FOREIGN_SESSION_UPDATES === "1";
-const hangPromptForever = process.env.T3_ACP_HANG_PROMPT_FOREVER === "1";
-const hangFirstPromptForever = process.env.T3_ACP_HANG_FIRST_PROMPT_FOREVER === "1";
-const emitLateUpdateAfterCancel = process.env.T3_ACP_EMIT_LATE_UPDATE_AFTER_CANCEL === "1";
+  process.env.RAS_ACP_EMIT_XAI_ASK_USER_QUESTION_THEN_HANG === "1";
+const emitContentThenHang = process.env.RAS_ACP_EMIT_CONTENT_THEN_HANG === "1";
+const emitPlanThenHang = process.env.RAS_ACP_EMIT_PLAN_THEN_HANG === "1";
+const emitActiveToolThenHang = process.env.RAS_ACP_EMIT_ACTIVE_TOOL_THEN_HANG === "1";
+const emitForeignSessionUpdates = process.env.RAS_ACP_EMIT_FOREIGN_SESSION_UPDATES === "1";
+const hangPromptForever = process.env.RAS_ACP_HANG_PROMPT_FOREVER === "1";
+const hangFirstPromptForever = process.env.RAS_ACP_HANG_FIRST_PROMPT_FOREVER === "1";
+const emitLateUpdateAfterCancel = process.env.RAS_ACP_EMIT_LATE_UPDATE_AFTER_CANCEL === "1";
 const omitXAiPromptCompleteStopReason =
-  process.env.T3_ACP_OMIT_XAI_PROMPT_COMPLETE_STOP_REASON === "1";
-const failLoadSession = process.env.T3_ACP_FAIL_LOAD_SESSION === "1";
-const emitLoadReplay = process.env.T3_ACP_EMIT_LOAD_REPLAY === "1";
-const hangLoadSessionAfterReplay = process.env.T3_ACP_HANG_LOAD_SESSION_AFTER_REPLAY === "1";
-const delayLoadSessionAfterReplay = process.env.T3_ACP_DELAY_LOAD_SESSION_AFTER_REPLAY === "1";
-const loadSessionDelayMs = Number(process.env.T3_ACP_LOAD_SESSION_DELAY_MS ?? "5000");
+  process.env.RAS_ACP_OMIT_XAI_PROMPT_COMPLETE_STOP_REASON === "1";
+const failLoadSession = process.env.RAS_ACP_FAIL_LOAD_SESSION === "1";
+const emitLoadReplay = process.env.RAS_ACP_EMIT_LOAD_REPLAY === "1";
+const hangLoadSessionAfterReplay = process.env.RAS_ACP_HANG_LOAD_SESSION_AFTER_REPLAY === "1";
+const delayLoadSessionAfterReplay = process.env.RAS_ACP_DELAY_LOAD_SESSION_AFTER_REPLAY === "1";
+const loadSessionDelayMs = Number(process.env.RAS_ACP_LOAD_SESSION_DELAY_MS ?? "5000");
 const emitStaleXAiPromptCompleteBeforeSecondHang =
-  process.env.T3_ACP_EMIT_STALE_XAI_PROMPT_COMPLETE_BEFORE_SECOND_HANG === "1";
+  process.env.RAS_ACP_EMIT_STALE_XAI_PROMPT_COMPLETE_BEFORE_SECOND_HANG === "1";
 const emitOverlappingXAiPromptCompleteOutOfOrder =
-  process.env.T3_ACP_EMIT_OVERLAPPING_XAI_PROMPT_COMPLETE_OUT_OF_ORDER === "1";
-const failPrompt = process.env.T3_ACP_FAIL_PROMPT === "1";
-const failSetConfigOption = process.env.T3_ACP_FAIL_SET_CONFIG_OPTION === "1";
-const exitOnSetConfigOption = process.env.T3_ACP_EXIT_ON_SET_CONFIG_OPTION === "1";
-const promptResponseText = process.env.T3_ACP_PROMPT_RESPONSE_TEXT;
+  process.env.RAS_ACP_EMIT_OVERLAPPING_XAI_PROMPT_COMPLETE_OUT_OF_ORDER === "1";
+const failPrompt = process.env.RAS_ACP_FAIL_PROMPT === "1";
+const failSetConfigOption = process.env.RAS_ACP_FAIL_SET_CONFIG_OPTION === "1";
+const exitOnSetConfigOption = process.env.RAS_ACP_EXIT_ON_SET_CONFIG_OPTION === "1";
+const promptResponseText = process.env.RAS_ACP_PROMPT_RESPONSE_TEXT;
 const initialGrokReasoningEffort =
-  process.env.T3_ACP_INITIAL_GROK_REASONING_EFFORT?.trim() || undefined;
-const promptDelayMs = Number(process.env.T3_ACP_PROMPT_DELAY_MS ?? "0");
+  process.env.RAS_ACP_INITIAL_GROK_REASONING_EFFORT?.trim() || undefined;
+const promptDelayMs = Number(process.env.RAS_ACP_PROMPT_DELAY_MS ?? "0");
 const permissionOptionIds = {
-  allowOnce: process.env.T3_ACP_ALLOW_ONCE_OPTION_ID ?? "allow-once",
-  allowAlways: process.env.T3_ACP_ALLOW_ALWAYS_OPTION_ID ?? "allow-always",
-  rejectOnce: process.env.T3_ACP_REJECT_ONCE_OPTION_ID ?? "reject-once",
+  allowOnce: process.env.RAS_ACP_ALLOW_ONCE_OPTION_ID ?? "allow-once",
+  allowAlways: process.env.RAS_ACP_ALLOW_ALWAYS_OPTION_ID ?? "allow-always",
+  rejectOnce: process.env.RAS_ACP_REJECT_ONCE_OPTION_ID ?? "reject-once",
 };
-const omitAllowAlways = process.env.T3_ACP_OMIT_ALLOW_ALWAYS === "1";
+const omitAllowAlways = process.env.RAS_ACP_OMIT_ALLOW_ALWAYS === "1";
 const permissionRequestCount = Math.max(
   1,
-  Number(process.env.T3_ACP_PERMISSION_REQUEST_COUNT ?? "1") || 1,
+  Number(process.env.RAS_ACP_PERMISSION_REQUEST_COUNT ?? "1") || 1,
 );
 const sessionId = "mock-session-1";
 
@@ -757,13 +758,13 @@ const program = Effect.gen(function* () {
         for (let index = 0; index < permissionRequestCount; index++) {
           const command =
             index > 0
-              ? (process.env.T3_ACP_SECOND_PERMISSION_COMMAND ?? "cat server/package.json")
+              ? (process.env.RAS_ACP_SECOND_PERMISSION_COMMAND ?? "cat server/package.json")
               : "cat server/package.json";
           const permission = yield* agent.client.requestPermission({
             sessionId: requestedSessionId,
             toolCall: {
               toolCallId: index === 0 ? toolCallId : `${toolCallId}-${index + 1}`,
-              title: process.env.T3_ACP_PERMISSION_TITLE ?? `\`${command}\``,
+              title: process.env.RAS_ACP_PERMISSION_TITLE ?? `\`${command}\``,
               kind: "execute",
               status: "pending",
               rawInput: {
@@ -802,7 +803,7 @@ const program = Effect.gen(function* () {
             status: "completed",
             rawOutput: {
               exitCode: 0,
-              stdout: '{ "name": "t3" }',
+              stdout: '{ "name": "ras" }',
               stderr: "",
             },
           },
@@ -920,7 +921,7 @@ const program = Effect.gen(function* () {
 
       if (emitXAiPlanMdWrite) {
         // Match Grok's real session layout so isGrokPlanMarkdownPath accepts it.
-        const planRoot = process.env.T3_ACP_PLAN_ROOT ?? "/tmp/mock-home/.grok";
+        const planRoot = process.env.RAS_ACP_PLAN_ROOT ?? "/tmp/mock-home/.grok";
         const planPath = `${planRoot}/sessions/${requestedSessionId}/plan.md`;
         const planBody = "# Mock plan\n\n- Write the feature\n- Add a test\n- Ship it\n";
         // enter_plan_mode first so the adapter arms planModeActive.

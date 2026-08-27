@@ -4,7 +4,7 @@ import {
   hasSpecificPierreIconForFileName,
   resolvePierreIconForEntry,
   syntheticFileNameForLanguageId,
-  T3_PIERRE_ICONS,
+  RAS_CODE_PIERRE_ICONS,
 } from "./pierre-icons";
 
 describe("Pierre file icons", () => {
@@ -14,29 +14,32 @@ describe("Pierre file icons", () => {
     assert.equal(resolvePierreIconForEntry("vite.config.ts", "file")?.token, "vite");
   });
 
-  it("extends Pierre with T3-specific exact filename icons", () => {
+  it("extends Pierre with RAS Code-specific exact filename icons", () => {
     assert.equal(
       resolvePierreIconForEntry("package.json", "file")?.name,
-      "t3-file-icon-package-json",
+      "ras-code-file-icon-package-json",
     );
     assert.equal(
       resolvePierreIconForEntry("config/tsconfig.json", "file")?.name,
-      "t3-file-icon-tsconfig",
+      "ras-code-file-icon-tsconfig",
     );
-    assert.equal(resolvePierreIconForEntry("AGENTS.md", "file")?.name, "t3-file-icon-agents");
-    assert.equal(resolvePierreIconForEntry("CLAUDE.md", "file")?.name, "t3-file-icon-claude");
-    assert.equal(resolvePierreIconForEntry("README.md", "file")?.name, "t3-file-icon-readme");
-    assert.equal(resolvePierreIconForEntry("pnpm-lock.yaml", "file")?.name, "t3-file-icon-pnpm");
+    assert.equal(resolvePierreIconForEntry("AGENTS.md", "file")?.name, "ras-code-file-icon-agents");
+    assert.equal(resolvePierreIconForEntry("CLAUDE.md", "file")?.name, "ras-code-file-icon-claude");
+    assert.equal(resolvePierreIconForEntry("README.md", "file")?.name, "ras-code-file-icon-readme");
+    assert.equal(
+      resolvePierreIconForEntry("pnpm-lock.yaml", "file")?.name,
+      "ras-code-file-icon-pnpm",
+    );
     assert.equal(
       resolvePierreIconForEntry("pnpm-workspace.yaml", "file")?.name,
-      "t3-file-icon-pnpm",
+      "ras-code-file-icon-pnpm",
     );
   });
 
   it("ships every custom icon referenced by the extended resolver", () => {
-    const customIconNames = new Set(Object.values(T3_PIERRE_ICONS.byFileName));
+    const customIconNames = new Set(Object.values(RAS_CODE_PIERRE_ICONS.byFileName));
     for (const iconName of customIconNames) {
-      assert.include(T3_PIERRE_ICONS.spriteSheet, `id="${iconName}"`);
+      assert.include(RAS_CODE_PIERRE_ICONS.spriteSheet, `id="${iconName}"`);
     }
   });
 

@@ -1,4 +1,4 @@
-import { type GrokSettings, ProviderDriverKind, type RuntimeMode } from "@t3tools/contracts";
+import { type GrokSettings, ProviderDriverKind, type RuntimeMode } from "@ras-code/contracts";
 import * as Crypto from "effect/Crypto";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -6,14 +6,15 @@ import * as Scope from "effect/Scope";
 import * as ChildProcessSpawner from "effect/unstable/process/ChildProcessSpawner";
 import * as EffectAcpErrors from "effect-acp/errors";
 import type * as EffectAcpSchema from "effect-acp/schema";
-import { normalizeModelSlug } from "@t3tools/shared/model";
+import { normalizeModelSlug } from "@ras-code/shared/model";
 
 import * as AcpSessionRuntime from "./AcpSessionRuntime.ts";
 import { makeXAiPromptCompletionRuntime } from "./XAiAcpExtension.ts";
 
 const GROK_API_KEY_ENV = "XAI_API_KEY";
 const GROK_OAUTH2_REFERRER_ENV = "GROK_OAUTH2_REFERRER";
-const T3_CODE_OAUTH_REFERRER = "t3code";
+// xAI allowlists this referrer value upstream, so it keeps the pre-rebrand spelling.
+const RAS_CODE_OAUTH_REFERRER = "t3code";
 const GROK_AUTH_METHOD_API_KEY = "xai.api_key";
 const GROK_AUTH_METHOD_CACHED_TOKEN = "cached_token";
 const GROK_DRIVER_KIND = ProviderDriverKind.make("grok");
@@ -57,7 +58,7 @@ export function buildGrokAcpSpawnInput(
     cwd,
     env: {
       ...environment,
-      [GROK_OAUTH2_REFERRER_ENV]: T3_CODE_OAUTH_REFERRER,
+      [GROK_OAUTH2_REFERRER_ENV]: RAS_CODE_OAUTH_REFERRER,
     },
   };
 }

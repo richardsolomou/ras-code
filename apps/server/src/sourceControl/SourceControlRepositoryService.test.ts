@@ -7,7 +7,7 @@ import * as Layer from "effect/Layer";
 import * as PlatformError from "effect/PlatformError";
 import { ChildProcessSpawner } from "effect/unstable/process";
 
-import { GitCommandError, SourceControlProviderError } from "@t3tools/contracts";
+import { GitCommandError, SourceControlProviderError } from "@ras-code/contracts";
 
 import * as ServerConfig from "../config.ts";
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
@@ -81,7 +81,9 @@ function makeLayer(input: {
     Layer.provide(
       ServerConfig.layerTest(
         process.cwd(),
-        input.fileSystem ? "/tmp/t3-source-control-repos" : { prefix: "t3-source-control-repos-" },
+        input.fileSystem
+          ? "/tmp/ras-code-source-control-repos"
+          : { prefix: "ras-code-source-control-repos-" },
       ),
     ),
   );
@@ -154,9 +156,9 @@ it.effect("clones a looked-up repository into the requested destination", () =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const parent = yield* fs.makeTempDirectoryScoped({
-      prefix: "t3-source-control-clone-parent-",
+      prefix: "ras-code-source-control-clone-parent-",
     });
-    const destinationPath = `${parent}/t3code`;
+    const destinationPath = `${parent}/ras-code`;
     const cloneCalls: Array<{ cwd: string; args: ReadonlyArray<string> }> = [];
 
     yield* Effect.gen(function* () {
@@ -176,7 +178,7 @@ it.effect("clones a looked-up repository into the requested destination", () =>
       assert.deepStrictEqual(cloneCalls, [
         {
           cwd: parent,
-          args: ["clone", CLONE_URLS.url, "t3code"],
+          args: ["clone", CLONE_URLS.url, "ras-code"],
         },
       ]);
     }).pipe(

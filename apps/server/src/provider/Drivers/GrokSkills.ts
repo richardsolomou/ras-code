@@ -15,12 +15,12 @@
  *
  * @module provider/Drivers/GrokSkills
  */
-import type { GrokSettings, ServerProviderSkill } from "@t3tools/contracts";
+import type { GrokSettings, ServerProviderSkill } from "@ras-code/contracts";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Result from "effect/Result";
 import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process";
-import { resolveSpawnCommand } from "@t3tools/shared/shell";
+import { resolveSpawnCommand } from "@ras-code/shared/shell";
 
 import { spawnAndCollect } from "../providerSnapshot.ts";
 

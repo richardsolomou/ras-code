@@ -2,7 +2,7 @@ import { memo, useId } from "react";
 import { Pressable, View } from "react-native";
 import Svg, { Circle, Defs, RadialGradient, Stop } from "react-native-svg";
 
-import { mixThemePreviewBase, THEME_PREVIEW_RENDER_SPECS } from "@t3tools/shared/themePreview";
+import { mixThemePreviewBase, THEME_PREVIEW_RENDER_SPECS } from "@ras-code/shared/themePreview";
 
 import { SymbolView } from "../../../../components/AppSymbol";
 import { AppText as Text } from "../../../../components/AppText";
@@ -168,7 +168,7 @@ function ThemeCard(props: {
         {choice("dark", props.darkSelected)}
       </View>
       <View className="min-h-8 flex-row items-center" pointerEvents="none">
-        <Text className="min-w-0 flex-1 text-lg font-t3-medium" numberOfLines={1}>
+        <Text className="min-w-0 flex-1 text-lg font-ras-code-medium" numberOfLines={1}>
           {props.label}
         </Text>
       </View>
@@ -300,7 +300,7 @@ function ModeCard(props: {
       <Text
         className={
           props.selected
-            ? "text-center text-base font-t3-bold text-foreground"
+            ? "text-center text-base font-ras-code-bold text-foreground"
             : "text-center text-base text-foreground-muted"
         }
       >
@@ -311,7 +311,9 @@ function ModeCard(props: {
 }
 
 function SectionLabel({ children }: { readonly children: string }) {
-  return <Text className="px-2 text-sm font-t3-medium text-foreground-muted">{children}</Text>;
+  return (
+    <Text className="px-2 text-sm font-ras-code-medium text-foreground-muted">{children}</Text>
+  );
 }
 
 export function ThemeAppearanceSection() {

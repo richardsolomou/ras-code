@@ -39,7 +39,7 @@ const LIST_RESULT: PullRequestListResult = {
       provider: "github",
       host: "github.com",
       projectId: "project-1" as PullRequestListResult["entries"][number]["projectId"],
-      projectTitle: "t3code",
+      projectTitle: "ras-code",
       repository: "pingdotgg/t3code",
       number: 1,
       title: "Add a pull requests page",

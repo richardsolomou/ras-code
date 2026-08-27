@@ -7,14 +7,14 @@ import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 import * as Scope from "effect/Scope";
 
-import { clerkFrontendApiHostnameFromPublishableKey } from "@t3tools/shared/relayAuth";
+import { clerkFrontendApiHostnameFromPublishableKey } from "@ras-code/shared/relayAuth";
 import * as ElectronApp from "../electron/ElectronApp.ts";
 import * as ElectronProtocol from "../electron/ElectronProtocol.ts";
 import * as ElectronWindow from "../electron/ElectronWindow.ts";
 import * as DesktopAppIdentity from "./DesktopAppIdentity.ts";
 import * as DesktopEnvironment from "./DesktopEnvironment.ts";
 
-declare const __T3CODE_BUILD_CLERK_PUBLISHABLE_KEY__: string | undefined;
+declare const __RAS_CODE_BUILD_CLERK_PUBLISHABLE_KEY__: string | undefined;
 
 export class DesktopClerkBridgeInitializationError extends Schema.TaggedErrorClass<DesktopClerkBridgeInitializationError>()(
   "DesktopClerkBridgeInitializationError",
@@ -51,7 +51,7 @@ export class DesktopClerk extends Context.Service<
       ElectronApp.ElectronApp | ElectronWindow.ElectronWindow | Scope.Scope
     >;
   }
->()("@t3tools/desktop/app/DesktopClerk") {}
+>()("@ras-code/desktop/app/DesktopClerk") {}
 
 export function resolveDesktopClerkFrontendApiHostname(
   publishableKey: string | undefined,
@@ -67,9 +67,9 @@ export function resolveDesktopClerkFrontendApiHostname(
 }
 
 export const desktopClerkFrontendApiHostname = resolveDesktopClerkFrontendApiHostname(
-  typeof __T3CODE_BUILD_CLERK_PUBLISHABLE_KEY__ === "undefined"
+  typeof __RAS_CODE_BUILD_CLERK_PUBLISHABLE_KEY__ === "undefined"
     ? undefined
-    : __T3CODE_BUILD_CLERK_PUBLISHABLE_KEY__,
+    : __RAS_CODE_BUILD_CLERK_PUBLISHABLE_KEY__,
 );
 
 export function createDesktopClerkBridge(stateDir: string, isDevelopment: boolean) {
@@ -90,9 +90,8 @@ export const make = Effect.gen(function* () {
   // Electron scopes the single-instance lock to the userData directory and
   // creates that directory when the lock is acquired. The SDK bridge takes
   // the lock at creation, so userData must already point at the real
-  // directory here — under the default productName-derived path, acquiring
-  // the lock would create "RAS Code (Alpha)" and make the legacy-install
-  // detection in resolveUserDataPath match on fresh installs.
+  // directory here — otherwise the lock would create a stray
+  // productName-derived directory alongside the real one.
   const userDataPath = yield* DesktopAppIdentity.resolveUserDataPath;
   yield* electronApp.setPath("userData", userDataPath);
 

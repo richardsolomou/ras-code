@@ -4,20 +4,20 @@ import type {
   OrchestrationProjectShell,
   OrchestrationThreadShell,
   ThreadId,
-} from "@t3tools/contracts";
+} from "@ras-code/contracts";
 import {
   RelayApi,
   type RelayAgentActivityPublishProofPayload,
   type RelayAgentActivityState,
-} from "@t3tools/contracts/relay";
-import { projectThreadAwareness } from "@t3tools/shared/agentAwareness";
-import { makeDrainableWorker } from "@t3tools/shared/DrainableWorker";
-import { withRelayClientTracing } from "@t3tools/shared/relayTracing";
+} from "@ras-code/contracts/relay";
+import { projectThreadAwareness } from "@ras-code/shared/agentAwareness";
+import { makeDrainableWorker } from "@ras-code/shared/DrainableWorker";
+import { withRelayClientTracing } from "@ras-code/shared/relayTracing";
 import {
   normalizeRelayIssuer,
   RELAY_ACTIVITY_PUBLISH_TYP,
   signRelayJwt,
-} from "@t3tools/shared/relayJwt";
+} from "@ras-code/shared/relayJwt";
 import * as Cause from "effect/Cause";
 import * as Context from "effect/Context";
 import * as Crypto from "effect/Crypto";
@@ -53,7 +53,7 @@ export class AgentAwarenessRelay extends Context.Service<
     readonly publishThread: (threadId: ThreadId) => Effect.Effect<void>;
     readonly start: () => Effect.Effect<void, never, Scope.Scope>;
   }
->()("t3/relay/AgentAwarenessRelay") {}
+>()("ras-code/relay/AgentAwarenessRelay") {}
 
 export function eventThreadId(event: OrchestrationEvent): ThreadId | null {
   const payload = event.payload as { readonly threadId?: unknown };

@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["RasCodeComposerEditorModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.ras_code.composereditor.RasCodeComposerEditorModule"]
+  }
+}

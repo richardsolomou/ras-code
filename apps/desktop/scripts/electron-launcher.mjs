@@ -17,9 +17,9 @@ const devBundleIdSuffix = NodePath.basename(repoRoot)
   .replaceAll(/[^a-z0-9]+/g, "");
 export const APP_DISPLAY_NAME = isDevelopment ? "RAS Code (Dev)" : "RAS Code (Alpha)";
 export const APP_BUNDLE_ID = isDevelopment
-  ? `com.t3tools.t3code.dev.${devBundleIdSuffix || "local"}`
-  : "com.t3tools.t3code";
-const APP_PROTOCOL_SCHEMES = isDevelopment ? ["t3code-dev"] : ["t3code"];
+  ? `com.richardsolomou.ras-code.dev.${devBundleIdSuffix || "local"}`
+  : "com.richardsolomou.ras-code";
+const APP_PROTOCOL_SCHEMES = isDevelopment ? ["ras-code-dev"] : ["ras-code"];
 const LAUNCHER_VERSION = 15;
 const developmentMacIconPngPath = NodePath.join(
   repoRoot,
@@ -28,7 +28,7 @@ const developmentMacIconPngPath = NodePath.join(
   "blueprint-macos-1024.png",
 );
 const productionMacIconPngPath = NodePath.join(repoRoot, "assets", "prod", "black-macos-1024.png");
-// oxlint-disable-next-line t3code/no-global-process-runtime -- Standalone launcher script has no Effect runtime.
+// oxlint-disable-next-line ras-code/no-global-process-runtime -- Standalone launcher script has no Effect runtime.
 const hostPlatform = NodeOS.platform();
 
 function setPlistString(plistPath, key, value) {
@@ -108,12 +108,12 @@ export function makeDevelopmentLauncherScript({
 }) {
   const envEntries = [
     ["VITE_DEV_SERVER_URL", environment.VITE_DEV_SERVER_URL],
-    ["T3CODE_PORT", environment.T3CODE_PORT],
-    ["T3CODE_HOME", environment.T3CODE_HOME],
-    ["T3CODE_COMMIT_HASH", environment.T3CODE_COMMIT_HASH],
-    ["T3CODE_OTLP_TRACES_URL", environment.T3CODE_OTLP_TRACES_URL],
-    ["T3CODE_OTLP_EXPORT_INTERVAL_MS", environment.T3CODE_OTLP_EXPORT_INTERVAL_MS],
-    ["T3CODE_DESKTOP_APP_USER_MODEL_ID", APP_BUNDLE_ID],
+    ["RAS_CODE_PORT", environment.RAS_CODE_PORT],
+    ["RAS_CODE_HOME", environment.RAS_CODE_HOME],
+    ["RAS_CODE_COMMIT_HASH", environment.RAS_CODE_COMMIT_HASH],
+    ["RAS_CODE_OTLP_TRACES_URL", environment.RAS_CODE_OTLP_TRACES_URL],
+    ["RAS_CODE_OTLP_EXPORT_INTERVAL_MS", environment.RAS_CODE_OTLP_EXPORT_INTERVAL_MS],
+    ["RAS_CODE_DESKTOP_APP_USER_MODEL_ID", APP_BUNDLE_ID],
   ].filter((entry) => typeof entry[1] === "string" && entry[1].trim().length > 0);
   return [
     "#!/bin/sh",
@@ -121,7 +121,7 @@ export function makeDevelopmentLauncherScript({
       ([name, value]) =>
         `if [ -z "\${${name}:-}" ]; then export ${name}=${shellSingleQuote(value)}; fi`,
     ),
-    `exec ${shellSingleQuote(electronBinaryPath)} --t3code-dev-root=${shellSingleQuote(desktopRoot)} ${shellSingleQuote(mainEntryPath)} "$@"`,
+    `exec ${shellSingleQuote(electronBinaryPath)} --ras-code-dev-root=${shellSingleQuote(desktopRoot)} ${shellSingleQuote(mainEntryPath)} "$@"`,
     "",
   ].join("\n");
 }

@@ -1,9 +1,11 @@
-const REPO = "pingdotgg/t3code";
+const REPO = "richardsolomou/ras-code";
 
-export const RELEASES_URL = `https://github.com/${REPO}/releases`;
+export const RELEASES_URL = `https://github.com/${REPO}/releases/latest`;
+
+export const ALL_RELEASES_URL = `https://github.com/${REPO}/releases`;
 
 const API_URL = `https://api.github.com/repos/${REPO}/releases/latest`;
-const CACHE_KEY = "t3code-latest-release";
+const CACHE_KEY = "ras-code-latest-release";
 
 export interface ReleaseAsset {
   name: string;

@@ -1,10 +1,10 @@
 import { useAtomValue } from "@effect/atom-react";
-import { connectionStatusText } from "@t3tools/client-runtime/connection";
-import { safeErrorLogAttributes } from "@t3tools/client-runtime/errors";
+import { connectionStatusText } from "@ras-code/client-runtime/connection";
+import { safeErrorLogAttributes } from "@ras-code/client-runtime/errors";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
-} from "@t3tools/client-runtime/state/runtime";
+} from "@ras-code/client-runtime/state/runtime";
 import {
   defaultInstanceIdForDriver,
   type EnvironmentId,
@@ -13,12 +13,12 @@ import {
   type ProviderInstanceConfig,
   type ProviderInstanceId,
   resolveProviderInstanceEnabled,
-} from "@t3tools/contracts";
-import { DEFAULT_UNIFIED_SETTINGS } from "@t3tools/contracts/settings";
+} from "@ras-code/contracts";
+import { DEFAULT_UNIFIED_SETTINGS } from "@ras-code/contracts/settings";
 import {
   getBackgroundActivityPresetSettings,
   resolveServerBackgroundActivitySettings,
-} from "@t3tools/shared/backgroundActivitySettings";
+} from "@ras-code/shared/backgroundActivitySettings";
 import * as Arr from "effect/Array";
 import * as Duration from "effect/Duration";
 import * as Equal from "effect/Equal";

@@ -1,0 +1,17 @@
+{
+  "name": "@ras-code/mobile-terminal-native",
+  "version": "0.0.0",
+  "private": true,
+  "expo-module": {
+    "ios": {
+      "modules": [
+        "RasCodeTerminalModule"
+      ]
+    },
+    "android": {
+      "modules": [
+        "expo.modules.ras_code.terminal.RasCodeTerminalModule"
+      ]
+    }
+  }
+}

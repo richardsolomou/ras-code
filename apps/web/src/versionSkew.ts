@@ -1,5 +1,5 @@
-import type { EnvironmentId, ServerConfig, ServerSelfUpdateCapability } from "@t3tools/contracts";
-import { compareSemverVersions, parseSemver } from "@t3tools/shared/semver";
+import type { EnvironmentId, ServerConfig, ServerSelfUpdateCapability } from "@ras-code/contracts";
+import { compareSemverVersions, parseSemver } from "@ras-code/shared/semver";
 import * as Schema from "effect/Schema";
 
 import { APP_VERSION } from "./branding";
@@ -11,7 +11,7 @@ export interface VersionMismatch {
   readonly hint: string;
 }
 
-export const VERSION_MISMATCH_DISMISSALS_STORAGE_KEY = "t3code:version-mismatch-dismissals:v1";
+export const VERSION_MISMATCH_DISMISSALS_STORAGE_KEY = "ras-code:version-mismatch-dismissals:v1";
 
 const VersionMismatchDismissalsSchema = Schema.Struct({
   keys: Schema.Array(Schema.String),

@@ -1,4 +1,4 @@
-import type { VcsStatusRemoteResult, VcsStatusResult } from "@t3tools/contracts";
+import type { VcsStatusRemoteResult, VcsStatusResult } from "@ras-code/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import {
@@ -8,27 +8,28 @@ import {
   normalizeGitRemoteUrl,
   parseGitHubRepositoryNameWithOwnerFromRemoteUrl,
   WORKTREE_BRANCH_PREFIX,
+  LEGACY_WORKTREE_BRANCH_PREFIX,
 } from "./git.ts";
 
 describe("normalizeGitRemoteUrl", () => {
   it("canonicalizes equivalent GitHub remotes across protocol variants", () => {
-    expect(normalizeGitRemoteUrl("git@github.com:T3Tools/T3Code.git")).toBe(
-      "github.com/t3tools/t3code",
+    expect(normalizeGitRemoteUrl("git@github.com:RichardSolomou/Ras-Code.git")).toBe(
+      "github.com/richardsolomou/ras-code",
     );
-    expect(normalizeGitRemoteUrl("https://github.com/T3Tools/T3Code.git")).toBe(
-      "github.com/t3tools/t3code",
+    expect(normalizeGitRemoteUrl("https://github.com/RichardSolomou/Ras-Code.git")).toBe(
+      "github.com/richardsolomou/ras-code",
     );
-    expect(normalizeGitRemoteUrl("ssh://git@github.com/T3Tools/T3Code")).toBe(
-      "github.com/t3tools/t3code",
+    expect(normalizeGitRemoteUrl("ssh://git@github.com/RichardSolomou/Ras-Code")).toBe(
+      "github.com/richardsolomou/ras-code",
     );
   });
 
   it("preserves nested group paths for providers like GitLab", () => {
-    expect(normalizeGitRemoteUrl("git@gitlab.com:T3Tools/platform/T3Code.git")).toBe(
-      "gitlab.com/t3tools/platform/t3code",
+    expect(normalizeGitRemoteUrl("git@gitlab.com:RichardSolomou/platform/Ras-Code.git")).toBe(
+      "gitlab.com/richardsolomou/platform/ras-code",
     );
-    expect(normalizeGitRemoteUrl("https://gitlab.com/T3Tools/platform/T3Code.git")).toBe(
-      "gitlab.com/t3tools/platform/t3code",
+    expect(normalizeGitRemoteUrl("https://gitlab.com/RichardSolomou/platform/Ras-Code.git")).toBe(
+      "gitlab.com/richardsolomou/platform/ras-code",
     );
   });
 
@@ -54,11 +55,13 @@ describe("normalizeGitRemoteUrl", () => {
 describe("parseGitHubRepositoryNameWithOwnerFromRemoteUrl", () => {
   it("extracts the owner and repository from common GitHub remote shapes", () => {
     expect(
-      parseGitHubRepositoryNameWithOwnerFromRemoteUrl("git@github.com:T3Tools/T3Code.git"),
-    ).toBe("T3Tools/T3Code");
+      parseGitHubRepositoryNameWithOwnerFromRemoteUrl("git@github.com:RichardSolomou/Ras-Code.git"),
+    ).toBe("RichardSolomou/Ras-Code");
     expect(
-      parseGitHubRepositoryNameWithOwnerFromRemoteUrl("https://github.com/T3Tools/T3Code.git"),
-    ).toBe("T3Tools/T3Code");
+      parseGitHubRepositoryNameWithOwnerFromRemoteUrl(
+        "https://github.com/RichardSolomou/Ras-Code.git",
+      ),
+    ).toBe("RichardSolomou/Ras-Code");
   });
 });
 
@@ -78,6 +81,10 @@ describe("isTemporaryWorktreeBranch", () => {
     expect(isTemporaryWorktreeBranch(`${WORKTREE_BRANCH_PREFIX}/deadbeef`)).toBe(true);
     expect(isTemporaryWorktreeBranch(` ${WORKTREE_BRANCH_PREFIX}/deadbeef `)).toBe(true);
     expect(isTemporaryWorktreeBranch(`${WORKTREE_BRANCH_PREFIX}/DEADBEEF`)).toBe(true);
+  });
+
+  it("matches temporary worktree refs generated under the pre-rebrand prefix", () => {
+    expect(isTemporaryWorktreeBranch(`${LEGACY_WORKTREE_BRANCH_PREFIX}/deadbeef`)).toBe(true);
   });
 
   it("normalizes a UUID-shaped random callback to the canonical 8-hex form", () => {

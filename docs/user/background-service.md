@@ -1,38 +1,38 @@
-# Running T3 Code in the Background
+# Running RAS Code in the Background
 
-On Linux and macOS, T3 Code can run as a background service for your user, so it is ready without
+On Linux and macOS, RAS Code can run as a background service for your user, so it is ready without
 keeping a terminal open.
 
 ## Manage the Service
 
-Install it with the latest T3 Code release:
+Install it with the latest RAS Code release:
 
 ```sh
-npx t3@latest service install
+npx ras@latest service install
 ```
 
 Check whether it is installed:
 
 ```sh
-npx t3@latest service status
+npx ras@latest service status
 ```
 
 Update or repair it:
 
 ```sh
-npx t3@latest service update
+npx ras@latest service update
 ```
 
 Stop it and remove it from startup:
 
 ```sh
-npx t3@latest service uninstall
+npx ras@latest service uninstall
 ```
 
-Updating restarts T3 Code briefly. Let active agent work and terminal commands finish first.
+Updating restarts RAS Code briefly. Let active agent work and terminal commands finish first.
 If a remote update is already in progress, wait for it to finish before retrying a local update.
 
-The service runs a small stable launcher. Exact T3 Code versions are installed separately, so a
+The service runs a small stable launcher. Exact RAS Code versions are installed separately, so a
 failed remote candidate can return to the previous version without rewriting the service
 definition. The launcher snapshots the database before a remote candidate starts, so database
 updates roll back with the server version. An older launcher may require one local
@@ -40,10 +40,10 @@ updates roll back with the server version. An older launcher may require one loc
 
 ## Platform Support
 
-**Linux** uses a systemd user unit at `~/.config/systemd/user/t3code.service`. The service starts
+**Linux** uses a systemd user unit at `~/.config/systemd/user/ras-code.service`. The service starts
 when the machine boots and keeps running after you log out (lingering is enabled during install).
 
-**macOS** uses a launch agent at `~/Library/LaunchAgents/com.t3tools.t3code.service.plist`. It
+**macOS** uses a launch agent at `~/Library/LaunchAgents/com.richardsolomou.ras-code.service.plist`. It
 starts when you log in, not when the Mac boots, and it stops when you log out; macOS has no
 equivalent of Linux lingering for user agents. For a Mac that should stay reachable unattended,
 turn on automatic login (System Settings → Users & Groups; unavailable while FileVault is on) and
@@ -69,5 +69,5 @@ A few more macOS notes:
 T3 Connect may offer to install the service during setup so the host stays reachable in the
 background. This is only an onboarding shortcut: the service and T3 Connect are managed separately.
 
-Signing out of T3 Connect does not remove the service. Use `t3 service uninstall` when you no longer
-want T3 Code to start in the background.
+Signing out of T3 Connect does not remove the service. Use `ras service uninstall` when you no longer
+want RAS Code to start in the background.

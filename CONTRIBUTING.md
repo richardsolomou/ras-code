@@ -2,19 +2,17 @@
 
 ## Read This First
 
-We are not actively accepting contributions right now.
+RAS Code is a personal fork of [T3 Code](https://github.com/pingdotgg/t3code), maintained by Richard.
 
-You can still report a bug or open a PR, but please do so knowing there is a high chance we close it, defer it forever, or never look at it.
+You can report a bug or open a PR, but please do so knowing there is a high chance it gets closed, deferred forever, or never looked at.
 
-Feature requests and proposals belong in [Ideas discussions](https://github.com/pingdotgg/t3code/discussions/categories/ideas), not issues.
+Feature requests and proposals belong in [Ideas discussions](https://github.com/richardsolomou/ras-code/discussions/categories/ideas), not issues.
 
-If that sounds annoying, that is because it is. This project is still early and we are trying to keep scope, quality, and direction under control.
+If that sounds annoying, that is because it is. The project is early and scope, quality, and direction need to stay under control.
 
-PRs are automatically labeled with a `vouch:*` trust status and a `size:*` diff size based on changed lines.
+PRs are automatically labeled with a `size:*` diff size based on changed lines.
 
-If you are an external contributor, expect `vouch:unvouched` until we explicitly add you to [.github/VOUCHED.td](.github/VOUCHED.td).
-
-## What We Are Most Likely To Accept
+## What Is Most Likely To Be Accepted
 
 Small, focused bug fixes.
 
@@ -24,7 +22,7 @@ Small performance improvements.
 
 Tightly scoped maintenance work that clearly improves the project without changing its direction.
 
-## What We Are Least Likely To Accept
+## What Is Least Likely To Be Accepted
 
 Large PRs.
 
@@ -32,9 +30,9 @@ Drive-by feature work.
 
 Opinionated rewrites.
 
-Anything that expands product scope without us asking for it first.
+Anything that expands product scope without it being asked for first.
 
-If you open a 1,000+ line PR full of new features, we will probably close it quickly and remember that you ignored the clearly written instructions.
+If you open a 1,000+ line PR full of new features, it will probably be closed quickly.
 
 ## If You Still Want To Open A PR
 
@@ -50,18 +48,18 @@ If the PR makes anything resembling a UI change, include clear before/after imag
 
 If the change depends on motion, timing, transitions, or interaction details, include a short video.
 
-If we have to guess what changed, we are much less likely to review it.
+If it is not clear what changed, it is much less likely to get reviewed.
 
 ## Discuss Changes First
 
 If you are thinking about a non-trivial change, start a discussion first. Issues are reserved for bug reports.
 
-That still does not mean we will want the PR, but it gives you a chance to avoid wasting your time.
+That still does not mean the PR will be wanted, but it gives you a chance to avoid wasting your time.
 
 ## Be Realistic
 
-Opening a PR does not create an obligation on our side.
+Opening a PR does not create an obligation on the maintainer's side.
 
-We may close it. We may ignore it. We may ask you to shrink it. We may reimplement the idea ourselves later.
+It may be closed. It may be ignored. You may be asked to shrink it. The idea may be reimplemented later.
 
 If you are fine with that, proceed.

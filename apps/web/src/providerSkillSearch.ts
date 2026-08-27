@@ -1,10 +1,10 @@
-import type { ServerProviderSkill } from "@t3tools/contracts";
-import { formatProviderSkillDisplayName } from "@t3tools/client-runtime/providerSkills";
+import type { ServerProviderSkill } from "@ras-code/contracts";
+import { formatProviderSkillDisplayName } from "@ras-code/client-runtime/providerSkills";
 import {
   insertRankedSearchResult,
   normalizeSearchQuery,
   scoreQueryMatch,
-} from "@t3tools/shared/searchRanking";
+} from "@ras-code/shared/searchRanking";
 
 export function scoreProviderSkill(skill: ServerProviderSkill, query: string): number | null {
   const normalizedName = skill.name.toLowerCase();

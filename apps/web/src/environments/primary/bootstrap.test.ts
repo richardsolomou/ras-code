@@ -1,4 +1,4 @@
-import { EnvironmentId, type ExecutionEnvironmentDescriptor } from "@t3tools/contracts";
+import { EnvironmentId, type ExecutionEnvironmentDescriptor } from "@ras-code/contracts";
 import * as Effect from "effect/Effect";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
@@ -259,7 +259,7 @@ describe("environmentBootstrap", () => {
 
   it("preserves an unsupported window-origin protocol", () => {
     vi.stubGlobal("window", {
-      location: { origin: "file:///tmp/t3code/" },
+      location: { origin: "file:///tmp/ras-code/" },
       history: { replaceState: vi.fn() },
     });
 

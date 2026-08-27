@@ -20,7 +20,7 @@ import {
   type SDKUserMessage,
   type ModelUsage,
 } from "@anthropic-ai/claude-agent-sdk";
-import { parseCliArgs } from "@t3tools/shared/cliArgs";
+import { parseCliArgs } from "@ras-code/shared/cliArgs";
 import {
   ApprovalRequestId,
   type CanonicalItemType,
@@ -49,18 +49,18 @@ import {
   ThreadId,
   TurnId,
   type UserInputQuestion,
-} from "@t3tools/contracts";
+} from "@ras-code/contracts";
 import {
   applyClaudePromptEffortPrefix,
   getModelSelectionBooleanOptionValue,
   getModelSelectionStringOptionValue,
   getProviderOptionDescriptors,
   resolvePromptInjectedEffort,
-} from "@t3tools/shared/model";
+} from "@ras-code/shared/model";
 import {
   CLAUDE_RESUME_COMPACTION_NEVER_ANSWER,
   formatClaudeResumeCompactionQuestion,
-} from "@t3tools/shared/claudeCompaction";
+} from "@ras-code/shared/claudeCompaction";
 import * as Cause from "effect/Cause";
 import * as Crypto from "effect/Crypto";
 import * as DateTime from "effect/DateTime";
@@ -3449,7 +3449,7 @@ export const makeClaudeAdapter = Effect.fn("makeClaudeAdapter")(function* (
           yield* emitRuntimeWarning(context, message.text, message);
         }
         return;
-      // Inner protocol/UX details with no T3 surface today — consumed
+      // Inner protocol/UX details with no RAS Code surface today — consumed
       // deliberately so they don't masquerade as unknown-subtype warnings.
       case "model_refusal_fallback":
       case "local_command_output":
@@ -3580,7 +3580,7 @@ export const makeClaudeAdapter = Effect.fn("makeClaudeAdapter")(function* (
     yield* logNativeSdkMessage(context, message);
     yield* ensureThreadId(context, message);
 
-    // Wire-only command bookkeeping has no user-facing T3 lifecycle.
+    // Wire-only command bookkeeping has no user-facing RAS Code lifecycle.
     if (sdkMessageType(message) === "command_lifecycle") {
       return;
     }
@@ -3607,7 +3607,7 @@ export const makeClaudeAdapter = Effect.fn("makeClaudeAdapter")(function* (
       case "rate_limit_event":
         yield* handleSdkTelemetryMessage(context, message);
         return;
-      // Composer prompt suggestions have no T3 surface; consumed deliberately.
+      // Composer prompt suggestions have no RAS Code surface; consumed deliberately.
       case "prompt_suggestion":
         return;
       default: {
@@ -4030,7 +4030,7 @@ export const makeClaudeAdapter = Effect.fn("makeClaudeAdapter")(function* (
           return { behavior: "cancelled" as const };
         }
 
-        // The question copy lives in @t3tools/shared/claudeCompaction because
+        // The question copy lives in @ras-code/shared/claudeCompaction because
         // the web client recognizes this exact text (and the "never" answer)
         // to mirror a permanent dismissal.
         const question = formatClaudeResumeCompactionQuestion({
@@ -4334,7 +4334,7 @@ export const makeClaudeAdapter = Effect.fn("makeClaudeAdapter")(function* (
         ...(mcpSession
           ? {
               mcpServers: {
-                "t3-code": {
+                "ras-code": {
                   type: "http",
                   url: mcpSession.endpoint,
                   headers: {

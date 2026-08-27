@@ -67,7 +67,7 @@ export default defineConfig({
       "apps/mobile/uniwind-types.d.ts",
     ],
     plugins: ["eslint", "oxc", "react", "unicorn", "typescript"],
-    jsPlugins: ["./oxlint-plugin-t3code/index.ts"],
+    jsPlugins: ["./oxlint-plugin-ras-code/index.ts"],
     categories: {
       correctness: "warn",
       suspicious: "warn",
@@ -104,9 +104,9 @@ export default defineConfig({
         {
           paths: [
             {
-              name: "@t3tools/client-runtime",
+              name: "@ras-code/client-runtime",
               message:
-                "Import from an explicit @t3tools/client-runtime/* subpath. The package has no root export.",
+                "Import from an explicit @ras-code/client-runtime/* subpath. The package has no root export.",
             },
             {
               name: "@pierre/diffs/react",
@@ -117,11 +117,11 @@ export default defineConfig({
           ],
         },
       ],
-      "t3code/no-global-process-runtime": "error",
-      "t3code/no-inline-schema-compile": "warn",
-      "t3code/no-manual-effect-runtime-in-tests": "error",
-      "t3code/no-native-title-tooltip": "error",
-      "t3code/namespace-node-imports": "error",
+      "ras-code/no-global-process-runtime": "error",
+      "ras-code/no-inline-schema-compile": "warn",
+      "ras-code/no-manual-effect-runtime-in-tests": "error",
+      "ras-code/no-native-title-tooltip": "error",
+      "ras-code/namespace-node-imports": "error",
     },
     options: {
       // Revisit once Oxlint's tsgolint path can integrate with @effect/tsgo diagnostics.

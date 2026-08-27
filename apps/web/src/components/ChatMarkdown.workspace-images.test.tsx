@@ -1,4 +1,4 @@
-import { EnvironmentId, ThreadId } from "@t3tools/contracts";
+import { EnvironmentId, ThreadId } from "@ras-code/contracts";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
@@ -65,10 +65,10 @@ describe("ChatMarkdown workspace images", () => {
   });
 
   it("loads every Windows workspace path form through a signed asset URL", () => {
-    const imagePath = "C:/Users/shawn/project/.t3/workspace-image.svg";
+    const imagePath = "C:/Users/shawn/project/.ras-code/workspace-image.svg";
     const html = render(
       [
-        "![relative](.t3/workspace-image.svg)",
+        "![relative](.ras-code/workspace-image.svg)",
         `![absolute](${imagePath})`,
         `![file URL](file:///${imagePath})`,
         "![UNC file URL](file://server/share/workspace-image.svg)",
@@ -79,7 +79,7 @@ describe("ChatMarkdown workspace images", () => {
       {
         _tag: "workspace-file",
         threadId: threadRef.threadId,
-        path: "C:\\Users\\shawn\\project\\.t3\\workspace-image.svg",
+        path: "C:\\Users\\shawn\\project\\.ras-code\\workspace-image.svg",
       },
       { _tag: "workspace-file", threadId: threadRef.threadId, path: imagePath },
       { _tag: "workspace-file", threadId: threadRef.threadId, path: imagePath },
@@ -111,7 +111,7 @@ describe("ChatMarkdown workspace images", () => {
   it("uses a static placeholder while a signed asset URL loads", () => {
     testState.assetState = "loading";
 
-    const html = render("![loading](.t3/workspace-image.svg)");
+    const html = render("![loading](.ras-code/workspace-image.svg)");
 
     expect(html).toContain('aria-label="Loading image"');
     expect(html).not.toContain("animate-pulse");

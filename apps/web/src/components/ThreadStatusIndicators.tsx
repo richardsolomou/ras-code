@@ -2,9 +2,9 @@ import {
   scopeProjectRef,
   scopedThreadKey,
   scopeThreadRef,
-} from "@t3tools/client-runtime/environment";
-import { pullRequestDetailToVcsStatus } from "@t3tools/client-runtime/state/pull-requests";
-import type { EnvironmentId, ThreadLinkedPullRequest, VcsStatusResult } from "@t3tools/contracts";
+} from "@ras-code/client-runtime/environment";
+import { pullRequestDetailToVcsStatus } from "@ras-code/client-runtime/state/pull-requests";
+import type { EnvironmentId, ThreadLinkedPullRequest, VcsStatusResult } from "@ras-code/contracts";
 import { Atom } from "effect/unstable/reactivity";
 import { CloudIcon, FolderGit2Icon, GitPullRequestIcon, TerminalIcon } from "lucide-react";
 import { useMemo } from "react";

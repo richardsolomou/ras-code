@@ -1,4 +1,4 @@
-import { HostProcessPlatform } from "@t3tools/shared/hostProcess";
+import { HostProcessPlatform } from "@ras-code/shared/hostProcess";
 import * as Console from "effect/Console";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -52,14 +52,14 @@ export function formatServiceStatus(
     return "RAS Code service\n  Status: unavailable on this machine\n  Supported on: Linux with systemd, macOS with launchd";
   }
   if (!status.installed) {
-    return "RAS Code service\n  Status: not installed\n  Next: Run `t3 service install`.";
+    return "RAS Code service\n  Status: not installed\n  Next: Run `ras service install`.";
   }
   return [
     "RAS Code service",
-    `  Status: ${status.current ? `installed · t3@${cliVersion}` : "needs an update or repair"}`,
+    `  Status: ${status.current ? `installed · ras-code@${cliVersion}` : "needs an update or repair"}`,
     `  Unit: ${status.unitPath}`,
     `  Logs: ${status.logPath}`,
-    ...(status.current ? [] : ["  Next: Run `npx t3@latest service update`."]),
+    ...(status.current ? [] : ["  Next: Run `npx ras-code@latest service update`."]),
   ].join("\n");
 }
 
@@ -81,12 +81,12 @@ const serviceInstallCommand = Command.make("install", projectLocationFlags).pipe
         const result = yield* reconcileService();
         if (!result.changed) {
           yield* Console.log(
-            `RAS Code service is already installed with t3@${packageJson.version}.`,
+            `RAS Code service is already installed with ras-code@${packageJson.version}.`,
           );
           return;
         }
         yield* Console.log(
-          `${result.previouslyInstalled ? "Updated" : "Installed"} RAS Code service with t3@${packageJson.version}.\nLogs: ${result.plan.logPath}`,
+          `${result.previouslyInstalled ? "Updated" : "Installed"} RAS Code service with ras-code@${packageJson.version}.\nLogs: ${result.plan.logPath}`,
         );
       }),
     ),
@@ -95,7 +95,7 @@ const serviceInstallCommand = Command.make("install", projectLocationFlags).pipe
 
 const serviceUpdateCommand = Command.make("update", projectLocationFlags).pipe(
   Command.withDescription(
-    "Update or repair the background service using this CLI version. Use `npx t3@latest service update` for the latest release.",
+    "Update or repair the background service using this CLI version. Use `npx ras-code@latest service update` for the latest release.",
   ),
   Command.withHandler((flags) =>
     runServiceCommand(
@@ -103,11 +103,11 @@ const serviceUpdateCommand = Command.make("update", projectLocationFlags).pipe(
       Effect.gen(function* () {
         const result = yield* reconcileService();
         if (!result.changed) {
-          yield* Console.log(`RAS Code service is already using t3@${packageJson.version}.`);
+          yield* Console.log(`RAS Code service is already using ras-code@${packageJson.version}.`);
           return;
         }
         yield* Console.log(
-          `${result.previouslyInstalled ? "Updated" : "Installed"} RAS Code service with t3@${packageJson.version}.\nLogs: ${result.plan.logPath}`,
+          `${result.previouslyInstalled ? "Updated" : "Installed"} RAS Code service with ras-code@${packageJson.version}.\nLogs: ${result.plan.logPath}`,
         );
       }),
     ),

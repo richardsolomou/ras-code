@@ -1,4 +1,4 @@
-import { DEFAULT_TERMINAL_ID, type EnvironmentId, type ThreadId } from "@t3tools/contracts";
+import { DEFAULT_TERMINAL_ID, type EnvironmentId, type ThreadId } from "@ras-code/contracts";
 import { SymbolView } from "../../components/AppSymbol";
 import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import { Pressable, View } from "react-native";
@@ -219,7 +219,7 @@ export const ThreadTerminalPanel = memo(function ThreadTerminalPanel(
     <View className="absolute inset-x-3 bottom-28 top-28 overflow-hidden rounded-[8px] border border-border bg-screen shadow-2xl">
       <View className="flex-row items-center justify-between border-b border-border px-3 py-2">
         <View className="min-w-0 flex-1">
-          <Text className="font-t3-bold text-sm text-foreground" numberOfLines={1}>
+          <Text className="font-ras-code-bold text-sm text-foreground" numberOfLines={1}>
             Terminal
           </Text>
           <Text className="text-2xs text-foreground-muted" numberOfLines={1}>

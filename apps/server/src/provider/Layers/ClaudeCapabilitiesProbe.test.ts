@@ -1,4 +1,4 @@
-import { ClaudeSettings } from "@t3tools/contracts";
+import { ClaudeSettings } from "@ras-code/contracts";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
@@ -44,7 +44,7 @@ it.layer(NodeServices.layer)("Claude capability probe SDK boundary", (it) => {
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const tempDir = yield* fs.makeTempDirectoryScoped({ prefix: "t3-claude-probe-sdk-" });
+      const tempDir = yield* fs.makeTempDirectoryScoped({ prefix: "ras-code-claude-probe-sdk-" });
       const executablePath = path.join(tempDir, "fake-claude.mjs");
       const invocationPath = path.join(tempDir, "invocation.json");
       const workspaceCwd = path.join(tempDir, "workspace");
@@ -64,7 +64,7 @@ it.layer(NodeServices.layer)("Claude capability probe SDK boundary", (it) => {
           '  const contents = existsSync(rawMcpConfig) ? readFileSync(rawMcpConfig, "utf8") : rawMcpConfig;',
           "  try { mcpConfig = JSON.parse(contents); } catch { mcpConfig = contents; }",
           "}",
-          "writeFileSync(process.env.T3_PROBE_INVOCATION_PATH, JSON.stringify({",
+          "writeFileSync(process.env.RAS_PROBE_INVOCATION_PATH, JSON.stringify({",
           "  args,",
           "  cwd: process.cwd(),",
           "  connectorEnv: process.env.ENABLE_CLAUDEAI_MCP_SERVERS,",
@@ -100,7 +100,7 @@ it.layer(NodeServices.layer)("Claude capability probe SDK boundary", (it) => {
         decodeClaudeSettings({ binaryPath: executablePath }),
         {
           ...process.env,
-          T3_PROBE_INVOCATION_PATH: invocationPath,
+          RAS_PROBE_INVOCATION_PATH: invocationPath,
           ENABLE_CLAUDEAI_MCP_SERVERS: "true",
         },
         workspaceCwd,

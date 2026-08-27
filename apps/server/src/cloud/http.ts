@@ -11,7 +11,7 @@ import {
   EnvironmentHttpConflictError,
   EnvironmentHttpInternalServerError,
   EnvironmentHttpUnauthorizedError,
-} from "@t3tools/contracts";
+} from "@ras-code/contracts";
 import {
   RelayCloudEnvironmentHealthProofPayload,
   RelayCloudEnvironmentHealthRequest,
@@ -29,8 +29,8 @@ import {
   RelayLinkProofRequest,
   RelayManagedEndpointOrigin,
   RelayOkResponse,
-} from "@t3tools/contracts/relay";
-import { withRelayClientTracing } from "@t3tools/shared/relayTracing";
+} from "@ras-code/contracts/relay";
+import { withRelayClientTracing } from "@ras-code/shared/relayTracing";
 import {
   normalizeRelayIssuer,
   RELAY_HEALTH_REQUEST_TYP,
@@ -40,8 +40,8 @@ import {
   RELAY_MINT_RESPONSE_TYP,
   signRelayJwt,
   verifyRelayJwt,
-} from "@t3tools/shared/relayJwt";
-import { isSecureRelayUrl } from "@t3tools/shared/relayUrl";
+} from "@ras-code/shared/relayJwt";
+import { isSecureRelayUrl } from "@ras-code/shared/relayUrl";
 import * as DateTime from "effect/DateTime";
 import * as Crypto from "effect/Crypto";
 import * as Duration from "effect/Duration";
@@ -117,7 +117,7 @@ const requireRelayUrl = relayUrlConfig.pipe(
   Effect.mapError(
     () =>
       new EnvironmentHttpInternalServerError({
-        message: "T3CODE_RELAY_URL must be configured as a secure absolute HTTPS origin.",
+        message: "RAS_CODE_RELAY_URL must be configured as a secure absolute HTTPS origin.",
       }),
   ),
 );
@@ -558,7 +558,7 @@ const reconcileDesiredCloudLinkWith = Effect.fn("environment.cloud.reconcileDesi
           onNone: () =>
             Effect.fail(
               new EnvironmentHttpUnauthorizedError({
-                message: "Run `t3 connect link` to authorize this environment.",
+                message: "Run `ras connect link` to authorize this environment.",
               }),
             ),
           onSome: Effect.succeed,
@@ -649,7 +649,7 @@ export const pendingServiceUpdateExists = Effect.gen(function* () {
 });
 
 // A pending update alone is not proof a replacement server is coming: an
-// explicit launcher stop (`t3 service uninstall`, `systemctl stop`,
+// explicit launcher stop (`ras service uninstall`, `systemctl stop`,
 // `launchctl bootout`) during
 // the pending window also tears this server down. The launcher marks that case
 // just before it signals the child, so pending + no marker is the handoff.
@@ -707,7 +707,7 @@ export const releaseManagedTunnelOnShutdown = Effect.fn(
     return false;
   }
   // The link belongs to the relay it was installed against, so target the
-  // persisted URL: T3CODE_RELAY_URL may have changed since the link was made.
+  // persisted URL: RAS_CODE_RELAY_URL may have changed since the link was made.
   const relayUrl = yield* dependencies.secrets.get(RELAY_URL_SECRET);
   if (Option.isNone(relayUrl)) {
     return false;
