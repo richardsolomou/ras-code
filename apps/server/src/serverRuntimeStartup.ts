@@ -212,7 +212,7 @@ export const resolveAutoBootstrapWelcomeTargets = Effect.gen(function* () {
           projectId: nextProjectId,
           title: bootstrapProjectTitle,
           workspaceRoot: serverConfig.cwd,
-          defaultModelSelection: nextProjectDefaultModelSelection,
+          defaultModelSelection: null,
           createdAt,
         });
       } else {

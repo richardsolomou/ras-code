@@ -48,6 +48,7 @@ import {
 import {
   applyClaudePromptEffortPrefix,
   createModelSelection,
+  resolveEffectiveDefaultModelSelection,
   resolvePromptInjectedEffort,
 } from "@ras-code/shared/model";
 import { CHAT_LIST_ANCHOR_OFFSET } from "@ras-code/shared/chatList";
@@ -1593,16 +1594,20 @@ function ChatViewContent(props: ChatViewProps) {
       };
     });
   }, [activeServerThread, draftId, localDraftErrorsByDraftId, routeThreadKey]);
+  const draftDefaultModelSelection = resolveEffectiveDefaultModelSelection(
+    fallbackDraftProject,
+    settings,
+  );
   const localDraftThread = useMemo(
     () =>
       draftThread
         ? buildLocalDraftThread(
             threadId,
             draftThread,
-            fallbackDraftProject?.defaultModelSelection ?? NO_PROVIDER_MODEL_SELECTION,
+            draftDefaultModelSelection ?? NO_PROVIDER_MODEL_SELECTION,
           )
         : undefined,
-    [draftThread, fallbackDraftProject?.defaultModelSelection, threadId],
+    [draftDefaultModelSelection, draftThread, threadId],
   );
   // Promotion is data-driven: the draft route keeps rendering while the
   // server thread (same pre-allocated ref) starts, so live state must not
@@ -1825,6 +1830,12 @@ function ChatViewContent(props: ChatViewProps) {
     [activeThread?.environmentId, activeThread?.projectId],
   );
   const activeProject = useProject(activeProjectRef);
+  // New threads start on the project's default model, falling back to the
+  // environment's global default before the provider's own default.
+  const activeDefaultModelSelection = resolveEffectiveDefaultModelSelection(
+    activeProject,
+    settings,
+  );
   const handleNewThreadInActiveProject = useCallback(() => {
     startNewThreadForProject(activeProjectRef, handleNewThread);
   }, [activeProjectRef, handleNewThread]);
@@ -2104,9 +2115,7 @@ function ChatViewContent(props: ChatViewProps) {
 
   const selectedProviderByThreadId = composerActiveProvider ?? null;
   const threadProvider =
-    activeThread?.modelSelection.instanceId ??
-    activeProject?.defaultModelSelection?.instanceId ??
-    null;
+    activeThread?.modelSelection.instanceId ?? activeDefaultModelSelection?.instanceId ?? null;
   const lockedProvider = deriveLockedProvider({
     thread: activeThread,
     selectedProvider: selectedProviderByThreadId,
@@ -2780,7 +2789,7 @@ function ChatViewContent(props: ChatViewProps) {
     selectedProviderInstanceId ??
     activeThread?.session?.providerInstanceId ??
     activeThread?.modelSelection.instanceId ??
-    activeProject?.defaultModelSelection?.instanceId ??
+    activeDefaultModelSelection?.instanceId ??
     null;
   const compactionProviderAvailable = useMemo(
     () =>
@@ -5776,7 +5785,7 @@ function ChatViewContent(props: ChatViewProps) {
     const title = truncate(titleSeed);
     const threadCreateModelSelection = createModelSelection(
       ctxSelectedModelSelection.instanceId,
-      ctxSelectedModel || activeProject.defaultModelSelection?.model || DEFAULT_MODEL,
+      ctxSelectedModel || activeDefaultModelSelection?.model || DEFAULT_MODEL,
       ctxSelectedModelSelection.options,
     );
 
@@ -7069,9 +7078,7 @@ function ChatViewContent(props: ChatViewProps) {
                             interactionMode={interactionMode}
                             lockedProvider={lockedProvider}
                             providerStatuses={providerStatuses as ServerProvider[]}
-                            activeProjectDefaultModelSelection={
-                              activeProject?.defaultModelSelection
-                            }
+                            activeDefaultModelSelection={activeDefaultModelSelection}
                             activeThreadModelSelection={activeThread?.modelSelection}
                             activeContextWindow={activeContextWindow}
                             compactDisabled={compactDisabled}

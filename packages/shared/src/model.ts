@@ -332,6 +332,19 @@ export function createModelSelection(
 }
 
 /**
+ * Default model a new thread in `project` starts with: the project's own
+ * default when it has one, otherwise the environment's global default from
+ * server settings. Null means neither is set and the caller falls back to
+ * the provider's default model.
+ */
+export function resolveEffectiveDefaultModelSelection(
+  project: { readonly defaultModelSelection?: ModelSelection | null } | null | undefined,
+  settings: { readonly defaultModelSelection?: ModelSelection | null } | null | undefined,
+): ModelSelection | null {
+  return project?.defaultModelSelection ?? settings?.defaultModelSelection ?? null;
+}
+
+/**
  * Returns the effort value if it is a prompt-injected value according to
  * any select descriptor in the given capabilities, or null otherwise.
  *

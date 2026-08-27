@@ -320,6 +320,30 @@ describe("ServerSettings.sourceControlWritingStyle", () => {
   });
 });
 
+describe("ServerSettings.defaultModelSelection", () => {
+  it("has no global default model for legacy configs", () => {
+    expect(decodeServerSettings({}).defaultModelSelection).toBeNull();
+  });
+
+  it("accepts a global default model update", () => {
+    expect(
+      decodeServerSettingsPatch({
+        defaultModelSelection: { instanceId: "codex", model: "gpt-5.4" },
+      }).defaultModelSelection,
+    ).toEqual({ instanceId: "codex", model: "gpt-5.4" });
+  });
+
+  it("accepts clearing the global default model", () => {
+    expect(decodeServerSettingsPatch({ defaultModelSelection: null }).defaultModelSelection).toBe(
+      null,
+    );
+  });
+
+  it("leaves the global default model untouched when the patch omits it", () => {
+    expect(decodeServerSettingsPatch({}).defaultModelSelection).toBeUndefined();
+  });
+});
+
 describe("ServerSettingsPatch.providerInstances", () => {
   it("treats providerInstances as an optional whole-map replacement", () => {
     const patch = decodeServerSettingsPatch({});

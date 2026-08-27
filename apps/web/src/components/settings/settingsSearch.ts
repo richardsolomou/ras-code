@@ -153,6 +153,11 @@ export const SETTINGS_SEARCH_ITEMS = [
     targetId: "new-threads",
   },
   {
+    id: "default-model",
+    title: "Default model",
+    to: "/settings/general",
+  },
+  {
     id: "add-project-starts-in",
     title: "Add project starts in",
     to: "/settings/general",

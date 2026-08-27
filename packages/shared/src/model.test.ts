@@ -17,6 +17,7 @@ import {
   getProviderOptionStringSelectionValue,
   normalizeCustomModelSlug,
   normalizeModelSlug,
+  resolveEffectiveDefaultModelSelection,
 } from "./model.ts";
 
 const codexCaps: ModelCapabilities = createModelCapabilities({
@@ -188,5 +189,46 @@ describe("applyClaudePromptEffortPrefix", () => {
     expect(applyClaudePromptEffortPrefix("/home/theo/app.ts crashed on load", "ultrathink")).toBe(
       "Ultrathink:\n/home/theo/app.ts crashed on load",
     );
+  });
+});
+
+describe("resolveEffectiveDefaultModelSelection", () => {
+  const projectSelection = createModelSelection(ProviderInstanceId.make("codex"), "gpt-5.4");
+  const globalSelection = createModelSelection(
+    ProviderInstanceId.make("claudeAgent"),
+    "claude-fable-5",
+  );
+
+  it("prefers the project default over the global default", () => {
+    expect(
+      resolveEffectiveDefaultModelSelection(
+        { defaultModelSelection: projectSelection },
+        { defaultModelSelection: globalSelection },
+      ),
+    ).toBe(projectSelection);
+  });
+
+  it("falls back to the global default when the project sets none", () => {
+    expect(
+      resolveEffectiveDefaultModelSelection(
+        { defaultModelSelection: null },
+        { defaultModelSelection: globalSelection },
+      ),
+    ).toBe(globalSelection);
+  });
+
+  it("uses the global default when no project is selected yet", () => {
+    expect(
+      resolveEffectiveDefaultModelSelection(null, { defaultModelSelection: globalSelection }),
+    ).toBe(globalSelection);
+  });
+
+  it("resolves to no selection when neither default is set", () => {
+    expect(
+      resolveEffectiveDefaultModelSelection(
+        { defaultModelSelection: null },
+        { defaultModelSelection: null },
+      ),
+    ).toBeNull();
   });
 });

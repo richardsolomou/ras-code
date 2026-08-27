@@ -17,6 +17,7 @@ import {
   RAS_PROJECT_FILE_NAME,
   ThreadId,
 } from "@ras-code/contracts";
+import { resolveEffectiveDefaultModelSelection } from "@ras-code/shared/model";
 import { parseRasProjectFile } from "@ras-code/shared/rasProjectFile";
 import {
   isDefaultThreadEnvModeSettled,
@@ -414,22 +415,27 @@ export function NewTaskFlowProvider(props: React.PropsWithChildren) {
     selectedEnvironmentServerConfig,
     selectedProjectDraft.modelSelection ?? null,
   );
-  const projectDefaultModelSelection = resolveDefaultableModelSelection(
+  // The project's default model, or the environment's global default when
+  // the project sets none.
+  const effectiveDefaultModelSelection = resolveDefaultableModelSelection(
     selectedEnvironmentServerConfig,
-    selectedProject?.defaultModelSelection ?? null,
+    resolveEffectiveDefaultModelSelection(
+      selectedProject,
+      selectedEnvironmentServerConfig?.settings,
+    ),
   );
   const modelOptions = useMemo(
     () =>
       buildModelOptions(
         selectedEnvironmentServerConfig,
-        draftModelSelection ?? projectDefaultModelSelection,
+        draftModelSelection ?? effectiveDefaultModelSelection,
       ),
-    [selectedEnvironmentServerConfig, draftModelSelection, projectDefaultModelSelection],
+    [selectedEnvironmentServerConfig, draftModelSelection, effectiveDefaultModelSelection],
   );
 
   const selectedModel =
     draftModelSelection ??
-    projectDefaultModelSelection ??
+    effectiveDefaultModelSelection ??
     modelOptions.find((option) => option.isDefault)?.selection ??
     modelOptions[0]?.selection ??
     null;

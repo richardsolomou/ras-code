@@ -189,6 +189,38 @@ describe("serverSettings helpers", () => {
     });
   });
 
+  it("replaces the global default model without retaining stale options", () => {
+    const current = {
+      ...DEFAULT_SERVER_SETTINGS,
+      defaultModelSelection: createModelSelection(ProviderInstanceId.make("codex"), "gpt-5.4", [
+        { id: "reasoningEffort", value: "high" },
+      ]),
+    };
+
+    expect(
+      applyServerSettingsPatch(current, {
+        defaultModelSelection: {
+          instanceId: ProviderInstanceId.make("opencode"),
+          model: "openai/gpt-5",
+        },
+      }).defaultModelSelection,
+    ).toEqual({
+      instanceId: "opencode",
+      model: "openai/gpt-5",
+    });
+  });
+
+  it("clears the global default model with null", () => {
+    const current = {
+      ...DEFAULT_SERVER_SETTINGS,
+      defaultModelSelection: createModelSelection(ProviderInstanceId.make("codex"), "gpt-5.4"),
+    };
+
+    expect(
+      applyServerSettingsPatch(current, { defaultModelSelection: null }).defaultModelSelection,
+    ).toBeNull();
+  });
+
   it("clears source control writer selection with null", () => {
     const current = {
       ...DEFAULT_SERVER_SETTINGS,

@@ -75,6 +75,7 @@ import {
 import {
   applyProviderInstanceSettings,
   deriveProviderInstanceEntries,
+  resolveDefaultProviderModelSelection,
   sortProviderInstanceEntries,
 } from "../../providerInstances";
 import { ensureLocalApi, readLocalApi } from "../../localApi";
@@ -1880,19 +1881,29 @@ export function GeneralSettingsPanel() {
   const textGenInstanceId = textGenerationModelSelection.instanceId;
   const textGenModel = textGenerationModelSelection.model;
   const textGenModelOptions = textGenerationModelSelection.options;
-  const textGenerationModelInstanceEntries = sortProviderInstanceEntries(
+  const providerInstanceEntries = sortProviderInstanceEntries(
     applyProviderInstanceSettings(deriveProviderInstanceEntries(serverProviders), settings),
   );
-  const textGenInstanceEntry = textGenerationModelInstanceEntries.find(
+  const textGenInstanceEntry = providerInstanceEntries.find(
     (entry) => entry.instanceId === textGenInstanceId,
   );
   const textGenProvider: ProviderDriverKind =
     textGenInstanceEntry?.driverKind ?? DEFAULT_DRIVER_KIND;
-  const textGenerationModelOptionsByInstance = getCustomModelOptionsByInstance(
+  const modelOptionsByInstance = getCustomModelOptionsByInstance(
     settings,
     serverProviders,
     textGenInstanceId,
     textGenModel,
+  );
+  // Global new-thread default. Shown resolved against the available
+  // providers, so the row names a real model even before the user picks one.
+  const storedDefaultModelSelection = settings.defaultModelSelection ?? null;
+  const resolvedDefaultModelSelection = resolveDefaultProviderModelSelection(
+    serverProviders,
+    storedDefaultModelSelection,
+  );
+  const defaultModelInstanceEntry = providerInstanceEntries.find(
+    (entry) => entry.instanceId === resolvedDefaultModelSelection?.instanceId,
   );
   const isTextGenerationModelDirty = !Equal.equals(
     settings.textGenerationModelSelection ?? null,
@@ -2299,6 +2310,62 @@ export function GeneralSettingsPanel() {
         ) : null}
 
         <SettingsRow
+          {...searchableSetting("default-model")}
+          description="Used for new threads in projects that do not set their own default model."
+          resetAction={
+            storedDefaultModelSelection !== null ? (
+              <SettingResetButton
+                label="default model"
+                onClick={() => updateSettings({ defaultModelSelection: null })}
+              />
+            ) : null
+          }
+          control={
+            resolvedDefaultModelSelection && defaultModelInstanceEntry ? (
+              <div className="flex flex-wrap items-center justify-end gap-1.5">
+                <ProviderModelPicker
+                  activeInstanceId={resolvedDefaultModelSelection.instanceId}
+                  model={resolvedDefaultModelSelection.model}
+                  lockedProvider={null}
+                  instanceEntries={providerInstanceEntries}
+                  modelOptionsByInstance={modelOptionsByInstance}
+                  triggerVariant="outline"
+                  triggerClassName="min-w-0 max-w-none shrink-0 text-foreground/90 hover:text-foreground"
+                  onInstanceModelChange={(instanceId, model) => {
+                    updateSettings({
+                      defaultModelSelection: createModelSelection(instanceId, model),
+                    });
+                  }}
+                />
+                <TraitsPicker
+                  provider={defaultModelInstanceEntry.driverKind}
+                  models={defaultModelInstanceEntry.models}
+                  model={resolvedDefaultModelSelection.model}
+                  prompt=""
+                  onPromptChange={() => {}}
+                  modelOptions={resolvedDefaultModelSelection.options ?? []}
+                  allowPromptInjectedEffort={false}
+                  planModeEnabled={settings.planModeEnabled}
+                  triggerVariant="outline"
+                  triggerClassName="min-w-0 max-w-none shrink-0 text-foreground/90 hover:text-foreground"
+                  onModelOptionsChange={(nextOptions) => {
+                    updateSettings({
+                      defaultModelSelection: createModelSelection(
+                        resolvedDefaultModelSelection.instanceId,
+                        resolvedDefaultModelSelection.model,
+                        nextOptions,
+                      ),
+                    });
+                  }}
+                />
+              </div>
+            ) : (
+              <span className="text-sm text-muted-foreground">No providers available</span>
+            )
+          }
+        />
+
+        <SettingsRow
           {...searchableSetting("add-project-starts-in")}
           description='Leave empty to use "~/" when the Add Project browser opens.'
           resetAction={
@@ -2424,8 +2491,8 @@ export function GeneralSettingsPanel() {
                 activeInstanceId={textGenInstanceId}
                 model={textGenModel}
                 lockedProvider={null}
-                instanceEntries={textGenerationModelInstanceEntries}
-                modelOptionsByInstance={textGenerationModelOptionsByInstance}
+                instanceEntries={providerInstanceEntries}
+                modelOptionsByInstance={modelOptionsByInstance}
                 triggerVariant="outline"
                 triggerClassName="min-w-0 max-w-none shrink-0 text-foreground/90 hover:text-foreground"
                 onInstanceModelChange={(instanceId, model) => {

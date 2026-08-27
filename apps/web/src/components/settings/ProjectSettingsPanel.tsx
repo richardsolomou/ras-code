@@ -22,7 +22,10 @@ import type {
   ThreadEnvMode,
 } from "@ras-code/contracts";
 import { resolveEnvModeLabel } from "../BranchToolbar.logic";
-import { createModelSelection } from "@ras-code/shared/model";
+import {
+  createModelSelection,
+  resolveEffectiveDefaultModelSelection,
+} from "@ras-code/shared/model";
 import { DEFAULT_RESOLVED_KEYBINDINGS } from "@ras-code/shared/keybindings";
 import { useCanGoBack, useNavigate } from "@tanstack/react-router";
 import * as Cause from "effect/Cause";
@@ -418,7 +421,12 @@ function ProjectDetail({ group }: { group: SidebarProjectSnapshot }) {
 
   // ----- default model -----
   const storedSelection = representative.defaultModelSelection;
-  const resolvedSelection = resolveDefaultProviderModelSelection(serverProviders, storedSelection);
+  // With no project override the row shows what new threads actually get:
+  // the global default from Settings, resolved against available providers.
+  const resolvedSelection = resolveDefaultProviderModelSelection(
+    serverProviders,
+    resolveEffectiveDefaultModelSelection(representative, settings),
+  );
   const instanceEntries = useMemo(
     () =>
       sortProviderInstanceEntries(
@@ -460,7 +468,7 @@ function ProjectDetail({ group }: { group: SidebarProjectSnapshot }) {
       savingFaviconRef.current = true;
       setIsSavingFavicon(true);
       try {
-        await updateAllMembers({ faviconPath }, "Failed to update project icon");
+        await updateAllMembers({ faviconPath, iconEmoji: null }, "Failed to update project icon");
       } finally {
         savingFaviconRef.current = false;
         setIsSavingFavicon(false);
@@ -482,8 +490,8 @@ function ProjectDetail({ group }: { group: SidebarProjectSnapshot }) {
       setIconEmojiRejected(false);
       if (next === (iconEmoji ?? "")) return;
       await updateAllMembers(
-        { iconEmoji: next === "" ? null : next },
-        "Failed to update project emoji",
+        next === "" ? { iconEmoji: null } : { iconEmoji: next, faviconPath: null },
+        "Failed to update project icon",
       );
     },
     [iconEmoji, updateAllMembers],
@@ -814,13 +822,24 @@ function ProjectDetail({ group }: { group: SidebarProjectSnapshot }) {
           />
           <SettingsRow
             title="Project icon"
-            description={faviconPath ?? "Automatic"}
+            description={
+              iconEmojiRejected
+                ? "Enter a single emoji."
+                : iconEmoji !== null
+                  ? "Emoji"
+                  : (faviconPath ?? "Automatic. Type an emoji or choose an image file.")
+            }
             resetAction={
-              faviconPath !== null ? (
+              faviconPath !== null || iconEmoji !== null ? (
                 <SettingResetButton
                   label="project icon"
                   disabled={isSavingFavicon}
-                  onClick={() => void setFaviconPath(null)}
+                  onClick={() =>
+                    void updateAllMembers(
+                      { faviconPath: null, iconEmoji: null },
+                      "Failed to update project icon",
+                    )
+                  }
                 />
               ) : null
             }
@@ -832,6 +851,19 @@ function ProjectDetail({ group }: { group: SidebarProjectSnapshot }) {
                   faviconPath={faviconPath}
                   iconEmoji={iconEmoji}
                   className="size-6"
+                />
+                <Input
+                  key={`${group.projectKey}:${iconEmoji ?? ""}`}
+                  className="w-16 text-center"
+                  aria-label="Project emoji"
+                  aria-invalid={iconEmojiRejected || undefined}
+                  placeholder="Emoji"
+                  defaultValue={iconEmoji ?? ""}
+                  onChange={() => setIconEmojiRejected(false)}
+                  onBlur={(event) => void saveIconEmoji(event.currentTarget.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") event.currentTarget.blur();
+                  }}
                 />
                 <Button
                   size="xs"
@@ -846,37 +878,18 @@ function ProjectDetail({ group }: { group: SidebarProjectSnapshot }) {
               </div>
             }
           />
-          <SettingsRow
-            title="Emoji"
-            description={
-              iconEmojiRejected ? "Enter a single emoji." : "Shown instead of the icon file."
-            }
-            resetAction={
-              iconEmoji !== null ? (
-                <SettingResetButton label="project emoji" onClick={() => void saveIconEmoji("")} />
-              ) : null
-            }
-            control={
-              <Input
-                key={`${group.projectKey}:${iconEmoji ?? ""}`}
-                className="w-full sm:w-24"
-                aria-label="Project emoji"
-                aria-invalid={iconEmojiRejected || undefined}
-                defaultValue={iconEmoji ?? ""}
-                onChange={() => setIconEmojiRejected(false)}
-                onBlur={(event) => void saveIconEmoji(event.currentTarget.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") event.currentTarget.blur();
-                }}
-              />
-            }
-          />
         </SettingsSection>
 
         <SettingsSection title="New threads">
           <SettingsRow
             title="Model"
-            description="New threads in this project start with this model. Applies to every checkout in this group."
+            description={
+              storedSelection === null
+                ? `Inherits the global default${
+                    resolvedSelection ? ` (${resolvedSelection.model})` : ""
+                  }. Applies to every checkout in this group.`
+                : "New threads in this project start with this model. Applies to every checkout in this group."
+            }
             resetAction={
               storedSelection !== null ? (
                 <SettingResetButton

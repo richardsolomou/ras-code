@@ -1009,11 +1009,11 @@ export function deriveEffectiveComposerModelState(input: {
    */
   selectedInstanceId?: ProviderInstanceId | null | undefined;
   threadModelSelection: ModelSelection | null | undefined;
-  projectModelSelection: ModelSelection | null | undefined;
+  defaultModelSelection: ModelSelection | null | undefined;
   settings: UnifiedSettings;
 }): EffectiveComposerModelState {
   const baseModelCandidate =
-    input.threadModelSelection?.model ?? input.projectModelSelection?.model ?? null;
+    input.threadModelSelection?.model ?? input.defaultModelSelection?.model ?? null;
   const baseModel =
     (input.selectedInstanceId
       ? resolveAppModelSelectionForInstance(
@@ -1061,7 +1061,7 @@ export function deriveEffectiveComposerModelState(input: {
   const modelOptions =
     modelSelectionByProviderToOptions(input.draft?.modelSelectionByProvider) ??
     providerSelectionsFromModelSelection(input.threadModelSelection) ??
-    providerSelectionsFromModelSelection(input.projectModelSelection) ??
+    providerSelectionsFromModelSelection(input.defaultModelSelection) ??
     null;
 
   return {
@@ -3708,7 +3708,7 @@ export function useEffectiveComposerModelState(input: {
    */
   selectedInstanceId?: ProviderInstanceId | null | undefined;
   threadModelSelection: ModelSelection | null | undefined;
-  projectModelSelection: ModelSelection | null | undefined;
+  defaultModelSelection: ModelSelection | null | undefined;
   settings: UnifiedSettings;
 }): EffectiveComposerModelState {
   const draft = useComposerDraftModelState(input.threadRef ?? input.draftId ?? DraftId.make(""));
@@ -3721,14 +3721,14 @@ export function useEffectiveComposerModelState(input: {
         selectedProvider: input.selectedProvider,
         selectedInstanceId: input.selectedInstanceId,
         threadModelSelection: input.threadModelSelection,
-        projectModelSelection: input.projectModelSelection,
+        defaultModelSelection: input.defaultModelSelection,
         settings: input.settings,
       }),
     [
       draft,
       input.providers,
       input.settings,
-      input.projectModelSelection,
+      input.defaultModelSelection,
       input.selectedInstanceId,
       input.selectedProvider,
       input.threadModelSelection,
