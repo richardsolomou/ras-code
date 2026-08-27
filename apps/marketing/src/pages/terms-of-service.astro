@@ -1,25 +1,323 @@
 ---
 import LegalPage from "../components/LegalPage.astro";
 
-const sections = [["status", "Status"]] as const;
+const sections = [
+  ["introduction", "Introduction"],
+  ["software", "The software is separate from the service"],
+  ["accounts", "Accounts"],
+  ["personal-use", "Personal use only"],
+  ["content", "Your content and your providers"],
+  ["acceptable-use", "Acceptable use"],
+  ["availability", "No guarantees, and the service may stop"],
+  ["fees", "Fees"],
+  ["privacy", "Privacy"],
+  ["termination", "Suspension and termination"],
+  ["disclaimers", "Disclaimer of warranties"],
+  ["liability", "Limitation of liability"],
+  ["indemnification", "Indemnification"],
+  ["third-parties", "Third-party services"],
+  ["feedback", "Feedback"],
+  ["law", "Governing law and disputes"],
+  ["miscellaneous", "Miscellaneous"],
+  ["changes", "Changes to these terms"],
+  ["contact", "Contact"],
+] as const;
 ---
 
 <LegalPage
   title="Terms of Service — RAS Code"
-  description="The terms that govern your use of RAS Code."
+  description="The terms for RAS Connect, the optional hosted service operated by Richard Solomou."
   heading="RAS Code Terms of Service"
-  lede="RAS Code is a personal open-source fork of T3 Code, maintained by Richard Solomou. It is distributed under the MIT licence with no warranty and no operated service behind it."
-  effectiveDate="TBD"
-  lastUpdated="TBD"
+  lede="These terms govern RAS Connect, the optional hosted service that links your devices to your own RAS Code server. The RAS Code software itself is MIT-licensed and governed by that licence, not by these terms."
+  effectiveDate="2026-08-28"
+  lastUpdated="2026-08-28"
   sections={sections}
 >
-  <section id="status">
+  <section id="introduction">
     <p class="section-number">01</p>
-    <h2>Status</h2>
+    <h2>Introduction</h2>
     <p>
-      TODO_RAS_CODE_LEGAL — this Terms of Service has not been written for RAS Code. The upstream
-      T3 Code text described services operated by T3 Tools, Inc. and cannot be restated
-      accurately for this fork, so it has been removed rather than left in place misattributed.
+      These Terms of Service (the “Terms”) are an agreement between you and Richard Solomou (“I”,
+      “me”), who operates RAS Connect as an individual. They govern your use of RAS Connect and of
+      the RAS Code website. By signing in to RAS Connect you accept these Terms. If you do not accept
+      them, do not sign in; the RAS Code software works without an account.
+    </p>
+    <p>
+      You must be at least 13 years old, and old enough under the law where you live to enter into
+      this agreement.
+    </p>
+  </section>
+
+  <section id="software">
+    <p class="section-number">02</p>
+    <h2>The Software Is Separate From the Service</h2>
+    <p>
+      RAS Code is open-source software distributed under the MIT licence, as a fork of T3 Code whose
+      copyright notice it retains. Your rights to use, copy, modify, and redistribute that source
+      code come from the MIT licence, and nothing in these Terms limits them. If these Terms and the
+      MIT licence disagree about the software, the licence wins.
+    </p>
+    <p>
+      These Terms cover only the hosted part: the RAS Connect relay, the accounts it holds, the
+      credentials it issues, the managed endpoints it provisions, and the notifications it delivers.
+      Running RAS Code on your own machines, or running your own copy of the relay from the source,
+      is outside their scope.
+    </p>
+  </section>
+
+  <section id="accounts">
+    <p class="section-number">03</p>
+    <h2>Accounts</h2>
+    <p>
+      RAS Connect requires an account, provided through Clerk. Keep your credentials secure, and get
+      in touch promptly if you think your account has been used without your permission. You are
+      responsible for what happens through your account and through the devices and environments you
+      link to it.
+    </p>
+    <p>
+      One account is for one person. Do not share credentials, impersonate someone else, or create
+      accounts by automated means.
+    </p>
+  </section>
+
+  <section id="personal-use">
+    <p class="section-number">04</p>
+    <h2>Personal Use Only</h2>
+    <p>
+      RAS Connect is offered for your own personal or internal use, at no charge, and with no service
+      commitment. You may not:
+    </p>
+    <ul>
+      <li>Resell, sublicense, rent, or otherwise commercialise access to RAS Connect;</li>
+      <li>Offer it to third parties as part of a product or service of your own;</li>
+      <li>Operate it as shared infrastructure for an organisation or user base you serve; or</li>
+      <li>Register accounts, environments, or tunnels on behalf of other people.</li>
+    </ul>
+    <p>
+      If you want to provide something like RAS Connect to other people, the source is MIT-licensed
+      and you are welcome to run your own relay.
+    </p>
+  </section>
+
+  <section id="content">
+    <p class="section-number">05</p>
+    <h2>Your Content and Your Providers</h2>
+    <p>
+      Your prompts, source code, files, and the responses your coding agents produce stay between
+      your clients, your own RAS Code server, and the agent and model providers you configure. RAS
+      Connect is not in that path and takes no rights over that content. You keep everything you
+      already own.
+    </p>
+    <p>
+      When you enable notifications, your environment sends short activity summaries so a
+      notification can be composed, as described in the
+      <a href="/privacy-policy">Privacy Policy</a>. You grant a limited permission to store,
+      transmit, and display those summaries for the purpose of delivering the notifications you asked
+      for, and for nothing else.
+    </p>
+    <p>
+      You are responsible for having the right to use the content you put through RAS Code, and for
+      reviewing the terms and data practices of the agents and providers you connect to it before you
+      send them anything confidential, proprietary, regulated, or personal.
+    </p>
+  </section>
+
+  <section id="acceptable-use">
+    <p class="section-number">06</p>
+    <h2>Acceptable Use</h2>
+    <p>Do not use RAS Connect to:</p>
+    <ul>
+      <li>Break the law, or infringe anyone's rights;</li>
+      <li>Attack, probe, disrupt, or gain unauthorised access to the service or any other system;</li>
+      <li>Circumvent rate limits, tunnel limits, access controls, or authentication;</li>
+      <li>Expose someone else's systems through a managed endpoint without their permission;</li>
+      <li>Distribute malware or route abusive traffic through the infrastructure;</li>
+      <li>Place an unreasonable load on shared infrastructure, or degrade it for other users; or</li>
+      <li>Facilitate fraud, harassment, or deceptive conduct.</li>
+    </ul>
+    <p>
+      Good-faith security research is welcome and is governed by the
+      <a href="/security-policy">Security Policy</a>.
+    </p>
+  </section>
+
+  <section id="availability">
+    <p class="section-number">07</p>
+    <h2>No Guarantees, and the Service May Stop</h2>
+    <p>
+      RAS Connect is run by one person in their own time. There is no uptime commitment, no support
+      commitment, and no response-time commitment. Features may be added, changed, restricted, or
+      removed at any time, and the service as a whole may be shut down. Reasonable advance notice
+      will be given before a planned shutdown where that is practical, but it may not always be
+      possible.
+    </p>
+    <p>
+      Do not build anything you depend on around the continued availability of RAS Connect. RAS Code
+      works without it: local network and self-operated tunnel connections need no hosted service at
+      all, and the relay source is available if you would rather run it yourself.
+    </p>
+  </section>
+
+  <section id="fees">
+    <p class="section-number">08</p>
+    <h2>Fees</h2>
+    <p>
+      RAS Connect is free to use. Should a paid feature ever be introduced, its price and payment
+      terms will be shown before you buy it, and nothing you already use will start charging without
+      notice. You remain responsible for what your own agent providers, cloud infrastructure, network
+      operators, and app stores charge you.
+    </p>
+  </section>
+
+  <section id="privacy">
+    <p class="section-number">09</p>
+    <h2>Privacy</h2>
+    <p>
+      The <a href="/privacy-policy">Privacy Policy</a> describes what RAS Connect stores, what it
+      never receives, and how to exercise your data protection rights. It forms part of these Terms.
+    </p>
+  </section>
+
+  <section id="termination">
+    <p class="section-number">10</p>
+    <h2>Suspension and Termination</h2>
+    <p>
+      You may stop at any time: unlink your environments, remove your devices, and request deletion
+      of your account as described in the Privacy Policy.
+    </p>
+    <p>
+      Your access may be suspended or terminated if you break these Terms, create a security or legal
+      risk, or use the service in a way that harms other users or the shared infrastructure. Notice
+      and a chance to fix the problem will be given where it is safe to do so, and immediately
+      otherwise. Terminating your RAS Connect access does not affect your rights under the MIT
+      licence or your ability to keep running RAS Code.
+    </p>
+    <p>
+      The sections on disclaimers, limitation of liability, indemnification, and governing law
+      survive termination.
+    </p>
+  </section>
+
+  <section id="disclaimers">
+    <p class="section-number">11</p>
+    <h2>Disclaimer of Warranties</h2>
+    <p class="legal-notice">
+      TO THE MAXIMUM EXTENT PERMITTED BY LAW, RAS CONNECT AND THE RAS CODE WEBSITE ARE PROVIDED “AS
+      IS” AND “AS AVAILABLE”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING ANY
+      WARRANTY OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, OR NON-INFRINGEMENT.
+    </p>
+    <p>
+      Coding agents produce incorrect, insecure, and sometimes destructive output. Review commands,
+      patches, and file changes before you apply or run them. Nothing here warrants that the service
+      will be uninterrupted, secure, timely, or error-free, or that a notification will arrive.
+    </p>
+    <p>
+      Some jurisdictions do not allow certain warranty exclusions, so parts of this section may not
+      apply to you.
+    </p>
+  </section>
+
+  <section id="liability">
+    <p class="section-number">12</p>
+    <h2>Limitation of Liability</h2>
+    <p class="legal-notice">
+      TO THE MAXIMUM EXTENT PERMITTED BY LAW, RICHARD SOLOMOU WILL NOT BE LIABLE FOR ANY INDIRECT,
+      INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR EXEMPLARY DAMAGES, OR FOR LOST PROFITS, LOST DATA, LOST
+      WORK, OR LOST BUSINESS, ARISING FROM OR RELATING TO RAS CONNECT, THE WEBSITE, OR THESE TERMS.
+    </p>
+    <p>
+      Because RAS Connect is provided free of charge by an individual, total liability for all claims
+      arising from or relating to it will not exceed the greater of the amount you actually paid for
+      the service and TODO_RAS_CODE_LEGAL: nominal liability cap amount and currency, for example GBP
+      100. These limits apply whatever the legal theory, and even if a remedy fails its essential
+      purpose. Nothing here limits liability that cannot lawfully be
+      limited, including liability for death or personal injury caused by negligence, or for fraud.
+    </p>
+  </section>
+
+  <section id="indemnification">
+    <p class="section-number">13</p>
+    <h2>Indemnification</h2>
+    <p>
+      To the extent permitted by law, you will cover claims, damages, losses, and reasonable legal
+      costs brought by a third party that arise from your use of RAS Connect in breach of these Terms
+      or of the law, or from systems you expose through it. You will be told promptly about any such
+      claim and given reasonable cooperation in defending it.
+    </p>
+  </section>
+
+  <section id="third-parties">
+    <p class="section-number">14</p>
+    <h2>Third-Party Services</h2>
+    <p>
+      RAS Connect depends on Clerk, Cloudflare, PlanetScale, Apple, and other providers named in the
+      Privacy Policy, and RAS Code connects to coding agents, model providers, repositories, and app
+      stores that you choose. Those services are governed by their own terms, and none of them are
+      controlled here. Outages, price changes, policy changes, or output from any of them are not
+      something this service can be answerable for.
+    </p>
+    <p>
+      Third-party and open-source components bundled with RAS Code are governed by their own licence
+      notices.
+    </p>
+  </section>
+
+  <section id="feedback">
+    <p class="section-number">15</p>
+    <h2>Feedback</h2>
+    <p>
+      Ideas, suggestions, bug reports, and feature requests you send may be used freely, in the
+      project or elsewhere, without restriction, attribution, or payment. This does not give anyone
+      rights over your own code or content. Contributions made to the repository are governed by the
+      project's licence and contribution process, not by this section.
+    </p>
+  </section>
+
+  <section id="law">
+    <p class="section-number">16</p>
+    <h2>Governing Law and Disputes</h2>
+    <p>
+      These Terms are governed by the laws of TODO_RAS_CODE_LEGAL: governing law, and any dispute
+      will be subject to the exclusive jurisdiction of the courts of
+      TODO_RAS_CODE_LEGAL: jurisdiction and venue for disputes, without prejudice to any right you
+      have as a consumer to bring proceedings in the courts of your own country of residence.
+    </p>
+    <p>
+      Before starting proceedings, please raise the problem by email at
+      TODO_RAS_CODE_LEGAL: legal contact email address and allow 30 days to resolve it informally.
+      Most things can be sorted out that way.
+    </p>
+  </section>
+
+  <section id="miscellaneous">
+    <p class="section-number">17</p>
+    <h2>Miscellaneous</h2>
+    <p>
+      These Terms and the documents they reference are the entire agreement about RAS Connect. If a
+      provision is unenforceable, it is narrowed to the minimum extent needed or removed, and the rest
+      stays in force. Not enforcing a provision is not a waiver of it. You may not transfer these
+      Terms; they may be transferred to a successor operator of the service, in which case you will be
+      told. Delays or failures caused by events outside reasonable control are not a breach.
+    </p>
+  </section>
+
+  <section id="changes">
+    <p class="section-number">18</p>
+    <h2>Changes to These Terms</h2>
+    <p>
+      These Terms will be updated as the service changes. Revisions are posted at this URL with
+      updated dates above, and apply from their effective date. Where a change materially affects your
+      rights, notice will be given in the app or on the website before it takes effect, where that is
+      practical. Continuing to use RAS Connect after that date means you accept the updated Terms.
+    </p>
+  </section>
+
+  <section id="contact">
+    <p class="section-number">19</p>
+    <h2>Contact</h2>
+    <p>
+      RAS Connect is operated by Richard Solomou as an individual. For questions about these Terms,
+      email TODO_RAS_CODE_LEGAL: legal contact email address.
     </p>
   </section>
 </LegalPage>

@@ -1,25 +1,364 @@
 ---
 import LegalPage from "../components/LegalPage.astro";
 
-const sections = [["status", "Status"]] as const;
+const sections = [
+  ["introduction", "Introduction"],
+  ["scope", "What this policy covers"],
+  ["information", "Information RAS Connect processes"],
+  ["not-collected", "What RAS Connect does not receive"],
+  ["traffic", "How your traffic reaches your server"],
+  ["site", "The RAS Code website"],
+  ["uses", "How the information is used"],
+  ["sharing", "Service providers and disclosures"],
+  ["retention", "Retention and deletion"],
+  ["rights", "Your data protection rights"],
+  ["security", "Security"],
+  ["international", "International transfers"],
+  ["children", "Children"],
+  ["updates", "Updates to this policy"],
+  ["contact", "Contact"],
+] as const;
 ---
 
 <LegalPage
   title="Privacy Policy — RAS Code"
-  description="How RAS Code handles information."
+  description="What RAS Connect stores, what it never receives, and how to exercise your data protection rights."
   heading="RAS Code Privacy Policy"
-  lede="RAS Code is a personal open-source fork of T3 Code, maintained by Richard Solomou. It is distributed under the MIT licence with no warranty and no operated service behind it."
-  effectiveDate="TBD"
-  lastUpdated="TBD"
+  lede="RAS Code is open-source software that runs on your own machines. RAS Connect is an optional hosted service, operated by Richard Solomou as an individual, that links your devices to your own RAS Code server and delivers mobile notifications. This policy describes the information RAS Connect processes."
+  effectiveDate="2026-08-28"
+  lastUpdated="2026-08-28"
   sections={sections}
 >
-  <section id="status">
+  <section id="introduction">
     <p class="section-number">01</p>
-    <h2>Status</h2>
+    <h2>Introduction</h2>
     <p>
-      TODO_RAS_CODE_LEGAL — this Privacy Policy has not been written for RAS Code. The upstream
-      T3 Code text described services operated by T3 Tools, Inc. and cannot be restated
-      accurately for this fork, so it has been removed rather than left in place misattributed.
+      This Privacy Policy explains how Richard Solomou (“I”, “me”) collects, uses, and shares
+      personal information in connection with RAS Connect and the RAS Code website. RAS Connect is
+      run by one person, not a company.
+    </p>
+    <p>
+      RAS Code itself is MIT-licensed software that you download and run. When you run it without
+      signing in to RAS Connect, no information reaches me at all. Signing in to RAS Connect is
+      optional, and this policy applies from the moment you do.
+    </p>
+  </section>
+
+  <section id="scope">
+    <p class="section-number">02</p>
+    <h2>What This Policy Covers</h2>
+    <p>
+      This policy covers RAS Connect: the hosted relay that links RAS Code environments to your
+      account, issues short-lived connection credentials, provisions managed network endpoints, and
+      delivers push notifications and Live Activities to the RAS Code mobile app. It also covers the
+      RAS Code marketing website.
+    </p>
+    <p>
+      This policy does not cover the coding agents, model providers, repositories, or operating
+      systems you connect RAS Code to. Those are chosen and configured by you, and they process
+      information under their own terms and privacy policies. It also does not cover a RAS Code
+      server running on your own machine, which you operate yourself.
+    </p>
+  </section>
+
+  <section id="information">
+    <p class="section-number">03</p>
+    <h2>Information RAS Connect Processes</h2>
+
+    <h3>Account Information</h3>
+    <p>
+      Authentication is provided by Clerk. When you sign in, RAS Connect receives an account
+      identifier for you from Clerk and uses it to scope everything below. The profile information
+      you give to Clerk, such as your email address, name, and sign-in method, is held by Clerk under
+      its own privacy policy.
+    </p>
+
+    <h3>Environment Links</h3>
+    <p>
+      When you link a RAS Code environment to your account, RAS Connect stores the environment
+      identifier, the label you chose for it, the environment's public key, its HTTP and WebSocket
+      endpoint addresses, the kind of endpoint in use, your notification and Live Activity settings
+      for it, the identifier of the device that created the link, and timestamps.
+    </p>
+
+    <h3>Connection Credentials</h3>
+    <p>
+      Credentials that let a client connect to your environment are short-lived and are bound to the
+      requesting client's key. RAS Connect stores a hash of each credential, together with the
+      environment identifier and public key, so a credential can be checked and revoked. The
+      credential itself is not stored. Short-lived proof identifiers are recorded so that a proof
+      cannot be replayed.
+    </p>
+
+    <h3>Managed Endpoints</h3>
+    <p>
+      If you enable a managed endpoint, RAS Connect provisions a Cloudflare Tunnel and a hostname for
+      your environment, and stores the hostname, tunnel identifier and name, DNS record identifier,
+      and readiness timestamp, plus any per-account limit on how many tunnels you may create.
+    </p>
+
+    <h3>Mobile Devices and Push Tokens</h3>
+    <p>
+      If you register the mobile app for notifications, RAS Connect stores a device identifier, the
+      device label you chose, the platform and major operating-system version, the app version and
+      bundle identifier, the Apple Push Notification service environment, your Apple push tokens
+      (including push-to-start and Live Activity tokens), and your notification preferences.
+    </p>
+
+    <h3>Agent Activity</h3>
+    <p>
+      When notifications or Live Activities are enabled for an environment, that environment
+      publishes a short status record per thread so a notification can be composed. Each record
+      contains the environment and thread identifiers, the project title, the thread title, the model
+      name, a phase such as running or waiting for approval, a one-line headline and optional detail,
+      an in-app deep link, and a timestamp. Titles and status text are truncated to short fixed
+      lengths before storage and delivery.
+    </p>
+
+    <h3>Delivery Records</h3>
+    <p>
+      For each notification RAS Connect attempts to send, it records the time, your account
+      identifier, the environment, thread, and device involved, the kind of notification, a short
+      trailing fragment of the push token, and the response Apple returned, including any error.
+      These records exist so that failed deliveries can be diagnosed and retries are not duplicated.
+    </p>
+
+    <h3>Operational Traces</h3>
+    <p>
+      RAS Connect emits request traces to Axiom. A trace records the request method, path, route,
+      response status, duration, and your account identifier. Authorization credentials are not
+      recorded in traces.
+    </p>
+  </section>
+
+  <section id="not-collected">
+    <p class="section-number">04</p>
+    <h2>What RAS Connect Does Not Receive</h2>
+    <p>
+      RAS Connect is a control plane. It is not in the path of your normal RAS Code traffic. It does
+      not receive, and does not store:
+    </p>
+    <ul>
+      <li>Your prompts, or the responses your coding agent returns;</li>
+      <li>Your source code, files, attachments, diffs, patches, or commits;</li>
+      <li>Command output, terminal contents, or thread history;</li>
+      <li>Your provider or model API keys, or your repository credentials;</li>
+      <li>The contents of the environment your RAS Code server runs on.</li>
+    </ul>
+    <p>
+      The one exception is the short agent activity record described above, which exists only to
+      populate a notification, and only when you enable notifications. Nothing here is used to train
+      artificial-intelligence models.
+    </p>
+  </section>
+
+  <section id="traffic">
+    <p class="section-number">05</p>
+    <h2>How Your Traffic Reaches Your Server</h2>
+    <p>
+      After a client has obtained a credential, its API and WebSocket traffic goes directly to your
+      RAS Code server. It does not pass through the RAS Connect application.
+    </p>
+    <p>
+      Be aware of what “directly” means for each connection mode. If you connect over your local
+      network, or through a tunnel you operate yourself, no traffic touches RAS Connect
+      infrastructure. If you enable a managed endpoint, your traffic travels over a Cloudflare Tunnel
+      through Cloudflare's network, and Cloudflare terminates TLS at its edge, so that traffic is not
+      end-to-end encrypted between your client and your server. RAS Connect does not store it, but it
+      is technically visible to Cloudflare in transit. Choose a self-operated connection if that
+      matters for your work.
+    </p>
+  </section>
+
+  <section id="site">
+    <p class="section-number">06</p>
+    <h2>The RAS Code Website</h2>
+    <p>
+      The website is a static site hosted by Vercel. Vercel logs standard request information,
+      including IP addresses, as part of serving and protecting it. The site loads web fonts from
+      Google Fonts, which means your browser sends a request, and therefore your IP address, to
+      Google when a page loads. The site sets no analytics, advertising, or tracking cookies.
+    </p>
+  </section>
+
+  <section id="uses">
+    <p class="section-number">07</p>
+    <h2>How the Information Is Used</h2>
+    <ul>
+      <li>To authenticate you and scope your environments, devices, and credentials to your account;</li>
+      <li>To link environments and issue short-lived credentials so your clients can connect;</li>
+      <li>To provision and tear down managed endpoints you request;</li>
+      <li>To compose and deliver the notifications and Live Activities you enable;</li>
+      <li>To diagnose failures, keep the service reliable, and investigate abuse or security issues;</li>
+      <li>To respond to you when you get in touch; and</li>
+      <li>To comply with legal obligations.</li>
+    </ul>
+    <p>
+      Under GDPR and UK GDPR terms, the legal bases are performance of a contract for operating the
+      features you enable, legitimate interests for reliability, abuse prevention, and security, and
+      legal obligation where the law requires it.
+    </p>
+  </section>
+
+  <section id="sharing">
+    <p class="section-number">08</p>
+    <h2>Service Providers and Disclosures</h2>
+    <p>RAS Connect is built on the following providers, and no others:</p>
+    <ul class="provider-list">
+      <li>
+        <strong>Clerk</strong> <em>(Clerk, Inc.)</em>.<br />
+        Account authentication and session management.<br />
+        <a href="https://clerk.com/legal/privacy">https://clerk.com/legal/privacy</a>
+      </li>
+      <li>
+        <strong>Cloudflare</strong> <em>(Cloudflare, Inc.)</em>.<br />
+        Hosts the relay worker and its queues, and provides the tunnels and DNS used for managed
+        endpoints.<br />
+        <a href="https://www.cloudflare.com/policies/privacy/"
+          >https://www.cloudflare.com/policies/privacy/</a
+        >
+      </li>
+      <li>
+        <strong>PlanetScale</strong> <em>(PlanetScale, Inc.)</em>.<br />
+        Hosts the Postgres database holding the records described above.<br />
+        <a href="https://planetscale.com/legal/privacy">https://planetscale.com/legal/privacy</a>
+      </li>
+      <li>
+        <strong>Apple</strong> <em>(Apple Inc.)</em>.<br />
+        The Apple Push Notification service delivers notifications and Live Activity updates to iOS
+        devices, and the App Store distributes the mobile app.<br />
+        <a href="https://www.apple.com/legal/privacy/">https://www.apple.com/legal/privacy/</a>
+      </li>
+      <li>
+        <strong>Axiom</strong> <em>(Axiom, Inc.)</em>.<br />
+        Stores the operational request traces described above.<br />
+        <a href="https://axiom.co/docs/legal/privacy">https://axiom.co/docs/legal/privacy</a>
+      </li>
+      <li>
+        <strong>Expo</strong> <em>(650 Industries, Inc.)</em>.<br />
+        Builds the mobile app and serves its over-the-air updates, which means the app checks for
+        updates against Expo's servers.<br />
+        <a href="https://expo.dev/privacy">https://expo.dev/privacy</a>
+      </li>
+      <li>
+        <strong>Vercel</strong> <em>(Vercel Inc.)</em>.<br />
+        Hosts the RAS Code website.<br />
+        <a href="https://vercel.com/legal/privacy-notice">https://vercel.com/legal/privacy-notice</a>
+      </li>
+      <li>
+        <strong>Google</strong> <em>(Google LLC)</em>.<br />
+        Serves the website's web fonts, and distributes the mobile app through Google Play.<br />
+        <a href="https://policies.google.com/privacy">https://policies.google.com/privacy</a>
+      </li>
+    </ul>
+    <p>
+      Your personal information is not sold, rented, or shared for advertising. It may be disclosed
+      where the law requires it, or where disclosure is necessary to investigate abuse or protect the
+      rights and safety of users of the service. There is no parent company, affiliate group, or
+      advertising network involved.
+    </p>
+  </section>
+
+  <section id="retention">
+    <p class="section-number">09</p>
+    <h2>Retention and Deletion</h2>
+    <p>
+      Environment links, credential hashes, managed endpoint allocations, and device registrations
+      are kept while they are active. Unlinking an environment or removing a device deletes the
+      corresponding records, and unlinking also tears down the managed endpoint that belonged to it.
+    </p>
+    <p>
+      Agent activity records are removed when the thread reaches a finished state, and a scheduled
+      job removes stale ones: after two hours for a running thread, and after twenty-four hours for
+      one waiting on you. Replay-protection records are removed once they expire. Operational traces
+      are retained by Axiom for 30 days and then deleted. Notification delivery records are retained
+      for diagnostics and are not currently deleted on a schedule; they can be deleted on request.
+    </p>
+    <p>
+      To delete your RAS Connect account and everything associated with it, email
+      TODO_RAS_CODE_LEGAL: privacy contact email address. Deleting your RAS Connect data does not
+      affect data on your own machines, in your repositories, or held by the agent providers you
+      chose; delete that at the source.
+    </p>
+  </section>
+
+  <section id="rights">
+    <p class="section-number">10</p>
+    <h2>Your Data Protection Rights</h2>
+    <p>
+      Depending on where you live, you may have the right to request access to the personal
+      information held about you, to have it corrected, to have it deleted, to receive a portable
+      copy, to restrict or object to how it is processed, and to withdraw consent where processing
+      relies on consent. These rights are honoured for everyone who asks, regardless of location.
+    </p>
+    <p>
+      To exercise a right, email TODO_RAS_CODE_LEGAL: privacy contact email address from the address
+      associated with your account. Requests are answered within one month. Verification may be
+      needed before acting on a request.
+    </p>
+    <p>
+      If you are in the EEA or the UK and are not satisfied with the response, you may complain to
+      your local supervisory authority, or to the supervisory authority for
+      TODO_RAS_CODE_LEGAL: country or region in which Richard Solomou operates the service.
+    </p>
+  </section>
+
+  <section id="security">
+    <p class="section-number">11</p>
+    <h2>Security</h2>
+    <p>
+      Traffic to RAS Connect is encrypted in transit. Connection credentials are short-lived, bound
+      to the requesting client's key, and stored only as hashes. Authorization credentials are kept
+      out of traces, and delivery records store only a short trailing fragment of a push token rather
+      than the token. Access to production systems is limited to the operator. Further detail is in
+      the <a href="/security-policy">Security Policy</a>.
+    </p>
+    <p>
+      No system is completely secure, and no guarantee of absolute security is offered. You remain
+      responsible for the machines, networks, repositories, and provider accounts you connect to RAS
+      Code.
+    </p>
+  </section>
+
+  <section id="international">
+    <p class="section-number">12</p>
+    <h2>International Transfers</h2>
+    <p>
+      RAS Connect runs on globally distributed infrastructure, so your information may be processed
+      in countries other than your own, including the United States. Where a transfer out of the EEA
+      or the UK requires a safeguard, it relies on the mechanisms offered by the providers named
+      above, such as standard contractual clauses in their data processing terms. The service is
+      operated from TODO_RAS_CODE_LEGAL: country or region in which Richard Solomou operates the
+      service.
+    </p>
+  </section>
+
+  <section id="children">
+    <p class="section-number">13</p>
+    <h2>Children</h2>
+    <p>
+      RAS Connect is not intended for children under 13, and personal information is not knowingly
+      collected from them. If you believe a child under 13 has provided personal information, get in
+      touch and it will be deleted.
+    </p>
+  </section>
+
+  <section id="updates">
+    <p class="section-number">14</p>
+    <h2>Updates to This Policy</h2>
+    <p>
+      This policy will change as the service changes. Revisions are posted at this URL with updated
+      dates above. Material changes will be announced in the app or on the website before they take
+      effect, where that is practical.
+    </p>
+  </section>
+
+  <section id="contact">
+    <p class="section-number">15</p>
+    <h2>Contact</h2>
+    <p>
+      RAS Connect is operated by Richard Solomou as an individual. For privacy questions, access
+      requests, or deletion requests, email TODO_RAS_CODE_LEGAL: privacy contact email address.
     </p>
   </section>
 </LegalPage>

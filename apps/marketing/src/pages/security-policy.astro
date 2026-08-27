@@ -1,25 +1,240 @@
 ---
 import LegalPage from "../components/LegalPage.astro";
 
-const sections = [["status", "Status"]] as const;
+const sections = [
+  ["introduction", "Introduction"],
+  ["reporting", "Reporting a vulnerability"],
+  ["scope", "Scope"],
+  ["out-of-scope", "Out of scope"],
+  ["safe-harbor", "Safe harbour"],
+  ["bounty", "No bug bounty"],
+  ["practices", "How the service is secured"],
+  ["responsibilities", "Your responsibilities"],
+  ["updates", "Updates to this policy"],
+  ["contact", "Contact"],
+] as const;
 ---
 
 <LegalPage
   title="Security Policy — RAS Code"
-  description="How to report security issues in RAS Code."
+  description="How to report a vulnerability in RAS Code or RAS Connect, what is in scope, and the safe harbour for good-faith research."
   heading="RAS Code Security Policy"
-  lede="RAS Code is a personal open-source fork of T3 Code, maintained by Richard Solomou. It is distributed under the MIT licence with no warranty and no operated service behind it."
-  effectiveDate="TBD"
-  lastUpdated="TBD"
+  lede="RAS Code runs on your machines and RAS Connect is operated by one person. This policy explains how to report a vulnerability, what is in scope, and what protects you when you research in good faith."
+  effectiveDate="2026-08-28"
+  lastUpdated="2026-08-28"
   sections={sections}
 >
-  <section id="status">
+  <section id="introduction">
     <p class="section-number">01</p>
-    <h2>Status</h2>
+    <h2>Introduction</h2>
     <p>
-      TODO_RAS_CODE_LEGAL — this Security Policy has not been written for RAS Code. The upstream
-      T3 Code text described services operated by T3 Tools, Inc. and cannot be restated
-      accurately for this fork, so it has been removed rather than left in place misattributed.
+      This policy covers the RAS Code source code, the desktop, web, and mobile clients built from
+      it, the RAS Connect relay operated by Richard Solomou, and the RAS Code website.
+    </p>
+    <p>
+      RAS Connect is a control plane. It links your devices to a RAS Code server you run yourself and
+      delivers notifications; it is not in the path of your normal traffic, and it never receives your
+      prompts, source code, or agent output. Most of the execution path belongs to you: your machine,
+      your network, your repositories, and the agent providers you configure. Security here is
+      genuinely shared.
+    </p>
+  </section>
+
+  <section id="reporting">
+    <p class="section-number">02</p>
+    <h2>Reporting a Vulnerability</h2>
+    <p>
+      Email TODO_RAS_CODE_LEGAL: security contact email address. Please do not open a public issue or
+      pull request for a security problem, and do not disclose it publicly until there has been a
+      reasonable opportunity to fix it.
+    </p>
+    <p>Include, where you can:</p>
+    <ul>
+      <li>What the issue is and what an attacker could do with it;</li>
+      <li>The affected component, version, endpoint, or URL;</li>
+      <li>Steps to reproduce, or a minimal proof of concept;</li>
+      <li>Relevant requests, responses, or logs, with secrets removed; and</li>
+      <li>How you would like to be credited, if at all.</li>
+    </ul>
+    <p>
+      Reports are handled by one person, not a security team. Expect acknowledgement within a few
+      days rather than the same day. You will be told what the assessment is and when a fix ships.
+      Serious issues in the hosted service are prioritised over everything else; issues in the client
+      software are fixed and released on the normal release cadence.
+    </p>
+    <p>
+      Never include a password, API key, access token, or private key in a report. If you found an
+      exposed secret, say where it is and revoke it if it is yours; do not paste it.
+    </p>
+  </section>
+
+  <section id="scope">
+    <p class="section-number">03</p>
+    <h2>Scope</h2>
+    <p>The following are in scope:</p>
+    <ul>
+      <li>The RAS Connect relay and its HTTP API, including authentication, token exchange, proof
+        verification, and replay protection;</li>
+      <li>Environment linking, credential issuance, and the authorisation boundaries between one
+        account's environments and another's;</li>
+      <li>Managed endpoint provisioning, including anything that lets one account reach or affect
+        another account's tunnel or hostname;</li>
+      <li>Notification and Live Activity delivery, including anything that leaks activity data to the
+        wrong device or account;</li>
+      <li>The RAS Code server, its WebSocket protocol, its pairing and token handling, and its
+        provider adapters;</li>
+      <li>The desktop, web, and mobile clients, including credential storage and deep-link handling;
+        and</li>
+      <li>The RAS Code website.</li>
+    </ul>
+  </section>
+
+  <section id="out-of-scope">
+    <p class="section-number">04</p>
+    <h2>Out of Scope</h2>
+    <ul>
+      <li>Infrastructure operated by Cloudflare, PlanetScale, Clerk, Apple, Google, Vercel, Expo, or
+        Axiom. Report those to the provider concerned;</li>
+      <li>Coding agents, model providers, and any other third-party service you connect to RAS Code;</li>
+      <li>The consequences of a coding agent doing what it was asked to do, including destructive
+        commands you approved;</li>
+      <li>A RAS Code server deliberately exposed to an untrusted network by its operator;</li>
+      <li>Denial-of-service, volumetric, brute-force, and load testing of any kind;</li>
+      <li>Social engineering, phishing, or physical attacks against anyone;</li>
+      <li>Findings from automated scanners with no demonstrated impact, missing security headers with
+        no exploit path, and best-practice observations; and</li>
+      <li>Issues that require a compromised device, a malicious operating system, or physical access
+        to a machine you do not own.</li>
+    </ul>
+  </section>
+
+  <section id="safe-harbor">
+    <p class="section-number">05</p>
+    <h2>Safe Harbour</h2>
+    <p>
+      Good-faith security research is welcome. If you follow this policy, your research is authorised:
+      no legal action will be initiated against you over it, no complaint will be made to your
+      employer or to law enforcement, and accidental good-faith breaches of this policy will be
+      treated as accidents. If a third party takes action over research that complied with this
+      policy, that authorisation will be made known where it is appropriate to do so.
+    </p>
+    <p>To stay within the safe harbour:</p>
+    <ul>
+      <li>Test only accounts, environments, and data that are yours, or that you have explicit
+        permission to test;</li>
+      <li>Access only the minimum needed to demonstrate the issue;</li>
+      <li>Stop immediately if you reach another person's data, and report it rather than exploring
+        further;</li>
+      <li>Do not degrade, disrupt, or overload the service, and do not modify or delete data that is
+        not yours;</li>
+      <li>Do not use social engineering, phishing, physical attacks, or denial-of-service testing;</li>
+      <li>Do not test third-party infrastructure listed as out of scope; and</li>
+      <li>Give a reasonable opportunity to fix the issue before disclosing it, and coordinate the
+        timing.</li>
+    </ul>
+    <p>
+      This safe harbour cannot authorise anything unlawful, and it does not extend to activity outside
+      the scope set out above.
+    </p>
+  </section>
+
+  <section id="bounty">
+    <p class="section-number">06</p>
+    <h2>No Bug Bounty</h2>
+    <p>
+      There is no bug bounty and no reward programme. RAS Connect is free, run by one person, and has
+      no budget for payouts. Reports are still very welcome, and credit in the fix commit, the release
+      notes, or this page is offered gladly if you want it. Please do not send a report conditional on
+      payment.
+    </p>
+  </section>
+
+  <section id="practices">
+    <p class="section-number">07</p>
+    <h2>How the Service Is Secured</h2>
+    <ul>
+      <li>
+        <strong>Minimal data.</strong> The relay is deliberately kept out of the traffic path. Your
+        prompts, code, files, and agent output never reach it. Only the records described in the
+        <a href="/privacy-policy">Privacy Policy</a> are stored, and activity text is truncated to
+        short fixed lengths.
+      </li>
+      <li>
+        <strong>Short-lived, bound credentials.</strong> Credentials for connecting a client to an
+        environment expire in minutes and are bound to the requesting client's key, so a stolen
+        credential cannot be replayed from elsewhere. Only a hash of each credential is stored, and
+        credentials can be revoked.
+      </li>
+      <li>
+        <strong>Proof of possession and replay protection.</strong> Sensitive relay endpoints require
+        a signed proof of possession, and used proof identifiers are recorded until they expire so
+        that a proof cannot be replayed.
+      </li>
+      <li>
+        <strong>Separate trust boundaries.</strong> The relay and your RAS Code server hold separate
+        credentials and verify each other independently. Environments publish activity under their own
+        signed proofs.
+      </li>
+      <li>
+        <strong>Encrypted transport.</strong> All connections to the relay use TLS. Authorization
+        credentials are kept out of traces, and delivery records store only a short trailing fragment
+        of a push token instead of the token.
+      </li>
+      <li>
+        <strong>Limited access.</strong> Production systems and operational data are accessible only
+        to the operator, through the providers' own authenticated consoles.
+      </li>
+      <li>
+        <strong>Open source.</strong> The relay and the clients are public, so you can read exactly
+        what is stored and what is sent, and you can run your own relay instead.
+      </li>
+    </ul>
+    <p>
+      These measures reduce risk; they do not eliminate it. No guarantee is made that the software or
+      the service is free of vulnerabilities.
+    </p>
+  </section>
+
+  <section id="responsibilities">
+    <p class="section-number">08</p>
+    <h2>Your Responsibilities</h2>
+    <p>Most of the attack surface is on your side of the line. You are responsible for:</p>
+    <ul>
+      <li>Keeping RAS Code, your operating systems, and your connected tools up to date;</li>
+      <li>Securing the machines your RAS Code servers run on, and the networks they are reachable
+        from;</li>
+      <li>Protecting your account, provider, and repository credentials, and using multi-factor
+        authentication where it is available;</li>
+      <li>Choosing your connection mode knowingly: a managed endpoint routes your traffic through
+        Cloudflare, whereas a local network or self-operated tunnel does not;</li>
+      <li>Reviewing commands, patches, and file changes an agent proposes before applying or running
+        them;</li>
+      <li>Giving agents and integrations only the access they need; and</li>
+      <li>Unlinking environments and removing devices you no longer use or no longer control.</li>
+    </ul>
+  </section>
+
+  <section id="updates">
+    <p class="section-number">09</p>
+    <h2>Updates to This Policy</h2>
+    <p>
+      This policy will be revised as the software and the infrastructure change. Revisions are posted
+      at this URL with updated dates above. Changes to the reporting process, the scope, or the safe
+      harbour apply from their effective date onwards, and never retroactively to research already
+      carried out in good faith.
+    </p>
+  </section>
+
+  <section id="contact">
+    <p class="section-number">10</p>
+    <h2>Contact</h2>
+    <p>
+      Security reports: TODO_RAS_CODE_LEGAL: security contact email address.
+    </p>
+    <p>
+      For questions about the <a href="/terms-of-service">Terms of Service</a> or the
+      <a href="/privacy-policy">Privacy Policy</a>, use the contact addresses given in those
+      documents.
     </p>
   </section>
 </LegalPage>
