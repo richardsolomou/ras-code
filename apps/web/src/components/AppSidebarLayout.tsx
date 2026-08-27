@@ -14,15 +14,11 @@ import { getLocalStorageItem, removeLocalStorageItem } from "../hooks/useLocalSt
 import { resolveShortcutCommand, shortcutLabelForCommand } from "../keybindings";
 import { cn, isMacPlatform } from "../lib/utils";
 import { primaryServerKeybindingsAtom } from "../state/server";
-import { useEnvironmentIdentificationMode, useLegacySidebarEnabled } from "../hooks/useSettings";
+import { useLegacySidebarEnabled } from "../hooks/useSettings";
 import LegacyThreadSidebar from "./LegacySidebar";
 import ThreadSidebar from "./Sidebar";
 import { SettingsSidebarNav } from "./settings/SettingsSidebarNav";
 import { SidebarChromeHeader } from "./sidebar/SidebarChrome";
-import {
-  resolveSidebarStageFocusRingOffsetClass,
-  useSidebarStageBackdropVariant,
-} from "./SidebarStageBackdrop";
 import { useProjects } from "../state/entities";
 import {
   resolveInitialThreadSidebarWidth,
@@ -68,10 +64,6 @@ function SidebarControl() {
   const keybindings = useAtomValue(primaryServerKeybindingsAtom);
   const { toggleSidebar } = useSidebar();
   const isSidebarVisible = useSidebarVisibility();
-  const environmentIdentificationMode = useEnvironmentIdentificationMode();
-  const stageBackdropVariant = useSidebarStageBackdropVariant(
-    environmentIdentificationMode === "artwork",
-  );
   const shortcutLabel = shortcutLabelForCommand(keybindings, "sidebar.toggle");
 
   useEffect(() => {
@@ -107,15 +99,7 @@ function SidebarControl() {
         <TooltipTrigger
           render={
             <SidebarTrigger
-              className={cn(
-                "pointer-events-auto",
-                isSidebarVisible &&
-                  stageBackdropVariant &&
-                  "focus-visible:ring-white/90 [&_svg]:stroke-white/90! [&_svg]:opacity-100! [&_svg]:hover:stroke-white! [:hover,[data-pressed]]:bg-white/15",
-                isSidebarVisible &&
-                  stageBackdropVariant &&
-                  resolveSidebarStageFocusRingOffsetClass(stageBackdropVariant),
-              )}
+              className={cn("pointer-events-auto")}
               aria-label="Toggle main sidebar"
             />
           }

@@ -22,12 +22,9 @@ If reordering is unavailable for one environment, update the RAS Code server run
 environment. Older servers can still pin and unpin threads, but do not understand synced ordering;
 their pinned threads keep the default newest-first order below the ones you have arranged.
 
-## Environment artwork
+## Environment identification
 
-Dev and Nightly environments can identify themselves with artwork at the top of the sidebar and in
-the send button. Choose **Artwork**, **Version pill**, or **None** in Settings under environment
-identification. Artwork is recolored to match each built-in theme. Custom themes use the **Version
-pill** fallback because their colors are not controlled by RAS Code.
+Dev and Nightly environments show a small version pill next to the RAS Code name at the top of the sidebar. Choose **Version pill** or **None** in Settings under environment identification.
 
 To generate a fresh title from the conversation, open a thread's context menu and choose
 **Regenerate title**. While RAS Code is generating it, the action reads **Regenerating…** and cannot

@@ -13,11 +13,8 @@ import { cn } from "../../lib/utils";
 import { useEnvironments } from "../../state/environments";
 import {
   resolveEnvironmentIdentificationPillLabel,
-  resolveSidebarStageBackdropVariant,
-  resolveSidebarStageFocusRingOffsetClass,
-  SidebarStageBackdrop,
   useEnvironmentStageLabel,
-} from "../SidebarStageBackdrop";
+} from "../environmentStage";
 import { Badge } from "../ui/badge";
 import {
   SidebarFooter,
@@ -39,14 +36,10 @@ export const SidebarChromeHeader = memo(function SidebarChromeHeader({
 }) {
   const stageLabel = useEnvironmentStageLabel();
   const environmentIdentificationMode = useEnvironmentIdentificationMode();
-  const backdropVariant = resolveSidebarStageBackdropVariant(
-    stageLabel,
-    environmentIdentificationMode === "artwork",
-  );
   const pillLabel =
-    environmentIdentificationMode === "pill"
-      ? resolveEnvironmentIdentificationPillLabel(stageLabel)
-      : null;
+    environmentIdentificationMode === "none"
+      ? null
+      : resolveEnvironmentIdentificationPillLabel(stageLabel);
 
   return (
     <SidebarHeader
@@ -55,16 +48,8 @@ export const SidebarChromeHeader = memo(function SidebarChromeHeader({
         isElectron && "drag-region",
       )}
     >
-      {backdropVariant ? <SidebarStageBackdrop variant={backdropVariant} /> : null}
-      <SidebarTrigger
-        className={cn(
-          "relative z-10 md:hidden",
-          backdropVariant &&
-            "focus-visible:ring-white/90 [&_svg]:stroke-white/90! [&_svg]:opacity-100! [&_svg]:hover:stroke-white! [:hover,[data-pressed]]:bg-white/15",
-          backdropVariant && resolveSidebarStageFocusRingOffsetClass(backdropVariant),
-        )}
-      />
-      <SidebarBrand onBackdrop={backdropVariant !== null} />
+      <SidebarTrigger className="relative z-10 md:hidden" />
+      <SidebarBrand />
       {pillLabel ? (
         <Badge
           className="relative z-10 ml-1 rounded-full px-1.5 text-muted-foreground"
@@ -79,25 +64,15 @@ export const SidebarChromeHeader = memo(function SidebarChromeHeader({
   );
 });
 
-function SidebarBrand({ onBackdrop }: { onBackdrop: boolean }) {
+function SidebarBrand() {
   return (
     <Link
       aria-label="Go to threads"
-      className={cn(
-        "relative z-10 ml-[var(--workspace-titlebar-content-left)] hidden h-7 w-fit min-w-0 shrink-0 items-center gap-1 overflow-hidden rounded-md outline-hidden ring-ring focus-visible:ring-2 md:flex",
-        onBackdrop ? "text-white" : "text-foreground",
-      )}
+      className="relative z-10 ml-[var(--workspace-titlebar-content-left)] hidden h-7 w-fit min-w-0 shrink-0 items-center gap-1.5 overflow-hidden rounded-md text-foreground outline-hidden focus-visible:ring-2 focus-visible:ring-ring md:flex"
       to="/"
     >
       <RasCodeWordmark />
-      <span
-        className={cn(
-          "-translate-y-px truncate text-sm font-medium tracking-tight",
-          onBackdrop ? "text-white/70" : "text-muted-foreground",
-        )}
-      >
-        Code
-      </span>
+      <span className="truncate text-sm font-semibold tracking-tight">RAS Code</span>
     </Link>
   );
 }
@@ -106,7 +81,7 @@ function RasCodeWordmark() {
   return (
     <svg
       aria-label="RAS Code"
-      className="h-2.5 w-auto shrink-0"
+      className="h-3.5 w-auto shrink-0"
       viewBox="22 25 92 78"
       xmlns="http://www.w3.org/2000/svg"
     >

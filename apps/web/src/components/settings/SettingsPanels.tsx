@@ -53,7 +53,7 @@ import { TraitsPicker } from "../chat/TraitsPicker";
 import {
   resolveEnvironmentIdentificationPillLabel,
   useEnvironmentStageLabel,
-} from "../SidebarStageBackdrop";
+} from "../environmentStage";
 import { isElectron } from "../../env";
 import { buildHostedChannelSelectionUrl, type HostedAppChannel } from "../../hostedPairing";
 import { useCustomThemes } from "../../hooks/useCustomThemes";
@@ -147,8 +147,10 @@ import {
 import { searchableSetting } from "./settingsSearch";
 import { ProjectFavicon } from "../ProjectFavicon";
 
-const ENVIRONMENT_IDENTIFICATION_LABELS: Record<EnvironmentIdentificationMode, string> = {
-  artwork: "Artwork",
+const ENVIRONMENT_IDENTIFICATION_LABELS: Record<
+  Exclude<EnvironmentIdentificationMode, "artwork">,
+  string
+> = {
   pill: "Version pill",
   none: "None",
 };
@@ -990,6 +992,10 @@ export function AppearanceSettingsPanel() {
   const settings = usePrimarySettings();
   const updateSettings = useUpdatePrimarySettings();
   const environmentStageLabel = useEnvironmentStageLabel();
+  const environmentIdentificationMode =
+    settings.environmentIdentificationMode === "artwork"
+      ? "pill"
+      : settings.environmentIdentificationMode;
   const showEnvironmentIdentification =
     resolveEnvironmentIdentificationPillLabel(environmentStageLabel) !== null;
   const glassOpacityRatio =
@@ -1137,16 +1143,16 @@ export function AppearanceSettingsPanel() {
             }
             control={
               <Select
-                value={settings.environmentIdentificationMode}
+                value={environmentIdentificationMode}
                 onValueChange={(value) => {
-                  if (value === "artwork" || value === "pill" || value === "none") {
+                  if (value === "pill" || value === "none") {
                     updateSettings({ environmentIdentificationMode: value });
                   }
                 }}
               >
                 <SelectTrigger className="w-full sm:w-40" aria-label="Environment identification">
                   <SelectValue>
-                    {ENVIRONMENT_IDENTIFICATION_LABELS[settings.environmentIdentificationMode]}
+                    {ENVIRONMENT_IDENTIFICATION_LABELS[environmentIdentificationMode]}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectPopup align="end" alignItemWithTrigger={false}>
