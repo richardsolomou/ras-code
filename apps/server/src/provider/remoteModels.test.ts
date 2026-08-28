@@ -122,6 +122,67 @@ describe("listRemoteModels", () => {
     }),
   );
 
+  it.effect("prefers the driver-neutral gateway variables over the vendor ones", () =>
+    Effect.gen(function* () {
+      const seen: Array<{ readonly url: string; readonly authorization: string | undefined }> = [];
+      yield* listRemoteModels(INSTANCE).pipe(
+        Effect.provide(
+          layers({
+            settings: instanceSettings([
+              { name: "ANTHROPIC_BASE_URL", value: "https://anthropic.test" },
+              { name: "ANTHROPIC_AUTH_TOKEN", value: "anthropic_token" },
+              { name: "RAS_GATEWAY_BASE_URL", value: BASE_URL },
+              { name: "RAS_GATEWAY_KEY", value: "phs_gateway_key" },
+            ]),
+            handler: (request) => {
+              seen.push({ url: request.url, authorization: request.headers.authorization });
+              return jsonResponse({ data: [] });
+            },
+          }),
+        ),
+      );
+      assert.deepStrictEqual(seen, [
+        { url: `${BASE_URL}/v1/models`, authorization: "Bearer phs_gateway_key" },
+      ]);
+    }),
+  );
+
+  it.effect("falls back to the OpenAI variables for a Codex-shaped instance", () =>
+    Effect.gen(function* () {
+      const seen: Array<{
+        readonly url: string;
+        readonly authorization: string | undefined;
+        readonly apiKey: string | undefined;
+      }> = [];
+      yield* listRemoteModels(INSTANCE).pipe(
+        Effect.provide(
+          layers({
+            settings: instanceSettings([
+              { name: "OPENAI_BASE_URL", value: BASE_URL },
+              { name: "OPENAI_API_KEY", value: "sk-openai" },
+            ]),
+            handler: (request) => {
+              seen.push({
+                url: request.url,
+                authorization: request.headers.authorization,
+                apiKey: request.headers["x-api-key"],
+              });
+              return jsonResponse({ data: [] });
+            },
+          }),
+        ),
+      );
+      assert.deepStrictEqual(seen, [
+        {
+          url: `${BASE_URL}/v1/models`,
+          authorization: "Bearer sk-openai",
+          // Only an Anthropic key doubles as an `x-api-key` header.
+          apiKey: undefined,
+        },
+      ]);
+    }),
+  );
+
   it.effect("reports an unknown instance", () =>
     listRemoteModels(ProviderInstanceId.make("nope")).pipe(
       Effect.flip,

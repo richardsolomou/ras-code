@@ -1,8 +1,8 @@
 /**
  * Remote model catalog lookup for gateway-backed provider instances.
  *
- * A provider instance can be pointed at an Anthropic-shaped proxy by setting
- * `ANTHROPIC_BASE_URL` plus a bearer token in its environment. Such a gateway
+ * A provider instance can be pointed at a gateway by setting one of the
+ * gateway base-URL variables plus a key in its environment. Such a gateway
  * exposes its catalog at `GET {baseUrl}/v1/models` in the OpenRouter envelope
  * (`{ data: [{ id, name? }] }`), which is not something the driver's own probe
  * discovers — the CLI only knows the models its vendor ships.
@@ -19,6 +19,13 @@ import {
   type ProviderListRemoteModelsResult,
   type ProviderRemoteModel,
 } from "@ras-code/contracts";
+import {
+  ANTHROPIC_API_KEY_VARIABLE,
+  gatewayBaseUrl,
+  gatewayKey,
+  GATEWAY_BASE_URL_VARIABLES,
+  GATEWAY_KEY_VARIABLES,
+} from "@ras-code/shared/posthogGateway";
 import * as Effect from "effect/Effect";
 import * as Predicate from "effect/Predicate";
 import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/unstable/http";
@@ -26,10 +33,6 @@ import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/unstab
 import { ServerSettingsService } from "../serverSettings.ts";
 
 const REQUEST_TIMEOUT_MS = 10_000;
-
-const BASE_URL_VARIABLE = "ANTHROPIC_BASE_URL";
-const AUTH_TOKEN_VARIABLE = "ANTHROPIC_AUTH_TOKEN";
-const API_KEY_VARIABLE = "ANTHROPIC_API_KEY";
 
 const parseRemoteModels = (body: unknown): ReadonlyArray<ProviderRemoteModel> | undefined => {
   if (!Predicate.isObject(body)) {
@@ -84,36 +87,31 @@ export const listRemoteModels = Effect.fn("listRemoteModels")(function* (
     });
   }
 
-  const environment = new Map(
-    (instance.environment ?? []).map((variable) => [variable.name, variable.value.trim()] as const),
-  );
-  const baseUrl = environment.get(BASE_URL_VARIABLE) ?? "";
+  const baseUrl = gatewayBaseUrl(instance.environment);
   if (baseUrl.length === 0) {
     return yield* new ProviderListRemoteModelsError({
       instanceId,
       reason: "missing-base-url",
-      detail: `Set ${BASE_URL_VARIABLE} on this instance to list its remote models.`,
+      detail: `Set ${GATEWAY_BASE_URL_VARIABLES.join(" or ")} on this instance to list its remote models.`,
     });
   }
 
-  const authToken = environment.get(AUTH_TOKEN_VARIABLE) ?? "";
-  const apiKey = environment.get(API_KEY_VARIABLE) ?? "";
-  if (authToken.length === 0 && apiKey.length === 0) {
+  const key = gatewayKey(instance.environment);
+  if (key === undefined) {
     return yield* new ProviderListRemoteModelsError({
       instanceId,
       reason: "missing-auth",
-      detail: `Set ${AUTH_TOKEN_VARIABLE} or ${API_KEY_VARIABLE} on this instance.`,
+      detail: `Set ${GATEWAY_KEY_VARIABLES.join(" or ")} on this instance.`,
     });
   }
 
-  const bearer = authToken.length > 0 ? authToken : apiKey;
   const request = HttpClientRequest.get(`${baseUrl.replace(/\/+$/, "")}/v1/models`).pipe(
     HttpClientRequest.acceptJson,
     HttpClientRequest.setHeaders({
-      authorization: `Bearer ${bearer}`,
+      authorization: `Bearer ${key.value}`,
       // Gateways that authenticate the Anthropic way read the key header
       // instead; sending both keeps one call working against either.
-      ...(authToken.length === 0 ? { "x-api-key": apiKey } : {}),
+      ...(key.name === ANTHROPIC_API_KEY_VARIABLE ? { "x-api-key": key.value } : {}),
     }),
   );
 

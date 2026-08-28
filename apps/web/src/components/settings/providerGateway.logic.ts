@@ -5,12 +5,25 @@ import {
   type ProviderInstanceEnvironmentVariable,
   type ProviderListRemoteModelsErrorReason,
 } from "@ras-code/contracts";
+import {
+  ANTHROPIC_API_KEY_VARIABLE,
+  ANTHROPIC_AUTH_TOKEN_VARIABLE,
+  ANTHROPIC_BASE_URL_VARIABLE,
+  gatewayBaseUrl,
+  gatewayModelShape,
+  GATEWAY_BASE_URL_VARIABLES,
+  GATEWAY_KEY_VARIABLES,
+  type GatewayModelShape,
+} from "@ras-code/shared/posthogGateway";
 
-export const ANTHROPIC_BASE_URL_VARIABLE = "ANTHROPIC_BASE_URL";
-export const ANTHROPIC_AUTH_TOKEN_VARIABLE = "ANTHROPIC_AUTH_TOKEN";
-export const ANTHROPIC_API_KEY_VARIABLE = "ANTHROPIC_API_KEY";
+export {
+  ANTHROPIC_API_KEY_VARIABLE,
+  ANTHROPIC_AUTH_TOKEN_VARIABLE,
+  ANTHROPIC_BASE_URL_VARIABLE,
+} from "@ras-code/shared/posthogGateway";
 
 const CLAUDE_DRIVER = ProviderDriverKind.make("claudeAgent");
+const CODEX_DRIVER = ProviderDriverKind.make("codex");
 
 /**
  * The "PostHog AI Gateway" preset offered beside the raw drivers in the
@@ -62,43 +75,47 @@ export function buildPostHogGatewayInstance(input: {
   };
 }
 
-function readEnvironmentValue(
-  instance: Pick<ProviderInstanceConfig, "environment">,
-  name: string,
-): string {
-  return (
-    (instance.environment ?? []).find((variable) => variable.name === name)?.value.trim() ?? ""
-  );
-}
-
 /**
- * True when the instance is a Claude-driver instance pointed at a gateway,
- * which is the condition for offering the remote-model refresh action.
+ * True when the instance carries a gateway origin under any of the names the
+ * server will look for, which is the condition for offering the remote-model
+ * refresh action. The driver does not matter: a Codex instance pointed at the
+ * gateway needs the same catalog lookup a Claude one does.
  */
-export function instanceUsesAnthropicGateway(instance: ProviderInstanceConfig): boolean {
-  if (String(instance.driver) !== String(CLAUDE_DRIVER)) return false;
-  return readEnvironmentValue(instance, ANTHROPIC_BASE_URL_VARIABLE).length > 0;
-}
-
-/** Claude Code speaks the Anthropic Messages shape, so only Claude ids are servable through it. */
-export function isClaudeServableModel(id: string): boolean {
-  return id.startsWith("claude-");
+export function instanceUsesGateway(instance: ProviderInstanceConfig): boolean {
+  return gatewayBaseUrl(instance.environment).length > 0;
 }
 
 /**
- * Append gateway-reported Claude model ids to the instance's saved custom
- * models, preserving existing entries and their order. Other catalog entries
- * (OpenAI and open-weight ids) need the OpenAI request shape and are skipped.
+ * The wire shape a driver's harness speaks to the gateway, or `undefined` for
+ * a driver that does not talk to it — those keep the whole catalog, since
+ * only the harness itself can say what it can request.
+ */
+export function driverGatewayShape(
+  driver: ProviderInstanceConfig["driver"],
+): GatewayModelShape | undefined {
+  if (String(driver) === String(CLAUDE_DRIVER)) return "anthropic";
+  if (String(driver) === String(CODEX_DRIVER)) return "openai";
+  return undefined;
+}
+
+/**
+ * Append the gateway-reported ids the instance's harness can actually
+ * request to its saved custom models, preserving existing entries and their
+ * order. Claude Code speaks Anthropic Messages, so it keeps only `claude-*`;
+ * Codex speaks Responses, on which the gateway refuses those same ids.
  */
 export function mergeRemoteModelsIntoCustomModels(
   customModels: ReadonlyArray<string>,
   remoteModels: ReadonlyArray<{ readonly id: string }>,
+  driver: ProviderInstanceConfig["driver"],
 ): ReadonlyArray<string> {
+  const shape = driverGatewayShape(driver);
   const merged = [...customModels];
   const seen = new Set(merged);
   for (const model of remoteModels) {
     const id = model.id.trim();
-    if (id.length === 0 || seen.has(id) || !isClaudeServableModel(id)) continue;
+    if (id.length === 0 || seen.has(id)) continue;
+    if (shape !== undefined && gatewayModelShape(id) !== shape) continue;
     seen.add(id);
     merged.push(id);
   }
@@ -127,8 +144,8 @@ export function hiddenModelsForGatewayInstance(
 
 const REMOTE_MODEL_ERROR_MESSAGES: Record<ProviderListRemoteModelsErrorReason, string> = {
   "instance-not-found": "The server does not know about this provider instance yet.",
-  "missing-base-url": `Set ${ANTHROPIC_BASE_URL_VARIABLE} on this instance before listing its models.`,
-  "missing-auth": `Set ${ANTHROPIC_AUTH_TOKEN_VARIABLE} on this instance before listing its models.`,
+  "missing-base-url": `Set ${GATEWAY_BASE_URL_VARIABLES[0]} on this instance before listing its models.`,
+  "missing-auth": `Set ${GATEWAY_KEY_VARIABLES[0]} on this instance before listing its models.`,
   "request-failed": "The gateway did not answer. Check the base URL and the key.",
   "invalid-response": "The gateway answered with something that is not a model list.",
 };
@@ -163,7 +180,11 @@ export function gatewayModelSettingsPatch(input: {
   readonly builtInModelSlugs: ReadonlyArray<string>;
 }) {
   const existingCustomModels = readCustomModels(input.instance.config);
-  const customModels = mergeRemoteModelsIntoCustomModels(existingCustomModels, input.remoteModels);
+  const customModels = mergeRemoteModelsIntoCustomModels(
+    existingCustomModels,
+    input.remoteModels,
+    input.instance.driver,
+  );
   const preferences = input.modelPreferences?.[String(input.instanceId)];
   return {
     providerInstances: {

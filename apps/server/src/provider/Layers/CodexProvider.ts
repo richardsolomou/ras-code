@@ -219,7 +219,17 @@ export function applyPreferredCodexDefaultModel(
   });
 }
 
-function appendCustomCodexModels(
+/**
+ * Codex's per-model knobs — reasoning effort, service tier — are OpenAI
+ * features. A namespaced id (`zai-org/glm-5.2`) is served by a custom
+ * `model_provider`, so borrowing a GPT model's descriptors would offer the
+ * user options the backend behind it does not implement.
+ */
+function inheritsCodexModelOptions(slug: string): boolean {
+  return !slug.includes("/");
+}
+
+export function appendCustomCodexModels(
   models: ReadonlyArray<ServerProviderModel>,
   customModels: ReadonlyArray<string>,
 ): ReadonlyArray<ServerProviderModel> {
@@ -240,7 +250,7 @@ function appendCustomCodexModels(
       slug,
       name: slug,
       isCustom: true,
-      capabilities: fallbackCapabilities,
+      capabilities: inheritsCodexModelOptions(slug) ? fallbackCapabilities : null,
     });
   }
   return customEntries.length === 0 ? models : [...models, ...customEntries];

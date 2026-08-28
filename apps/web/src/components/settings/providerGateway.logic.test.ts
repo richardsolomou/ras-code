@@ -8,7 +8,7 @@ import {
   buildPostHogGatewayInstance,
   describeRemoteModelsError,
   gatewayModelSettingsPatch,
-  instanceUsesAnthropicGateway,
+  instanceUsesGateway,
   mergeRemoteModelsIntoCustomModels,
   POSTHOG_GATEWAY_PRESET,
 } from "./providerGateway.logic";
@@ -58,57 +58,81 @@ describe("buildPostHogGatewayInstance", () => {
   });
 });
 
-describe("instanceUsesAnthropicGateway", () => {
+describe("instanceUsesGateway", () => {
   it("recognises a Claude instance with a base URL", () => {
-    expect(instanceUsesAnthropicGateway(gatewayInstance())).toBe(true);
+    expect(instanceUsesGateway(gatewayInstance())).toBe(true);
   });
 
-  it("rejects a Claude instance with no base URL", () => {
-    expect(instanceUsesAnthropicGateway({ driver: ProviderDriverKind.make("claudeAgent") })).toBe(
-      false,
-    );
+  it("rejects an instance with no base URL", () => {
+    expect(instanceUsesGateway({ driver: ProviderDriverKind.make("claudeAgent") })).toBe(false);
   });
 
-  it("rejects a non-Claude instance even when it sets a base URL", () => {
+  it("recognises a Codex instance pointed at the gateway", () => {
     expect(
-      instanceUsesAnthropicGateway({
+      instanceUsesGateway({
         driver: ProviderDriverKind.make("codex"),
         environment: [
-          { name: ANTHROPIC_BASE_URL_VARIABLE, value: "https://example.test", sensitive: false },
+          { name: "RAS_GATEWAY_BASE_URL", value: "https://example.test", sensitive: false },
         ],
       }),
-    ).toBe(false);
+    ).toBe(true);
   });
 });
 
 describe("mergeRemoteModelsIntoCustomModels", () => {
+  const claudeDriver = ProviderDriverKind.make("claudeAgent");
+  const codexDriver = ProviderDriverKind.make("codex");
+  const catalog = [
+    { id: "claude-sonnet-4-6" },
+    { id: "gpt-5.4" },
+    { id: "zai-org/glm-5.2" },
+    { id: "moonshotai/kimi-k3" },
+  ];
+
   it("appends new ids after the ones already saved", () => {
     expect(
-      mergeRemoteModelsIntoCustomModels(["kept"], [{ id: "claude-a" }, { id: "claude-b" }]),
+      mergeRemoteModelsIntoCustomModels(
+        ["kept"],
+        [{ id: "claude-a" }, { id: "claude-b" }],
+        claudeDriver,
+      ),
     ).toEqual(["kept", "claude-a", "claude-b"]);
   });
 
-  it("skips catalog ids Claude Code cannot request through the Anthropic shape", () => {
+  it("keeps only Claude ids for a Claude instance, which speaks Anthropic Messages", () => {
+    expect(mergeRemoteModelsIntoCustomModels([], catalog, claudeDriver)).toEqual([
+      "claude-sonnet-4-6",
+    ]);
+  });
+
+  it("drops Claude ids for a Codex instance, which the gateway refuses on the Responses shape", () => {
+    expect(mergeRemoteModelsIntoCustomModels([], catalog, codexDriver)).toEqual([
+      "gpt-5.4",
+      "zai-org/glm-5.2",
+      "moonshotai/kimi-k3",
+    ]);
+  });
+
+  it("keeps the whole catalog for a driver with no known gateway shape", () => {
     expect(
-      mergeRemoteModelsIntoCustomModels(
-        [],
-        [{ id: "claude-sonnet-4-6" }, { id: "gpt-5.4" }, { id: "zai-org/glm-5.2" }],
-      ),
-    ).toEqual(["claude-sonnet-4-6"]);
+      mergeRemoteModelsIntoCustomModels([], catalog, ProviderDriverKind.make("opencode")).length,
+    ).toBe(catalog.length);
   });
 
   it("drops ids the instance already has", () => {
-    expect(mergeRemoteModelsIntoCustomModels(["kept"], [{ id: "kept" }])).toEqual(["kept"]);
+    expect(mergeRemoteModelsIntoCustomModels(["kept"], [{ id: "kept" }], claudeDriver)).toEqual([
+      "kept",
+    ]);
   });
 
   it("drops duplicates within one gateway response", () => {
-    expect(mergeRemoteModelsIntoCustomModels([], [{ id: "claude-a" }, { id: "claude-a" }])).toEqual(
-      ["claude-a"],
-    );
+    expect(
+      mergeRemoteModelsIntoCustomModels([], [{ id: "claude-a" }, { id: "claude-a" }], claudeDriver),
+    ).toEqual(["claude-a"]);
   });
 
   it("ignores blank ids", () => {
-    expect(mergeRemoteModelsIntoCustomModels([], [{ id: "  " }])).toEqual([]);
+    expect(mergeRemoteModelsIntoCustomModels([], [{ id: "  " }], claudeDriver)).toEqual([]);
   });
 });
 
@@ -157,7 +181,7 @@ describe("gatewayModelSettingsPatch", () => {
 describe("describeRemoteModelsError", () => {
   it("explains a missing base URL in plain English", () => {
     expect(describeRemoteModelsError({ reason: "missing-base-url" })).toContain(
-      ANTHROPIC_BASE_URL_VARIABLE,
+      "RAS_GATEWAY_BASE_URL",
     );
   });
 

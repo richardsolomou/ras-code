@@ -227,6 +227,10 @@
       "types": "./src/usageFormat.ts",
       "import": "./src/usageFormat.ts"
     },
+    "./posthogGateway": {
+      "types": "./src/posthogGateway.ts",
+      "import": "./src/posthogGateway.ts"
+    },
     "./claudeCompaction": {
       "types": "./src/claudeCompaction.ts",
       "import": "./src/claudeCompaction.ts"

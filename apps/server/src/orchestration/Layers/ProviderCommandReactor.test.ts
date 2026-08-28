@@ -3240,6 +3240,7 @@ describe("ProviderCommandReactor", () => {
   describe("usage-limit fallback routing", () => {
     const PRIMARY = ProviderInstanceId.make("claude_subscription");
     const FALLBACK = ProviderInstanceId.make("claude_gateway");
+    const CODEX_FALLBACK = ProviderInstanceId.make("codex_posthog_gateway");
     const PRIMARY_SELECTION = { instanceId: PRIMARY, model: "claude-sonnet-4-5" } as const;
     const EXHAUSTED: ProviderUsageLimit = {
       status: "exhausted",
@@ -3364,6 +3365,45 @@ describe("ProviderCommandReactor", () => {
       expect(notice?.summary).toBe(
         "Usage limit reached on claude_subscription; using Claude (gateway) (claude-sonnet-4-5) until 2099-01-01T00:00:00.000Z.",
       );
+    });
+
+    const crossDriverHarnessInput = (fallbackModel?: string) => ({
+      threadModelSelection: PRIMARY_SELECTION,
+      providerInstances: {
+        [PRIMARY]: {
+          driver: "claudeAgent",
+          fallback: {
+            instanceId: CODEX_FALLBACK,
+            ...(fallbackModel !== undefined ? { model: fallbackModel } : {}),
+          },
+        },
+        [CODEX_FALLBACK]: { driver: "codex" },
+      },
+      usageLimits: new Map([[PRIMARY, EXHAUSTED]]),
+      extraProviderSnapshots: [
+        { instanceId: CODEX_FALLBACK, enabled: true, displayName: "PostHog gateway (Codex)" },
+      ],
+    });
+
+    it("routes a fresh thread to a fallback on another driver when the binding names a model", async () => {
+      const harness = await createHarness(crossDriverHarnessInput("zai-org/glm-5.2"));
+      await dispatchTurn(harness, "cmd-fallback-cross-1");
+
+      await waitFor(() => harness.startSession.mock.calls.length === 1);
+      expect(harness.startSession.mock.calls[0]?.[1]).toMatchObject({
+        providerInstanceId: CODEX_FALLBACK,
+        modelSelection: { instanceId: CODEX_FALLBACK, model: "zai-org/glm-5.2" },
+      });
+    });
+
+    it("keeps the primary instance when a cross-driver binding names no model", async () => {
+      const harness = await createHarness(crossDriverHarnessInput());
+      await dispatchTurn(harness, "cmd-fallback-cross-2");
+
+      await waitFor(() => harness.startSession.mock.calls.length === 1);
+      expect(harness.startSession.mock.calls[0]?.[1]).toMatchObject({
+        providerInstanceId: PRIMARY,
+      });
     });
 
     it("keeps the primary instance when it is not exhausted", async () => {

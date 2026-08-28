@@ -39,6 +39,43 @@ export function fallbackModelMode(instance: ProviderInstanceConfig): FallbackMod
   return instance.fallback?.model ? "specific" : "same";
 }
 
+export type FallbackDriverRelation = "none" | "same-driver" | "cross-driver";
+
+export const CROSS_DRIVER_FALLBACK_HELPER_TEXT =
+  "Applies to new threads only (different providers cannot continue a conversation).";
+
+/**
+ * Whether the bound fallback runs on the same driver as the instance.
+ *
+ * A cross-driver fallback is allowed, but it is a different harness with a
+ * different catalog: it can only pick up a thread that has not started, and
+ * "same model" means nothing across the boundary.
+ */
+export function fallbackDriverRelation(
+  instance: ProviderInstanceConfig,
+  instances: ProviderInstanceConfigMap,
+): FallbackDriverRelation {
+  const fallbackId = instance.fallback?.instanceId;
+  if (fallbackId === undefined) return "none";
+  const target = instances[fallbackId];
+  if (target === undefined) return "none";
+  return String(target.driver) === String(instance.driver) ? "same-driver" : "cross-driver";
+}
+
+/**
+ * True when the binding must name a model before it can do anything. The
+ * server drops a cross-driver fallback that carries no model, so the UI has
+ * to ask for one rather than let the user save a binding that never fires.
+ */
+export function fallbackNeedsExplicitModel(
+  instance: ProviderInstanceConfig,
+  instances: ProviderInstanceConfigMap,
+): boolean {
+  return (
+    fallbackDriverRelation(instance, instances) === "cross-driver" && !instance.fallback?.model
+  );
+}
+
 /**
  * Write the fallback binding. `null` clears it; the contract treats an
  * explicit `null` in a patch as "remove", so the key stays present.

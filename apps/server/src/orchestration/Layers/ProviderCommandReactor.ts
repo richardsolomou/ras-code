@@ -663,22 +663,36 @@ const make = Effect.gen(function* () {
     ) {
       return undefined;
     }
+
+    const instanceInfo = yield* Effect.all({
+      primary: providerService.getInstanceInfo(input.selection.instanceId),
+      fallback: providerService.getInstanceInfo(fallback.instanceId),
+    }).pipe(Effect.orElseSucceed(() => undefined));
+
+    // A fallback on another driver is another harness with another catalog,
+    // so the turn's own model means nothing there. The binding has to name a
+    // model the fallback can serve, or there is nothing to route to.
+    if (
+      instanceInfo !== undefined &&
+      instanceInfo.primary.driverKind !== instanceInfo.fallback.driverKind &&
+      !fallback.model?.trim()
+    ) {
+      yield* Effect.logWarning("provider fallback skipped: cross-driver binding names no model", {
+        instanceId: input.selection.instanceId,
+        fallbackInstanceId: fallback.instanceId,
+      });
+      return undefined;
+    }
+
     if (input.hasStartedSession) {
       // A started thread can only move to an instance that shares its resume
       // state; otherwise `ensureSessionForThread` would reject the switch and
       // the user would see a confusing error instead of the provider's own.
-      const compatible = yield* Effect.all({
-        primary: providerService.getInstanceInfo(input.selection.instanceId),
-        fallback: providerService.getInstanceInfo(fallback.instanceId),
-      }).pipe(
-        Effect.map(
-          ({ primary, fallback: fallbackInfo }) =>
-            primary.driverKind === fallbackInfo.driverKind &&
-            primary.continuationIdentity.continuationKey ===
-              fallbackInfo.continuationIdentity.continuationKey,
-        ),
-        Effect.orElseSucceed(() => false),
-      );
+      const compatible =
+        instanceInfo !== undefined &&
+        instanceInfo.primary.driverKind === instanceInfo.fallback.driverKind &&
+        instanceInfo.primary.continuationIdentity.continuationKey ===
+          instanceInfo.fallback.continuationIdentity.continuationKey;
       if (!compatible) {
         return undefined;
       }

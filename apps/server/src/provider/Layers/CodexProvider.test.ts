@@ -1,6 +1,10 @@
 import { assert, it } from "@effect/vitest";
 
-import { applyPreferredCodexDefaultModel, mapCodexModelCapabilities } from "./CodexProvider.ts";
+import {
+  appendCustomCodexModels,
+  applyPreferredCodexDefaultModel,
+  mapCodexModelCapabilities,
+} from "./CodexProvider.ts";
 
 it("maps current Codex model capability fields", () => {
   const capabilities = mapCodexModelCapabilities({
@@ -143,4 +147,38 @@ it("ignores custom models that shadow a preferred slug", () => {
   ]);
 
   assert.deepStrictEqual(models.find((model) => model.isDefault)?.slug, "gpt-5.4");
+});
+
+const gptModel = {
+  slug: "gpt-5.4",
+  name: "GPT-5.4",
+  isCustom: false,
+  capabilities: mapCodexModelCapabilities({
+    additionalSpeedTiers: [],
+    defaultReasoningEffort: "medium",
+    description: "",
+    displayName: "GPT-5.4",
+    hidden: false,
+    id: "gpt-5.4",
+    isDefault: true,
+    model: "gpt-5.4",
+    defaultServiceTier: null,
+    serviceTiers: [],
+    supportedReasoningEfforts: [{ description: "Balanced", reasoningEffort: "medium" }],
+  }),
+} as const;
+
+it("passes a namespaced custom model id through verbatim", () => {
+  const models = appendCustomCodexModels([gptModel], ["zai-org/glm-5.2"]);
+  assert.strictEqual(models.at(-1)?.slug, "zai-org/glm-5.2");
+});
+
+it("offers no OpenAI-only options on a namespaced custom model", () => {
+  const models = appendCustomCodexModels([gptModel], ["zai-org/glm-5.2"]);
+  assert.strictEqual(models.at(-1)?.capabilities, null);
+});
+
+it("keeps the built-in options on a custom OpenAI-shaped model id", () => {
+  const models = appendCustomCodexModels([gptModel], ["gpt-5.4-preview"]);
+  assert.deepStrictEqual(models.at(-1)?.capabilities, gptModel.capabilities);
 });

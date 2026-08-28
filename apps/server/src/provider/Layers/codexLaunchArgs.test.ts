@@ -1,5 +1,6 @@
 import * as NodeAssert from "node:assert/strict";
 
+import { posthogGatewayCodexLaunchArgs } from "@ras-code/shared/posthogGateway";
 import { describe, it } from "vite-plus/test";
 
 import {
@@ -54,6 +55,24 @@ describe("codexExecLaunchArgs", () => {
   it("does not pair value-taking flags with adjacent flags", () => {
     NodeAssert.deepStrictEqual(codexExecLaunchArgs("--config --strict-config --enable --disable"), [
       "--strict-config",
+    ]);
+  });
+});
+
+describe("PostHog AI Gateway launch args", () => {
+  it("reaches codex app-server as the overrides the gateway needs", () => {
+    NodeAssert.deepStrictEqual(codexAppServerArgs(posthogGatewayCodexLaunchArgs().launchArgs), [
+      "app-server",
+      "-c",
+      "model_provider=posthog",
+      "-c",
+      "model_providers.posthog.name=PostHog AI Gateway",
+      "-c",
+      "model_providers.posthog.base_url=https://ai-gateway.us.posthog.com/v1",
+      "-c",
+      "model_providers.posthog.env_key=RAS_GATEWAY_KEY",
+      "-c",
+      "model_providers.posthog.wire_api=responses",
     ]);
   });
 });

@@ -6,7 +6,9 @@ import {
 import { describe, expect, it } from "vite-plus/test";
 
 import {
+  fallbackDriverRelation,
   fallbackModelMode,
+  fallbackNeedsExplicitModel,
   instanceWithFallback,
   selectableFallbackInstances,
 } from "./providerFallback.logic";
@@ -115,5 +117,62 @@ describe("instanceWithFallback", () => {
     expect(instanceWithFallback(instance(), { instanceId: gateway, model: null }).fallback).toEqual(
       { instanceId: gateway },
     );
+  });
+});
+
+describe("fallbackDriverRelation", () => {
+  const codexInstance = instance({ driver: ProviderDriverKind.make("codex") });
+
+  it("reports no relation when nothing is bound", () => {
+    expect(fallbackDriverRelation(instance(), {})).toBe("none");
+  });
+
+  it("reports no relation when the bound instance is gone", () => {
+    expect(fallbackDriverRelation(instance({ fallback: { instanceId: gateway } }), {})).toBe(
+      "none",
+    );
+  });
+
+  it("recognises a fallback on the same driver", () => {
+    expect(
+      fallbackDriverRelation(instance({ fallback: { instanceId: gateway } }), {
+        [gateway]: instance(),
+      }),
+    ).toBe("same-driver");
+  });
+
+  it("recognises a fallback on a different driver", () => {
+    expect(
+      fallbackDriverRelation(instance({ fallback: { instanceId: codex } }), {
+        [codex]: codexInstance,
+      }),
+    ).toBe("cross-driver");
+  });
+});
+
+describe("fallbackNeedsExplicitModel", () => {
+  const codexInstances = { [codex]: instance({ driver: ProviderDriverKind.make("codex") }) };
+
+  it("demands a model when the fallback runs on another driver", () => {
+    expect(
+      fallbackNeedsExplicitModel(instance({ fallback: { instanceId: codex } }), codexInstances),
+    ).toBe(true);
+  });
+
+  it("is satisfied once a model is pinned", () => {
+    expect(
+      fallbackNeedsExplicitModel(
+        instance({ fallback: { instanceId: codex, model: "zai-org/glm-5.2" } }),
+        codexInstances,
+      ),
+    ).toBe(false);
+  });
+
+  it("never demands a model on the same driver, where the turn's own model carries over", () => {
+    expect(
+      fallbackNeedsExplicitModel(instance({ fallback: { instanceId: gateway } }), {
+        [gateway]: instance(),
+      }),
+    ).toBe(false);
   });
 });

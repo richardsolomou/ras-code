@@ -10,7 +10,10 @@ import {
 import { Button } from "../ui/button";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "../ui/select";
 import {
+  CROSS_DRIVER_FALLBACK_HELPER_TEXT,
+  fallbackDriverRelation,
   fallbackModelMode,
+  fallbackNeedsExplicitModel,
   instanceWithFallback,
   selectableFallbackInstances,
 } from "./providerFallback.logic";
@@ -46,10 +49,10 @@ export function ProviderFallbackSection({
     ? serverProviders.find((provider) => provider.instanceId === fallback.instanceId)
     : undefined;
   const fallbackModels = fallbackProvider?.models ?? [];
-  const bothClaude =
-    fallback !== null &&
-    String(instance.driver) === "claudeAgent" &&
-    String(instances[fallback.instanceId]?.driver ?? "") === "claudeAgent";
+  const relation = fallbackDriverRelation(instance, instances);
+  const crossDriver = relation === "cross-driver";
+  const needsModel = fallbackNeedsExplicitModel(instance, instances);
+  const bothClaude = relation === "same-driver" && String(instance.driver) === "claudeAgent";
 
   const selectFallbackInstance = (value: string | null) => {
     if (value === null || value === NO_FALLBACK_VALUE) {
@@ -115,7 +118,9 @@ export function ProviderFallbackSection({
 
           {fallback ? (
             <label className="grid gap-1.5">
-              <span className="text-xs text-muted-foreground">Model on the fallback</span>
+              <span className="text-xs text-muted-foreground">
+                {crossDriver ? "Model on the fallback (required)" : "Model on the fallback"}
+              </span>
               <Select
                 value={
                   modelMode === "specific" ? (fallback.model ?? SAME_MODEL_VALUE) : SAME_MODEL_VALUE
@@ -126,7 +131,9 @@ export function ProviderFallbackSection({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectPopup>
-                  <SelectItem value={SAME_MODEL_VALUE}>Same model</SelectItem>
+                  {crossDriver ? null : (
+                    <SelectItem value={SAME_MODEL_VALUE}>Same model</SelectItem>
+                  )}
                   {fallbackModels.map((model) => (
                     <SelectItem key={model.slug} value={model.slug}>
                       {model.name}
@@ -137,10 +144,18 @@ export function ProviderFallbackSection({
             </label>
           ) : null}
 
+          {needsModel ? (
+            <span className="text-xs text-warning-foreground">
+              Pick a model: a fallback on a different provider never starts without one.
+            </span>
+          ) : null}
+
           <span className="text-xs text-muted-foreground">
-            {bothClaude
-              ? "Two Claude instances with different CLAUDE_CONFIG_DIR paths are separate Claude environments, so the fallback applies to new threads only. Leave the fallback's config directory empty to share this one and keep existing threads working."
-              : "Fallbacks are never chained: one hop only."}
+            {crossDriver
+              ? CROSS_DRIVER_FALLBACK_HELPER_TEXT
+              : bothClaude
+                ? "Two Claude instances with different CLAUDE_CONFIG_DIR paths are separate Claude environments, so the fallback applies to new threads only. Leave the fallback's config directory empty to share this one and keep existing threads working."
+                : "Fallbacks are never chained: one hop only."}
           </span>
         </>
       )}

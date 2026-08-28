@@ -44,10 +44,7 @@ import { providerSettingsTabClassName } from "./providerSettingsTabs";
 import { ProviderSettingsForm } from "./ProviderSettingsForm";
 import { ProviderModelsSection } from "./ProviderModelsSection";
 import { ProviderFallbackSection } from "./ProviderFallbackSection";
-import {
-  instanceUsesAnthropicGateway,
-  mergeRemoteModelsIntoCustomModels,
-} from "./providerGateway.logic";
+import { instanceUsesGateway, mergeRemoteModelsIntoCustomModels } from "./providerGateway.logic";
 import { usageLimitPill } from "./providerUsageLimit.logic";
 import { useClientSettings } from "../../hooks/useSettings";
 import { formatShortTimestamp } from "../../timestampFormat";
@@ -529,13 +526,13 @@ export function ProviderInstanceCard({
     onUpdate({ ...rest, config: nextConfig } as ProviderInstanceConfig);
   };
 
-  const showsGatewayRefresh = instanceUsesAnthropicGateway(instance);
+  const showsGatewayRefresh = instanceUsesGateway(instance);
   const refreshGatewayModels = async () => {
     setIsRefreshingGatewayModels(true);
     const models = await listGatewayModels({ environmentId, instanceId });
     setIsRefreshingGatewayModels(false);
     if (models === null) return;
-    const next = mergeRemoteModelsIntoCustomModels(customModels, models);
+    const next = mergeRemoteModelsIntoCustomModels(customModels, models, instance.driver);
     const added = next.length - customModels.length;
     updateCustomModels(next);
     toastManager.add({
