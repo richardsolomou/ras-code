@@ -94,8 +94,32 @@ export function RemoteHandoffCard(props: { machine: string; latencyMs: number })
 
 const PROJECT_FAVICONS = {
   rasCode: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
-  <rect width="128" height="128" rx="10" fill="#000"/>
-  <g fill="none" stroke="#fff" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"><path d="M36 96V32H68C77.9411 32 86 40.0589 86 50C86 59.9411 77.9411 68 68 68H36"/><path d="M60 68L82 96"/></g><rect x="94" y="74" width="12" height="22" rx="2" fill="#fff"/>
+  <rect width="128" height="128" rx="10" fill="#2A3230"/>
+  <rect x="31" y="7" width="18" height="18" rx="3" fill="#F0C24B" />
+  <rect x="34" y="10" width="12" height="12" rx="2" fill="#FFE08A" fill-opacity="0.5" />
+  <rect x="55" y="7" width="18" height="18" rx="3" fill="#F0C24B" />
+  <rect x="58" y="10" width="12" height="12" rx="2" fill="#FFE08A" fill-opacity="0.5" />
+  <rect x="79" y="7" width="18" height="18" rx="3" fill="#38423F" fill-opacity="0.28" />
+  <rect x="31" y="31" width="18" height="18" rx="3" fill="#F0C24B" />
+  <rect x="34" y="34" width="12" height="12" rx="2" fill="#FFE08A" fill-opacity="0.5" />
+  <rect x="55" y="31" width="18" height="18" rx="3" fill="#38423F" fill-opacity="0.28" />
+  <rect x="79" y="31" width="18" height="18" rx="3" fill="#F0C24B" />
+  <rect x="82" y="34" width="12" height="12" rx="2" fill="#FFE08A" fill-opacity="0.5" />
+  <rect x="31" y="55" width="18" height="18" rx="3" fill="#F0C24B" />
+  <rect x="34" y="58" width="12" height="12" rx="2" fill="#FFE08A" fill-opacity="0.5" />
+  <rect x="55" y="55" width="18" height="18" rx="3" fill="#F0C24B" />
+  <rect x="58" y="58" width="12" height="12" rx="2" fill="#FFE08A" fill-opacity="0.5" />
+  <rect x="79" y="55" width="18" height="18" rx="3" fill="#38423F" fill-opacity="0.28" />
+  <rect x="31" y="79" width="18" height="18" rx="3" fill="#F0C24B" />
+  <rect x="34" y="82" width="12" height="12" rx="2" fill="#FFE08A" fill-opacity="0.5" />
+  <rect x="55" y="79" width="18" height="18" rx="3" fill="#38423F" fill-opacity="0.28" />
+  <rect x="79" y="79" width="18" height="18" rx="3" fill="#F0C24B" />
+  <rect x="82" y="82" width="12" height="12" rx="2" fill="#FFE08A" fill-opacity="0.5" />
+  <rect x="31" y="103" width="18" height="18" rx="3" fill="#F0C24B" />
+  <rect x="34" y="106" width="12" height="12" rx="2" fill="#FFE08A" fill-opacity="0.5" />
+  <rect x="55" y="103" width="18" height="18" rx="3" fill="#38423F" fill-opacity="0.28" />
+  <rect x="79" y="103" width="18" height="18" rx="3" fill="#F0C24B" />
+  <rect x="82" y="106" width="12" height="12" rx="2" fill="#FFE08A" fill-opacity="0.5" />
 </svg>`,
   react: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <rect width="64" height="64" rx="15" fill="#20232a"/>

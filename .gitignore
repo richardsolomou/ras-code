@@ -38,3 +38,7 @@ node_modules/
 *.log
 .env*
 !.env.example
+
+# impeccable design-session scratch
+.impeccable/
+**/.impeccable/

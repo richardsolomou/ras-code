@@ -1,3 +1,8 @@
+@import "@fontsource/barlow/400.css";
+@import "@fontsource/barlow/500.css";
+@import "@fontsource/barlow/600.css";
+@import "@fontsource/barlow-semi-condensed/500.css";
+@import "@fontsource/barlow-semi-condensed/600.css";
 @import "tailwindcss";
 
 @custom-variant dark (&:is(.dark, .dark *));
@@ -137,7 +142,8 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(ras-code
    the variables and Settings -> Appearance can override them at runtime. The
    default stacks are mirrored in `appearanceFonts.ts`. */
 @theme {
-  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --font-sans: "Barlow", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --font-legend: "Barlow Semi Condensed", "Barlow", system-ui, sans-serif;
   --font-mono:
     ui-monospace, "SF Mono", "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
 }
@@ -1227,28 +1233,29 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(ras-code
     color-scheme: dark;
     /* Keep the workspace in the same neutral-black family as sidebar v2.
        Surfaces lift from this base instead of starting from a milky gray. */
-    --background: #202020;
+    --background: #2a3230;
     --surface-raised: var(--secondary);
-    --foreground: var(--color-neutral-100);
-    --card: color-mix(in srgb, var(--background) 97%, var(--color-white));
-    --card-foreground: var(--color-neutral-100);
-    --popover: color-mix(in srgb, var(--background) 94%, var(--color-white));
-    --popover-foreground: var(--color-neutral-100);
-    --primary: oklch(0.571 0.21 264);
+    --foreground: #d9ddd6;
+    --card: #343d3a;
+    --card-foreground: #d9ddd6;
+    --popover: #38423f;
+    --popover-foreground: #d9ddd6;
+    --primary: #f0c24b;
+    --primary-foreground: #1f2624;
     --secondary: --alpha(var(--color-white) / 4%);
     --secondary-foreground: var(--color-neutral-100);
     --muted: --alpha(var(--color-white) / 4%);
-    --muted-foreground: color-mix(in srgb, var(--color-neutral-500) 90%, var(--color-white));
+    --muted-foreground: #8e9a94;
     --accent: --alpha(var(--color-white) / 4%);
     --accent-foreground: var(--color-neutral-100);
-    --error: color-mix(in srgb, var(--color-red-500) 90%, var(--color-white));
-    --error-foreground: var(--color-red-400);
+    --error: #e5645a;
+    --error-foreground: #e5645a;
     --error-surface: color-mix(in srgb, var(--error) 16%, transparent);
     --border: --alpha(var(--color-white) / 6%);
     --input: --alpha(var(--color-white) / 8%);
-    --info-foreground: var(--color-blue-400);
-    --success-foreground: var(--color-emerald-400);
-    --warning-foreground: var(--color-amber-400);
+    --info-foreground: #9ec5d6;
+    --success-foreground: #7fd1b9;
+    --warning-foreground: #f0c24b;
     --warning-surface: color-mix(in srgb, var(--warning) 16%, transparent);
     --update-foreground: var(--color-blue-400);
     --update-surface: color-mix(in srgb, var(--update) 18%, transparent);
@@ -1286,14 +1293,14 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(ras-code
   --sidebar-border: var(--color-zinc-200);
 
   @variant dark {
-    --background: #1a1a1a;
-    --foreground: #f1f3f7;
-    --card: #1a1a1a;
+    --background: #1f2624;
+    --foreground: #d9ddd6;
+    --card: #1f2624;
     --card-foreground: var(--foreground);
-    --accent: #2a2a2a;
-    --accent-foreground: #f7f9ff;
-    --muted: #222222;
-    --muted-foreground: #a3a3a3;
+    --accent: #2c3532;
+    --accent-foreground: #e6eae4;
+    --muted: #283130;
+    --muted-foreground: #8e9a94;
     --border: rgb(255 255 255 / 8%);
     --input: rgb(255 255 255 / 18%);
     --sidebar: var(--card);

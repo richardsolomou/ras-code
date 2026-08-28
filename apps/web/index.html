@@ -6,14 +6,14 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content"
     />
-    <meta name="theme-color" content="#202020" />
+    <meta name="theme-color" content="#2A3230" />
     <link rel="icon" href="/favicon.ico" sizes="48x48" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <script>
       (() => {
         const LIGHT_BACKGROUND = "#ffffff";
-        const DARK_BACKGROUND = "#202020";
+        const DARK_BACKGROUND = "#2A3230";
         const CUSTOM_THEMES_STORAGE_KEY = "ras-code:themes:v1";
         const THEME_FOLLOW_SYSTEM_STORAGE_KEY = "ras-code:theme-follow-system";
         const THEME_APPEARANCE_MODE_STORAGE_KEY = "ras-code:theme-appearance-mode";
@@ -25,9 +25,9 @@
             accent: "#4f46e5",
           },
           dark: {
-            background: "#202020",
-            foreground: "#f5f5f5",
-            accent: "#818cf8",
+            background: "#2A3230",
+            foreground: "#D9DDD6",
+            accent: "#F0C24B",
           },
         };
         // These are the runtime defaults used to complete a custom palette
@@ -419,7 +419,7 @@
       }
 
       html.dark body {
-        background: #202020;
+        background: #2a3230;
         color: #f5f5f5;
       }
 
@@ -458,6 +458,14 @@
     <title>RAS Code (Alpha)</title>
   </head>
   <body>
+    <!--
+      THESIS: RAS Code is a flight-control console for coding agents: many stations, one legend, lamps for state. It refuses the near-black-plus-neon-glow dev-tool default and the cream-paper opposite.
+      OWN-WORLD: enamel grey-green panels (#2A3230 canvas, #1F2624 desk, #343D3A raised), engraved legends in Barlow Semi Condensed caps with tracking, body in Barlow, square indicator lamps: amber #F0C24B attention, green #7FD1B9 working/ok, red #E5645A failed, unlit #4A5551; one amber element per view.
+      STORY: a developer sees every agent's station at a glance, reads state from lamp and glyph, and acts on the one that needs them.
+      FIRST VIEWPORT: sidebar as a console rail of stations (square lamp + legend per thread, projects as engraved section legends), the selected station's transcript on the centre panel, composer as the station's control block with one amber transport button, a fixed legend strip in the sidebar footer with working/waiting counts.
+      FORM: Mission Control Console, candidate 1 of the ordered list (IMPECCABLE'S PICK over the assigned Studio Console); seed key b2817ea3.
+      FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance.
+    -->
     <div id="root">
       <div id="boot-shell">
         <div id="boot-shell-card" aria-label="RAS Code splash screen">
