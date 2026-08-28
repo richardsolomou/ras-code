@@ -138,7 +138,8 @@ export function normalizeProviderAccentColor(value: string | undefined): string 
  *
  *   1. A snapshot `displayName` that differs from the driver-kind label —
  *      the server has explicitly named this instance, trust it.
- *   2. For non-default instances, a humanized `instanceId` — the server
+ *   2. For non-default instances that share their driver with another
+ *      instance, a humanized `instanceId` — the server
  *      fell back to the driver-level presentation constant (which is the
  *      same for every instance of that kind), so we differentiate at the
  *      UI layer by slug. This is what keeps "Codex" + "Codex Personal"
@@ -154,13 +155,14 @@ function resolveInstanceDisplayName(
   instanceId: ProviderInstanceId,
   driverKind: ProviderDriverKind,
   isDefault: boolean,
+  hasDriverSiblings: boolean,
 ): string {
   const trimmedSnapshotName = snapshot.displayName?.trim();
   const kindLabel = driverKindLabel(driverKind);
   if (trimmedSnapshotName && trimmedSnapshotName !== kindLabel) {
     return trimmedSnapshotName;
   }
-  if (!isDefault) {
+  if (!isDefault && hasDriverSiblings) {
     const humanized = humanizeInstanceId(instanceId);
     if (humanized.length > 0) return humanized;
   }
@@ -177,12 +179,22 @@ function resolveInstanceDisplayName(
 export function deriveProviderInstanceEntries(
   providers: ReadonlyArray<ServerProvider>,
 ): ReadonlyArray<ProviderInstanceEntry> {
+  const instancesPerDriver = new Map<string, number>();
+  for (const snapshot of providers) {
+    instancesPerDriver.set(snapshot.driver, (instancesPerDriver.get(snapshot.driver) ?? 0) + 1);
+  }
   return providers.map((snapshot) => {
     const instanceId = snapshot.instanceId;
     const driverKind = snapshot.driver;
     const defaultId = defaultInstanceIdForDriver(driverKind);
     const isDefault = instanceId === defaultId;
-    const displayName = resolveInstanceDisplayName(snapshot, instanceId, driverKind, isDefault);
+    const displayName = resolveInstanceDisplayName(
+      snapshot,
+      instanceId,
+      driverKind,
+      isDefault,
+      (instancesPerDriver.get(driverKind) ?? 0) > 1,
+    );
     return {
       instanceId,
       driverKind,

@@ -396,6 +396,12 @@ export const CodexSettings = makeProviderSettingsSchema(
       Schema.withDecodingDefault(Effect.succeed([])),
       Schema.annotateKey({ providerSettingsForm: { hidden: true } }),
     ),
+    // Whether sessions attach RAS Code's own MCP server. Off for instances
+    // behind a gateway whose Responses bridge accepts plain function tools only.
+    rasMcpServer: Schema.Boolean.pipe(
+      Schema.withDecodingDefault(Effect.succeed(true)),
+      Schema.annotateKey({ providerSettingsForm: { hidden: true } }),
+    ),
   },
   {
     order: ["binaryPath", "homePath", "shadowHomePath", "launchArgs"],
@@ -904,6 +910,7 @@ const CodexSettingsPatch = Schema.Struct({
   shadowHomePath: Schema.optionalKey(TrimmedString),
   launchArgs: Schema.optionalKey(TrimmedString),
   customModels: Schema.optionalKey(Schema.Array(Schema.String)),
+  rasMcpServer: Schema.optionalKey(Schema.Boolean),
 });
 
 const ClaudeSettingsPatch = Schema.Struct({

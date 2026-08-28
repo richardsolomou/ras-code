@@ -1677,7 +1677,10 @@ export const makeCodexAdapter = Effect.fn("makeCodexAdapter")(function* (
           input.modelSelection?.instanceId === boundInstanceId
             ? getCodexServiceTierOptionValue(input.modelSelection)
             : undefined;
-        const mcpSession = McpProviderSession.readMcpProviderSession(input.threadId);
+        const mcpSession =
+          codexConfig.rasMcpServer === false
+            ? undefined
+            : McpProviderSession.readMcpProviderSession(input.threadId);
         const runtimeInput: CodexSessionRuntimeOptions = {
           threadId: input.threadId,
           providerInstanceId: boundInstanceId,

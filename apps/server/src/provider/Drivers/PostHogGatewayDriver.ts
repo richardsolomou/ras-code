@@ -534,6 +534,9 @@ export const PostHogGatewayDriver: ProviderDriver<PostHogGatewaySettings, PostHo
             binaryPath: config.codexBinaryPath,
             homePath: codexHomePath,
             launchArgs: posthogGatewayCodexLaunchArgs(RAS_GATEWAY_KEY_VARIABLE, baseUrl).launchArgs,
+            // Codex advertises an attached MCP server as a `namespace` tool,
+            // which the gateway's Responses bridge rejects outright.
+            rasMcpServer: false,
           }),
         });
 
