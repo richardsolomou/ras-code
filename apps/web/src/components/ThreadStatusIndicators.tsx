@@ -20,6 +20,7 @@ import { resolveChangeRequestPresentation } from "../sourceControlPresentation";
 import { resolveThreadStatusPill, type ThreadStatusPill } from "./Sidebar.logic";
 import type { SidebarThreadSummary } from "../types";
 import { formatWorktreePathForDisplay } from "../worktreeCleanup";
+import { StatusLamp, StatusMark, type LampState } from "./StatusLamp";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "./ui/tooltip";
 
 export interface PrStatusIndicator {
@@ -80,7 +81,7 @@ export function useLinkedThreadPullRequest(
 export function settledPrHoverColorClass(state: NonNullable<ThreadPr>["state"]): string {
   switch (state) {
     case "open":
-      return "group-hover/v2-row:text-emerald-600 dark:group-hover/v2-row:text-emerald-300/90";
+      return "group-hover/v2-row:text-[var(--success-foreground)]";
     case "merged":
       return "group-hover/v2-row:text-violet-600 dark:group-hover/v2-row:text-violet-300/90";
     case "closed":
@@ -108,7 +109,7 @@ export function prStatusIndicator(
   if (pr.state === "open") {
     return {
       label: `${presentation.shortName} open`,
-      colorClass: "text-emerald-600 dark:text-emerald-300/90",
+      colorClass: "text-[var(--success-foreground)]",
       tooltip,
       tooltipLead,
       tooltipTitle: pr.title,
@@ -424,7 +425,7 @@ export function terminalStatusFromRunningIds(
   }
   return {
     label: "Terminal process running",
-    colorClass: "text-teal-600 dark:text-teal-300/90",
+    colorClass: "text-[var(--success-foreground)]",
     pulse: true,
   };
 }
@@ -463,6 +464,31 @@ export function ThreadWorktreeIndicator({
   );
 }
 
+/** Console lamp for a thread status pill. The pill's own label is the source
+ * of truth, so every surface that renders a pill lights the same lamp. */
+export function threadStatusLamp(label: ThreadStatusPill["label"]): LampState {
+  switch (label) {
+    case "Pending Approval":
+    case "Awaiting Input":
+    case "Plan Ready":
+      return "waiting";
+    case "Working":
+    case "Connecting":
+    case "Monitoring":
+      return "working";
+    case "Completed":
+      return "settled";
+  }
+}
+
+const LAMP_TEXT_CLASS: Record<LampState, string> = {
+  working: "text-[var(--lamp-working)]",
+  waiting: "text-[var(--lamp-waiting)]",
+  settled: "text-[var(--lamp-working)]",
+  failed: "text-[var(--lamp-failed)]",
+  idle: "text-muted-foreground",
+};
+
 export function ThreadStatusLabel({
   status,
   compact = false,
@@ -470,6 +496,8 @@ export function ThreadStatusLabel({
   status: ThreadStatusPill;
   compact?: boolean;
 }) {
+  const lamp = threadStatusLamp(status.label);
+
   if (compact) {
     return (
       <Tooltip>
@@ -477,15 +505,11 @@ export function ThreadStatusLabel({
           render={
             <span
               aria-label={status.label}
-              className={`inline-flex size-3.5 shrink-0 items-center justify-center ${status.colorClass}`}
+              className="inline-flex size-3.5 shrink-0 items-center justify-center"
             />
           }
         >
-          <span
-            className={`size-[9px] rounded-full ${status.dotClass} ${
-              status.pulse ? "animate-status-pulse" : ""
-            }`}
-          />
+          <StatusLamp state={lamp} pulse={status.pulse} />
         </TooltipTrigger>
         <TooltipPopup side="top">{status.label}</TooltipPopup>
       </Tooltip>
@@ -498,15 +522,11 @@ export function ThreadStatusLabel({
         render={
           <span
             aria-label={status.label}
-            className={`inline-flex items-center gap-1 text-[10px] ${status.colorClass}`}
+            className={`legend inline-flex items-center gap-1 text-[10px] ${LAMP_TEXT_CLASS[lamp]}`}
           />
         }
       >
-        <span
-          className={`h-1.5 w-1.5 rounded-full ${status.dotClass} ${
-            status.pulse ? "animate-status-pulse" : ""
-          }`}
-        />
+        <StatusMark state={lamp} pulse={status.pulse} glyphClassName="size-3" />
         <span className="hidden md:inline">{status.label}</span>
       </TooltipTrigger>
       <TooltipPopup side="top">{status.label}</TooltipPopup>

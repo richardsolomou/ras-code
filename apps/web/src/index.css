@@ -120,7 +120,7 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(ras-code
   @variant dark {
     --appearance-contrast-target: white;
     --app-scrollbar-thumb: #3a3646;
-    --app-scrollbar-thumb-hover: #5e6b67;
+    --app-scrollbar-thumb-hover: #4a4658;
     --glass-blur: 16px;
     --glass-saturation: 1.08;
   }

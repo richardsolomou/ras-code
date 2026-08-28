@@ -136,7 +136,7 @@ export function SettingsSection({
       className={cn("space-y-3", className)}
     >
       <div className="flex min-h-8 items-center justify-between gap-4 px-3 sm:px-4">
-        <h2 className="flex items-center gap-2 text-lg font-semibold tracking-[-0.025em] text-foreground">
+        <h2 className="legend flex items-center gap-2 text-muted-foreground">
           {icon}
           {title}
         </h2>

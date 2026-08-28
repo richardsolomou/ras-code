@@ -202,7 +202,12 @@ export const SidebarUtilityMenu = memo(function SidebarUtilityMenu() {
     <SidebarMenu className="flex-row items-center">
       {currentFooterPage ? (
         <SidebarMenuItem className="min-w-0 flex-1">
-          <SidebarMenuButton onClick={handleBackClick}>
+          {/* The box is identical in every state: a fixed height and an inset
+              pressed rim, so activating Back cannot nudge the footer row. */}
+          <SidebarMenuButton
+            className="h-9 min-h-9 border-0 active:shadow-[inset_0_0_0_1px_var(--console-rule)]"
+            onClick={handleBackClick}
+          >
             <ArrowLeftIcon />
             <span>Back</span>
           </SidebarMenuButton>

@@ -807,7 +807,11 @@ const sidebarMenuButtonVariants = cva(
       size: {
         default:
           "h-9 rounded-[var(--control-radius)] px-[var(--sidebar-row-content-inset)] py-2 text-sm",
-        icon: "size-8 justify-center rounded-[var(--control-radius)] p-0",
+        // The box must not depend on state: `size-8!` outranks the base
+        // `w-full`, and `shrink-0` keeps a neighbour appearing (update pill)
+        // from squeezing the row. Active and focus rims are drawn with
+        // ring/box-shadow, which take no layout space.
+        icon: "size-8! shrink-0 justify-center rounded-[var(--control-radius)] border-0 p-0",
         lg: "h-12 rounded-lg p-2 text-sm group-data-[collapsible=icon]:p-0!",
         sm: "h-7 rounded-lg p-2 text-xs",
       },

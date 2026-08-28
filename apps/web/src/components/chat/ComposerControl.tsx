@@ -5,8 +5,9 @@ import { cn } from "~/lib/utils";
 import { Button } from "../ui/button";
 import { SelectTrigger } from "../ui/select";
 
+/** Engraved selector cap: raised panel face, cut rim, legend lettering. */
 const composerControlClassName =
-  "h-7 min-h-7 gap-1.5 rounded-[var(--control-radius)] px-2.5 text-secondary-label transition-none hover:text-foreground [&_svg[data-composer-control-icon]]:mx-0 [&_svg[data-composer-control-chevron]]:-mx-0.5";
+  "legend console-cap h-7 min-h-7 gap-1.5 rounded-[6px] px-2 text-secondary-label transition-none hover:bg-[var(--accent)] hover:text-foreground [&_svg[data-composer-control-icon]]:mx-0 [&_svg[data-composer-control-chevron]]:-mx-0.5";
 
 export function ComposerControl({
   className,

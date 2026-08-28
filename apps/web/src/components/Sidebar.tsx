@@ -38,8 +38,6 @@ import {
   CheckIcon,
   ChevronDownIcon,
   CircleAlertIcon,
-  CircleCheckIcon,
-  CircleDashedIcon,
   ClockIcon,
   FolderIcon,
   FolderPlusIcon,
@@ -159,6 +157,7 @@ import {
   type TerminalStatusIndicator,
   useLinkedThreadPullRequest,
 } from "./ThreadStatusIndicators";
+import { StatusLamp, StatusMark } from "./StatusLamp";
 import {
   resolveSnoozePresets,
   snoozeWakeDescription,
@@ -858,12 +857,13 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: {
       ? {
           label: "Working",
           icon: "working" as const,
-          // No shimmer: a label that animates forever is noise in a sidebar
-          // full of them (and repaints every vsync on high-refresh displays).
-          // Working is a background state, so it rests at the dim end of what
-          // the old pulse cycled through; only the thread you have open gets
-          // the label at full strength.
-          className: cn("text-sky-600 dark:text-sky-400", !props.isActive && "opacity-75"),
+          lamp: "working" as const,
+          // The lamp breathes; the label does not. A label that animates
+          // forever is noise in a sidebar full of them. Working is a
+          // background state, so it rests at the dim end; only the thread you
+          // have open gets the label at full strength.
+          lampPulse: true,
+          className: cn("text-[var(--lamp-working)]", !props.isActive && "opacity-75"),
         }
       : status === "monitoring"
         ? {
@@ -871,37 +871,49 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: {
             // (monitoring-pill D6), so it keeps the label at full strength.
             label: "Monitoring",
             icon: null,
-            className: "text-sky-600 dark:text-sky-400",
+            lamp: "working" as const,
+            lampPulse: false,
+            className: "text-[var(--lamp-working)]",
           }
         : status === "approval"
           ? {
               label: "Approval",
               icon: null,
-              className: "text-amber-700 dark:text-amber-300",
+              lamp: "waiting" as const,
+              lampPulse: false,
+              className: "text-[var(--lamp-waiting)]",
             }
           : status === "input"
             ? {
                 label: "Input",
                 icon: null,
-                className: "text-indigo-600 dark:text-indigo-300",
+                lamp: "waiting" as const,
+                lampPulse: false,
+                className: "text-[var(--lamp-waiting)]",
               }
             : status === "failed"
               ? {
                   label: "Failed",
                   icon: null,
-                  className: "text-red-700 dark:text-red-300",
+                  lamp: "failed" as const,
+                  lampPulse: false,
+                  className: "text-[var(--lamp-failed)]",
                 }
               : isWoke
                 ? {
                     label: "Woke",
                     icon: "woke" as const,
-                    className: "text-amber-700 dark:text-amber-300",
+                    lamp: "waiting" as const,
+                    lampPulse: false,
+                    className: "text-[var(--lamp-waiting)]",
                   }
                 : isUnread
                   ? {
                       label: "Done",
                       icon: "done" as const,
-                      className: "text-emerald-700 dark:text-emerald-300",
+                      lamp: "settled" as const,
+                      lampPulse: false,
+                      className: "text-[var(--lamp-working)]",
                     }
                   : null;
   const isWokeStatus = topStatus?.icon === "woke";
@@ -1300,7 +1312,7 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: {
                 {variantAction === "unsnooze" && props.snoozeWakeLabelText !== null ? (
                   // Snoozed rows show when they come BACK, not when they were
                   // last touched — the return ticket is the row's whole story.
-                  <span className="text-xs text-blue-600 tabular-nums dark:text-blue-400">
+                  <span className="text-[var(--info-foreground)] text-xs tabular-nums">
                     {props.snoozeWakeLabelText}
                   </span>
                 ) : isWoke ? (
@@ -1313,8 +1325,9 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: {
                           type="button"
                           aria-label="Dismiss Woke notification"
                           onClick={handleAcknowledgeWokeClick}
-                          className="inline-flex cursor-pointer items-center gap-1 rounded-sm text-xs font-medium text-amber-700 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring dark:text-amber-300"
+                          className="legend inline-flex cursor-pointer items-center gap-1 rounded-sm text-[var(--lamp-waiting)] outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
                         >
+                          <StatusLamp state="waiting" />
                           <AlarmClockIcon aria-hidden className="size-3" />
                           <span role="status">Woke</span>
                         </button>
@@ -1323,7 +1336,8 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: {
                     <TooltipPopup side="top">Dismiss Woke notification</TooltipPopup>
                   </Tooltip>
                 ) : (
-                  <span className="text-xs">
+                  <span className="inline-flex items-center gap-1 text-xs">
+                    <StatusMark state={variantAction === "unsettle" ? "settled" : "idle"} />
                     {variantAction === "unsettle"
                       ? settledTimeLabel(thread)
                       : threadTimeLabel(thread)}
@@ -1434,8 +1448,8 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: {
               {props.projectTitle ? (
                 <span
                   className={cn(
-                    "min-w-0 flex-1 truncate text-secondary-label text-xs",
-                    shouldRecede ? "font-normal" : "font-medium",
+                    "legend min-w-0 flex-1 truncate text-secondary-label",
+                    shouldRecede && "opacity-75",
                   )}
                 >
                   {props.projectTitle}
@@ -1471,11 +1485,12 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: {
                               aria-label="Dismiss Woke notification"
                               onClick={handleAcknowledgeWokeClick}
                               className={cn(
-                                "inline-flex cursor-pointer items-center gap-1 rounded-sm font-medium outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring",
+                                "legend inline-flex cursor-pointer items-center gap-1 rounded-sm outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring",
                                 topStatus.className,
                               )}
                             >
-                              <AlarmClockIcon aria-hidden className="size-4 shrink-0" />
+                              <StatusLamp state={topStatus.lamp} />
+                              <AlarmClockIcon aria-hidden className="size-3.5 shrink-0" />
                               <span role="status">{topStatus.label}</span>
                             </button>
                           }
@@ -1484,16 +1499,9 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: {
                       </Tooltip>
                     ) : (
                       <span
-                        className={cn(
-                          "inline-flex items-center gap-1 font-medium",
-                          topStatus.className,
-                        )}
+                        className={cn("legend inline-flex items-center gap-1", topStatus.className)}
                       >
-                        {topStatus.icon === "working" ? (
-                          <CircleDashedIcon aria-hidden className="size-4 shrink-0" />
-                        ) : topStatus.icon === "done" ? (
-                          <CircleCheckIcon aria-hidden className="size-4 shrink-0" />
-                        ) : null}
+                        <StatusMark state={topStatus.lamp} pulse={topStatus.lampPulse} />
                         {/* The label alone is the live region: a role="status"
                             wrapper around the ticking duration would make
                             screen readers announce every second. */}
@@ -1506,7 +1514,10 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: {
                       </span>
                     )
                   ) : (
-                    threadTimeLabel(thread)
+                    <span className="inline-flex items-center gap-1">
+                      <StatusMark state="idle" />
+                      {threadTimeLabel(thread)}
+                    </span>
                   )}
                 </span>
                 {props.settlementSupported || showSnoozeButton ? (
@@ -1575,8 +1586,8 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: {
               {prBadge}
               {diff ? (
                 <span className="shrink-0 font-mono">
-                  <span className="text-emerald-600 dark:text-emerald-400">+{diff.insertions}</span>{" "}
-                  <span className="text-red-600 dark:text-red-400">−{diff.deletions}</span>
+                  <span className="text-[var(--success-foreground)]">+{diff.insertions}</span>{" "}
+                  <span className="text-[var(--error)]">−{diff.deletions}</span>
                 </span>
               ) : null}
               <span
@@ -2265,6 +2276,19 @@ export default function Sidebar() {
     () => [...pinnedThreads, ...activeThreads, ...visibleSnoozedThreads, ...renderedSettledThreads],
     [pinnedThreads, activeThreads, visibleSnoozedThreads, renderedSettledThreads],
   );
+  // Legend counts read the same partitions the rows do, so the strip can
+  // never disagree with the lamps above it. Shelved threads count: a snoozed
+  // thread still working is still working.
+  const legendCounts = useMemo(() => {
+    let working = 0;
+    let waiting = 0;
+    for (const thread of [...pinnedThreads, ...activeThreads, ...snoozedThreads]) {
+      const threadStatus = resolveSidebarThreadStatus(thread);
+      if (threadStatus === "working" || threadStatus === "monitoring") working += 1;
+      else if (threadStatus === "approval" || threadStatus === "input") waiting += 1;
+    }
+    return { working, waiting };
+  }, [pinnedThreads, activeThreads, snoozedThreads]);
   const orderedThreadKeys = useMemo(
     () =>
       orderedThreads.map((thread) =>
@@ -3888,16 +3912,16 @@ export default function Sidebar() {
                           data-testid="sidebar-snoozed-shelf-toggle"
                           className="mb-1 mt-3 flex w-full cursor-pointer items-center gap-2 px-2.5 text-left"
                         >
-                          <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
+                          <span className="legend text-[var(--info-foreground)]">
                             {snoozedShelfExpanded
                               ? "Snoozed"
                               : `Snoozed (${snoozedThreads.length})`}
                           </span>
-                          <span className="h-px flex-1 bg-blue-500/20 dark:bg-blue-400/15" />
+                          <span className="h-px flex-1 bg-[var(--console-rule)]" />
                           <ChevronDownIcon
                             aria-hidden
                             className={cn(
-                              "size-3 text-blue-600 transition-transform dark:text-blue-400",
+                              "size-3 text-[var(--info-foreground)] transition-transform",
                               snoozedShelfExpanded && "rotate-180",
                             )}
                           />
@@ -3922,16 +3946,16 @@ export default function Sidebar() {
                           data-testid="sidebar-settled-shelf-toggle"
                           className="mb-1 mt-3 flex w-full cursor-pointer items-center gap-2 px-2.5 text-left"
                         >
-                          <span className="text-xs font-medium text-muted-foreground/50">
+                          <span className="legend text-muted-foreground/70">
                             {settledShelfExpanded
                               ? "Settled"
                               : `Settled (${settledThreads.length})`}
                           </span>
-                          <span className="h-px flex-1 bg-sidebar-border/60" />
+                          <span className="h-px flex-1 bg-[var(--console-rule)]" />
                           <ChevronDownIcon
                             aria-hidden
                             className={cn(
-                              "size-3 text-muted-foreground/50 transition-transform",
+                              "size-3 text-muted-foreground/70 transition-transform",
                               settledShelfExpanded && "rotate-180",
                             )}
                           />
@@ -3988,7 +4012,7 @@ export default function Sidebar() {
           ) : null}
         </SidebarGroup>
       </SidebarContent>
-      <SidebarChromeFooter />
+      <SidebarChromeFooter legendCounts={legendCounts} />
     </>
   );
 }
