@@ -11,6 +11,7 @@ This is a living glossary for RAS Code. It explains what common terms mean in th
 - [Orchestration](#orchestration)
 - [Provider runtime](#provider-runtime)
 - [Checkpointing](#checkpointing)
+- [Upstream sync](#upstream-sync)
 
 ## Concepts
 
@@ -154,6 +155,30 @@ The patch difference between two checkpoints. Query logic lives in [CheckpointDi
 
 The file patch and changed-file summary for one turn. It is usually computed in [CheckpointDiffQuery.ts][20], represented in [the contracts][1], and recorded into thread state by [projector.ts][4].
 
+### Upstream sync
+
+RAS Code is a diverging fork of `pingdotgg/t3code`. Upstream changes come across one at a time, never by merge. The workflow is described in [upstream-sync.md][26].
+
+#### Ledger
+
+`upstream/sync.json`, the record of what we did with every upstream change since the fork point. Its schema lives in [upstreamSync.ts][27].
+
+#### Fork point
+
+The upstream commit this fork branched from. Everything in the ledger is measured from it.
+
+#### Last reviewed
+
+The newest upstream commit that, together with every commit before it, has a ledger entry. It never advances past an undecided change.
+
+#### Decision
+
+What we did with one upstream change: `adopted`, `adapted`, `skipped`, or `deferred`.
+
+#### Rebrand map
+
+The single source of truth for this fork's vocabulary and its do-not-rename list, in [upstreamRebrandMap.ts][28].
+
 ## Practical Shortcuts
 
 - If you see `requested`, think "intent recorded".
@@ -168,6 +193,7 @@ The file patch and changed-file summary for one turn. It is usually computed in 
 - [Provider architecture][16]
 - [Permission modes][18]
 - [Workspace layout][2]
+- [Upstream sync][26]
 
 [1]: ../../packages/contracts/src/orchestration.ts
 [2]: ./workspace-layout.md
@@ -194,3 +220,6 @@ The file patch and changed-file summary for one turn. It is usually computed in 
 [23]: ../../apps/server/src/checkpointing/Diffs.ts
 [24]: ./overview.md
 [25]: ../../apps/server/src/provider/Drivers/PostHogGatewayDriver.ts
+[26]: ./upstream-sync.md
+[27]: ../../scripts/lib/upstreamSync.ts
+[28]: ../../scripts/lib/upstreamRebrandMap.ts
