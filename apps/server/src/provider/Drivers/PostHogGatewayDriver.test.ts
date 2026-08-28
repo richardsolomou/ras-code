@@ -80,6 +80,7 @@ const stubAdapter = (
   events: ReadonlyArray<ProviderRuntimeEvent> = [],
 ): StubAdapter => {
   const calls: Array<string> = [];
+  const startInputs: Array<{ readonly provider?: string | undefined }> = [];
   const sessions = new Set<string>();
   const session = (threadId: ThreadId): ProviderSession => ({
     provider: ProviderDriverKind.make(driver),
@@ -96,6 +97,7 @@ const stubAdapter = (
     startSession: (input) =>
       Effect.sync(() => {
         calls.push(`${driver}:startSession`);
+        startInputs.push(input);
         sessions.add(input.threadId);
         return session(input.threadId);
       }),
@@ -127,7 +129,7 @@ const stubAdapter = (
     stopAll: () => Effect.sync(() => void calls.push(`${driver}:stopAll`)),
     streamEvents: Stream.fromIterable(events),
   };
-  return { adapter, calls, sessions };
+  return { adapter, calls, startInputs, sessions };
 };
 
 const runtimeEvent = (driver: string): ProviderRuntimeEvent =>
@@ -280,6 +282,21 @@ describe("makeGatewayAdapter", () => {
       });
       assert.deepStrictEqual(anthropic.calls, ["claudeAgent:startSession"]);
       assert.deepStrictEqual(openai.calls, []);
+    }),
+  );
+
+  it.effect("hands each child its own provider kind on startSession", () =>
+    Effect.gen(function* () {
+      const anthropic = stubAdapter("claudeAgent");
+      const openai = stubAdapter("codex");
+      const adapter = makeAdapter(anthropic, openai);
+      yield* adapter.startSession({
+        threadId: THREAD,
+        runtimeMode: "approval-required",
+        provider: ProviderDriverKind.make("posthogGateway"),
+        modelSelection: { instanceId: INSTANCE, model: "zai-org/glm-5.2" },
+      });
+      assert.strictEqual(openai.startInputs[0]?.provider, "codex");
     }),
   );
 

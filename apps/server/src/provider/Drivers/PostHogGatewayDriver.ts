@@ -381,7 +381,10 @@ export function makeGatewayAdapter(input: {
     startSession: (sessionInput) =>
       Effect.gen(function* () {
         const shape = gatewayModelShape(sessionInput.modelSelection?.model ?? "");
-        const session = yield* childFor(shape).startSession(sessionInput);
+        const child = childFor(shape);
+        // Children validate the inbound provider kind against their own, so the
+        // composite kind is translated on the way in and back on the way out.
+        const session = yield* child.startSession({ ...sessionInput, provider: child.provider });
         routes.set(sessionInput.threadId, shape);
         return stampSession(session);
       }),
