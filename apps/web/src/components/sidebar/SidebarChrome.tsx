@@ -197,14 +197,13 @@ export const SidebarUtilityMenu = memo(function SidebarUtilityMenu() {
     void navigate({ to: "/" });
   }, [canGoBack, closeMobileSidebar, navigate]);
 
+  // One fixed row height so the footer keeps its size between the Back row and the icon row.
   return (
-    <SidebarMenu className="flex-row items-center">
+    <SidebarMenu className="h-9 flex-row items-center">
       {currentFooterPage ? (
         <SidebarMenuItem className="min-w-0 flex-1">
-          {/* The box is identical in every state: a fixed height and an inset
-              pressed rim, so activating Back cannot nudge the footer row. */}
           <SidebarMenuButton
-            className="h-9 min-h-9 border-0 active:shadow-[inset_0_0_0_1px_var(--console-rule)]"
+            className="h-8 min-h-8 border-0 py-0 active:shadow-[inset_0_0_0_1px_var(--console-rule)]"
             onClick={handleBackClick}
           >
             <ArrowLeftIcon />
