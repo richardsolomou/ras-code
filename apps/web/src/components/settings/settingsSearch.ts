@@ -189,21 +189,6 @@ export const SETTINGS_SEARCH_ITEMS = [
     to: "/settings/general",
   },
   {
-    id: "legacy-plan-mode",
-    title: "Plan mode (legacy)",
-    to: "/settings/general",
-  },
-  {
-    id: "legacy-token-streaming",
-    title: "Stream token by token (legacy)",
-    to: "/settings/general",
-  },
-  {
-    id: "legacy-sidebar",
-    title: "Sidebar (legacy)",
-    to: "/settings/general",
-  },
-  {
     id: "notifications",
     title: "Notifications",
     to: "/settings/general",

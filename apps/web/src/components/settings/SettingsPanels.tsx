@@ -1,4 +1,4 @@
-import { ArchiveIcon, ArchiveX, ChevronRightIcon, LoaderIcon, SettingsIcon } from "lucide-react";
+import { ArchiveIcon, ArchiveX, LoaderIcon, SettingsIcon } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import type { CSSProperties, ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -70,7 +70,6 @@ import { useDesktopUpdateState } from "../../state/desktopUpdate";
 import {
   getCustomModelOptionsByInstance,
   resolveAppModelSelectionState,
-  withoutPlanAgentSelection,
 } from "../../modelSelection";
 import {
   applyProviderInstanceSettings,
@@ -85,7 +84,6 @@ import { useProjects } from "../../state/entities";
 import { useArchivedThreadSnapshots } from "../../lib/archivedThreadsState";
 import { formatRelativeTimeLabel } from "../../timestampFormat";
 import { Button } from "../ui/button";
-import { Collapsible, CollapsiblePanel, CollapsibleTrigger } from "../ui/collapsible";
 import {
   Dialog,
   DialogDescription,
@@ -1735,132 +1733,6 @@ function AutoSettleDaysInput({
   );
 }
 
-// The legacy rows sit behind the fold, so a settings-search jump has to
-// expand the section before its target can mount and scroll.
-const LEGACY_FEATURE_TARGET_IDS: ReadonlySet<string> = new Set([
-  "legacy-plan-mode",
-  "legacy-token-streaming",
-  "legacy-sidebar",
-]);
-
-/**
- * Retired features kept only for users who still depend on them. Collapsed by
- * default so they stay out of the everyday settings path; a settings-search
- * jump to one of the rows unfolds the section.
- */
-function LegacyFeaturesSection() {
-  const settings = usePrimarySettings();
-  const updateSettings = useUpdatePrimarySettings();
-  const [open, setOpen] = useState(false);
-  const searchTargetId = useSettingsSearchTargetId();
-  // Unfold once per search jump; tracking the handled id lets the user fold
-  // the section back up without the still-set target immediately reopening it.
-  const lastExpandedTargetRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (searchTargetId === null) {
-      // A handled jump clears the target; forgetting it here lets a later
-      // jump to the same row expand the section again.
-      lastExpandedTargetRef.current = null;
-      return;
-    }
-    if (!LEGACY_FEATURE_TARGET_IDS.has(searchTargetId)) return;
-    if (lastExpandedTargetRef.current === searchTargetId) return;
-    lastExpandedTargetRef.current = searchTargetId;
-    setOpen(true);
-  }, [searchTargetId]);
-
-  return (
-    <section className="space-y-3">
-      <Collapsible open={open} onOpenChange={setOpen}>
-        <CollapsibleTrigger className="group flex min-h-8 w-full items-center gap-2 px-3 sm:px-4">
-          <h2 className="text-lg font-semibold tracking-[-0.025em] text-muted-foreground transition-colors group-hover:text-foreground">
-            Legacy features
-          </h2>
-          <ChevronRightIcon className="size-4 text-muted-foreground transition-transform duration-200 group-data-panel-open:rotate-90" />
-        </CollapsibleTrigger>
-        <CollapsiblePanel>
-          <div className="relative space-y-1 overflow-visible pt-3 text-foreground">
-            <SettingsRow
-              {...searchableSetting("legacy-plan-mode")}
-              description="Brings back the Build/Plan toggle in the composer along with the /plan and /default commands and the Shift+Tab shortcut. While off, every thread runs in build mode."
-              control={
-                <Switch
-                  checked={settings.planModeEnabled}
-                  onCheckedChange={(checked) => {
-                    const planModeEnabled = Boolean(checked);
-                    const textGenerationModelSelection = withoutPlanAgentSelection(
-                      settings.textGenerationModelSelection,
-                    );
-                    const sourceControlWriterModelSelection = withoutPlanAgentSelection(
-                      settings.sourceControlWriterModelSelection,
-                    );
-                    updateSettings({
-                      planModeEnabled,
-                      ...(planModeEnabled
-                        ? {}
-                        : {
-                            ...(textGenerationModelSelection &&
-                            textGenerationModelSelection !== settings.textGenerationModelSelection
-                              ? { textGenerationModelSelection }
-                              : {}),
-                            ...(sourceControlWriterModelSelection &&
-                            sourceControlWriterModelSelection !==
-                              settings.sourceControlWriterModelSelection
-                              ? { sourceControlWriterModelSelection }
-                              : {}),
-                          }),
-                    });
-                  }}
-                  aria-label="Plan mode (legacy)"
-                />
-              }
-            />
-            <SettingsRow
-              {...searchableSetting("legacy-token-streaming")}
-              description="Paints assistant output token by token instead of in complete chunks. Not recommended: it is significantly slower, and long responses become harder to follow. Kept only for compatibility with the old behavior."
-              control={
-                <Switch
-                  checked={settings.enableLegacyTokenStreaming}
-                  onCheckedChange={(checked) => {
-                    if (!checked) {
-                      updateSettings({ enableLegacyTokenStreaming: false });
-                      return;
-                    }
-                    void (async () => {
-                      const api = readLocalApi();
-                      const confirmed = await (api ?? ensureLocalApi()).dialogs.confirm(
-                        [
-                          "Turn on token-by-token output?",
-                          "It is significantly slower than the default buffered output and hurts the reading experience. This switch exists only for backwards compatibility.",
-                        ].join("\n"),
-                      );
-                      if (confirmed) updateSettings({ enableLegacyTokenStreaming: true });
-                    })();
-                  }}
-                  aria-label="Stream token by token (legacy)"
-                />
-              }
-            />
-            <SettingsRow
-              {...searchableSetting("legacy-sidebar")}
-              description="Brings back the original sidebar with per-project thread trees. The default sidebar shows one flat list: active work as rich cards, settled threads as compact rows."
-              control={
-                <Switch
-                  checked={settings.legacySidebarEnabled}
-                  onCheckedChange={(checked) =>
-                    updateSettings({ legacySidebarEnabled: Boolean(checked) })
-                  }
-                  aria-label="Sidebar (legacy)"
-                />
-              }
-            />
-          </div>
-        </CollapsiblePanel>
-      </Collapsible>
-    </section>
-  );
-}
-
 export function GeneralSettingsPanel() {
   const settings = usePrimarySettings();
   const updateSettings = useUpdatePrimarySettings();
@@ -2567,8 +2439,6 @@ export function GeneralSettingsPanel() {
           }
         />
       </SettingsSection>
-
-      <LegacyFeaturesSection />
     </SettingsPageContainer>
   );
 }
