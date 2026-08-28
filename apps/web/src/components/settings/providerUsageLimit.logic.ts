@@ -1,11 +1,27 @@
 import type { ProviderUsageLimit } from "@ras-code/contracts";
 import {
+  FALLBACK_DECLINED_ACTIVITY_KIND,
   FALLBACK_ENGAGED_ACTIVITY_KIND,
+  FALLBACK_OFFER_EXPIRED_ACTIVITY_KIND,
+  FALLBACK_OFFERED_ACTIVITY_KIND,
   readFallbackNoticePayload,
+  readFallbackOfferRequestId,
+  readPendingFallbackOfferPayload,
   type FallbackNoticePayload,
+  type PendingFallbackOfferPayload,
 } from "@ras-code/client-runtime/provider-fallback";
 
-export { FALLBACK_ENGAGED_ACTIVITY_KIND, readFallbackNoticePayload, type FallbackNoticePayload };
+export {
+  FALLBACK_DECLINED_ACTIVITY_KIND,
+  FALLBACK_ENGAGED_ACTIVITY_KIND,
+  FALLBACK_OFFER_EXPIRED_ACTIVITY_KIND,
+  FALLBACK_OFFERED_ACTIVITY_KIND,
+  readFallbackNoticePayload,
+  readFallbackOfferRequestId,
+  readPendingFallbackOfferPayload,
+  type FallbackNoticePayload,
+  type PendingFallbackOfferPayload,
+};
 
 /**
  * Renders an ISO instant as local wall-clock time. Injected rather than

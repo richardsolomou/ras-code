@@ -13,6 +13,7 @@ import {
   type DeleteThreadInput,
   type InterruptThreadTurnInput,
   type RespondToThreadApprovalInput,
+  type RespondToThreadFallbackInput,
   type RespondToThreadUserInputInput,
   type RevertThreadCheckpointInput,
   type SetThreadInteractionModeInput,
@@ -33,6 +34,7 @@ import {
   deleteThread,
   interruptThreadTurn,
   respondToThreadApproval,
+  respondToThreadFallback,
   respondToThreadUserInput,
   revertThreadCheckpoint,
   setThreadInteractionMode,
@@ -183,6 +185,12 @@ export function createThreadEnvironmentAtoms<R, E>(
     respondToApproval: createEnvironmentCommand(runtime, {
       label: "environment-data:commands:thread:respond-to-approval",
       execute: (input: RespondToThreadApprovalInput) => respondToThreadApproval(input),
+      scheduler,
+      concurrency,
+    }),
+    respondToFallback: createEnvironmentCommand(runtime, {
+      label: "environment-data:commands:thread:respond-to-fallback",
+      execute: (input: RespondToThreadFallbackInput) => respondToThreadFallback(input),
       scheduler,
       concurrency,
     }),

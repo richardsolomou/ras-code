@@ -1,4 +1,5 @@
 import {
+  ApprovalRequestId,
   type ChatAttachment,
   CommandId,
   EventId,
@@ -10,6 +11,7 @@ import {
   type ProviderRuntimeEvent,
   type ProjectId,
   type OrchestrationSession,
+  type OrchestrationThreadActivityTone,
   ThreadId,
   type ProviderSession,
   type RuntimeMode,
@@ -76,6 +78,7 @@ type ProviderIntentEvent = Extract<
       | "thread.turn-start-requested"
       | "thread.turn-interrupt-requested"
       | "thread.approval-response-requested"
+      | "thread.fallback-response-requested"
       | "thread.user-input-response-requested"
       | "thread.session-stop-requested";
   }
@@ -361,6 +364,7 @@ const make = Effect.gen(function* () {
   const serverCommandId = (tag: string) =>
     crypto.randomUUIDv4.pipe(Effect.map((uuid) => CommandId.make(`server:${tag}:${uuid}`)));
   const serverEventId = () => crypto.randomUUIDv4.pipe(Effect.map(EventId.make));
+  const serverRequestId = () => crypto.randomUUIDv4.pipe(Effect.map(ApprovalRequestId.make));
   const handledTurnStartKeys = yield* Cache.make<string, true>({
     capacity: HANDLED_TURN_START_KEY_MAX,
     timeToLive: HANDLED_TURN_START_KEY_TTL,
@@ -569,17 +573,16 @@ const make = Effect.gen(function* () {
    */
   const announcedFallbacks = new Set<string>();
 
-  const appendFallbackActivity = (input: {
+  const appendThreadActivity = (input: {
     readonly threadId: ThreadId;
+    readonly tone: OrchestrationThreadActivityTone;
+    readonly kind: string;
     readonly summary: string;
-    readonly primaryInstanceId: ProviderInstanceId;
-    readonly fallbackInstanceId: ProviderInstanceId;
-    readonly model: string;
-    readonly resetsAt: string | null;
+    readonly payload: unknown;
     readonly createdAt: string;
   }) =>
     Effect.all({
-      commandId: serverCommandId("provider-fallback-activity"),
+      commandId: serverCommandId(`activity-${input.kind}`),
       eventId: serverEventId(),
     }).pipe(
       Effect.flatMap(({ commandId, eventId }) =>
@@ -589,15 +592,10 @@ const make = Effect.gen(function* () {
           threadId: input.threadId,
           activity: {
             id: eventId,
-            tone: "info",
-            kind: "provider.fallback.engaged",
+            tone: input.tone,
+            kind: input.kind,
             summary: input.summary,
-            payload: {
-              primaryInstanceId: input.primaryInstanceId,
-              fallbackInstanceId: input.fallbackInstanceId,
-              model: input.model,
-              resetsAt: input.resetsAt,
-            },
+            payload: input.payload,
             turnId: null,
             createdAt: input.createdAt,
           },
@@ -606,6 +604,86 @@ const make = Effect.gen(function* () {
       ),
       Effect.asVoid,
     );
+
+  const appendFallbackActivity = (input: {
+    readonly threadId: ThreadId;
+    readonly summary: string;
+    readonly primaryInstanceId: ProviderInstanceId;
+    readonly fallbackInstanceId: ProviderInstanceId;
+    readonly model: string;
+    readonly resetsAt: string | null;
+    readonly createdAt: string;
+    readonly requestId?: ApprovalRequestId;
+  }) =>
+    appendThreadActivity({
+      threadId: input.threadId,
+      tone: "info",
+      kind: "provider.fallback.engaged",
+      summary: input.summary,
+      payload: {
+        primaryInstanceId: input.primaryInstanceId,
+        fallbackInstanceId: input.fallbackInstanceId,
+        model: input.model,
+        resetsAt: input.resetsAt,
+        ...(input.requestId !== undefined ? { requestId: input.requestId } : {}),
+      },
+      createdAt: input.createdAt,
+    });
+
+  const appendFallbackOfferActivity = (input: {
+    readonly threadId: ThreadId;
+    readonly requestId: ApprovalRequestId;
+    readonly primaryLabel: string;
+    readonly fallbackLabel: string;
+    readonly primaryInstanceId: ProviderInstanceId;
+    readonly fallbackInstanceId: ProviderInstanceId;
+    readonly model: string;
+    readonly resetsAt: string | null;
+    readonly createdAt: string;
+  }) =>
+    appendThreadActivity({
+      threadId: input.threadId,
+      tone: "approval",
+      kind: "provider.fallback.offered",
+      summary: `${input.primaryLabel} reached its usage limit. Offered ${input.fallbackLabel} (${input.model}) as a fallback.`,
+      payload: {
+        requestId: input.requestId,
+        primaryInstanceId: input.primaryInstanceId,
+        fallbackInstanceId: input.fallbackInstanceId,
+        model: input.model,
+        resetsAt: input.resetsAt,
+      },
+      createdAt: input.createdAt,
+    });
+
+  const appendFallbackDeclinedActivity = (input: {
+    readonly threadId: ThreadId;
+    readonly requestId: ApprovalRequestId;
+    readonly primaryLabel: string;
+    readonly createdAt: string;
+  }) =>
+    appendThreadActivity({
+      threadId: input.threadId,
+      tone: "info",
+      kind: "provider.fallback.declined",
+      summary: `Staying on ${input.primaryLabel}. Resend once its usage limit resets.`,
+      payload: { requestId: input.requestId },
+      createdAt: input.createdAt,
+    });
+
+  const appendFallbackOfferExpiredActivity = (input: {
+    readonly threadId: ThreadId;
+    readonly requestId: ApprovalRequestId;
+    readonly createdAt: string;
+  }) =>
+    appendThreadActivity({
+      threadId: input.threadId,
+      tone: "error",
+      kind: "provider.fallback.offer-expired",
+      summary: "That fallback offer is no longer available. Resend your message to try again.",
+      payload: { requestId: input.requestId },
+      createdAt: input.createdAt,
+    });
 
   /**
    * Decide whether this turn should run on the desired instance's configured
@@ -1317,6 +1395,21 @@ const make = Effect.gen(function* () {
   /** At most one in-flight turn per thread, so a plain map is enough. */
   const pendingTurnAttempts = new Map<ThreadId, PendingTurnAttempt>();
 
+  type PendingFallbackDecision = {
+    readonly requestId: ApprovalRequestId;
+    readonly pending: PendingTurnAttempt;
+    readonly primaryLabel: string;
+    readonly fallbackLabel: string;
+  };
+
+  /**
+   * A usage-limit failure awaiting the user's switch-or-wait decision, kept
+   * in memory only: it holds the exact turn to resume, so it cannot outlive
+   * this server process. A restart loses it; the client then sees an
+   * `offer-expired` reply if the user tries to act on the stale prompt.
+   */
+  const pendingFallbackDecisions = new Map<ThreadId, PendingFallbackDecision>();
+
   /**
    * Failure handling for a turn start: mark the thread's session errored and
    * append the failure to the thread's activity. `recover` is the total
@@ -1471,21 +1564,44 @@ const make = Effect.gen(function* () {
     if (routed !== undefined) {
       const noticeKey = `${event.payload.threadId}:${routed.selection.instanceId}:${routed.resetsAt ?? "unknown"}`;
       if (!announcedFallbacks.has(noticeKey)) {
-        announcedFallbacks.add(noticeKey);
-        yield* appendFallbackActivity({
-          threadId: event.payload.threadId,
-          summary: formatFallbackNotice({
-            primaryLabel: routed.primaryLabel,
-            fallbackLabel: routed.fallbackLabel,
-            model: routed.selection.model,
-            resetsAt: routed.resetsAt,
-          }),
+        // Not yet confirmed for this exhaustion episode: pause this turn and
+        // ask, exactly like a mid-turn failure would. A message sent while
+        // an earlier offer is still open replaces its pending turn (the
+        // user's latest words win) rather than opening a second prompt.
+        const threadId = event.payload.threadId;
+        const pendingAttempt: PendingTurnAttempt = {
+          event,
+          messageText: message.text,
+          ...(message.attachments !== undefined ? { attachments: message.attachments } : {}),
+          instanceId: baseSelection.instanceId,
+          onFallback: false,
+          assistantText: "",
+          sawWorkItem: false,
+        };
+        const existingDecision = pendingFallbackDecisions.get(threadId);
+        if (existingDecision !== undefined) {
+          pendingFallbackDecisions.set(threadId, { ...existingDecision, pending: pendingAttempt });
+          return;
+        }
+        const requestId = yield* serverRequestId();
+        pendingFallbackDecisions.set(threadId, {
+          requestId,
+          pending: pendingAttempt,
+          primaryLabel: routed.primaryLabel,
+          fallbackLabel: routed.fallbackLabel,
+        });
+        yield* appendFallbackOfferActivity({
+          threadId,
+          requestId,
+          primaryLabel: routed.primaryLabel,
+          fallbackLabel: routed.fallbackLabel,
           primaryInstanceId: routed.primaryInstanceId,
           fallbackInstanceId: routed.selection.instanceId,
           model: routed.selection.model,
           resetsAt: routed.resetsAt,
           createdAt: event.payload.createdAt,
         }).pipe(Effect.ignoreCause({ log: true }));
+        return;
       }
     }
 
@@ -1594,11 +1710,68 @@ const make = Effect.gen(function* () {
     ) {
       return;
     }
-    yield* retryTurnOnFallback(pending);
+    yield* offerOrContinueFallback(pending);
+  });
+
+  /**
+   * A turn just failed on usage limit. If this exhaustion episode was
+   * already confirmed (the user already said "switch"), keep going quietly
+   * on the fallback as before. Otherwise pause and ask, once per episode: a
+   * repeat failure while the first offer is still unanswered is dropped
+   * rather than piling up a second prompt.
+   */
+  const offerOrContinueFallback = Effect.fn("offerOrContinueFallback")(function* (
+    pending: PendingTurnAttempt,
+  ) {
+    const threadId = pending.event.payload.threadId;
+    const thread = yield* resolveThread(threadId);
+    if (!thread) {
+      return;
+    }
+    const baseSelection =
+      pending.event.payload.modelSelection ??
+      threadModelSelections.get(threadId) ??
+      thread.modelSelection;
+    const routed = yield* resolveFallbackSelection({
+      selection: baseSelection,
+      hasStartedSession: thread.session !== null,
+    });
+    if (routed === undefined) {
+      return;
+    }
+
+    const noticeKey = `${threadId}:${routed.selection.instanceId}:${routed.resetsAt ?? "unknown"}`;
+    if (announcedFallbacks.has(noticeKey)) {
+      yield* retryTurnOnFallback(pending);
+      return;
+    }
+    if (pendingFallbackDecisions.has(threadId)) {
+      return;
+    }
+
+    const requestId = yield* serverRequestId();
+    pendingFallbackDecisions.set(threadId, {
+      requestId,
+      pending,
+      primaryLabel: routed.primaryLabel,
+      fallbackLabel: routed.fallbackLabel,
+    });
+    yield* appendFallbackOfferActivity({
+      threadId,
+      requestId,
+      primaryLabel: routed.primaryLabel,
+      fallbackLabel: routed.fallbackLabel,
+      primaryInstanceId: routed.primaryInstanceId,
+      fallbackInstanceId: routed.selection.instanceId,
+      model: routed.selection.model,
+      resetsAt: routed.resetsAt,
+      createdAt: pending.event.payload.createdAt,
+    }).pipe(Effect.ignoreCause({ log: true }));
   });
 
   const retryTurnOnFallback = Effect.fn("retryTurnOnFallback")(function* (
     pending: PendingTurnAttempt,
+    requestId?: ApprovalRequestId,
   ) {
     const threadId = pending.event.payload.threadId;
     const thread = yield* resolveThread(threadId);
@@ -1633,6 +1806,7 @@ const make = Effect.gen(function* () {
         model: routed.selection.model,
         resetsAt: routed.resetsAt,
         createdAt: pending.event.payload.createdAt,
+        ...(requestId !== undefined ? { requestId } : {}),
       }).pipe(Effect.ignoreCause({ log: true }));
     }
 
@@ -1745,6 +1919,34 @@ const make = Effect.gen(function* () {
     yield* providerService
       .interruptTurn({ threadId: event.payload.threadId })
       .pipe(Effect.catchCause(recoverInterruptFailure));
+  });
+
+  const processFallbackResponseRequested = Effect.fn("processFallbackResponseRequested")(function* (
+    event: Extract<ProviderIntentEvent, { type: "thread.fallback-response-requested" }>,
+  ) {
+    const threadId = event.payload.threadId;
+    const decisionEntry = pendingFallbackDecisions.get(threadId);
+    if (decisionEntry === undefined || decisionEntry.requestId !== event.payload.requestId) {
+      yield* appendFallbackOfferExpiredActivity({
+        threadId,
+        requestId: event.payload.requestId,
+        createdAt: event.payload.createdAt,
+      }).pipe(Effect.ignoreCause({ log: true }));
+      return;
+    }
+    pendingFallbackDecisions.delete(threadId);
+
+    if (event.payload.decision === "wait") {
+      yield* appendFallbackDeclinedActivity({
+        threadId,
+        requestId: decisionEntry.requestId,
+        primaryLabel: decisionEntry.primaryLabel,
+        createdAt: event.payload.createdAt,
+      }).pipe(Effect.ignoreCause({ log: true }));
+      return;
+    }
+
+    yield* retryTurnOnFallback(decisionEntry.pending, decisionEntry.requestId);
   });
 
   const processApprovalResponseRequested = Effect.fn("processApprovalResponseRequested")(function* (
@@ -1903,6 +2105,9 @@ const make = Effect.gen(function* () {
       case "thread.approval-response-requested":
         yield* processApprovalResponseRequested(event);
         return;
+      case "thread.fallback-response-requested":
+        yield* processFallbackResponseRequested(event);
+        return;
       case "thread.user-input-response-requested":
         yield* processUserInputResponseRequested(event);
         return;
@@ -1946,6 +2151,7 @@ const make = Effect.gen(function* () {
         event.type === "thread.turn-start-requested" ||
         event.type === "thread.turn-interrupt-requested" ||
         event.type === "thread.approval-response-requested" ||
+        event.type === "thread.fallback-response-requested" ||
         event.type === "thread.user-input-response-requested" ||
         event.type === "thread.session-stop-requested"
       ) {

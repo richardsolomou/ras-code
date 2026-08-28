@@ -4,6 +4,7 @@ import type {
   ModelSelection,
   PreviewAnnotationPayload,
   ProviderApprovalDecision,
+  ProviderFallbackOfferDecision,
   ProviderInteractionMode,
   ResolvedKeybindingsConfig,
   RuntimeMode,
@@ -111,9 +112,11 @@ import { type ComposerPromptEditorHandle, ComposerPromptEditor } from "../Compos
 import { ProviderModelPicker } from "./ProviderModelPicker";
 import { type ComposerCommandItem, ComposerCommandMenu } from "./ComposerCommandMenu";
 import { ComposerPendingApprovalActions } from "./ComposerPendingApprovalActions";
+import { ComposerPendingFallbackOfferActions } from "./ComposerPendingFallbackOfferActions";
 import { CompactComposerControlsMenu } from "./CompactComposerControlsMenu";
 import { ComposerPrimaryActions } from "./ComposerPrimaryActions";
 import { ComposerPendingApprovalPanel } from "./ComposerPendingApprovalPanel";
+import { ComposerPendingFallbackOfferPanel } from "./ComposerPendingFallbackOfferPanel";
 import { ComposerPendingUserInputPanel } from "./ComposerPendingUserInputPanel";
 import { ComposerPlanFollowUpBanner } from "./ComposerPlanFollowUpBanner";
 import { ComposerControl, ComposerControlIcon, ComposerSelectControl } from "./ComposerControl";
@@ -271,7 +274,7 @@ import {
 import { formatShortTimestamp } from "../../timestampFormat";
 import type { SessionPhase, Thread } from "../../types";
 import type { PendingUserInputDraftAnswer } from "../../pendingUserInput";
-import type { PendingApproval, PendingUserInput } from "../../session-logic";
+import type { PendingApproval, PendingFallbackOffer, PendingUserInput } from "../../session-logic";
 import type { ContextWindowSnapshot } from "../../lib/contextWindow";
 import {
   formatProviderSkillDisplayName,
@@ -591,6 +594,13 @@ export interface ChatComposerProps {
   // Pending approvals / inputs
   activePendingApproval: PendingApproval | null;
   pendingApprovals: PendingApproval[];
+  activePendingFallbackOffer: PendingFallbackOffer | null;
+  pendingFallbackOffers: PendingFallbackOffer[];
+  respondingFallbackRequestIds: ApprovalRequestId[];
+  onRespondToFallbackOffer: (
+    requestId: ApprovalRequestId,
+    decision: ProviderFallbackOfferDecision,
+  ) => Promise<unknown>;
   pendingUserInputs: PendingUserInput[];
   activePendingProgress: {
     questionIndex: number;
@@ -701,6 +711,10 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     environmentUnavailable,
     activePendingApproval,
     pendingApprovals,
+    activePendingFallbackOffer,
+    pendingFallbackOffers: _pendingFallbackOffers,
+    respondingFallbackRequestIds,
+    onRespondToFallbackOffer,
     pendingUserInputs,
     activePendingProgress,
     activePendingResolvedAnswers,
@@ -1281,7 +1295,10 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     [nonPersistedComposerImageIds],
   );
 
-  const isComposerApprovalState = activePendingApproval !== null;
+  // Also true while a fallback offer awaits a decision: sending, menus, and
+  // layout all treat that the same as an open approval prompt.
+  const isComposerApprovalState =
+    activePendingApproval !== null || activePendingFallbackOffer !== null;
   const activePendingUserInput = pendingUserInputs[0] ?? null;
   const showComposerTopDrawer =
     isComposerApprovalState ||
@@ -3007,7 +3024,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
         <div
           className="chat-composer-top-drawer"
           data-chat-composer-top-drawer="true"
-          data-variant={activePendingApproval ? "warning" : "info"}
+          data-variant={activePendingApproval || activePendingFallbackOffer ? "warning" : "info"}
         >
           {!isComposerCollapsedMobile && activePendingApproval ? (
             <div className="flex min-w-0 flex-wrap items-center gap-1 px-3 py-1.5 sm:px-4">
@@ -3021,6 +3038,19 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
                   isResponding={respondingRequestIds.includes(activePendingApproval.requestId)}
                   options={activePendingApproval.options}
                   onRespondToApproval={onRespondToApproval}
+                />
+              </div>
+            </div>
+          ) : !isComposerCollapsedMobile && activePendingFallbackOffer ? (
+            <div className="flex min-w-0 flex-wrap items-center gap-1 px-3 py-1.5 sm:px-4">
+              <ComposerPendingFallbackOfferPanel offer={activePendingFallbackOffer} />
+              <div className="flex min-w-0 flex-wrap items-center gap-0.5">
+                <ComposerPendingFallbackOfferActions
+                  requestId={activePendingFallbackOffer.requestId}
+                  isResponding={respondingFallbackRequestIds.includes(
+                    activePendingFallbackOffer.requestId,
+                  )}
+                  onRespondToFallbackOffer={onRespondToFallbackOffer}
                 />
               </div>
             </div>
@@ -3051,6 +3081,22 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
                   isResponding={respondingRequestIds.includes(activePendingApproval.requestId)}
                   options={activePendingApproval.options}
                   onRespondToApproval={onRespondToApproval}
+                />
+              </div>
+            </div>
+          ) : isComposerCollapsedMobile && activePendingFallbackOffer ? (
+            <div data-chat-composer-collapsed-controls="true">
+              <ComposerPendingFallbackOfferPanel
+                offer={activePendingFallbackOffer}
+                className="px-3 pt-2 sm:px-4"
+              />
+              <div className="flex flex-wrap items-center justify-end gap-1 px-3 pt-2 pb-3 sm:px-4">
+                <ComposerPendingFallbackOfferActions
+                  requestId={activePendingFallbackOffer.requestId}
+                  isResponding={respondingFallbackRequestIds.includes(
+                    activePendingFallbackOffer.requestId,
+                  )}
+                  onRespondToFallbackOffer={onRespondToFallbackOffer}
                 />
               </div>
             </div>

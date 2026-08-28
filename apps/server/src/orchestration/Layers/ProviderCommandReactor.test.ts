@@ -3332,9 +3332,82 @@ describe("ProviderCommandReactor", () => {
         }),
       );
 
-    it("routes a turn to the fallback instance when the primary is exhausted", async () => {
+    const publishUsageLimitFailure = (
+      harness: Awaited<ReturnType<typeof createHarness>>,
+      eventId: string,
+      createdAt: string,
+    ) =>
+      harness.publishRuntimeEvent({
+        eventId: EventId.make(eventId),
+        provider: ProviderDriverKind.make("claudeAgent"),
+        providerInstanceId: PRIMARY,
+        threadId: ThreadId.make("thread-1"),
+        createdAt,
+        type: "turn.completed",
+        payload: { state: "failed", errorMessage: "Claude AI usage limit reached" },
+      });
+
+    const findActivity = (
+      readModel: Awaited<ReturnType<Awaited<ReturnType<typeof createHarness>>["readModel"]>>,
+      kind: string,
+    ) => {
+      const thread = readModel.threads.find((entry) => entry.id === ThreadId.make("thread-1"));
+      return thread?.activities.find((activity) => activity.kind === kind);
+    };
+
+    const respondToFallbackOffer = (
+      harness: Awaited<ReturnType<typeof createHarness>>,
+      commandId: string,
+      requestId: string,
+      decision: "switch" | "wait",
+    ) =>
+      Effect.runPromise(
+        harness.engine.dispatch({
+          type: "thread.fallback.respond",
+          commandId: CommandId.make(commandId),
+          threadId: ThreadId.make("thread-1"),
+          requestId: ApprovalRequestId.make(requestId),
+          decision,
+          createdAt: "2026-01-01T00:00:02.000Z",
+        }),
+      );
+
+    /** Waits for the (only) open offer, then confirms "switch" on it. */
+    const confirmSwitchOnce = async (
+      harness: Awaited<ReturnType<typeof createHarness>>,
+      commandId: string,
+    ) => {
+      await waitFor(
+        async () =>
+          findActivity(await harness.readModel(), "provider.fallback.offered") !== undefined,
+      );
+      const offer = findActivity(await harness.readModel(), "provider.fallback.offered");
+      const requestId = (offer?.payload as Record<string, unknown>).requestId as string;
+      await respondToFallbackOffer(harness, commandId, requestId, "switch");
+    };
+
+    it("offers instead of routing silently when a fresh turn starts with the primary already exhausted", async () => {
       const harness = await createHarness(fallbackHarnessInput());
       await dispatchTurn(harness, "cmd-fallback-1");
+
+      await waitFor(
+        async () =>
+          findActivity(await harness.readModel(), "provider.fallback.offered") !== undefined,
+      );
+      let sessionStarted = false;
+      try {
+        await waitFor(() => harness.startSession.mock.calls.length > 0, 300);
+        sessionStarted = true;
+      } catch {
+        // Expected: no session should start while the offer is unanswered.
+      }
+      expect(sessionStarted).toBe(false);
+    });
+
+    it("routes a turn to the fallback instance once the offer is confirmed", async () => {
+      const harness = await createHarness(fallbackHarnessInput());
+      await dispatchTurn(harness, "cmd-fallback-1");
+      await confirmSwitchOnce(harness, "cmd-fallback-1-confirm");
 
       await waitFor(() => harness.startSession.mock.calls.length === 1);
       expect(harness.startSession.mock.calls[0]?.[1]).toMatchObject({
@@ -3348,6 +3421,7 @@ describe("ProviderCommandReactor", () => {
         fallbackHarnessInput({ fallbackModel: "anthropic/claude-sonnet-4.5" }),
       );
       await dispatchTurn(harness, "cmd-fallback-2");
+      await confirmSwitchOnce(harness, "cmd-fallback-2-confirm");
 
       await waitFor(() => harness.startSession.mock.calls.length === 1);
       expect(harness.startSession.mock.calls[0]?.[1]).toMatchObject({
@@ -3355,23 +3429,16 @@ describe("ProviderCommandReactor", () => {
       });
     });
 
-    it("announces the substitution on the thread", async () => {
+    it("announces the substitution on the thread once confirmed", async () => {
       const harness = await createHarness(fallbackHarnessInput());
       await dispatchTurn(harness, "cmd-fallback-3");
+      await confirmSwitchOnce(harness, "cmd-fallback-3-confirm");
 
-      await waitFor(async () => {
-        const readModel = await harness.readModel();
-        const thread = readModel.threads.find((entry) => entry.id === ThreadId.make("thread-1"));
-        return (
-          thread?.activities.some((activity) => activity.kind === "provider.fallback.engaged") ===
-          true
-        );
-      });
-      const readModel = await harness.readModel();
-      const thread = readModel.threads.find((entry) => entry.id === ThreadId.make("thread-1"));
-      const notice = thread?.activities.find(
-        (activity) => activity.kind === "provider.fallback.engaged",
+      await waitFor(
+        async () =>
+          findActivity(await harness.readModel(), "provider.fallback.engaged") !== undefined,
       );
+      const notice = findActivity(await harness.readModel(), "provider.fallback.engaged");
       expect(notice?.summary).toBe(
         "Usage limit reached on claude_subscription; using Claude (gateway) (claude-sonnet-4-5) until 2099-01-01T00:00:00.000Z.",
       );
@@ -3398,6 +3465,7 @@ describe("ProviderCommandReactor", () => {
     it("routes a fresh thread to a fallback on another driver when the binding names a model", async () => {
       const harness = await createHarness(crossDriverHarnessInput("zai-org/glm-5.2"));
       await dispatchTurn(harness, "cmd-fallback-cross-1");
+      await confirmSwitchOnce(harness, "cmd-fallback-cross-1-confirm");
 
       await waitFor(() => harness.startSession.mock.calls.length === 1);
       expect(harness.startSession.mock.calls[0]?.[1]).toMatchObject({
@@ -3463,36 +3531,118 @@ describe("ProviderCommandReactor", () => {
       await waitFor(() => harness.usageLimits.get(PRIMARY)?.status === "exhausted");
 
       await dispatchTurn(harness, "cmd-fallback-6");
+      await confirmSwitchOnce(harness, "cmd-fallback-6-confirm");
       await waitFor(() => harness.startSession.mock.calls.length === 1);
       expect(harness.startSession.mock.calls[0]?.[1]).toMatchObject({
         providerInstanceId: FALLBACK,
       });
     });
 
-    it("retries a usage-limit turn failure once on the fallback", async () => {
+    it("offers the fallback instead of retrying silently on a usage-limit turn failure", async () => {
       const harness = await createHarness(fallbackHarnessInput({ usageLimits: new Map() }));
       await awaitRuntimeSubscriber(harness);
       await dispatchTurn(harness, "cmd-fallback-7");
       await waitFor(() => harness.sendTurn.mock.calls.length === 1);
-      expect(harness.startSession.mock.calls[0]?.[1]).toMatchObject({
-        providerInstanceId: PRIMARY,
-      });
 
-      await harness.publishRuntimeEvent({
-        eventId: EventId.make("runtime-event-turn-failed"),
-        provider: ProviderDriverKind.make("claudeAgent"),
-        providerInstanceId: PRIMARY,
-        threadId: ThreadId.make("thread-1"),
-        createdAt: "2026-01-01T00:00:01.000Z",
-        type: "turn.completed",
-        payload: { state: "failed", errorMessage: "Claude AI usage limit reached" },
-      });
+      await publishUsageLimitFailure(
+        harness,
+        "runtime-event-turn-failed",
+        "2026-01-01T00:00:01.000Z",
+      );
+
+      await waitFor(
+        async () =>
+          findActivity(await harness.readModel(), "provider.fallback.offered") !== undefined,
+      );
+      // No silent retry: still exactly the one call from the original turn.
+      expect(harness.sendTurn.mock.calls.length).toBe(1);
+      const offer = findActivity(await harness.readModel(), "provider.fallback.offered");
+      expect((offer?.payload as Record<string, unknown>)?.fallbackInstanceId).toBe(FALLBACK);
+    });
+
+    it("resumes the same turn on the fallback once the user confirms", async () => {
+      const harness = await createHarness(fallbackHarnessInput({ usageLimits: new Map() }));
+      await awaitRuntimeSubscriber(harness);
+      await dispatchTurn(harness, "cmd-fallback-7");
+      await waitFor(() => harness.sendTurn.mock.calls.length === 1);
+      await publishUsageLimitFailure(
+        harness,
+        "runtime-event-turn-failed",
+        "2026-01-01T00:00:01.000Z",
+      );
+      await waitFor(
+        async () =>
+          findActivity(await harness.readModel(), "provider.fallback.offered") !== undefined,
+      );
+      const offer = findActivity(await harness.readModel(), "provider.fallback.offered");
+      const requestId = (offer?.payload as Record<string, unknown>).requestId as string;
+
+      await respondToFallbackOffer(harness, "cmd-fallback-respond-switch", requestId, "switch");
 
       await waitFor(() => harness.sendTurn.mock.calls.length === 2);
       await waitFor(() => harness.startSession.mock.calls.length === 2);
       expect(harness.startSession.mock.calls[1]?.[1]).toMatchObject({
         providerInstanceId: FALLBACK,
       });
+      await waitFor(
+        async () =>
+          findActivity(await harness.readModel(), "provider.fallback.engaged") !== undefined,
+      );
+    });
+
+    it("stays on the primary and records the decision when the user waits", async () => {
+      const harness = await createHarness(fallbackHarnessInput({ usageLimits: new Map() }));
+      await awaitRuntimeSubscriber(harness);
+      await dispatchTurn(harness, "cmd-fallback-7");
+      await waitFor(() => harness.sendTurn.mock.calls.length === 1);
+      await publishUsageLimitFailure(
+        harness,
+        "runtime-event-turn-failed",
+        "2026-01-01T00:00:01.000Z",
+      );
+      await waitFor(
+        async () =>
+          findActivity(await harness.readModel(), "provider.fallback.offered") !== undefined,
+      );
+      const offer = findActivity(await harness.readModel(), "provider.fallback.offered");
+      const requestId = (offer?.payload as Record<string, unknown>).requestId as string;
+
+      await respondToFallbackOffer(harness, "cmd-fallback-respond-wait", requestId, "wait");
+
+      await waitFor(
+        async () =>
+          findActivity(await harness.readModel(), "provider.fallback.declined") !== undefined,
+      );
+      expect(harness.sendTurn.mock.calls.length).toBe(1);
+    });
+
+    it("reports the offer as expired for a stale or already-answered request id", async () => {
+      const harness = await createHarness(fallbackHarnessInput({ usageLimits: new Map() }));
+      await awaitRuntimeSubscriber(harness);
+      await dispatchTurn(harness, "cmd-fallback-7");
+      await waitFor(() => harness.sendTurn.mock.calls.length === 1);
+      await publishUsageLimitFailure(
+        harness,
+        "runtime-event-turn-failed",
+        "2026-01-01T00:00:01.000Z",
+      );
+      await waitFor(
+        async () =>
+          findActivity(await harness.readModel(), "provider.fallback.offered") !== undefined,
+      );
+
+      await respondToFallbackOffer(
+        harness,
+        "cmd-fallback-respond-stale",
+        "not-a-real-request",
+        "switch",
+      );
+
+      await waitFor(
+        async () =>
+          findActivity(await harness.readModel(), "provider.fallback.offer-expired") !== undefined,
+      );
+      expect(harness.sendTurn.mock.calls.length).toBe(1);
     });
 
     it("moves a started thread to a fallback on another driver that shares its continuation key", async () => {
@@ -3528,6 +3678,7 @@ describe("ProviderCommandReactor", () => {
           createdAt: "2026-01-01T00:00:05.000Z",
         }),
       );
+      await confirmSwitchOnce(harness, "cmd-fallback-composite-confirm");
 
       await waitFor(() => harness.sendTurn.mock.calls.length === 2);
       expect(
@@ -3640,6 +3791,14 @@ describe("ProviderCommandReactor", () => {
         type: "turn.completed",
         payload: { state: "failed", errorMessage: errorText },
       });
+
+      await waitFor(
+        async () =>
+          findActivity(await harness.readModel(), "provider.fallback.offered") !== undefined,
+      );
+      const offer = findActivity(await harness.readModel(), "provider.fallback.offered");
+      const requestId = (offer?.payload as Record<string, unknown>).requestId as string;
+      await respondToFallbackOffer(harness, "cmd-fallback-respond-echo", requestId, "switch");
 
       await waitFor(() => harness.sendTurn.mock.calls.length === 2);
       expect(harness.sendTurn.mock.calls[1]?.[0]).toMatchObject({

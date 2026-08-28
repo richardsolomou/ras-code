@@ -145,6 +145,8 @@ export const ProviderApprovalDecision = Schema.Literals([
   "cancel",
 ]);
 export type ProviderApprovalDecision = typeof ProviderApprovalDecision.Type;
+export const ProviderFallbackOfferDecision = Schema.Literals(["switch", "wait"]);
+export type ProviderFallbackOfferDecision = typeof ProviderFallbackOfferDecision.Type;
 export const ProviderApprovalOption = Schema.Struct({
   decision: ProviderApprovalDecision,
   label: TrimmedNonEmptyString,
@@ -988,6 +990,15 @@ const ThreadApprovalRespondCommand = Schema.Struct({
   createdAt: IsoDateTime,
 });
 
+const ThreadFallbackRespondCommand = Schema.Struct({
+  type: Schema.Literal("thread.fallback.respond"),
+  commandId: CommandId,
+  threadId: ThreadId,
+  requestId: ApprovalRequestId,
+  decision: ProviderFallbackOfferDecision,
+  createdAt: IsoDateTime,
+});
+
 const ThreadUserInputRespondCommand = Schema.Struct({
   type: Schema.Literal("thread.user-input.respond"),
   commandId: CommandId,
@@ -1039,6 +1050,7 @@ const DispatchableClientOrchestrationCommand = Schema.Union([
   ThreadTurnStartCommand,
   ThreadTurnInterruptCommand,
   ThreadApprovalRespondCommand,
+  ThreadFallbackRespondCommand,
   ThreadUserInputRespondCommand,
   ThreadCheckpointRevertCommand,
   ThreadSessionStopCommand,
@@ -1067,6 +1079,7 @@ export const ClientOrchestrationCommand = Schema.Union([
   ClientThreadTurnStartCommand,
   ThreadTurnInterruptCommand,
   ThreadApprovalRespondCommand,
+  ThreadFallbackRespondCommand,
   ThreadUserInputRespondCommand,
   ThreadCheckpointRevertCommand,
   ThreadSessionStopCommand,
@@ -1186,6 +1199,7 @@ export const OrchestrationEventType = Schema.Literals([
   "thread.turn-start-requested",
   "thread.turn-interrupt-requested",
   "thread.approval-response-requested",
+  "thread.fallback-response-requested",
   "thread.user-input-response-requested",
   "thread.checkpoint-revert-requested",
   "thread.reverted",
@@ -1382,6 +1396,13 @@ export const ThreadApprovalResponseRequestedPayload = Schema.Struct({
   createdAt: IsoDateTime,
 });
 
+export const ThreadFallbackResponseRequestedPayload = Schema.Struct({
+  threadId: ThreadId,
+  requestId: ApprovalRequestId,
+  decision: ProviderFallbackOfferDecision,
+  createdAt: IsoDateTime,
+});
+
 const ThreadUserInputResponseRequestedPayload = Schema.Struct({
   threadId: ThreadId,
   requestId: ApprovalRequestId,
@@ -1570,6 +1591,11 @@ export const OrchestrationEvent = Schema.Union([
     ...EventBaseFields,
     type: Schema.Literal("thread.approval-response-requested"),
     payload: ThreadApprovalResponseRequestedPayload,
+  }),
+  Schema.Struct({
+    ...EventBaseFields,
+    type: Schema.Literal("thread.fallback-response-requested"),
+    payload: ThreadFallbackResponseRequestedPayload,
   }),
   Schema.Struct({
     ...EventBaseFields,

@@ -8,6 +8,7 @@ import {
   type ProjectScript,
   type ProjectId,
   type ProviderApprovalDecision,
+  type ProviderFallbackOfferDecision,
   type PreviewAnnotationPayload,
   ProviderInstanceId,
   type ServerProvider,
@@ -95,6 +96,7 @@ import {
 } from "../composer-logic";
 import {
   derivePendingApprovals,
+  derivePendingFallbackOffers,
   derivePendingUserInputs,
   derivePhase,
   deriveTimelineEntries,
@@ -1309,6 +1311,9 @@ function ChatViewContent(props: ChatViewProps) {
   const respondToThreadApproval = useAtomCommand(threadEnvironment.respondToApproval, {
     reportFailure: false,
   });
+  const respondToThreadFallback = useAtomCommand(threadEnvironment.respondToFallback, {
+    reportFailure: false,
+  });
   const respondToThreadUserInput = useAtomCommand(threadEnvironment.respondToUserInput, {
     reportFailure: false,
   });
@@ -1445,6 +1450,9 @@ function ChatViewContent(props: ChatViewProps) {
     null,
   );
   const [respondingRequestIds, setRespondingRequestIds] = useState<ApprovalRequestId[]>([]);
+  const [respondingFallbackRequestIds, setRespondingFallbackRequestIds] = useState<
+    ApprovalRequestId[]
+  >([]);
   const [respondingUserInputRequestIds, setRespondingUserInputRequestIds] = useState<
     ApprovalRequestId[]
   >([]);
@@ -2347,6 +2355,11 @@ function ChatViewContent(props: ChatViewProps) {
     () => derivePendingApprovals(threadActivities),
     [threadActivities],
   );
+  const pendingFallbackOffers = useMemo(
+    () => derivePendingFallbackOffers(threadActivities),
+    [threadActivities],
+  );
+  const activePendingFallbackOffer = pendingFallbackOffers[0] ?? null;
   const pendingUserInputs = useMemo(
     () => derivePendingUserInputs(threadActivities),
     [threadActivities],
@@ -6080,6 +6093,34 @@ function ChatViewContent(props: ChatViewProps) {
     [activeThreadId, environmentId, respondToThreadApproval, setThreadError],
   );
 
+  const onRespondToFallbackOffer = useCallback(
+    async (requestId: ApprovalRequestId, decision: ProviderFallbackOfferDecision) => {
+      if (!activeThreadId) return;
+
+      setRespondingFallbackRequestIds((existing) =>
+        existing.includes(requestId) ? existing : [...existing, requestId],
+      );
+      const result = await respondToThreadFallback({
+        environmentId,
+        input: {
+          threadId: activeThreadId,
+          requestId,
+          decision,
+        },
+      });
+      if (result._tag === "Failure" && !isAtomCommandInterrupted(result)) {
+        const error = squashAtomCommandFailure(result);
+        setThreadError(
+          activeThreadId,
+          error instanceof Error ? error.message : "Failed to submit the fallback decision.",
+        );
+      }
+      setRespondingFallbackRequestIds((existing) => existing.filter((id) => id !== requestId));
+      return result;
+    },
+    [activeThreadId, environmentId, respondToThreadFallback, setThreadError],
+  );
+
   const onRespondToUserInput = useCallback(
     async (requestId: ApprovalRequestId, answers: Record<string, unknown>) => {
       if (!activeThreadId) return;
@@ -7122,6 +7163,10 @@ function ChatViewContent(props: ChatViewProps) {
                             onInterrupt={onInterrupt}
                             onImplementPlanInNewThread={onImplementPlanInNewThread}
                             onRespondToApproval={onRespondToApproval}
+                            activePendingFallbackOffer={activePendingFallbackOffer}
+                            pendingFallbackOffers={pendingFallbackOffers}
+                            respondingFallbackRequestIds={respondingFallbackRequestIds}
+                            onRespondToFallbackOffer={onRespondToFallbackOffer}
                             onSelectActivePendingUserInputOption={
                               onSelectActivePendingUserInputOption
                             }

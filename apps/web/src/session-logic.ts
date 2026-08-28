@@ -18,8 +18,13 @@ import {
 } from "@ras-code/contracts";
 
 import {
+  FALLBACK_DECLINED_ACTIVITY_KIND,
   FALLBACK_ENGAGED_ACTIVITY_KIND,
+  FALLBACK_OFFER_EXPIRED_ACTIVITY_KIND,
+  FALLBACK_OFFERED_ACTIVITY_KIND,
   readFallbackNoticePayload,
+  readFallbackOfferRequestId,
+  readPendingFallbackOfferPayload,
   type FallbackNoticePayload,
 } from "./components/settings/providerUsageLimit.logic";
 
@@ -140,6 +145,15 @@ export interface PendingApproval {
 
 const isProviderRequestKind = Schema.is(ProviderRequestKind);
 const isProviderApprovalOption = Schema.is(ProviderApprovalOption);
+
+export interface PendingFallbackOffer {
+  requestId: ApprovalRequestId;
+  primaryInstanceId: string;
+  fallbackInstanceId: string;
+  model: string;
+  resetsAt: string | null;
+  createdAt: string;
+}
 
 export interface PendingUserInput {
   requestId: ApprovalRequestId;
@@ -489,6 +503,51 @@ export function derivePendingApprovals(
       isStalePendingRequestFailureDetail(detail)
     ) {
       openByRequestId.delete(requestId);
+      continue;
+    }
+  }
+
+  return [...openByRequestId.values()].toSorted((left, right) =>
+    left.createdAt.localeCompare(right.createdAt),
+  );
+}
+
+/**
+ * Open "switch or wait?" prompts for a usage-limit failure. An offer closes
+ * the moment it is answered (engaged or declined) or found stale
+ * (offer-expired) — all three carry the same `requestId` the offer did.
+ */
+export function derivePendingFallbackOffers(
+  activities: ReadonlyArray<OrchestrationThreadActivity>,
+): PendingFallbackOffer[] {
+  const openByRequestId = new Map<ApprovalRequestId, PendingFallbackOffer>();
+  const ordered = [...activities].toSorted(compareActivitiesByOrder);
+
+  for (const activity of ordered) {
+    if (activity.kind === FALLBACK_OFFERED_ACTIVITY_KIND) {
+      const offer = readPendingFallbackOfferPayload(activity.payload);
+      if (offer === null) continue;
+      const requestId = ApprovalRequestId.make(offer.requestId);
+      openByRequestId.set(requestId, {
+        requestId,
+        primaryInstanceId: offer.primaryInstanceId,
+        fallbackInstanceId: offer.fallbackInstanceId,
+        model: offer.model,
+        resetsAt: offer.resetsAt,
+        createdAt: activity.createdAt,
+      });
+      continue;
+    }
+
+    if (
+      activity.kind === FALLBACK_ENGAGED_ACTIVITY_KIND ||
+      activity.kind === FALLBACK_DECLINED_ACTIVITY_KIND ||
+      activity.kind === FALLBACK_OFFER_EXPIRED_ACTIVITY_KIND
+    ) {
+      const requestId = readFallbackOfferRequestId(activity.payload);
+      if (requestId !== null) {
+        openByRequestId.delete(ApprovalRequestId.make(requestId));
+      }
       continue;
     }
   }

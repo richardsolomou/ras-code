@@ -1089,6 +1089,32 @@ export const decideOrchestrationCommand = Effect.fn("decideOrchestrationCommand"
       };
     }
 
+    case "thread.fallback.respond": {
+      yield* requireThread({
+        readModel,
+        command,
+        threadId: command.threadId,
+      });
+      return {
+        ...(yield* withEventBase({
+          aggregateKind: "thread",
+          aggregateId: command.threadId,
+          occurredAt: command.createdAt,
+          commandId: command.commandId,
+          metadata: {
+            requestId: command.requestId,
+          },
+        })),
+        type: "thread.fallback-response-requested",
+        payload: {
+          threadId: command.threadId,
+          requestId: command.requestId,
+          decision: command.decision,
+          createdAt: command.createdAt,
+        },
+      };
+    }
+
     case "thread.user-input.respond": {
       yield* requireThread({
         readModel,

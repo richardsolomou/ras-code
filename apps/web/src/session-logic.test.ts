@@ -13,6 +13,7 @@ import {
   deriveActivePlanState,
   deriveTurnPlans,
   derivePendingApprovals,
+  derivePendingFallbackOffers,
   derivePendingUserInputs,
   deriveTimelineEntries,
   deriveWorkLogEntries,
@@ -246,6 +247,116 @@ describe("derivePendingApprovals", () => {
     ];
 
     expect(derivePendingApprovals(activities)).toEqual([]);
+  });
+});
+
+describe("derivePendingFallbackOffers", () => {
+  it("tracks an open offer and clears it once engaged", () => {
+    const activities: OrchestrationThreadActivity[] = [
+      makeActivity({
+        id: "fallback-offer-open",
+        createdAt: "2026-02-23T00:00:01.000Z",
+        kind: "provider.fallback.offered",
+        summary: "Claude reached its usage limit. Offered PostHog AI Gateway as a fallback.",
+        tone: "approval",
+        payload: {
+          requestId: "req-1",
+          primaryInstanceId: "claude_subscription",
+          fallbackInstanceId: "posthog_gateway",
+          model: "claude-sonnet-4-5",
+          resetsAt: "2026-02-23T05:00:00.000Z",
+        },
+      }),
+      makeActivity({
+        id: "fallback-offer-engaged",
+        createdAt: "2026-02-23T00:00:02.000Z",
+        kind: "provider.fallback.engaged",
+        summary: "Using PostHog AI Gateway (claude-sonnet-4-5) until 2026-02-23T05:00:00.000Z.",
+        tone: "info",
+        payload: {
+          requestId: "req-1",
+          primaryInstanceId: "x",
+          fallbackInstanceId: "y",
+          model: "m",
+        },
+      }),
+    ];
+
+    expect(derivePendingFallbackOffers(activities)).toEqual([]);
+  });
+
+  it("clears an offer on decline and on offer-expired, and leaves an unrelated offer open", () => {
+    const activities: OrchestrationThreadActivity[] = [
+      makeActivity({
+        id: "fallback-offer-declined-src",
+        createdAt: "2026-02-23T00:00:01.000Z",
+        kind: "provider.fallback.offered",
+        summary: "offered",
+        tone: "approval",
+        payload: {
+          requestId: "req-declined",
+          primaryInstanceId: "claude_subscription",
+          fallbackInstanceId: "posthog_gateway",
+          model: "claude-sonnet-4-5",
+          resetsAt: null,
+        },
+      }),
+      makeActivity({
+        id: "fallback-offer-declined",
+        createdAt: "2026-02-23T00:00:02.000Z",
+        kind: "provider.fallback.declined",
+        summary: "declined",
+        tone: "info",
+        payload: { requestId: "req-declined" },
+      }),
+      makeActivity({
+        id: "fallback-offer-expired-src",
+        createdAt: "2026-02-23T00:00:03.000Z",
+        kind: "provider.fallback.offered",
+        summary: "offered",
+        tone: "approval",
+        payload: {
+          requestId: "req-expired",
+          primaryInstanceId: "claude_subscription",
+          fallbackInstanceId: "posthog_gateway",
+          model: "claude-sonnet-4-5",
+          resetsAt: null,
+        },
+      }),
+      makeActivity({
+        id: "fallback-offer-expired",
+        createdAt: "2026-02-23T00:00:04.000Z",
+        kind: "provider.fallback.offer-expired",
+        summary: "expired",
+        tone: "error",
+        payload: { requestId: "req-expired" },
+      }),
+      makeActivity({
+        id: "fallback-offer-still-open",
+        createdAt: "2026-02-23T00:00:05.000Z",
+        kind: "provider.fallback.offered",
+        summary: "offered",
+        tone: "approval",
+        payload: {
+          requestId: "req-open",
+          primaryInstanceId: "claude_subscription",
+          fallbackInstanceId: "posthog_gateway",
+          model: "claude-sonnet-4-5",
+          resetsAt: "2026-02-23T05:00:00.000Z",
+        },
+      }),
+    ];
+
+    expect(derivePendingFallbackOffers(activities)).toEqual([
+      {
+        requestId: "req-open",
+        primaryInstanceId: "claude_subscription",
+        fallbackInstanceId: "posthog_gateway",
+        model: "claude-sonnet-4-5",
+        resetsAt: "2026-02-23T05:00:00.000Z",
+        createdAt: "2026-02-23T00:00:05.000Z",
+      },
+    ]);
   });
 });
 
