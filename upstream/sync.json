@@ -3,5 +3,15 @@
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
   "lastReviewed": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "entries": []
+  "entries": [
+    {
+      "upstream": "b0ae3f3a8527bdcccb6a5cbda93548ad66fbcfea",
+      "pr": 8468,
+      "title": "fix(tooling): allow ignored-only staged changes",
+      "decision": "skipped",
+      "ours": null,
+      "reason": "Already fixed on our side before the fork diverged (vp fmt --no-error-on-unmatched-pattern).",
+      "reviewedAt": "2026-08-28T13:00:56.932Z"
+    }
+  ]
 }
