@@ -2,8 +2,17 @@
   "upstreamRemote": "upstream",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "e2d4d12a81516b55abbecdc64794971f781cacd8",
+  "lastReviewed": "4c51b4c9b6a85d96a22e0df41d5cfd2d8fc9901d",
   "entries": [
+    {
+      "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
+      "pr": 8447,
+      "title": "fix(codex): accept Codex 0.150 account plans",
+      "decision": "adopted",
+      "ours": "0a7d5c3d69b549439da74d96dbbafbe63d7fb179",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-28T13:01:23.484Z"
+    },
     {
       "upstream": "b0ae3f3a8527bdcccb6a5cbda93548ad66fbcfea",
       "pr": 8468,
@@ -12,6 +21,114 @@
       "ours": null,
       "reason": "Already fixed on our side before the fork diverged (vp fmt --no-error-on-unmatched-pattern).",
       "reviewedAt": "2026-08-28T13:00:56.932Z"
+    },
+    {
+      "upstream": "b982847ab201795711884d1dfadfddb3864adb23",
+      "pr": 8467,
+      "title": "fix(mobile): keep iOS home header stable",
+      "decision": "adopted",
+      "ours": "c93899bc4c808601f123e0fb2377575f20479114",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-28T13:01:25.928Z"
+    },
+    {
+      "upstream": "f1e6f0c9bbe527a76eaae9e3b498a5977ce3c7d6",
+      "pr": 8395,
+      "title": "fix(web): stop showing red x summaries for ordinary tool failures",
+      "decision": "adopted",
+      "ours": "1eb259096cf4ec87ca80a8b52510e71cca3f93c1",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-28T13:01:28.298Z"
+    },
+    {
+      "upstream": "850e4582e4c828b1533a400bf56a532721239198",
+      "pr": 8399,
+      "title": "fix(mobile): refine Git action toast glass styling",
+      "decision": "adopted",
+      "ours": "b8334b0c1857150d5d7db34fa58247d949a4b1fb",
+      "reason": "Clean cherry-pick; mobile styling stays upstream's until RAS Code Mobile exists.",
+      "reviewedAt": "2026-08-28T13:01:30.713Z"
+    },
+    {
+      "upstream": "2fbe313096b54a3422e101ed1bcc3589f6cf371c",
+      "pr": 8483,
+      "title": "fix(desktop): allow preview automation in agent-created threads",
+      "decision": "adopted",
+      "ours": "e30ef356916b585f348dbbf8b875a1b1c03b2628",
+      "reason": "Clean cherry-pick; contract addition kept verbatim.",
+      "reviewedAt": "2026-08-28T13:01:32.996Z"
+    },
+    {
+      "upstream": "c8aba2587d56edbf3b7872987719a12b42031f48",
+      "pr": 8484,
+      "title": "test(web): remove redundant cache key test",
+      "decision": "adopted",
+      "ours": "34eb23a7de2f7543433bd426bc27fabc799143ae",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-28T13:01:35.309Z"
+    },
+    {
+      "upstream": "5766dfbf55eee88dae89f42290bb86ba6f689600",
+      "pr": null,
+      "title": "fix(release): move nightly schedule to minute 38",
+      "decision": "adopted",
+      "ours": "1ab0048b8ccfe47ece7d11348f240f2c9957d045",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-28T13:01:37.673Z"
+    },
+    {
+      "upstream": "f276e632c5a7952655e2455aef3b86c08164b988",
+      "pr": 8472,
+      "title": "fix(web): stabilize the provider settings editor",
+      "decision": "adapted",
+      "ours": "6225e43fd469598b48c1a183ba703f064f306955",
+      "reason": "Cherry-picked; new test needed the fallback props our provider editor requires.",
+      "reviewedAt": "2026-08-28T13:01:40.178Z"
+    },
+    {
+      "upstream": "7068e86f76e908c77ff04d1a684840257eab3a8a",
+      "pr": 8507,
+      "title": "fix(web): open GitHub pull requests in browser when loading fails",
+      "decision": "adopted",
+      "ours": "00acf73ffc6d1f2ea8e75cbfbab376cd304466c5",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-28T13:01:42.565Z"
+    },
+    {
+      "upstream": "49f6241ddeee2a5d20ec181b5b94ec0a9ac72f7b",
+      "pr": 8502,
+      "title": "fix(codex): show sub-agent models",
+      "decision": "adapted",
+      "ours": "5e62df176ff0e2847796b1bd92d771f4c7ecea4d",
+      "reason": "Cherry-picked; rebranded the new env var and docs.",
+      "reviewedAt": "2026-08-28T13:01:44.975Z"
+    },
+    {
+      "upstream": "88be5631ff6a48b98ead48fa5af6a2be0a4d63e4",
+      "pr": 8481,
+      "title": "feat(analytics): report connected client platforms",
+      "decision": "adapted",
+      "ours": "9bbd142378778c3b8fba85d71fdcc18ba5f65b28",
+      "reason": "Cherry-picked; platform.ts conflict was rebrand-only, client labels and analytics property renamed. Telemetry stays off without RAS_CODE_POSTHOG_KEY.",
+      "reviewedAt": "2026-08-28T13:01:47.326Z"
+    },
+    {
+      "upstream": "8f49132214a40c85cf46bf5e3d8ea11c04a9610a",
+      "pr": 8235,
+      "title": "feat(server): accept PDF, ZIP, and other file uploads up to 50MB",
+      "decision": "adapted",
+      "ours": "1c9427922349f8fe67364c602c7443dcfd9f3c3f",
+      "reason": "Cherry-picked; projection test conflict was rebrand-only, test prefixes renamed.",
+      "reviewedAt": "2026-08-28T13:01:49.733Z"
+    },
+    {
+      "upstream": "4c51b4c9b6a85d96a22e0df41d5cfd2d8fc9901d",
+      "pr": null,
+      "title": "feat(web): toggle thread pin from the keyboard",
+      "decision": "adopted",
+      "ours": "446f06295ee4dbd12aaa192eb271c1473c7e39a9",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-28T13:01:52.206Z"
     }
   ]
 }
