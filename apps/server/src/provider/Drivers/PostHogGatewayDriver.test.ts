@@ -70,6 +70,7 @@ const compose = (overrides: {
   });
 
 interface StubAdapter {
+  readonly startInputs: Array<{ readonly provider?: string | undefined }>;
   readonly adapter: ProviderAdapterShape<ProviderAdapterError>;
   readonly calls: Array<string>;
   readonly sessions: Set<string>;
