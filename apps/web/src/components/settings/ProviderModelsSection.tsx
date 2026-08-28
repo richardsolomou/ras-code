@@ -188,7 +188,7 @@ export function ProviderModelsSection({
   };
 
   return (
-    <div>
+    <div className="lg:flex lg:h-full lg:min-h-0 lg:flex-col">
       <div className="flex items-center justify-between gap-3">
         <span className="text-xs font-medium text-foreground">Models</span>
         {headerAction}
@@ -196,7 +196,10 @@ export function ProviderModelsSection({
       <div className="mt-1 text-xs text-muted-foreground">
         {models.length} model{models.length === 1 ? "" : "s"} available.
       </div>
-      <div ref={listRef} className="mt-2 max-h-40 overflow-y-auto pb-1">
+      <div
+        ref={listRef}
+        className="mt-2 max-h-40 overflow-y-auto pb-1 lg:min-h-0 lg:max-h-none lg:flex-1"
+      >
         {orderedModels.map((model, index) => {
           const caps = model.capabilities;
           const capLabels: string[] = [];
