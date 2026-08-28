@@ -13,7 +13,7 @@ import {
   type ModelSelection,
   TextGenerationError,
 } from "@ras-code/contracts";
-import { sanitizeBranchFragment, sanitizeFeatureBranchName } from "@ras-code/shared/git";
+import { sanitizeBranchFragment } from "@ras-code/shared/git";
 import { resolveSpawnCommand } from "@ras-code/shared/shell";
 
 import { resolveAttachmentPath } from "../attachmentStore.ts";
@@ -323,7 +323,7 @@ export const makeCodexTextGeneration = Effect.fn("makeCodexTextGeneration")(func
         subject: sanitizeCommitSubject(generated.subject),
         body: generated.body.trim(),
         ...("branch" in generated && typeof generated.branch === "string"
-          ? { branch: sanitizeFeatureBranchName(generated.branch) }
+          ? { branch: sanitizeBranchFragment(generated.branch) }
           : {}),
       };
     });

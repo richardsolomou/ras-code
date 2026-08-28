@@ -8,10 +8,7 @@ import {
   type VcsRef,
 } from "@ras-code/client-runtime/state/vcs";
 import type { GitRunStackedActionResult } from "@ras-code/contracts";
-import {
-  dedupeRemoteBranchesWithLocalMatches,
-  sanitizeFeatureBranchName,
-} from "@ras-code/shared/git";
+import { dedupeRemoteBranchesWithLocalMatches, sanitizeBranchFragment } from "@ras-code/shared/git";
 import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/unstable/reactivity";
 
@@ -270,7 +267,7 @@ export function useSelectedThreadGitActions() {
             input: {
               cwd: project.workspaceRoot,
               refName: nextWorktree.baseBranch,
-              newRefName: sanitizeFeatureBranchName(nextWorktree.newBranch),
+              newRefName: sanitizeBranchFragment(nextWorktree.newBranch),
               path: null,
             },
           });

@@ -47,19 +47,7 @@ export function sanitizeBranchFragment(raw: string): string {
   return branchFragment.length > 0 ? branchFragment : "update";
 }
 
-/**
- * Sanitize a string into a `feature/…` refName name.
- * Preserves an existing `feature/` prefix or slash-separated namespace.
- */
-export function sanitizeFeatureBranchName(raw: string): string {
-  const sanitized = sanitizeBranchFragment(raw);
-  if (sanitized.includes("/")) {
-    return sanitized.startsWith("feature/") ? sanitized : `feature/${sanitized}`;
-  }
-  return `feature/${sanitized}`;
-}
-
-const AUTO_FEATURE_BRANCH_FALLBACK = "feature/update";
+const AUTO_FEATURE_BRANCH_FALLBACK = "update";
 
 /**
  * Resolve a unique `feature/…` refName name that doesn't collide with
@@ -70,7 +58,7 @@ export function resolveAutoFeatureBranchName(
   preferredBranch?: string,
 ): string {
   const preferred = preferredBranch?.trim();
-  const resolvedBase = sanitizeFeatureBranchName(
+  const resolvedBase = sanitizeBranchFragment(
     preferred && preferred.length > 0 ? preferred : AUTO_FEATURE_BRANCH_FALLBACK,
   );
   const existingNames = new Set(existingBranchNames.map((refName) => refName.toLowerCase()));

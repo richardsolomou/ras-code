@@ -7,7 +7,7 @@ import { ChildProcessSpawner } from "effect/unstable/process";
 import type * as EffectAcpErrors from "effect-acp/errors";
 
 import { type GrokSettings, type ModelSelection } from "@ras-code/contracts";
-import { sanitizeBranchFragment, sanitizeFeatureBranchName } from "@ras-code/shared/git";
+import { sanitizeBranchFragment } from "@ras-code/shared/git";
 import { getModelSelectionStringOptionValue } from "@ras-code/shared/model";
 import { extractJsonObject } from "@ras-code/shared/schemaJson";
 
@@ -189,7 +189,7 @@ export const makeGrokTextGeneration = Effect.fn("makeGrokTextGeneration")(functi
         subject: sanitizeCommitSubject(generated.subject),
         body: generated.body.trim(),
         ...("branch" in generated && typeof generated.branch === "string"
-          ? { branch: sanitizeFeatureBranchName(generated.branch) }
+          ? { branch: sanitizeBranchFragment(generated.branch) }
           : {}),
       };
     });

@@ -12,7 +12,7 @@ import {
   type ModelSelection,
   type OpenCodeSettings,
 } from "@ras-code/contracts";
-import { sanitizeBranchFragment, sanitizeFeatureBranchName } from "@ras-code/shared/git";
+import { sanitizeBranchFragment } from "@ras-code/shared/git";
 import { getModelSelectionStringOptionValue } from "@ras-code/shared/model";
 import { extractJsonObject } from "@ras-code/shared/schemaJson";
 
@@ -544,7 +544,7 @@ export const makeOpenCodeTextGeneration = Effect.fn("makeOpenCodeTextGeneration"
         subject: sanitizeCommitSubject(generated.subject),
         body: generated.body.trim(),
         ...("branch" in generated && typeof generated.branch === "string"
-          ? { branch: sanitizeFeatureBranchName(generated.branch) }
+          ? { branch: sanitizeBranchFragment(generated.branch) }
           : {}),
       };
     });

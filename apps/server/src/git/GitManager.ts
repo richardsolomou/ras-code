@@ -38,7 +38,6 @@ import {
   normalizeGitRemoteUrl,
   resolveAutoFeatureBranchName,
   sanitizeBranchFragment,
-  sanitizeFeatureBranchName,
 } from "@ras-code/shared/git";
 import {
   getChangeRequestTerminologyForKind,
@@ -1558,9 +1557,7 @@ export const make = Effect.gen(function* () {
         return {
           subject: customCommit.subject,
           body: customCommit.body,
-          ...(input.includeBranch
-            ? { branch: sanitizeFeatureBranchName(customCommit.subject) }
-            : {}),
+          ...(input.includeBranch ? { branch: sanitizeBranchFragment(customCommit.subject) } : {}),
           commitMessage: formatCommitMessage(customCommit.subject, customCommit.body),
         };
       }
@@ -2162,7 +2159,7 @@ export const make = Effect.gen(function* () {
       });
     }
 
-    const preferredBranch = suggestion.branch ?? sanitizeFeatureBranchName(suggestion.subject);
+    const preferredBranch = suggestion.branch ?? sanitizeBranchFragment(suggestion.subject);
     const existingBranchNames = yield* gitCore.listLocalBranchNames(cwd);
     const resolvedBranch = resolveAutoFeatureBranchName(existingBranchNames, preferredBranch);
 

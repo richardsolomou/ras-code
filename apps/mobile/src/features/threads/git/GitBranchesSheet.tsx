@@ -1,4 +1,4 @@
-import { sanitizeFeatureBranchName } from "@ras-code/shared/git";
+import { sanitizeBranchFragment } from "@ras-code/shared/git";
 import { useNavigation, type StaticScreenProps } from "@react-navigation/native";
 import { useState } from "react";
 import { Platform, Pressable, ScrollView, View } from "react-native";
@@ -84,7 +84,7 @@ export function GitBranchesSheet(_props: GitBranchesSheetProps) {
             tone="primary"
             disabled={busy || newBranchName.trim().length === 0}
             onPress={() => {
-              const branch = sanitizeFeatureBranchName(newBranchName.trim());
+              const branch = sanitizeBranchFragment(newBranchName.trim());
               if (branch.length === 0) return;
               void gitActions.onCreateSelectedThreadBranch(branch).then(() => {
                 setNewBranchName("");
