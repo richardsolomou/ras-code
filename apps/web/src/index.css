@@ -119,7 +119,7 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(ras-code
 
   @variant dark {
     --appearance-contrast-target: white;
-    --app-scrollbar-thumb: #4a5551;
+    --app-scrollbar-thumb: #3a3646;
     --app-scrollbar-thumb-hover: #5e6b67;
     --glass-blur: 16px;
     --glass-saturation: 1.08;
@@ -2231,23 +2231,22 @@ code {
    ───────────────────────────────────────────────────────────────────────── */
 
 :root {
+  /* Lamp colors follow the palette roles, so retinting the theme relights the
+     console instead of stranding hard-coded hues. */
   --lamp-unlit: var(--color-zinc-300);
   --lamp-rim: rgb(0 0 0 / 20%);
-  --lamp-working: var(--color-emerald-600);
-  --lamp-waiting: var(--color-amber-600);
-  --lamp-failed: var(--color-red-600);
+  --lamp-working: var(--success-foreground);
+  --lamp-waiting: var(--warning-foreground);
+  --lamp-failed: var(--error);
   --console-cap: var(--color-zinc-100);
   --console-cap-rim: rgb(0 0 0 / 12%);
   --console-rule: var(--border);
 
   @variant dark {
-    --lamp-unlit: #4a5551;
-    --lamp-rim: rgb(0 0 0 / 45%);
-    --lamp-working: #52c46f;
-    --lamp-waiting: #f0c24b;
-    --lamp-failed: #e5645a;
+    --lamp-unlit: #3a3646;
+    --lamp-rim: rgb(0 0 0 / 55%);
     --console-cap: #1f1c26;
-    --console-cap-rim: rgb(0 0 0 / 32%);
+    --console-cap-rim: #2a2733;
     --console-rule: #2a2733;
   }
 }
