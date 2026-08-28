@@ -6,6 +6,7 @@ import {
   DownloadIcon,
   LoaderIcon,
   PlusIcon,
+  RefreshCwIcon,
   Trash2Icon,
   XIcon,
 } from "lucide-react";
@@ -15,7 +16,9 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   isProviderDriverKind,
   resolveProviderInstanceEnabled,
+  type EnvironmentId,
   type ProviderInstanceConfig,
+  type ProviderInstanceConfigMap,
   type ProviderInstanceEnvironmentVariable,
   type ProviderInstanceId,
   type ProviderDriverKind,
@@ -40,6 +43,15 @@ import type { DriverOption } from "./providerDriverMeta";
 import { providerSettingsTabClassName } from "./providerSettingsTabs";
 import { ProviderSettingsForm } from "./ProviderSettingsForm";
 import { ProviderModelsSection } from "./ProviderModelsSection";
+import { ProviderFallbackSection } from "./ProviderFallbackSection";
+import {
+  instanceUsesAnthropicGateway,
+  mergeRemoteModelsIntoCustomModels,
+} from "./providerGateway.logic";
+import { usageLimitPill } from "./providerUsageLimit.logic";
+import { useClientSettings } from "../../hooks/useSettings";
+import { formatShortTimestamp } from "../../timestampFormat";
+import { listGatewayModels } from "../../lib/providerGatewaySetup";
 import { ProviderInstanceIcon, providerInstanceInitials } from "../chat/ProviderInstanceIcon";
 import { ProviderAccentColorPicker } from "./ProviderAccentColorPicker";
 import {
@@ -336,8 +348,13 @@ function ProviderEnvironmentSection(props: {
 }
 
 interface ProviderInstanceCardProps {
+  readonly environmentId: EnvironmentId;
   readonly instanceId: ProviderInstanceId;
   readonly instance: ProviderInstanceConfig;
+  /** Every configured instance, for the fallback picker's candidate list. */
+  readonly instances: ProviderInstanceConfigMap;
+  /** Live snapshots, for the fallback picker's model list. */
+  readonly serverProviders: ReadonlyArray<ServerProvider>;
   readonly driverOption: DriverOption | undefined;
   readonly liveProvider: ServerProvider | undefined;
   readonly mode: "list" | "editor";
@@ -390,8 +407,11 @@ interface ProviderInstanceCardProps {
  *     false wins, then envelope, then config, then the driver default).
  */
 export function ProviderInstanceCard({
+  environmentId,
   instanceId,
   instance,
+  instances,
+  serverProviders,
   driverOption,
   liveProvider,
   mode,
@@ -411,6 +431,11 @@ export function ProviderInstanceCard({
   isUpdating = false,
 }: ProviderInstanceCardProps) {
   const [activeTab, setActiveTab] = useState<"models" | "configuration">("configuration");
+  const [isRefreshingGatewayModels, setIsRefreshingGatewayModels] = useState(false);
+  const clientSettings = useClientSettings();
+  const limitPill = usageLimitPill(liveProvider?.usageLimit, (isoTime) =>
+    formatShortTimestamp(isoTime, clientSettings.timestampFormat),
+  );
   const enabled = resolveProviderInstanceEnabled(instance);
   // A locally disabled provider stays neutral even if its last server status
   // is stale. Enabled providers use the server status when one is available.
@@ -502,6 +527,25 @@ export function ProviderInstanceCard({
     const nextConfig = nextConfigBlobWithValue(instance.config, "customModels", [...next]);
     const { config: _omit, ...rest } = instance;
     onUpdate({ ...rest, config: nextConfig } as ProviderInstanceConfig);
+  };
+
+  const showsGatewayRefresh = instanceUsesAnthropicGateway(instance);
+  const refreshGatewayModels = async () => {
+    setIsRefreshingGatewayModels(true);
+    const models = await listGatewayModels({ environmentId, instanceId });
+    setIsRefreshingGatewayModels(false);
+    if (models === null) return;
+    const next = mergeRemoteModelsIntoCustomModels(customModels, models);
+    const added = next.length - customModels.length;
+    updateCustomModels(next);
+    toastManager.add({
+      type: "success",
+      title: "Gateway models refreshed",
+      description:
+        added > 0
+          ? `Added ${added} model${added === 1 ? "" : "s"} from the gateway.`
+          : "The gateway reported no models this instance does not already have.",
+    });
   };
 
   const updateEnvironment = (environment: ReadonlyArray<ProviderInstanceEnvironmentVariable>) => {
@@ -617,6 +661,18 @@ export function ProviderInstanceCard({
             <span className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
               <span className={cn("size-1.5 shrink-0 rounded-full", statusStyle.dot)} />
               <span className="truncate">{summary.headline}</span>
+              {limitPill?.kind === "exhausted" ? (
+                <Badge variant="warning" size="sm" className="shrink-0">
+                  {limitPill.label}
+                </Badge>
+              ) : limitPill?.kind === "warning" ? (
+                <Tooltip>
+                  <TooltipTrigger
+                    render={<span className="size-1.5 shrink-0 rounded-full bg-warning" />}
+                  />
+                  <TooltipPopup side="top">{limitPill.label}</TooltipPopup>
+                </Tooltip>
+              ) : null}
             </span>
             {String(instanceId) !== String(instance.driver) ? (
               <code className="mt-0.5 block truncate text-[10px] text-muted-foreground/70">
@@ -816,6 +872,16 @@ export function ProviderInstanceCard({
             />
           </div>
 
+          <div>
+            <ProviderFallbackSection
+              instanceId={instanceId}
+              instance={instance}
+              instances={instances}
+              serverProviders={serverProviders}
+              onUpdate={onUpdate}
+            />
+          </div>
+
           {driverOption ? (
             <ProviderSettingsForm
               definition={driverOption}
@@ -851,6 +917,25 @@ export function ProviderInstanceCard({
               onHiddenModelsChange={onHiddenModelsChange}
               onFavoriteModelsChange={onFavoriteModelsChange}
               onModelOrderChange={onModelOrderChange}
+              headerAction={
+                showsGatewayRefresh ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-7 gap-1.5 px-2 text-xs"
+                    disabled={isRefreshingGatewayModels}
+                    onClick={() => void refreshGatewayModels()}
+                  >
+                    {isRefreshingGatewayModels ? (
+                      <LoaderIcon className="size-3 animate-spin" />
+                    ) : (
+                      <RefreshCwIcon className="size-3" />
+                    )}
+                    Refresh models from gateway
+                  </Button>
+                ) : null
+              }
             />
           </div>
         ) : null}

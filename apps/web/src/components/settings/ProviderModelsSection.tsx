@@ -10,7 +10,7 @@ import {
   StarIcon,
   XIcon,
 } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import {
   ProviderDriverKind,
   type ProviderInstanceId,
@@ -71,6 +71,8 @@ interface ProviderModelsSectionProps {
   readonly onHiddenModelsChange: (next: ReadonlyArray<string>) => void;
   readonly onFavoriteModelsChange: (next: ReadonlyArray<string>) => void;
   readonly onModelOrderChange: (next: ReadonlyArray<string>) => void;
+  /** Optional control rendered next to the section title. */
+  readonly headerAction?: ReactNode | undefined;
 }
 
 /**
@@ -96,6 +98,7 @@ export function ProviderModelsSection({
   onHiddenModelsChange,
   onFavoriteModelsChange,
   onModelOrderChange,
+  headerAction,
 }: ProviderModelsSectionProps) {
   const [input, setInput] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -186,7 +189,10 @@ export function ProviderModelsSection({
 
   return (
     <div>
-      <div className="text-xs font-medium text-foreground">Models</div>
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-xs font-medium text-foreground">Models</span>
+        {headerAction}
+      </div>
       <div className="mt-1 text-xs text-muted-foreground">
         {models.length} model{models.length === 1 ? "" : "s"} available.
       </div>

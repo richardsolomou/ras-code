@@ -11,6 +11,7 @@ import {
 } from "@ras-code/contracts";
 
 import { useEnvironmentSettings, useUpdateEnvironmentSettings } from "../../hooks/useSettings";
+import { createGatewayProviderInstance } from "../../lib/providerGatewaySetup";
 import { cn } from "../../lib/utils";
 import { normalizeProviderAccentColor } from "../../providerInstances";
 import { Button } from "../ui/button";
@@ -27,7 +28,19 @@ import { Badge } from "../ui/badge";
 import { Input } from "../ui/input";
 import { RadioGroup } from "../ui/radio-group";
 import { toastManager } from "../ui/toast";
-import { DRIVER_OPTION_BY_VALUE, DRIVER_OPTIONS } from "./providerDriverMeta";
+import {
+  DRIVER_OPTION_BY_VALUE,
+  DRIVER_OPTIONS,
+  POSTHOG_GATEWAY_PRESET_DEFINITION,
+} from "./providerDriverMeta";
+import {
+  ANTHROPIC_API_KEY_VARIABLE,
+  ANTHROPIC_AUTH_TOKEN_VARIABLE,
+  ANTHROPIC_BASE_URL_VARIABLE,
+  buildPostHogGatewayInstance,
+  gatewayModelSettingsPatch,
+  POSTHOG_GATEWAY_PRESET,
+} from "./providerGateway.logic";
 import { ProviderSettingsForm, deriveProviderSettingsFields } from "./ProviderSettingsForm";
 import { AnimatedHeight } from "../AnimatedHeight";
 import {
@@ -119,13 +132,22 @@ interface AddProviderInstanceDialogProps {
   readonly open: boolean;
   readonly environmentId: EnvironmentId;
   readonly environmentLabel: string;
+  /**
+   * Model slugs the Claude driver ships. The gateway preset hides these on
+   * the instance it creates so its picker offers only gateway models.
+   */
+  readonly claudeBuiltInModelSlugs?: ReadonlyArray<string>;
   readonly onOpenChange: (open: boolean) => void;
 }
+
+const PRESET_RADIO_VALUE = `preset:${POSTHOG_GATEWAY_PRESET_DEFINITION.id}`;
+const NO_BUILT_IN_MODEL_SLUGS: ReadonlyArray<string> = [];
 
 export function AddProviderInstanceDialog({
   open,
   environmentId,
   environmentLabel,
+  claudeBuiltInModelSlugs = NO_BUILT_IN_MODEL_SLUGS,
   onOpenChange,
 }: AddProviderInstanceDialogProps) {
   const settings = useEnvironmentSettings(environmentId);
@@ -133,6 +155,9 @@ export function AddProviderInstanceDialog({
 
   const [wizardStep, setWizardStep] = useState(0);
   const [driver, setDriver] = useState<ProviderDriverKind>(DEFAULT_DRIVER_KIND);
+  const [isGatewayPreset, setIsGatewayPreset] = useState(false);
+  const [gatewayKey, setGatewayKey] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
   const [label, setLabel] = useState("");
   const [accentColor, setAccentColor] = useState<string>("");
   const [instanceIdOverride, setInstanceIdOverride] = useState<string | null>(null);
@@ -156,8 +181,30 @@ export function AddProviderInstanceDialog({
   );
   const instanceIdError = validateInstanceId(instanceId, existingIds);
   const showInstanceIdError = hasAttemptedSubmit && instanceIdError !== null;
-  const previewLabel = label.trim() || `${driverOption.label} Workspace`;
-  const wizardStepSummaries = [driverOption.label, previewLabel, null] as const;
+  const previewLabel =
+    label.trim() ||
+    (isGatewayPreset ? POSTHOG_GATEWAY_PRESET.label : `${driverOption.label} Workspace`);
+  const driverSummary = isGatewayPreset
+    ? POSTHOG_GATEWAY_PRESET_DEFINITION.label
+    : driverOption.label;
+  const wizardStepSummaries = [driverSummary, previewLabel, null] as const;
+  const gatewayKeyError =
+    isGatewayPreset && gatewayKey.trim().length === 0 ? "Gateway key is required." : null;
+  const showGatewayKeyError = hasAttemptedSubmit && gatewayKeyError !== null;
+
+  const selectDriver = (value: string) => {
+    if (value === PRESET_RADIO_VALUE) {
+      setIsGatewayPreset(true);
+      setDriver(POSTHOG_GATEWAY_PRESET.driver);
+      setInstanceIdOverride(String(POSTHOG_GATEWAY_PRESET.instanceId));
+      setAccentColor(POSTHOG_GATEWAY_PRESET.accentColor);
+      return;
+    }
+    setIsGatewayPreset(false);
+    setInstanceIdOverride(null);
+    setAccentColor("");
+    setDriver(ProviderDriverKind.make(value));
+  };
 
   const configDraft = configByDriver[driver] ?? EMPTY_CONFIG_DRAFT;
   const setConfigDraft = (config: Record<string, unknown> | undefined) => {
@@ -187,9 +234,59 @@ export function AddProviderInstanceDialog({
     );
   };
 
+  const handleSaveGatewayPreset = async () => {
+    const brandedId = ProviderInstanceId.make(instanceId);
+    const instance = buildPostHogGatewayInstance({
+      gatewayKey,
+      ...(label.trim().length > 0 ? { displayName: label.trim() } : {}),
+    });
+    setIsSaving(true);
+    const { created, models } = await createGatewayProviderInstance({
+      environmentId,
+      instanceId: brandedId,
+      instance,
+      existingInstances: settings.providerInstances,
+    });
+    setIsSaving(false);
+    if (!created) {
+      toastManager.add({
+        type: "error",
+        title: "Could not add provider instance",
+        description: "The environment rejected the settings update.",
+      });
+      return;
+    }
+    if (models.length > 0) {
+      updateSettings(
+        gatewayModelSettingsPatch({
+          instanceId: brandedId,
+          instance,
+          instances: settings.providerInstances,
+          modelPreferences: settings.providerModelPreferences,
+          remoteModels: models,
+          builtInModelSlugs: claudeBuiltInModelSlugs,
+        }),
+      );
+    }
+    toastManager.add({
+      type: "success",
+      title: "Provider instance added",
+      description:
+        models.length > 0
+          ? `${POSTHOG_GATEWAY_PRESET.label} added with ${models.length} gateway model${models.length === 1 ? "" : "s"}.`
+          : `${POSTHOG_GATEWAY_PRESET.label} instance '${instanceId}' was added.`,
+    });
+    onOpenChange(false);
+  };
+
   const handleSave = () => {
     setHasAttemptedSubmit(true);
     if (instanceIdError !== null) return;
+    if (isGatewayPreset) {
+      if (gatewayKeyError !== null) return;
+      void handleSaveGatewayPreset();
+      return;
+    }
 
     const config = configByDriver[driver] ?? {};
     const hasConfig = Object.keys(config).length > 0;
@@ -228,6 +325,8 @@ export function AddProviderInstanceDialog({
     }
   };
 
+  const PresetIconComponent = POSTHOG_GATEWAY_PRESET_DEFINITION.icon;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogPopup className="max-w-xl overflow-hidden">
@@ -256,8 +355,8 @@ export function AddProviderInstanceDialog({
                   Driver
                 </div>
                 <RadioGroup
-                  value={driver}
-                  onValueChange={(value) => setDriver(ProviderDriverKind.make(value))}
+                  value={isGatewayPreset ? PRESET_RADIO_VALUE : driver}
+                  onValueChange={selectDriver}
                   aria-labelledby="add-instance-driver-label"
                   className="grid grid-cols-1 gap-2 sm:grid-cols-2"
                 >
@@ -287,6 +386,33 @@ export function AddProviderInstanceDialog({
                       </RadioPrimitive.Root>
                     );
                   })}
+                  <RadioPrimitive.Root
+                    value={PRESET_RADIO_VALUE}
+                    className="relative flex cursor-pointer items-start gap-3 rounded-lg bg-card px-3 py-3 text-left text-muted-foreground outline-none ring-1 ring-primary/30 hover:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-ring data-checked:bg-primary/8 data-checked:text-foreground data-checked:ring-2 data-checked:ring-primary data-checked:hover:bg-primary/8 sm:col-span-2 dark:bg-white/3 dark:hover:bg-white/5 dark:data-checked:bg-primary/15 dark:data-checked:ring-primary dark:data-checked:hover:bg-primary/15"
+                  >
+                    <PresetIconComponent className="mt-0.5 size-4 shrink-0" aria-hidden />
+                    <span className="min-w-0 flex-1">
+                      <span className="flex min-w-0 items-center gap-2">
+                        <span className="truncate text-sm font-medium text-foreground">
+                          {POSTHOG_GATEWAY_PRESET_DEFINITION.label}
+                        </span>
+                        {POSTHOG_GATEWAY_PRESET_DEFINITION.badgeLabel ? (
+                          <Badge variant="success" size="sm">
+                            {POSTHOG_GATEWAY_PRESET_DEFINITION.badgeLabel}
+                          </Badge>
+                        ) : null}
+                      </span>
+                      <span className="mt-0.5 block text-[11px] text-muted-foreground">
+                        {POSTHOG_GATEWAY_PRESET_DEFINITION.description}
+                      </span>
+                    </span>
+                    <RadioPrimitive.Indicator
+                      className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground"
+                      aria-hidden
+                    >
+                      <CheckIcon className="size-3.5 shrink-0" />
+                    </RadioPrimitive.Indicator>
+                  </RadioPrimitive.Root>
                   {COMING_SOON_DRIVER_OPTIONS.map((option) => {
                     const IconComponent = option.icon;
                     return (
@@ -394,7 +520,47 @@ export function AddProviderInstanceDialog({
                 </span>
               </div>
 
-              {driverSettingsFields.length > 0 ? (
+              {isGatewayPreset ? (
+                <div className={cn("grid gap-4", wizardStep !== 2 && "hidden")}>
+                  <label className="grid gap-2">
+                    <span className="text-xs font-medium text-foreground">Gateway key</span>
+                    <Input
+                      className="bg-background"
+                      type="password"
+                      autoComplete="off"
+                      spellCheck={false}
+                      placeholder="phx_..."
+                      value={gatewayKey}
+                      onChange={(event) => setGatewayKey(event.target.value)}
+                      aria-invalid={showGatewayKeyError}
+                    />
+                    {showGatewayKeyError ? (
+                      <span className="text-[11px] text-destructive">{gatewayKeyError}</span>
+                    ) : (
+                      <span className="text-[11px] text-muted-foreground">
+                        Stored as the sensitive {ANTHROPIC_AUTH_TOKEN_VARIABLE} variable on this
+                        instance. The server keeps it as a secret and does not send it back.
+                      </span>
+                    )}
+                  </label>
+                  <div className="grid gap-1 rounded-md bg-muted/40 px-3 py-2.5">
+                    <span className="text-[11px] font-medium text-foreground">
+                      Environment set for you
+                    </span>
+                    <code className="text-[11px] text-muted-foreground">
+                      {ANTHROPIC_BASE_URL_VARIABLE} {POSTHOG_GATEWAY_PRESET.baseUrl}
+                    </code>
+                    <code className="text-[11px] text-muted-foreground">
+                      {ANTHROPIC_API_KEY_VARIABLE} (empty, so a shell key cannot win)
+                    </code>
+                    <span className="mt-1 text-[11px] text-muted-foreground">
+                      The CLAUDE_CONFIG_DIR path is left empty on purpose. Sharing the primary
+                      Claude instance's config directory is what lets this instance pick up a thread
+                      the primary started.
+                    </span>
+                  </div>
+                </div>
+              ) : driverSettingsFields.length > 0 ? (
                 <div className={cn("grid gap-4", wizardStep !== 2 && "hidden")}>
                   <ProviderSettingsForm
                     definition={driverOption}
@@ -433,8 +599,8 @@ export function AddProviderInstanceDialog({
                 Next
               </Button>
             ) : (
-              <Button size="sm" onClick={handleSave}>
-                Add instance
+              <Button size="sm" disabled={isSaving} onClick={handleSave}>
+                {isSaving ? "Adding" : "Add instance"}
               </Button>
             )}
           </DialogFooter>

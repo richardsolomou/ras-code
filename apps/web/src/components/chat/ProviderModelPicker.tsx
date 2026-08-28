@@ -18,6 +18,7 @@ import {
 } from "./providerIconUtils";
 import { shouldShowInstanceBadge, type ProviderInstanceEntry } from "../../providerInstances";
 import { ComposerControl, ComposerControlChevron } from "./ComposerControl";
+import type { UsageLimitPill } from "../settings/providerUsageLimit.logic";
 
 export const ProviderModelPicker = memo(function ProviderModelPicker(props: {
   /**
@@ -33,6 +34,12 @@ export const ProviderModelPicker = memo(function ProviderModelPicker(props: {
   keybindings?: ResolvedKeybindingsConfig;
   modelOptionsByInstance: ReadonlyMap<ProviderInstanceId, ReadonlyArray<ModelEsque>>;
   activeProviderIconClassName?: string;
+  /**
+   * Usage-limit state for the active instance. `exhausted` shows a pill so
+   * the reason turns are being routed elsewhere is visible without opening
+   * settings; `warning` stays a dot with a tooltip.
+   */
+  usageLimit?: UsageLimitPill;
   compact?: boolean;
   disabled?: boolean;
   terminalOpen?: boolean;
@@ -180,6 +187,22 @@ export const ProviderModelPicker = memo(function ProviderModelPicker(props: {
             <TooltipPopup side="top">{triggerLabel}</TooltipPopup>
           </Tooltip>
         </span>
+        {props.usageLimit ? (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                props.usageLimit.kind === "exhausted" ? (
+                  <span className="shrink-0 truncate rounded-full bg-warning/15 px-1.5 py-0.5 text-[10px] font-medium text-warning" />
+                ) : (
+                  <span className="size-1.5 shrink-0 rounded-full bg-warning" />
+                )
+              }
+            >
+              {props.usageLimit.kind === "exhausted" ? props.usageLimit.label : null}
+            </TooltipTrigger>
+            <TooltipPopup side="top">{props.usageLimit.label}</TooltipPopup>
+          </Tooltip>
+        ) : null}
         <span aria-hidden="true" className="flex items-center">
           <ComposerControlChevron />
         </span>

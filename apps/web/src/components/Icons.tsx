@@ -506,6 +506,17 @@ export const ClaudeAI: Icon = ({ className, ...props }) => (
   </svg>
 );
 
+export const PostHog: Icon = (props) => (
+  <svg {...props} viewBox="0 0 24 24" fill="currentColor">
+    {/* Hedgehog facing right: spiked back, pointed snout, one eye punched
+        out of the body by the even-odd rule so the mark stays monochrome. */}
+    <path
+      fillRule="evenodd"
+      d="M3 18 L4.3 12.6 L6.1 15 L6.6 9.4 L8.7 13 L10 7.8 L11.8 11.8 L13.8 7.4 L15 11.2 L16.9 9.4 C19 10.2 20.4 11.6 21.1 13.3 L22.8 14.6 L21.3 15.6 C21.3 16.5 21 17.3 20.5 18 Z M17.25 12.6 a0.85 0.85 0 1 0 1.7 0 a0.85 0.85 0 1 0 -1.7 0 Z"
+    />
+  </svg>
+);
+
 export const Gemini: Icon = (props) => (
   <svg {...props} viewBox="0 0 296 298" fill="none">
     <mask

@@ -17,6 +17,12 @@ import {
   type TurnId,
 } from "@ras-code/contracts";
 
+import {
+  FALLBACK_ENGAGED_ACTIVITY_KIND,
+  readFallbackNoticePayload,
+  type FallbackNoticePayload,
+} from "./components/settings/providerUsageLimit.logic";
+
 import type {
   ChatMessage,
   ProposedPlan,
@@ -84,6 +90,12 @@ export interface WorkLogEntry {
   toolLifecycleStatus?: WorkLogToolLifecycleStatus;
   /** Originating orchestration activity kind (e.g. `user-input.requested`) for row chrome. */
   sourceActivityKind?: OrchestrationThreadActivity["kind"];
+  /**
+   * Present on `provider.fallback.engaged` rows. The activity summary
+   * carries a raw ISO instant, so the row is rebuilt from this payload
+   * instead and the time is rendered in the viewer's locale.
+   */
+  fallbackNotice?: FallbackNoticePayload;
   /** Grouping key for subagent lifecycle rows (one row per agent). */
   taskId?: string;
   /** Agent role (subagent_type) for labeled timeline rows. */
@@ -958,6 +970,12 @@ function toDerivedWorkLogEntry(activity: OrchestrationThreadActivity): DerivedWo
           : activity.tone,
     sourceActivityKind: activity.kind,
   };
+  if (activity.kind === FALLBACK_ENGAGED_ACTIVITY_KIND) {
+    const fallbackNotice = readFallbackNoticePayload(activity.payload);
+    if (fallbackNotice !== null) {
+      (entry as { fallbackNotice?: FallbackNoticePayload }).fallbackNotice = fallbackNotice;
+    }
+  }
   const itemType = extractWorkLogItemType(payload);
   const requestKind = extractWorkLogRequestKind(payload);
   if (detail) {

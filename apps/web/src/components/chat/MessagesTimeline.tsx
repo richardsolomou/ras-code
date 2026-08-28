@@ -1,6 +1,7 @@
 import {
   type EnvironmentId,
   type MessageId,
+  type ProviderInstanceId,
   type ScopedThreadRef,
   type ServerProviderSkill,
   type TurnId,
@@ -108,7 +109,16 @@ import {
 import { cn } from "~/lib/utils";
 import { useUiStateStore } from "~/uiStateStore";
 import { type TimestampFormat } from "@ras-code/contracts/settings";
-import { formatChatTimestampTooltip, formatDayAwareTimestamp } from "../../timestampFormat";
+import {
+  formatChatTimestampTooltip,
+  formatDayAwareTimestamp,
+  formatShortTimestamp,
+} from "../../timestampFormat";
+import {
+  describeFallbackNotice,
+  type FallbackNoticePayload,
+} from "../settings/providerUsageLimit.logic";
+import { useClientSettings, usePrimarySettings } from "../../hooks/useSettings";
 
 import {
   buildInlineTerminalContextText,
@@ -2595,15 +2605,46 @@ const AgentSpawnCtaRow = memo(function AgentSpawnCtaRow(props: { workEntry: Time
   );
 });
 
+/**
+ * Timeline row for `provider.fallback.engaged`. Built from the activity
+ * payload rather than its summary, because the summary carries a raw ISO
+ * instant. Kept quiet: this reports a routing decision, not a failure.
+ */
+const FallbackNoticeRow = memo(function FallbackNoticeRow(props: {
+  notice: FallbackNoticePayload;
+}) {
+  const timestampFormat = useClientSettings((settings) => settings.timestampFormat);
+  const providerInstances = usePrimarySettings((settings) => settings.providerInstances);
+  const instanceName = (instanceId: string) =>
+    providerInstances[instanceId as ProviderInstanceId]?.displayName?.trim() || instanceId;
+  const text = describeFallbackNotice({
+    payload: props.notice,
+    primaryName: instanceName(props.notice.primaryInstanceId),
+    fallbackName: instanceName(props.notice.fallbackInstanceId),
+    formatTime: (isoTime) => formatShortTimestamp(isoTime, timestampFormat),
+  });
+  return (
+    <div className="flex select-none items-center gap-1.5 py-0.5" role="status">
+      <span className="flex size-6 shrink-0 items-center justify-center text-icon-muted">
+        <WorkEntryIconSvg name="zap" className="block size-4 shrink-0 stroke-[1.8] opacity-70" />
+      </span>
+      <p className="min-w-0 flex-1 truncate text-sm leading-relaxed text-foreground/80">{text}</p>
+    </div>
+  );
+});
+
 const SimpleWorkEntryRow = memo(function SimpleWorkEntryRow(props: {
   workEntry: TimelineWorkEntry;
   workspaceRoot: string | undefined;
   isExpandedToolGroupEntry: boolean;
 }) {
   const { workEntry, workspaceRoot, isExpandedToolGroupEntry } = props;
-  // Before any hooks: spawn CTA rows render their own component.
+  // Before any hooks: spawn CTA and fallback rows render their own component.
   if (workEntry.agentSpawn) {
     return <AgentSpawnCtaRow workEntry={workEntry} />;
+  }
+  if (workEntry.fallbackNotice) {
+    return <FallbackNoticeRow notice={workEntry.fallbackNotice} />;
   }
   return (
     <PlainWorkEntryRow

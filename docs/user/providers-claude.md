@@ -194,6 +194,71 @@ You can also check the OpenRouter activity dashboard for requests from your API 
 OpenRouter's setup can change over time. Use its upstream Claude Code guide for the current details:
 <https://openrouter.ai/docs/guides/guides/claude-code-integration>.
 
+## Fallback Providers
+
+A provider can hand its work to another provider when its usage limit is reached. Use this when you
+run on a subscription and want a paid gateway to take over instead of waiting for the window to
+reopen.
+
+Open Settings, select the provider, and use the Fallback row on its Configuration tab:
+
+- **When this provider's usage limit is reached, use** picks the provider that takes over. The list
+  offers your other enabled providers. It hides any provider that already falls back to this one,
+  because fallbacks are never chained: RAS Code follows one hop and no more.
+- **Model on the fallback** defaults to **Same model**, which keeps whatever model the turn asked
+  for. Choose **Specific model** when the fallback serves a different catalog.
+- **Clear** removes the binding.
+
+While a provider's limit is reached, its model picker shows a **Limit reached · resets HH:MM** pill,
+and the provider list marks it the same way. A provider approaching its limit gets a small dot
+instead. When a thread has been moved to a fallback, the composer shows a quiet
+`Using <provider> (<model>)` pill, and the thread's timeline records the switch.
+
+Two Claude providers with different `CLAUDE_CONFIG_DIR path` values are separate Claude
+environments, so a fallback between them applies to new threads only. Leave the fallback's
+`CLAUDE_CONFIG_DIR path` empty to share the primary's Claude home, and existing threads keep
+working across the switch.
+
+## PostHog AI Gateway
+
+The PostHog AI Gateway is an Anthropic-compatible proxy. It is a good fallback for a Claude
+subscription because it serves the same protocol and needs no separate Claude login.
+
+### Add It
+
+In Settings, choose **Add provider**, then pick the **PostHog AI Gateway** preset. Enter your
+gateway key and add the instance. RAS Code creates a Claude provider with these environment
+variables:
+
+```text
+ANTHROPIC_BASE_URL   https://ai-gateway.us.posthog.com
+ANTHROPIC_AUTH_TOKEN phx_...                            Sensitive
+ANTHROPIC_API_KEY                                       Empty value
+```
+
+The key is marked sensitive: RAS Code stores it as a server secret and does not send it back to the
+app after saving. `ANTHROPIC_API_KEY` is written empty on purpose, so an Anthropic key exported in
+your shell cannot outrank the gateway token.
+
+The preset leaves `CLAUDE_CONFIG_DIR path` empty on purpose. Sharing your primary Claude provider's
+config directory is what lets this provider pick up a thread the primary started.
+
+### Models
+
+After the provider is created, RAS Code asks the gateway for its catalog and adds every model it
+reports. Claude's own models are hidden on this provider, so its picker offers gateway models only.
+
+Use **Refresh models from gateway** on the provider's Models tab to pick up new models later. The
+action appears on any Claude provider that sets `ANTHROPIC_BASE_URL`.
+
+Model IDs are spelled with the `posthog/` prefix and the publisher's own organisation name:
+
+```text
+posthog/zai-org/glm-5.2
+```
+
+The `z-ai/...` spelling does not resolve.
+
 ## I Want To Use Claude Code Router
 
 Claude Code Router is useful when you want a local routing layer with more control than a direct

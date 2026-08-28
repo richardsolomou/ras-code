@@ -423,6 +423,21 @@ export function EnvironmentProviderSettings({
     reportFailure: false,
   });
   const [isRefreshingProviders, setIsRefreshingProviders] = useState(false);
+  // Every model the Claude CLI itself reports, across whichever Claude
+  // instances have been probed. The gateway preset hides these on the
+  // instance it creates so its picker shows only gateway models.
+  const claudeBuiltInModelSlugs = useMemo(
+    () => [
+      ...new Set(
+        serverProviders
+          .filter((provider) => String(provider.driver) === "claudeAgent")
+          .flatMap((provider) =>
+            provider.models.filter((model) => !model.isCustom).map((model) => model.slug),
+          ),
+      ),
+    ],
+    [serverProviders],
+  );
   const [isAddInstanceDialogOpen, setIsAddInstanceDialogOpen] = useState(false);
   const [selectedInstanceId, setSelectedInstanceId] = useState<ProviderInstanceId | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -748,8 +763,11 @@ export function EnvironmentProviderSettings({
     return (
       <ProviderInstanceCard
         key={row.instanceId}
+        environmentId={environmentId}
         instanceId={row.instanceId}
         instance={row.instance}
+        instances={settings.providerInstances}
+        serverProviders={serverProviders}
         driverOption={driverOption}
         liveProvider={liveProvider}
         mode={mode}
@@ -969,6 +987,7 @@ export function EnvironmentProviderSettings({
           open
           environmentId={environmentId}
           environmentLabel={environmentLabel}
+          claudeBuiltInModelSlugs={claudeBuiltInModelSlugs}
           onOpenChange={setIsAddInstanceDialogOpen}
         />
       ) : null}

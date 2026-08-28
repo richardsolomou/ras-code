@@ -263,6 +263,12 @@ import {
 } from "../../providerInstances";
 import { type AppModelOption, getAppModelOptionsForInstance } from "../../modelSelection";
 import type { UnifiedSettings } from "@ras-code/contracts/settings";
+import {
+  activeFallbackNotice,
+  latestFallbackNotice,
+  usageLimitPill,
+} from "../settings/providerUsageLimit.logic";
+import { formatShortTimestamp } from "../../timestampFormat";
 import type { SessionPhase, Thread } from "../../types";
 import type { PendingUserInputDraftAnswer } from "../../pendingUserInput";
 import type { PendingApproval, PendingUserInput } from "../../session-logic";
@@ -1009,6 +1015,29 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     }
     return out;
   }, [providerInstanceEntries, settings]);
+  // Usage-limit and fallback state for the composer's own chrome. Both are
+  // read straight off the live snapshots the picker already uses, so no new
+  // subscription is involved.
+  const activeUsageLimitPill = useMemo(
+    () =>
+      usageLimitPill(
+        providerStatuses.find((provider) => provider.instanceId === selectedInstanceId)?.usageLimit,
+        (isoTime) => formatShortTimestamp(isoTime, settings.timestampFormat),
+      ),
+    [providerStatuses, selectedInstanceId, settings.timestampFormat],
+  );
+  const engagedFallback = useMemo(() => {
+    const notice = latestFallbackNotice(activeThread?.activities ?? []);
+    return activeFallbackNotice({ payload: notice, now: Date.now() });
+  }, [activeThread?.activities]);
+  const engagedFallbackLabel = useMemo(() => {
+    if (engagedFallback === null) return null;
+    const entry = providerInstanceEntries.find(
+      (candidate) => String(candidate.instanceId) === engagedFallback.fallbackInstanceId,
+    );
+    return `Using ${entry?.displayName ?? engagedFallback.fallbackInstanceId} (${engagedFallback.model})`;
+  }, [engagedFallback, providerInstanceEntries]);
+
   const selectedModelForPickerWithCustomFallback = useMemo(() => {
     const currentOptions = modelOptionsByInstance.get(selectedInstanceId) ?? [];
     return currentOptions.some((option) => option.slug === selectedModelForPicker)
@@ -3511,8 +3540,17 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
                       }}
                       getModelDisabledReason={getModelDisabledReason}
                       onInstanceModelChange={onProviderModelSelect}
+                      {...(activeUsageLimitPill ? { usageLimit: activeUsageLimitPill } : {})}
                     />
                   )}
+                  {engagedFallbackLabel ? (
+                    <span
+                      role="status"
+                      className="shrink-0 truncate rounded-full bg-muted/60 px-2 py-0.5 text-[11px] text-muted-foreground"
+                    >
+                      {engagedFallbackLabel}
+                    </span>
+                  ) : null}
 
                   {isComposerFooterCompact ? (
                     <CompactComposerControlsMenu
