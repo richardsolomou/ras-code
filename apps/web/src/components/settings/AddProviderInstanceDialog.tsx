@@ -529,7 +529,7 @@ export function AddProviderInstanceDialog({
                       type="password"
                       autoComplete="off"
                       spellCheck={false}
-                      placeholder="phx_..."
+                      placeholder="phs_..."
                       value={gatewayKey}
                       onChange={(event) => setGatewayKey(event.target.value)}
                       aria-invalid={showGatewayKeyError}

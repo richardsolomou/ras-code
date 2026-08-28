@@ -232,7 +232,7 @@ variables:
 
 ```text
 ANTHROPIC_BASE_URL   https://ai-gateway.us.posthog.com
-ANTHROPIC_AUTH_TOKEN phx_...                            Sensitive
+ANTHROPIC_AUTH_TOKEN phs_...                            Sensitive
 ANTHROPIC_API_KEY                                       Empty value
 ```
 

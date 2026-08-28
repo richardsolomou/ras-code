@@ -13,7 +13,7 @@ import {
   POSTHOG_GATEWAY_PRESET,
 } from "./providerGateway.logic";
 
-const gatewayInstance = () => buildPostHogGatewayInstance({ gatewayKey: "  phx_secret  " });
+const gatewayInstance = () => buildPostHogGatewayInstance({ gatewayKey: "  phs_secret  " });
 
 describe("buildPostHogGatewayInstance", () => {
   it("stores the gateway key as a sensitive variable so it never lands in settings", () => {
@@ -22,7 +22,7 @@ describe("buildPostHogGatewayInstance", () => {
     );
     expect(token).toEqual({
       name: ANTHROPIC_AUTH_TOKEN_VARIABLE,
-      value: "phx_secret",
+      value: "phs_secret",
       sensitive: true,
     });
   });
