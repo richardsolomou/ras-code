@@ -31,7 +31,7 @@ reports them. Older clients can omit every client property.
 | Property               | Values and meaning                                                                                                                                                                              |
 | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `surface`              | Product client: `web`, `desktop`, or `mobile`.                                                                                                                                                  |
-| `webDeployment`        | Web delivery: `hosted` for the hosted app or `server` for web files served by a T3 server. Web only. This does not describe connection distance.                                                |
+| `webDeployment`        | Web delivery: `hosted` for the hosted app or `server` for web files served by a RAS Code server. Web only. This does not describe connection distance.                                          |
 | `clientOs`             | `macOS`, `Windows`, `Linux`, `iOS`, `Android`, `ChromeOS`, `other`, or `unknown`.                                                                                                               |
 | `clientDeviceType`     | `desktop`, `phone`, `tablet`, or `unknown`. This is separate from `surface`.                                                                                                                    |
 | `clientBrowser`        | Normalized browser family. Web only. Browser detection is best effort.                                                                                                                          |
@@ -48,7 +48,7 @@ events.
 | `serverOs`         | Server process OS, normalized to the same names as `clientOs`. |
 | `serverArch`       | Server process architecture.                                   |
 | `serverWslDistro`  | WSL distribution from `WSL_DISTRO_NAME`, when present.         |
-| `serverAppVersion` | T3 server version.                                             |
+| `serverAppVersion` | RAS Code server version.                                       |
 | `serverMode`       | Server runtime mode: `desktop` or `web`.                       |
 
 ## Legacy properties

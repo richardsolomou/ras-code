@@ -26,6 +26,7 @@ export const preservedPatterns: ReadonlyArray<RegExp> = [
   /\bt3-chat\b/g,
   /\b[\w-]*\.?t3\.codes\b/g,
   /\bpingdotgg\/t3code\b/g,
+  /\bt3_relay\b/g,
 ];
 
 const textRules: ReadonlyArray<RebrandRule> = [

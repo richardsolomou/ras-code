@@ -95,6 +95,11 @@ describe("rebrandText do-not-rename list", () => {
     const source = "https://github.com/pingdotgg/t3code/pull/8235";
     assert.strictEqual(rebrandText(source), source);
   });
+
+  it("keeps the relay provider kind wire value", () => {
+    const source = 'providerKind: "t3_relay",';
+    assert.strictEqual(rebrandText(source), source);
+  });
 });
 
 describe("mapUpstreamPath", () => {

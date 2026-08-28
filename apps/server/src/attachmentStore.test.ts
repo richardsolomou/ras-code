@@ -111,7 +111,7 @@ describe("attachmentStore", () => {
 
   it("resolves generic attachments without scanning the attachment directory", () => {
     const attachmentsDir = NodeFS.mkdtempSync(
-      NodePath.join(NodeOS.tmpdir(), "t3code-file-attachment-"),
+      NodePath.join(NodeOS.tmpdir(), "ras-code-file-attachment-"),
     );
     try {
       const attachmentId = "thread-1-00000000-0000-4000-8000-000000000001-zip";
