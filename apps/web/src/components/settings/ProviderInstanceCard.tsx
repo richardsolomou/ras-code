@@ -44,6 +44,7 @@ import { providerSettingsTabClassName } from "./providerSettingsTabs";
 import { ProviderSettingsForm } from "./ProviderSettingsForm";
 import { ProviderModelsSection } from "./ProviderModelsSection";
 import { ProviderFallbackSection } from "./ProviderFallbackSection";
+import { instancesFallingBackTo } from "./providerFallback.logic";
 import {
   instanceUsesGateway,
   LEGACY_POSTHOG_GATEWAY_INSTANCE_ID,
@@ -498,6 +499,7 @@ export function ProviderInstanceCard({
     ? instance.driver
     : null;
   const visibleTab = driverOption === undefined ? "configuration" : activeTab;
+  const fallbackFor = instancesFallingBackTo({ instanceId, instances });
 
   const customModels = readConfigStringArray(instance.config, "customModels");
   // Server-returned models may lag behind settings writes. Treat probe
@@ -911,6 +913,21 @@ export function ProviderInstanceCard({
               onChange={updateEnvironment}
             />
           </div>
+
+          {fallbackFor.length > 0 ? (
+            <p className="text-xs text-muted-foreground">
+              Used as the fallback for{" "}
+              {fallbackFor.map((candidate, index) => (
+                <span key={candidate.instanceId}>
+                  {index > 0 ? ", " : ""}
+                  <span className="text-foreground">{candidate.displayName}</span>
+                </span>
+              ))}
+              .
+            </p>
+          ) : driverOption?.purpose ? (
+            <p className="text-xs text-muted-foreground">{driverOption.purpose}</p>
+          ) : null}
 
           <div>
             <ProviderFallbackSection

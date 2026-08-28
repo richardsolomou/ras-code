@@ -334,6 +334,9 @@ export function AddProviderInstanceDialog({
                     );
                   })}
                 </RadioGroup>
+                {driverOption.purpose ? (
+                  <p className="text-xs text-muted-foreground">{driverOption.purpose}</p>
+                ) : null}
               </div>
 
               <label className={cn("grid gap-2", wizardStep !== 1 && "hidden")}>

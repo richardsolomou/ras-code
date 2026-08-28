@@ -33,6 +33,12 @@ export interface ProviderClientDefinition {
    * built-in default or custom — advertises the same marker.
    */
   readonly badgeLabel?: string;
+  /**
+   * Optional one-line explanation of what this driver is for, shown where the
+   * user is choosing or reviewing a driver. Only drivers whose purpose is not
+   * obvious from their name carry one.
+   */
+  readonly purpose?: string;
 }
 
 export const PROVIDER_CLIENT_DEFINITIONS: readonly ProviderClientDefinition[] = [
@@ -53,6 +59,8 @@ export const PROVIDER_CLIENT_DEFINITIONS: readonly ProviderClientDefinition[] = 
     label: "PostHog AI Gateway",
     icon: PostHog,
     settingsSchema: PostHogGatewaySettings,
+    purpose:
+      "Set this as the fallback on a Claude or Codex instance to keep working on the same model when its usage limit is reached.",
   },
   {
     value: ProviderDriverKind.make("cursor"),

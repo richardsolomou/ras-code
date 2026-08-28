@@ -33,6 +33,22 @@ export function selectableFallbackInstances(input: {
     }));
 }
 
+/**
+ * Instances configured to fall back to `instanceId`, so its card can say
+ * what it is currently doing rather than leaving that state undiscoverable.
+ */
+export function instancesFallingBackTo(input: {
+  readonly instanceId: ProviderInstanceId;
+  readonly instances: ProviderInstanceConfigMap;
+}): ReadonlyArray<FallbackCandidate> {
+  return Object.entries(input.instances)
+    .filter(([, candidate]) => candidate.fallback?.instanceId === input.instanceId)
+    .map(([candidateId, candidate]) => ({
+      instanceId: candidateId as ProviderInstanceId,
+      displayName: candidate.displayName?.trim() || candidateId,
+    }));
+}
+
 export type FallbackModelMode = "same" | "specific";
 
 export function fallbackModelMode(instance: ProviderInstanceConfig): FallbackModelMode {
