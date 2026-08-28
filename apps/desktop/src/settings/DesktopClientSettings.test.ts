@@ -1,6 +1,10 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, it } from "@effect/vitest";
-import { ClientSettingsSchema, type ClientSettings } from "@ras-code/contracts";
+import {
+  ClientSettingsSchema,
+  DEFAULT_NOTIFICATION_SETTINGS,
+  type ClientSettings,
+} from "@ras-code/contracts";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
@@ -18,6 +22,7 @@ const clientSettings: ClientSettings = {
   browserDefaultZoomFactor: 1.25,
   browserDefaultAppearance: "dark",
   browserAutoShowFloatingPreview: false,
+  notifications: DEFAULT_NOTIFICATION_SETTINGS,
   confirmQuit: true,
   confirmThreadArchive: true,
   confirmThreadDelete: false,

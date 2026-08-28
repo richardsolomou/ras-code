@@ -1061,6 +1061,15 @@ export const DesktopPreviewAutomationWaitForInputSchema = Schema.Struct({
   input: PreviewAutomationWaitForInput,
 });
 
+export const DesktopNotificationSchema = Schema.Struct({
+  /** Echoed back on activation so the renderer knows where to navigate. */
+  id: Schema.String,
+  title: Schema.String,
+  body: Schema.String,
+  silent: Schema.Boolean,
+});
+export type DesktopNotification = typeof DesktopNotificationSchema.Type;
+
 export interface DesktopBridge {
   getAppBranding: () => DesktopAppBranding | null;
   /**
@@ -1131,6 +1140,17 @@ export interface DesktopBridge {
    */
   probeRemoteEditors?: () => Promise<readonly EditorId[]>;
   onMenuAction: (listener: (action: string) => void) => () => void;
+  /**
+   * Show an OS notification from the main process, so it carries the RAS Code
+   * icon and arrives while the window is hidden. Resolves false when the OS
+   * suppresses notifications. Optional: older desktop builds lack it, and the
+   * web client falls back to the browser `Notification` API.
+   */
+  notify?: (notification: DesktopNotification) => Promise<boolean>;
+  /** Fires with the `id` of a notification the user clicked. */
+  onNotificationActivated?: (listener: (id: string) => void) => () => void;
+  /** Dock/taskbar badge. Zero clears it. Optional for the same reason. */
+  setBadgeCount?: (count: number) => Promise<boolean>;
   /**
    * Hold-to-quit hint pushes: "down" when the quit shortcut is first pressed,
    * "up" when it is released before the hold completes. Optional: older

@@ -123,6 +123,19 @@ contextBridge.exposeInMainWorld("desktopBridge", {
       ipcRenderer.removeListener(IpcChannels.MENU_ACTION_CHANNEL, wrappedListener);
     };
   },
+  notify: (notification) => ipcRenderer.invoke(IpcChannels.NOTIFY_CHANNEL, notification),
+  onNotificationActivated: (listener) => {
+    const wrappedListener = (_event: Electron.IpcRendererEvent, id: unknown) => {
+      if (typeof id !== "string") return;
+      listener(id);
+    };
+
+    ipcRenderer.on(IpcChannels.NOTIFICATION_ACTIVATED_CHANNEL, wrappedListener);
+    return () => {
+      ipcRenderer.removeListener(IpcChannels.NOTIFICATION_ACTIVATED_CHANNEL, wrappedListener);
+    };
+  },
+  setBadgeCount: (count: number) => ipcRenderer.invoke(IpcChannels.SET_BADGE_COUNT_CHANNEL, count),
   onQuitShortcut: (listener) => {
     const wrappedListener = (_event: Electron.IpcRendererEvent, state: unknown) => {
       if (state !== "down" && state !== "up") return;

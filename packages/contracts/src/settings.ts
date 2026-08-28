@@ -140,6 +140,35 @@ export type FontFamilyPreference = typeof FontFamilyPreference.Type;
 export const DEFAULT_BROWSER_VIEWPORT: PreviewViewportSetting = FILL_PREVIEW_VIEWPORT;
 export const DEFAULT_BROWSER_AUTO_SHOW_FLOATING_PREVIEW = true;
 
+/**
+ * Local notifications. Clients derive these from thread state transitions they
+ * observe while connected, so the settings live next to the other client-local
+ * preferences rather than on the server.
+ */
+export const NotificationEventSettings = Schema.Struct({
+  turnCompleted: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(true))),
+  turnFailed: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(true))),
+  approvalRequested: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(true))),
+  userInputRequested: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(true))),
+  // Off by default: a fallback is informational, and the turn that follows it
+  // announces itself anyway.
+  fallbackEngaged: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(false))),
+});
+export type NotificationEventSettings = typeof NotificationEventSettings.Type;
+export type NotificationEventKind = keyof NotificationEventSettings;
+
+export const NotificationSettings = Schema.Struct({
+  enabled: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(true))),
+  sound: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(true))),
+  events: NotificationEventSettings.pipe(Schema.withDecodingDefault(Effect.succeed({}))),
+  onlyWhenUnfocused: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(true))),
+});
+export type NotificationSettings = typeof NotificationSettings.Type;
+
+export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = Schema.decodeSync(
+  NotificationSettings,
+)({});
+
 export const ClientSettingsSchema = Schema.Struct({
   appearanceContrast: AppearanceContrast.pipe(
     Schema.withDecodingDefault(Effect.succeed(DEFAULT_APPEARANCE_CONTRAST)),
@@ -231,6 +260,7 @@ export const ClientSettingsSchema = Schema.Struct({
   // old keys, so everyone, including prior beta opt-outs, resets to the new
   // default sidebar.
   legacySidebarEnabled: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(false))),
+  notifications: NotificationSettings.pipe(Schema.withDecodingDefault(Effect.succeed({}))),
   sidebarAutoSettleAfterDays: Schema.NullOr(SidebarAutoSettleAfterDays).pipe(
     Schema.withDecodingDefault(Effect.succeed(DEFAULT_SIDEBAR_AUTO_SETTLE_AFTER_DAYS)),
   ),
@@ -947,6 +977,7 @@ export const ClientSettingsPatch = Schema.Struct({
       }),
     ),
   ),
+  notifications: Schema.optionalKey(NotificationSettings),
   planModeEnabled: Schema.optionalKey(Schema.Boolean),
   showSkillsInSlashMenu: Schema.optionalKey(Schema.Boolean),
   legacySidebarEnabled: Schema.optionalKey(Schema.Boolean),

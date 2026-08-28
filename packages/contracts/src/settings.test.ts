@@ -162,6 +162,49 @@ describe("ClientSettings sidebar", () => {
   });
 });
 
+describe("ClientSettings notifications", () => {
+  it("defaults to enabled notifications for everything but a provider fallback", () => {
+    const { notifications } = decodeClientSettings({});
+    expect(notifications).toEqual({
+      enabled: true,
+      sound: true,
+      onlyWhenUnfocused: true,
+      events: {
+        turnCompleted: true,
+        turnFailed: true,
+        approvalRequested: true,
+        userInputRequested: true,
+        fallbackEngaged: false,
+      },
+    });
+  });
+
+  it("fills unknown event toggles from their defaults, keeping stored ones", () => {
+    const { notifications } = decodeClientSettings({
+      notifications: { sound: false, events: { fallbackEngaged: true } },
+    });
+    expect(notifications.sound).toBe(false);
+    expect(notifications.enabled).toBe(true);
+    expect(notifications.events.fallbackEngaged).toBe(true);
+    expect(notifications.events.turnCompleted).toBe(true);
+  });
+
+  it("carries a full notification object through the patch boundary", () => {
+    const patched = decodeClientSettingsPatch({
+      notifications: { enabled: false, events: { turnFailed: false } },
+    });
+    expect(patched.notifications?.enabled).toBe(false);
+    expect(patched.notifications?.events.turnFailed).toBe(false);
+    expect(patched.notifications?.events.approvalRequested).toBe(true);
+  });
+
+  it("rejects a non-boolean event toggle", () => {
+    expect(() =>
+      decodeClientSettings({ notifications: { events: { turnCompleted: "yes" } } }),
+    ).toThrow();
+  });
+});
+
 describe("ServerSettings.providerInstances (slice-2 invariant)", () => {
   it("defaults text generation to Luna at low reasoning effort", () => {
     expect(DEFAULT_SERVER_SETTINGS.textGenerationModelSelection).toEqual({

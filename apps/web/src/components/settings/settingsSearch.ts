@@ -204,6 +204,23 @@ export const SETTINGS_SEARCH_ITEMS = [
     to: "/settings/general",
   },
   {
+    id: "notifications",
+    title: "Notifications",
+    to: "/settings/general",
+  },
+  {
+    id: "notification-sound",
+    title: "Notification sound",
+    to: "/settings/general",
+    targetId: "notifications",
+  },
+  {
+    id: "notifications-only-when-unfocused",
+    title: "Only notify when unfocused",
+    to: "/settings/general",
+    targetId: "notifications",
+  },
+  {
     id: "keybindings",
     title: "Keybindings",
     to: "/settings/keybindings",

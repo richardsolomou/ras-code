@@ -137,6 +137,7 @@ import {
   rememberEnabledProjectGroupingMode,
   resolveBackgroundActivityProfileOption,
 } from "./SettingsPanels.logic";
+import { NotificationsSettingsSection } from "./NotificationsSettings";
 import {
   PolicyTooltip,
   SettingResetButton,
@@ -2544,6 +2545,8 @@ export function GeneralSettingsPanel() {
           }
         />
       </SettingsSection>
+
+      <NotificationsSettingsSection />
 
       <SettingsSection title="About">
         {isElectron || HOSTED_APP_CHANNEL ? (
