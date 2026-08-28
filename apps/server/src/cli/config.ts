@@ -175,6 +175,7 @@ export const sharedServerLocationFlags = {
 
 export const projectLocationFlags = {
   baseDir: baseDirFlag,
+  devUrl: devUrlFlag,
 } as const;
 
 export const sharedServerCommandFlags = {
