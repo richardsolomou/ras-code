@@ -1,5 +1,5 @@
 import { it as effectIt } from "@effect/vitest";
-import { PreviewAutomationStatus } from "@t3tools/contracts";
+import { PreviewAutomationStatus } from "@ras-code/contracts";
 import * as Cause from "effect/Cause";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";

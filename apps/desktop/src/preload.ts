@@ -11,7 +11,7 @@ import * as IpcChannels from "./ipc/channels.ts";
 
 exposeClerkBridge({ passkeys: true });
 
-// oxlint-disable-next-line t3code/no-global-process-runtime -- Electron exposes the client platform in its sandboxed preload process.
+// oxlint-disable-next-line ras-code/no-global-process-runtime -- Electron exposes the client platform in its sandboxed preload process.
 const clientPlatform = process.platform;
 
 function unwrapEnsureSshEnvironmentResult(result: unknown) {

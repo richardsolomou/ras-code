@@ -96,6 +96,13 @@ describe("rebrandText do-not-rename list", () => {
     assert.strictEqual(rebrandText(source), source);
   });
 
+  it("does not double the Code in camelCase identifiers", () => {
+    assert.strictEqual(
+      rebrandText("t3CodeVersion, t3Code, t3Config"),
+      "rasCodeVersion, rasCode, rasCodeConfig",
+    );
+  });
+
   it("keeps the relay provider kind wire value", () => {
     const source = 'providerKind: "t3_relay",';
     assert.strictEqual(rebrandText(source), source);

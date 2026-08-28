@@ -64,7 +64,7 @@ rl.on("line", (line) => {
   if (method === "thread/resume") {
     if (script.recordRequests) {
       NodeFS.appendFileSync(
-        `${process.env.T3_CODEX_COLLAB_SCRIPT}.requests`,
+        `${process.env.RAS_CODEX_COLLAB_SCRIPT}.requests`,
         `${JSON.stringify({ method, params: message.params })}\n`,
       );
     }

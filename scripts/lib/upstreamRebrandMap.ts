@@ -152,6 +152,11 @@ const textRules: ReadonlyArray<RebrandRule> = [
     description: "state directory",
   },
   {
+    pattern: /\bt3Code(?=[A-Z]|\b)/g,
+    replacement: "rasCode",
+    description: "camelCase identifiers that already carry Code",
+  },
+  {
     pattern: /\bt3(?=[A-Z])/g,
     replacement: "rasCode",
     description: "camelCase identifiers",

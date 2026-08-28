@@ -7,7 +7,7 @@ import * as Layer from "effect/Layer";
 import * as HttpServer from "effect/unstable/http/HttpServer";
 import * as HttpServerRequest from "effect/unstable/http/HttpServerRequest";
 import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse";
-import { HostProcessArchitecture, HostProcessPlatform } from "@t3tools/shared/hostProcess";
+import { HostProcessArchitecture, HostProcessPlatform } from "@ras-code/shared/hostProcess";
 
 import * as ServerConfig from "../config.ts";
 import { getTelemetryIdentifier } from "./Identify.ts";
@@ -25,7 +25,7 @@ interface RecordedBatchRequest {
         readonly serverArch?: string;
         readonly serverAppVersion?: string;
         readonly serverMode?: string;
-        readonly t3CodeVersion?: string;
+        readonly rasCodeVersion?: string;
       };
     }>;
   } | null;
@@ -41,7 +41,7 @@ interface RecordedBatchBody {
       readonly serverArch?: string;
       readonly serverAppVersion?: string;
       readonly serverMode?: string;
-      readonly t3CodeVersion?: string;
+      readonly rasCodeVersion?: string;
     };
   }>;
 }
@@ -140,7 +140,7 @@ it.layer(NodeServices.layer)("AnalyticsService test", (it) => {
             (event) =>
               event.properties?.serverOs === "Linux" &&
               event.properties.serverArch === "arm64" &&
-              event.properties.serverAppVersion === event.properties.t3CodeVersion &&
+              event.properties.serverAppVersion === event.properties.rasCodeVersion &&
               event.properties.serverMode === "web",
           ),
         ),
