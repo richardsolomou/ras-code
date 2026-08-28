@@ -70,7 +70,10 @@ const compose = (overrides: {
   });
 
 interface StubAdapter {
-  readonly startInputs: Array<{ readonly provider?: string | undefined }>;
+  readonly startInputs: Array<{
+    readonly provider?: string | undefined;
+    readonly modelSelection?: { readonly instanceId: string; readonly model: string } | undefined;
+  }>;
   readonly adapter: ProviderAdapterShape<ProviderAdapterError>;
   readonly calls: Array<string>;
   readonly sessions: Set<string>;
@@ -81,7 +84,7 @@ const stubAdapter = (
   events: ReadonlyArray<ProviderRuntimeEvent> = [],
 ): StubAdapter => {
   const calls: Array<string> = [];
-  const startInputs: Array<{ readonly provider?: string | undefined }> = [];
+  const startInputs: StubAdapter["startInputs"] = [];
   const sessions = new Set<string>();
   const session = (threadId: ThreadId): ProviderSession => ({
     provider: ProviderDriverKind.make(driver),
@@ -147,6 +150,10 @@ const makeAdapter = (anthropic: StubAdapter, openai: StubAdapter) =>
   makeGatewayAdapter({
     instanceId: INSTANCE,
     children: { anthropic: anthropic.adapter, openai: openai.adapter },
+    childInstanceIds: {
+      anthropic: ProviderInstanceId.make(`${INSTANCE}_claude`),
+      openai: ProviderInstanceId.make(`${INSTANCE}_codex`),
+    },
   });
 
 describe("resolveGatewayBaseUrl", () => {
@@ -298,6 +305,8 @@ describe("makeGatewayAdapter", () => {
         modelSelection: { instanceId: INSTANCE, model: "zai-org/glm-5.2" },
       });
       assert.strictEqual(openai.startInputs[0]?.provider, "codex");
+      assert.strictEqual(openai.startInputs[0]?.modelSelection?.instanceId, `${INSTANCE}_codex`);
+      assert.strictEqual(openai.startInputs[0]?.modelSelection?.model, "zai-org/glm-5.2");
     }),
   );
 

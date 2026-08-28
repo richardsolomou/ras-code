@@ -159,6 +159,16 @@ describe("fallbackNeedsExplicitModel", () => {
     ).toBe(true);
   });
 
+  it("lets a gateway fallback reuse the primary's model whatever driver it runs on", () => {
+    const gateway = ProviderInstanceId.make("posthog_gateway");
+    const gatewayInstances = {
+      [gateway]: instance({ driver: ProviderDriverKind.make("posthogGateway") }),
+    };
+    expect(
+      fallbackNeedsExplicitModel(instance({ fallback: { instanceId: gateway } }), gatewayInstances),
+    ).toBe(false);
+  });
+
   it("is satisfied once a model is pinned", () => {
     expect(
       fallbackNeedsExplicitModel(

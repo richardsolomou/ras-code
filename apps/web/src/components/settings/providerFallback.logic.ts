@@ -90,6 +90,12 @@ export function fallbackNeedsExplicitModel(
   continuationKeys?: ContinuationKeys,
   instanceId?: ProviderInstanceId,
 ): boolean {
+  const fallbackId = instance.fallback?.instanceId;
+  // The gateway serves both model shapes, so the primary's own model is valid
+  // there whatever driver the primary runs on.
+  if (fallbackId !== undefined && String(instances[fallbackId]?.driver) === "posthogGateway") {
+    return false;
+  }
   return (
     fallbackDriverRelation(instance, instances, continuationKeys, instanceId) === "cross-driver" &&
     !instance.fallback?.model

@@ -25,11 +25,25 @@ export function ProviderIcon(props: ProviderIconProps) {
 
   if (props.provider === "posthogGateway") {
     return (
-      <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Svg width={size} height={size} viewBox="0 0 52 28" fill="none">
+        <Path fill="#1D4AFF" d="M10.74 7.16 4.54.8A2.66 2.66 0 0 0 0 2.66V7.5l10.74 11.18z" />
+        <Path fill="#1D4AFF" d="M9.19 28h1.55v-9.32L0 7.5v10.73z" />
+        <Path fill="#1D4AFF" d="M0 25.41A2.6 2.6 0 0 0 2.58 28H9.2L0 18.23z" />
         <Path
           fill="#F54E00"
-          fillRule="evenodd"
-          d="M3 18 L4.3 12.6 L6.1 15 L6.6 9.4 L8.7 13 L10 7.8 L11.8 11.8 L13.8 7.4 L15 11.2 L16.9 9.4 C19 10.2 20.4 11.6 21.1 13.3 L22.8 14.6 L21.3 15.6 C21.3 16.5 21 17.3 20.5 18 Z M17.25 12.6 a0.85 0.85 0 1 0 1.7 0 a0.85 0.85 0 1 0 -1.7 0 Z"
+          d="M10.74 2.66v4.5l11.22 11.52V7.63L15.3.8a2.66 2.66 0 0 0-4.56 1.86"
+        />
+        <Path fill="#F54E00" d="M10.74 28h8.96l-8.96-9.32z" />
+        <Path fill="#F54E00" d="M10.74 7.16v11.52L19.7 28h2.26v-9.32z" />
+        <Path
+          fill="#F9BD2B"
+          d="M21.96 2.67v4.96l11.3 11.6h.02V7.75L26.63.85a2.8 2.8 0 0 0-2-.85 2.67 2.67 0 0 0-2.67 2.67"
+        />
+        <Path fill="#F9BD2B" d="M21.96 7.63v11.05L31.03 28h2.25v-8.75z" />
+        <Path fill="#F9BD2B" d="M21.96 28h9.07l-9.07-9.32z" />
+        <Path
+          fill={mono}
+          d="M51.66 25.22A1.9 1.9 0 0 0 50 23.33l-.34-.04c-1-.13-1.94-.6-2.65-1.33L33.28 7.75V28H49a2.66 2.66 0 0 0 2.67-2.67zM39.2 23.54h-.09a1.78 1.78 0 1 1 .1 0"
         />
       </Svg>
     );

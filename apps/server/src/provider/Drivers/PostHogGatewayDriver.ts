@@ -32,6 +32,7 @@ import {
   ProviderInstanceId,
   type ProviderInstanceEnvironment,
   type ProviderRemoteModel,
+  type ModelSelection,
   type ProviderRuntimeEvent,
   type ProviderSession,
   type ProviderUsageLimit,
@@ -320,10 +321,29 @@ interface ChildAdapters {
 export function makeGatewayAdapter(input: {
   readonly instanceId: ProviderInstanceId;
   readonly children: ChildAdapters;
+  readonly childInstanceIds: Readonly<Record<GatewayModelShape, ProviderInstanceId>>;
 }): ProviderAdapterShape<ProviderAdapterError> {
-  const { instanceId, children } = input;
+  const { instanceId, children, childInstanceIds } = input;
   const routes = new Map<ThreadId, GatewayModelShape>();
   const childFor = (shape: GatewayModelShape) => children[shape];
+
+  // Children validate the inbound provider kind and only honour a model whose
+  // selection names their own instance, so both are translated on the way in.
+  const forChild = <
+    T extends {
+      readonly provider?: ProviderDriverKind | undefined;
+      readonly modelSelection?: ModelSelection | undefined;
+    },
+  >(
+    shape: GatewayModelShape,
+    call: T,
+  ): T => ({
+    ...call,
+    provider: childFor(shape).provider,
+    ...(call.modelSelection
+      ? { modelSelection: { ...call.modelSelection, instanceId: childInstanceIds[shape] } }
+      : {}),
+  });
 
   const crossShapeError = (method: string) =>
     new ProviderAdapterRequestError({
@@ -350,11 +370,11 @@ export function makeGatewayAdapter(input: {
    * session. Falls back to the Anthropic harness so a call on an unknown
    * thread still produces that harness's own not-found error.
    */
-  const resolveChild = (input: {
+  const resolveShape = (input: {
     readonly threadId: ThreadId;
     readonly model?: string | undefined;
     readonly method: string;
-  }) =>
+  }): Effect.Effect<GatewayModelShape, ProviderAdapterError> =>
     Effect.gen(function* () {
       const recorded = routes.get(input.threadId);
       const requested = input.model === undefined ? undefined : gatewayModelShape(input.model);
@@ -362,16 +382,21 @@ export function makeGatewayAdapter(input: {
         if (requested !== undefined && requested !== recorded) {
           return yield* crossShapeError(input.method);
         }
-        return childFor(recorded);
+        return recorded;
       }
       if (requested !== undefined) {
-        return childFor(requested);
+        return requested;
       }
       const ownedByAnthropic = yield* children.anthropic.hasSession(input.threadId);
-      if (ownedByAnthropic) return children.anthropic;
+      if (ownedByAnthropic) return "anthropic" as const;
       const ownedByOpenai = yield* children.openai.hasSession(input.threadId);
-      return ownedByOpenai ? children.openai : children.anthropic;
+      return ownedByOpenai ? ("openai" as const) : ("anthropic" as const);
     });
+  const resolveChild = (input: {
+    readonly threadId: ThreadId;
+    readonly model?: string | undefined;
+    readonly method: string;
+  }) => resolveShape(input).pipe(Effect.map(childFor));
 
   return {
     provider: DRIVER_KIND,
@@ -381,19 +406,16 @@ export function makeGatewayAdapter(input: {
     startSession: (sessionInput) =>
       Effect.gen(function* () {
         const shape = gatewayModelShape(sessionInput.modelSelection?.model ?? "");
-        const child = childFor(shape);
-        // Children validate the inbound provider kind against their own, so the
-        // composite kind is translated on the way in and back on the way out.
-        const session = yield* child.startSession({ ...sessionInput, provider: child.provider });
+        const session = yield* childFor(shape).startSession(forChild(shape, sessionInput));
         routes.set(sessionInput.threadId, shape);
         return stampSession(session);
       }),
     sendTurn: (turnInput) =>
-      resolveChild({
+      resolveShape({
         threadId: turnInput.threadId,
         model: turnInput.modelSelection?.model,
         method: "sendTurn",
-      }).pipe(Effect.flatMap((child) => child.sendTurn(turnInput))),
+      }).pipe(Effect.flatMap((shape) => childFor(shape).sendTurn(forChild(shape, turnInput)))),
     interruptTurn: (threadId, turnId) =>
       resolveChild({ threadId, method: "interruptTurn" }).pipe(
         Effect.flatMap((child) => child.interruptTurn(threadId, turnId)),
@@ -581,6 +603,10 @@ export const PostHogGatewayDriver: ProviderDriver<PostHogGatewaySettings, PostHo
 
         const adapter = makeGatewayAdapter({
           instanceId,
+          childInstanceIds: {
+            anthropic: childInstanceId(instanceId, "claude"),
+            openai: childInstanceId(instanceId, "codex"),
+          },
           children: { anthropic: claudeChild.adapter, openai: codexChild.adapter },
         });
 

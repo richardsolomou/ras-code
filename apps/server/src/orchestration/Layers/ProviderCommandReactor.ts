@@ -678,7 +678,16 @@ const make = Effect.gen(function* () {
       instanceInfo !== undefined &&
       instanceInfo.primary.continuationIdentity.continuationKey ===
         instanceInfo.fallback.continuationIdentity.continuationKey;
-    if (instanceInfo !== undefined && !sharesContinuation && !fallback.model?.trim()) {
+    // The gateway composite serves every model shape, so the turn's own model
+    // is valid there even without a shared continuation key.
+    const fallbackServesAnyShape =
+      instanceInfo !== undefined && String(instanceInfo.fallback.driverKind) === "posthogGateway";
+    if (
+      instanceInfo !== undefined &&
+      !sharesContinuation &&
+      !fallbackServesAnyShape &&
+      !fallback.model?.trim()
+    ) {
       yield* Effect.logWarning("provider fallback skipped: cross-driver binding names no model", {
         instanceId: input.selection.instanceId,
         fallbackInstanceId: fallback.instanceId,
