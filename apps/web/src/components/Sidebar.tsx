@@ -2276,19 +2276,6 @@ export default function Sidebar() {
     () => [...pinnedThreads, ...activeThreads, ...visibleSnoozedThreads, ...renderedSettledThreads],
     [pinnedThreads, activeThreads, visibleSnoozedThreads, renderedSettledThreads],
   );
-  // Legend counts read the same partitions the rows do, so the strip can
-  // never disagree with the lamps above it. Shelved threads count: a snoozed
-  // thread still working is still working.
-  const legendCounts = useMemo(() => {
-    let working = 0;
-    let waiting = 0;
-    for (const thread of [...pinnedThreads, ...activeThreads, ...snoozedThreads]) {
-      const threadStatus = resolveSidebarThreadStatus(thread);
-      if (threadStatus === "working" || threadStatus === "monitoring") working += 1;
-      else if (threadStatus === "approval" || threadStatus === "input") waiting += 1;
-    }
-    return { working, waiting };
-  }, [pinnedThreads, activeThreads, snoozedThreads]);
   const orderedThreadKeys = useMemo(
     () =>
       orderedThreads.map((thread) =>
@@ -4012,7 +3999,7 @@ export default function Sidebar() {
           ) : null}
         </SidebarGroup>
       </SidebarContent>
-      <SidebarChromeFooter legendCounts={legendCounts} />
+      <SidebarChromeFooter />
     </>
   );
 }

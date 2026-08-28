@@ -26,7 +26,6 @@ import {
   useSidebar,
 } from "../ui/sidebar";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
-import { SidebarLegendStrip } from "./SidebarLegendStrip";
 import { SidebarProviderUpdatePill } from "./SidebarProviderUpdatePill";
 import { SidebarUpdateArchitectureWarning, SidebarUpdatePill } from "./SidebarUpdatePill";
 
@@ -238,23 +237,11 @@ export const SidebarUtilityMenu = memo(function SidebarUtilityMenu() {
   );
 });
 
-/** `legendCounts` is omitted by sidebar implementations that do not partition
- * threads by console state; the legend strip is then left out entirely. */
-export const SidebarChromeFooter = memo(function SidebarChromeFooter({
-  legendCounts,
-}: {
-  legendCounts?: { readonly working: number; readonly waiting: number };
-}) {
+export const SidebarChromeFooter = memo(function SidebarChromeFooter() {
   return (
     <SidebarFooter className="p-[var(--sidebar-content-inset)]">
       <SidebarProviderUpdatePill />
       <SidebarUpdateArchitectureWarning />
-      {legendCounts ? (
-        <SidebarLegendStrip
-          workingCount={legendCounts.working}
-          waitingCount={legendCounts.waiting}
-        />
-      ) : null}
       <SidebarUtilityMenu />
     </SidebarFooter>
   );
