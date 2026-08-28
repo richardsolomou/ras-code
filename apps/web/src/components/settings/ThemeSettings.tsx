@@ -19,7 +19,7 @@ import {
   type ThemeAppearance,
   type ThemeDefinition,
   type ThemeHalves,
-  RAS_CODE_THEME,
+  GRAPHITE_THEME,
   EMBER_THEME,
   GROVE_THEME,
   IRIS_THEME,
@@ -51,7 +51,7 @@ import {
 import { ThemeWireframe } from "./ThemeWireframe";
 
 const MAINTAINER_THEMES: ReadonlyArray<ThemeDefinition> = [
-  RAS_CODE_THEME,
+  GRAPHITE_THEME,
   GROVE_THEME,
   OCEAN_THEME,
   EMBER_THEME,

@@ -22,7 +22,7 @@
           light: {
             background: "#ffffff",
             foreground: "#262626",
-            accent: "#4f46e5",
+            accent: "#2a2733",
           },
           dark: {
             background: "#16141C",
@@ -36,33 +36,33 @@
         // app colors before React mounts.
         const DEFAULT_THEME_PALETTES = {
           light: {
-            background: "oklch(0.982446 0.010114 325.653)",
-            foreground: "oklch(0.325698 0.116116 325.037)",
-            accent: "oklch(0.591646 0.217985 0.584)",
-            chrome: "oklch(0.982446 0.010114 325.653)",
+            background: "oklch(0.985104 0 0)",
+            foreground: "oklch(0.210331 0.00586 285.885)",
+            accent: "oklch(0.210331 0.00586 285.885)",
+            chrome: "oklch(0.985104 0 0)",
           },
           dark: {
-            background: "oklch(0.22813 0.020366 307.469)",
-            foreground: "oklch(0.980735 0.004092 301.426)",
-            accent: "oklch(0.460685 0.185347 4.099)",
-            chrome: "oklch(0.22813 0.020366 307.469)",
+            background: "oklch(0.182204 0 0)",
+            foreground: "oklch(0.946105 0 0)",
+            accent: "oklch(0.946105 0 0)",
+            chrome: "oklch(0.182204 0 0)",
           },
         };
         // Keep this small boot-time copy in sync with the built-in palettes so
         // the selected theme is visible before the app has mounted.
         const BUILT_IN_THEME_PALETTES = {
-          "ras-code": {
+          graphite: {
             light: {
-              background: "oklch(0.982446 0.010114 325.653)",
-              foreground: "oklch(0.325698 0.116116 325.037)",
-              accent: "oklch(0.591646 0.217985 0.584)",
-              chrome: "oklch(0.982446 0.010114 325.653)",
+              background: "oklch(0.985104 0 0)",
+              foreground: "oklch(0.210331 0.00586 285.885)",
+              accent: "oklch(0.210331 0.00586 285.885)",
+              chrome: "oklch(0.985104 0 0)",
             },
             dark: {
-              background: "oklch(0.22813 0.020366 307.469)",
-              foreground: "oklch(0.980735 0.004092 301.426)",
-              accent: "oklch(0.460685 0.185347 4.099)",
-              chrome: "oklch(0.22813 0.020366 307.469)",
+              background: "oklch(0.182204 0 0)",
+              foreground: "oklch(0.946105 0 0)",
+              accent: "oklch(0.946105 0 0)",
+              chrome: "oklch(0.182204 0 0)",
             },
           },
           grove: {
@@ -135,6 +135,7 @@
           "light",
           "dark",
           "ras-code",
+          "graphite",
           "grove",
           "ocean",
           "ember",
@@ -224,8 +225,8 @@
           // and every built-in theme under a t3- prefix; keep those
           // preferences readable. Mirrors the runtime's legacy alias table.
           const LEGACY_THEME_IDS = {
-            "t3-chat": "ras-code",
-            "t3-chat-dark": "ras-code",
+            "t3-chat": "graphite",
+            "t3-chat-dark": "graphite",
             "t3-grove": "grove",
             "t3-ocean": "ocean",
             "t3-ember": "ember",
@@ -384,6 +385,8 @@
             for (const [name, value] of Object.entries(splashColors)) {
               document.documentElement.style.setProperty(`--boot-${name}`, value);
             }
+          } else {
+            document.documentElement.style.setProperty("--boot-accent", fallbackSplash.accent);
           }
           setThemeColor(chromeColor);
         } catch {
@@ -450,9 +453,9 @@
       }
 
       #boot-shell-logo {
-        width: 64px;
+        width: 40px;
         height: 64px;
-        object-fit: contain;
+        color: var(--boot-accent, #f0c24b);
       }
     </style>
     <title>RAS Code (Alpha)</title>
@@ -461,7 +464,24 @@
     <div id="root">
       <div id="boot-shell">
         <div id="boot-shell-card" aria-label="RAS Code splash screen">
-          <img id="boot-shell-logo" src="/apple-touch-icon.png" alt="RAS Code" />
+          <svg
+            id="boot-shell-logo"
+            viewBox="0 0 66 114"
+            fill="currentColor"
+            role="img"
+            aria-label="RAS Code"
+          >
+            <rect x="0" y="0" width="18" height="18" rx="3" />
+            <rect x="24" y="0" width="18" height="18" rx="3" />
+            <rect x="0" y="24" width="18" height="18" rx="3" />
+            <rect x="48" y="24" width="18" height="18" rx="3" />
+            <rect x="0" y="48" width="18" height="18" rx="3" />
+            <rect x="24" y="48" width="18" height="18" rx="3" />
+            <rect x="0" y="72" width="18" height="18" rx="3" />
+            <rect x="48" y="72" width="18" height="18" rx="3" />
+            <rect x="0" y="96" width="18" height="18" rx="3" />
+            <rect x="48" y="96" width="18" height="18" rx="3" />
+          </svg>
         </div>
       </div>
     </div>

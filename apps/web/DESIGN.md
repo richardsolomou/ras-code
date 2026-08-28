@@ -5,7 +5,7 @@ colors:
   enamel-canvas: "#16141c"
   enamel-desk: "#100f15"
   enamel-raised: "#1f1c26"
-  enamel-popover: "#242130"
+  enamel-popover: "#1c1a24"
   enamel-hover: "#2a2733"
   enamel-rule: "#332f3d"
   legend-ink: "#e6e2ee"
@@ -108,7 +108,7 @@ Near-black violet enamel carries the surface; lamps and the single action carry 
 - **Enamel Canvas** (#16141c): the main pane.
 - **Enamel Desk** (#100f15): the sidebar and other chrome one step behind the canvas.
 - **Enamel Raised** (#1f1c26): cards, the composer, selector caps.
-- **Enamel Popover** (#242130): menus and popovers.
+- **Enamel Popover** (#1c1a24): menus and popovers.
 - **Enamel Hover** (#2a2733): hovered and selected rows; also the light-mode primary button.
 - **Enamel Rule** (#332f3d): 1px dividers and control rims.
 - **Legend Ink** (#e6e2ee): body text.
@@ -135,7 +135,7 @@ Near-black violet enamel carries the surface; lamps and the single action carry 
 - **Headline** (500, 1.75rem–2rem, 1.15): the draft prompt "What should we build in …?" and page titles.
 - **Title** (500, 1rem–1.125rem, 1.3): thread titles, settings row titles.
 - **Body** (400, 17px default interface size, 1.5): messages and descriptions; prose measure stays under 75ch in the timeline.
-- **Legend** (600, 0.6875rem, 0.08em tracking, uppercase, Barlow Semi Condensed): project labels, shelf headers (Settled, Snoozed), settings section titles, key hints, composer selector caps, the footer legend strip.
+- **Legend** (600, 0.6875rem, 0.08em tracking, uppercase, Barlow Semi Condensed): project labels, shelf headers (Settled, Snoozed), settings section titles, key hints, composer selector caps,
 
 ### Named Rules
 
@@ -147,7 +147,7 @@ A fixed 256px console rail (the sidebar) on the left, the selected station's pan
 
 ## Elevation & Depth
 
-Flat by construction. Depth is tonal: desk (#100f15) behind canvas (#16141c) behind raised panels (#1f1c26) behind popovers (#242130). Rims are 1px enamel-rule lines or 1px inset shadows on lamps and caps; drop shadows appear only under floating popovers and toasts. There is no glass, no backdrop blur, and no coloured glow.
+Flat by construction. Depth is tonal: desk (#100f15) behind canvas (#16141c) behind raised panels (#1f1c26) behind popovers (#1c1a24). Rims are 1px enamel-rule lines or 1px inset shadows on lamps and caps; drop shadows appear only under floating popovers and toasts. There is no glass, no backdrop blur, and no coloured glow.
 
 ### Named Rules
 
@@ -155,7 +155,7 @@ Flat by construction. Depth is tonal: desk (#100f15) behind canvas (#16141c) beh
 
 ## Shapes
 
-Small, precise radii: lamps 2px, selector caps and rows 0.625rem, the transport button 8px, panels 0.75rem. Lamps are always square (10px) with a 1px inset rim. The wordmark and app icon are built from the same square lamp on a 3×5 grid; the icon is a single lamp-R, the in-app wordmark spells RAS followed by the word "Code" in muted body type.
+Small, precise radii: lamps 2px, selector caps and rows 0.625rem, the transport button 8px, panels 0.75rem. Lamps are always square (10px) with a 1px inset rim. The wordmark and app icon are built from the same square lamp on a 3×5 grid; the icon is a single lamp-R inset from the enamel edge, the in-app wordmark spells RAS in lamps — amber on dark enamel, `--wordmark` (the light primary) on light.
 
 ## Components
 
@@ -179,10 +179,6 @@ Small, precise radii: lamps 2px, selector caps and rows 0.625rem, the transport 
 
 - **Style:** 36px row, project label as an engraved legend with its provider icon, thread title in body type, lamp + glyph on the right.
 - **Hover / selected:** enamel-hover fill; focus ring 2px amber.
-
-### Legend Strip
-
-- **Style:** fixed to the sidebar footer above the icon row, one line: WORKING · WAITING · FAILED · IDLE with lamps, live counts on the first two; hidden when the rail is collapsed.
 
 ### Inputs
 

@@ -7,7 +7,7 @@ import {
   GROVE_THEME,
   IRIS_THEME,
   OCEAN_THEME,
-  RAS_CODE_THEME,
+  GRAPHITE_THEME,
   THEME_COLOR_ROLES,
   type ThemeAppearance,
   type ThemeColorRole,
@@ -16,10 +16,11 @@ import {
   type ThemeVariants,
 } from "@ras-code/shared/themePalettes";
 
-export { EMBER_THEME, GROVE_THEME, IRIS_THEME, OCEAN_THEME, RAS_CODE_THEME, THEME_COLOR_ROLES };
+export { EMBER_THEME, GROVE_THEME, IRIS_THEME, OCEAN_THEME, GRAPHITE_THEME, THEME_COLOR_ROLES };
 export type { ThemeAppearance, ThemeColorRole, ThemeColors, ThemeDefinition, ThemeVariants };
 
 export const RAS_CODE_THEME_ID = "ras-code" as const;
+export const GRAPHITE_THEME_ID = "graphite" as const;
 export const RAS_CODE_THEME_LABEL = "RAS Code";
 export const GROVE_THEME_ID = "grove" as const;
 export const GROVE_THEME_LABEL = "Grove";
@@ -62,6 +63,7 @@ const RESERVED_THEME_IDS = new Set([
   "light",
   "dark",
   RAS_CODE_THEME_ID,
+  GRAPHITE_THEME_ID,
   GROVE_THEME_ID,
   OCEAN_THEME_ID,
   EMBER_THEME_ID,
@@ -275,8 +277,8 @@ export function subscribeToCustomThemes(listener: () => void): () => void {
 // Earlier builds shipped every built-in theme under a t3- prefix. Stored
 // preferences and mixes with the old ids stay readable through this alias table.
 const LEGACY_THEME_ID_ALIASES: Readonly<Record<string, string>> = {
-  [LEGACY_DEFAULT_THEME_ID]: RAS_CODE_THEME_ID,
-  [LEGACY_DARK_DEFAULT_THEME_ID]: RAS_CODE_THEME_ID,
+  [LEGACY_DEFAULT_THEME_ID]: GRAPHITE_THEME_ID,
+  [LEGACY_DARK_DEFAULT_THEME_ID]: GRAPHITE_THEME_ID,
   "t3-grove": GROVE_THEME_ID,
   "t3-ocean": OCEAN_THEME_ID,
   "t3-ember": EMBER_THEME_ID,
@@ -1222,9 +1224,9 @@ export function createManagedThemeColors(
   };
 }
 
-/** Theme-file defaults follow the flagship palette for the requested mode. */
+/** Theme-file defaults follow the neutral built-in palette for the requested mode. */
 export function getDefaultThemeColors(appearance: ThemeAppearance): ThemeColors {
-  return appearance === "dark" ? RAS_CODE_THEME.variants!.dark! : RAS_CODE_THEME.colors;
+  return appearance === "dark" ? GRAPHITE_THEME.variants!.dark! : GRAPHITE_THEME.colors;
 }
 
 /**

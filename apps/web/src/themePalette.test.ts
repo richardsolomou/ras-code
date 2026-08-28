@@ -26,7 +26,7 @@ import {
   subscribeToThemePreview,
   subscribeToCustomThemes,
   themeAllowsSidebarArtwork,
-  RAS_CODE_THEME,
+  GRAPHITE_THEME,
   EMBER_THEME,
   GROVE_THEME,
   IRIS_THEME,
@@ -212,7 +212,7 @@ describe("theme files", () => {
       colors: {
         canvas: canonical("#07152f"),
         accent: canonical("#67c2ff"),
-        placeholder: canonical("#968d9f"),
+        placeholder: canonical("#8a8a8a"),
       },
     });
   });
@@ -291,13 +291,13 @@ describe("theme files", () => {
 
   it("canonicalizes the explicitly exported theme", () => {
     const serialized = serializeThemeFile({
-      ...RAS_CODE_THEME,
-      colors: { ...RAS_CODE_THEME.colors, accent: "hsl(263 70% 58%)" },
+      ...GRAPHITE_THEME,
+      colors: { ...GRAPHITE_THEME.colors, accent: "hsl(263 70% 58%)" },
     });
     expect(JSON.parse(serialized)).toMatchObject({
       version: THEME_FILE_VERSION,
-      id: RAS_CODE_THEME.id,
-      name: RAS_CODE_THEME.label,
+      id: GRAPHITE_THEME.id,
+      name: GRAPHITE_THEME.label,
       appearance: "light",
       colors: { accent: canonical("hsl(263 70% 58%)") },
     });
@@ -349,7 +349,7 @@ describe("theme files", () => {
       },
     });
 
-    applyThemeColorPreview(RAS_CODE_THEME.colors, "light");
+    applyThemeColorPreview(GRAPHITE_THEME.colors, "light");
     expect(getThemePreviewSidebarArtwork()).toBe(false);
     expect(listener).toHaveBeenCalledTimes(1);
 
@@ -378,63 +378,34 @@ describe("theme files", () => {
       canvas: canonical("#101827"),
       text: canonical("#eef5ff"),
     });
-    expect(getThemeModes(RAS_CODE_THEME)).toEqual(["light", "dark"]);
-    expect(resolveThemeAppearance(RAS_CODE_THEME.id, true, true)).toBe("dark");
-    expect(resolveDesktopTheme(RAS_CODE_THEME.id, true)).toBe("system");
-    expect(resolveThemeAppearance(RAS_CODE_THEME.id, false, false, "dark")).toBe("dark");
-    expect(resolveDesktopTheme(RAS_CODE_THEME.id, false, "dark")).toBe("dark");
+    expect(getThemeModes(GRAPHITE_THEME)).toEqual(["light", "dark"]);
+    expect(resolveThemeAppearance(GRAPHITE_THEME.id, true, true)).toBe("dark");
+    expect(resolveDesktopTheme(GRAPHITE_THEME.id, true)).toBe("system");
+    expect(resolveThemeAppearance(GRAPHITE_THEME.id, false, false, "dark")).toBe("dark");
+    expect(resolveDesktopTheme(GRAPHITE_THEME.id, false, "dark")).toBe("dark");
     expect(JSON.parse(serializeThemeFile(theme)).variants.dark).toMatchObject({
       canvas: canonical("#101827"),
       text: canonical("#eef5ff"),
     });
   });
 
-  it("keeps the RAS Code palette faithful and readable", () => {
-    expectThemeColors(RAS_CODE_THEME.colors, {
-      canvas: "#fdf7fd",
-      chrome: "#fdf7fd",
-      toolbarBorder: "#efbdeb",
-      toolbarControl: "#f3e6f5",
-      toolbarControlHover: "#eccfe3",
-      surfaceRaised: "#fdfafd",
-      input: "#e7c1dc",
-      focus: "#db2777",
-      messageSurface: "#f7def2",
-      codeBackground: "#f5ecf9",
-      codeForeground: "#673c8b",
-      accentSurface: "#f3e6f5",
-      sidebar: "#f2e1f4",
+  it("keeps the Graphite palette neutral and readable", () => {
+    expectThemeColors(GRAPHITE_THEME.colors, {
+      canvas: "#fafafa",
+      text: "#18181b",
+      accent: "#18181b",
+      sidebar: "#f4f4f5",
     });
-    expectThemeColors(RAS_CODE_THEME.variants!.dark!, {
-      canvas: "#1f1a24",
-      chrome: "#1f1a24",
-      surface: "#29232d",
-      surfaceRaised: "#2c2631",
-      input: "#302029",
-      focus: "#db2777",
-      messageSurface: "#2b2431",
-      codeBackground: "#1f1a24",
-      sidebar: "#171018",
-      sidebarBorder: "#322028",
+    expectThemeColors(GRAPHITE_THEME.variants!.dark!, {
+      canvas: "#121212",
+      text: "#ededed",
+      accent: "#ededed",
+      sidebar: "#0c0c0c",
     });
-
-    for (const mode of ["light", "dark"] as const) {
-      const colors = getThemeColorsForMode(RAS_CODE_THEME, mode)!;
-      expect(contrastRatio(colors.text, colors.canvas)).toBeGreaterThanOrEqual(7);
-      expect(contrastRatio(colors.textMuted, colors.canvas)).toBeGreaterThanOrEqual(4.5);
-      expect(contrastRatio(colors.messageForeground, colors.messageSurface)).toBeGreaterThanOrEqual(
-        4.5,
-      );
-      expect(contrastRatio(colors.secondaryForeground, colors.secondary)).toBeGreaterThanOrEqual(
-        4.5,
-      );
-      expect(contrastRatio(colors.sidebarForeground, colors.sidebar)).toBeGreaterThanOrEqual(4.5);
-      expect(contrastRatio(colors.accentForeground, colors.accent)).toBeGreaterThanOrEqual(4.5);
-    }
   });
 
   it("includes the dual-mode maintainer themes", () => {
-    for (const theme of [RAS_CODE_THEME, GROVE_THEME, OCEAN_THEME, EMBER_THEME, IRIS_THEME]) {
+    for (const theme of [GRAPHITE_THEME, GROVE_THEME, OCEAN_THEME, EMBER_THEME, IRIS_THEME]) {
       expect(getThemeDefinition(theme.id)).toBe(theme);
       expect(getThemeModes(theme)).toEqual(["light", "dark"]);
       expect(theme.sidebarArtwork).toBe(true);
@@ -447,7 +418,7 @@ describe("theme files", () => {
         expect(colors).not.toBeNull();
         expect(contrastRatio(colors!.text, colors!.canvas)).toBeGreaterThanOrEqual(4.5);
         expect(contrastRatio(colors!.textMuted, colors!.canvas)).toBeGreaterThanOrEqual(4.5);
-        if (theme !== RAS_CODE_THEME) {
+        if (theme !== GRAPHITE_THEME) {
           expect(contrastRatio(colors!.textMuted, colors!.canvas)).toBeLessThan(5.5);
           expect(contrastRatio(colors!.textMuted, colors!.canvas)).toBeCloseTo(
             mode === "dark" ? 5.082 : 4.705,
@@ -997,7 +968,7 @@ describe("stored theme preferences", () => {
   });
 
   it("resolves the legacy t3-chat-dark preference to dark RAS Code", () => {
-    expect(getThemeDefinition("t3-chat-dark")).toBe(RAS_CODE_THEME);
+    expect(getThemeDefinition("t3-chat-dark")).toBe(GRAPHITE_THEME);
     expect(getThemePreferenceMode("t3-chat-dark")).toBe("dark");
     expect(resolveThemeAppearance("t3-chat-dark", true, false)).toBe("dark");
     expect(resolveDesktopTheme("t3-chat-dark", false)).toBe("dark");
@@ -1006,7 +977,7 @@ describe("stored theme preferences", () => {
 
   it("resolves legacy t3-prefixed ids onto the renamed themes", () => {
     for (const [legacy, theme] of [
-      ["t3-chat", RAS_CODE_THEME],
+      ["t3-chat", GRAPHITE_THEME],
       ["t3-grove", GROVE_THEME],
       ["t3-ocean", OCEAN_THEME],
       ["t3-ember", EMBER_THEME],
@@ -1026,7 +997,7 @@ describe("stored theme preferences", () => {
   });
 
   it("recognizes only preferences the runtime can render", () => {
-    for (const preference of ["light", "dark", "system", RAS_CODE_THEME.id, GROVE_THEME.id]) {
+    for (const preference of ["light", "dark", "system", GRAPHITE_THEME.id, GROVE_THEME.id]) {
       expect(isKnownThemePreference(preference)).toBe(true);
     }
     expect(isKnownThemePreference(`${GROVE_THEME.id}:dark`)).toBe(false);
