@@ -1,5 +1,5 @@
-import { EnvironmentAuthInvalidError } from "@t3tools/contracts";
-import { RelayAuthInvalidError } from "@t3tools/contracts/relay";
+import { EnvironmentAuthInvalidError } from "@ras-code/contracts";
+import { RelayAuthInvalidError } from "@ras-code/contracts/relay";
 import { describe, expect, it } from "@effect/vitest";
 
 import { mapManagedRelayError, mapRemoteDpopEnvironmentError } from "./errors.ts";

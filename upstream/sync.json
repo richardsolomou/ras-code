@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "48c176b3cfda7a714c10f18a12d398528ff4c2f9",
+  "lastReviewed": "0009aacdf146e0532327fa3d9d0109d5adca68b9",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -201,6 +201,42 @@
       "ours": "48f7ad44605271e99ef669df97fb36cc2660be80",
       "reason": "Clean cherry-pick.",
       "reviewedAt": "2026-08-29T16:13:01.713Z"
+    },
+    {
+      "upstream": "a40aef4ccbc10b7bcd7bc817151db8d5a9b1c257",
+      "pr": 8226,
+      "title": "fix(server): a draft can retry its first send after a failed bootstrap",
+      "decision": "adapted",
+      "ours": "1ce89cf9c08051bdbbf84936f306fffb620a2f36",
+      "reason": "Cherry-picked; conflict was our longer test-layer prefixes rewrapping upstream's new replay block. Renamed the prefix and reformatted.",
+      "reviewedAt": "2026-08-29T16:13:56.238Z"
+    },
+    {
+      "upstream": "ff1761012af46ceb5f1ecc9b2be00aae288a1691",
+      "pr": 8567,
+      "title": "fix(desktop): stop hidden previews draining battery",
+      "decision": "adopted",
+      "ours": "fc6b312c5368d7d79fbe9e85d73a0907d8c511f7",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-29T16:13:58.934Z"
+    },
+    {
+      "upstream": "0e2905eb783fd2385f358a95f0b25bbf07ff7122",
+      "pr": 8435,
+      "title": "fix(desktop): oauth popups open from the browser preview",
+      "decision": "adopted",
+      "ours": "2ce0482527a8fb0cbdaf5a7d2c00354b0841589d",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-29T16:14:01.573Z"
+    },
+    {
+      "upstream": "0009aacdf146e0532327fa3d9d0109d5adca68b9",
+      "pr": 8313,
+      "title": "fix(web): keep long task drawers usable on small screens",
+      "decision": "adopted",
+      "ours": "02fca6d36f38417442d4c726521dd999e11c4e9f",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-29T16:14:04.106Z"
     }
   ]
 }
