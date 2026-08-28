@@ -49,6 +49,12 @@ export const PROVIDER_CLIENT_DEFINITIONS: readonly ProviderClientDefinition[] = 
     settingsSchema: ClaudeSettings,
   },
   {
+    value: ProviderDriverKind.make("posthogGateway"),
+    label: "PostHog AI Gateway",
+    icon: PostHog,
+    settingsSchema: PostHogGatewaySettings,
+  },
+  {
     value: ProviderDriverKind.make("cursor"),
     label: "Cursor",
     icon: CursorIcon,
@@ -67,12 +73,6 @@ export const PROVIDER_CLIENT_DEFINITIONS: readonly ProviderClientDefinition[] = 
     label: "OpenCode",
     icon: OpenCodeIcon,
     settingsSchema: OpenCodeSettings,
-  },
-  {
-    value: ProviderDriverKind.make("posthogGateway"),
-    label: "PostHog AI Gateway",
-    icon: PostHog,
-    settingsSchema: PostHogGatewaySettings,
   },
 ];
 
