@@ -517,11 +517,7 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(ras-code
       --chat-composer-outline,
       color-mix(in srgb, var(--contrast-foreground) 8%, transparent)
     );
-    background: color-mix(
-      in srgb,
-      var(--chat-composer-glass-surface, var(--card)) var(--glass-opacity),
-      transparent
-    );
+    background: var(--chat-composer-glass-surface, var(--card));
     box-shadow: 0 -8px 24px -18px rgb(0 0 0 / 45%);
 
     @variant dark {
@@ -689,8 +685,10 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(ras-code
     isolation: isolate;
 
     @variant dark {
-      --chat-composer-glass-surface: color-mix(in srgb, var(--background) 96%, var(--color-white));
-      --chat-composer-outline: color-mix(in srgb, var(--color-white) 5%, transparent);
+      /* The control block sits on the raised panel face, cut into the desk by
+         a dark rim rather than lifted by a light one. */
+      --chat-composer-glass-surface: var(--card);
+      --chat-composer-outline: var(--console-cap-rim);
       --chat-composer-highlight: rgb(255 255 255 / 3%);
     }
   }
@@ -1139,8 +1137,8 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(ras-code
   --destructive-foreground: var(--error-foreground);
   --info: var(--color-blue-500);
   --info-foreground: var(--color-blue-700);
-  --success: var(--color-emerald-500);
-  --success-foreground: var(--color-emerald-700);
+  --success: #3fae5c;
+  --success-foreground: #2f8f4a;
   --warning: var(--color-amber-500);
   --warning-foreground: var(--color-amber-700);
   --warning-surface: color-mix(in srgb, var(--warning) 8%, transparent);
@@ -1168,15 +1166,15 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(ras-code
     color-scheme: dark;
     /* Keep the workspace in the same neutral-black family as sidebar v2.
        Surfaces lift from this base instead of starting from a milky gray. */
-    --background: #1f1c26;
+    --background: #16141c;
     --surface-raised: var(--secondary);
     --foreground: #e6e2ee;
-    --card: #2a2733;
+    --card: #1f1c26;
     --card-foreground: #e6e2ee;
-    --popover: #2f2b3a;
+    --popover: #242130;
     --popover-foreground: #e6e2ee;
     --primary: #f0c24b;
-    --primary-foreground: #171520;
+    --primary-foreground: #100f15;
     --secondary: --alpha(var(--color-white) / 4%);
     --secondary-foreground: var(--color-neutral-100);
     --muted: --alpha(var(--color-white) / 4%);
@@ -1188,8 +1186,8 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(ras-code
     --error-surface: color-mix(in srgb, var(--error) 16%, transparent);
     --border: --alpha(var(--color-white) / 6%);
     --input: --alpha(var(--color-white) / 8%);
-    --info-foreground: #9ec5d6;
-    --success-foreground: #7fd1b9;
+    --info-foreground: #8fb8e8;
+    --success-foreground: #52c46f;
     --warning-foreground: #f0c24b;
     --warning-surface: color-mix(in srgb, var(--warning) 16%, transparent);
     --update-foreground: var(--color-blue-400);
@@ -1228,13 +1226,13 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(ras-code
   --sidebar-border: var(--color-zinc-200);
 
   @variant dark {
-    --background: #171520;
+    --background: #100f15;
     --foreground: #e6e2ee;
-    --card: #171520;
+    --card: #100f15;
     --card-foreground: var(--foreground);
-    --accent: #2a2733;
+    --accent: #1f1c26;
     --accent-foreground: #e6eae4;
-    --muted: #262330;
+    --muted: #1c1a24;
     --muted-foreground: #9b96a9;
     --border: rgb(255 255 255 / 8%);
     --input: rgb(255 255 255 / 18%);
@@ -2245,12 +2243,12 @@ code {
   @variant dark {
     --lamp-unlit: #4a5551;
     --lamp-rim: rgb(0 0 0 / 45%);
-    --lamp-working: #7fd1b9;
+    --lamp-working: #52c46f;
     --lamp-waiting: #f0c24b;
     --lamp-failed: #e5645a;
-    --console-cap: #2a2733;
+    --console-cap: #1f1c26;
     --console-cap-rim: rgb(0 0 0 / 32%);
-    --console-rule: #332f3d;
+    --console-rule: #2a2733;
   }
 }
 
