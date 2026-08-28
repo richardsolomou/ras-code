@@ -49,9 +49,15 @@ export function ProviderFallbackSection({
     ? serverProviders.find((provider) => provider.instanceId === fallback.instanceId)
     : undefined;
   const fallbackModels = fallbackProvider?.models ?? [];
-  const relation = fallbackDriverRelation(instance, instances);
+  const continuationKeys = Object.fromEntries(
+    serverProviders.map((provider) => [
+      String(provider.instanceId),
+      provider.continuation?.groupKey,
+    ]),
+  );
+  const relation = fallbackDriverRelation(instance, instances, continuationKeys, instanceId);
   const crossDriver = relation === "cross-driver";
-  const needsModel = fallbackNeedsExplicitModel(instance, instances);
+  const needsModel = fallbackNeedsExplicitModel(instance, instances, continuationKeys, instanceId);
   const bothClaude = relation === "same-driver" && String(instance.driver) === "claudeAgent";
 
   const selectFallbackInstance = (value: string | null) => {

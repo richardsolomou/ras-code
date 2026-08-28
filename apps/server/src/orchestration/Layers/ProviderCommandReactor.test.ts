@@ -341,7 +341,13 @@ describe("ProviderCommandReactor", () => {
       getInstanceInfo: (instanceId) => {
         const raw = String(instanceId);
         const driverKind = ProviderDriverKind.make(
-          raw.startsWith("claude") ? "claudeAgent" : raw.startsWith("codex") ? "codex" : raw,
+          raw.startsWith("claude")
+            ? "claudeAgent"
+            : raw.startsWith("codex")
+              ? "codex"
+              : raw.startsWith("posthog")
+                ? "posthogGateway"
+                : raw,
         );
         return Effect.succeed({
           instanceId,
@@ -353,10 +359,13 @@ describe("ProviderCommandReactor", () => {
             // Mirrors production: instances of a driver that share a home
             // directory share a continuation group, so a thread can move
             // between them without losing its resume state.
+            // The composite gateway driver adopts the Claude harness key on
+            // purpose, which is what lets a started Claude thread move to it.
             continuationKey:
               driverKind === ProviderDriverKind.make("codex")
                 ? "codex:home:/shared-codex"
-                : driverKind === ProviderDriverKind.make("claudeAgent")
+                : driverKind === ProviderDriverKind.make("claudeAgent") ||
+                    driverKind === ProviderDriverKind.make("posthogGateway")
                   ? "claude:home:/shared-claude"
                   : `${driverKind}:instance:${instanceId}`,
           },
@@ -2458,7 +2467,7 @@ describe("ProviderCommandReactor", () => {
       thread?.activities.find((activity) => activity.kind === "provider.turn.start.failed"),
     ).toMatchObject({
       payload: {
-        detail: expect.stringContaining("cannot switch to 'claudeAgent'"),
+        detail: expect.stringContaining("provider resume state is incompatible"),
       },
     });
   });
@@ -2524,7 +2533,7 @@ describe("ProviderCommandReactor", () => {
       thread?.activities.find((activity) => activity.kind === "provider.turn.start.failed"),
     ).toMatchObject({
       payload: {
-        detail: expect.stringContaining("cannot switch to 'claudeAgent'"),
+        detail: expect.stringContaining("provider resume state is incompatible"),
       },
     });
   });
@@ -3241,6 +3250,7 @@ describe("ProviderCommandReactor", () => {
     const PRIMARY = ProviderInstanceId.make("claude_subscription");
     const FALLBACK = ProviderInstanceId.make("claude_gateway");
     const CODEX_FALLBACK = ProviderInstanceId.make("codex_posthog_gateway");
+    const COMPOSITE_FALLBACK = ProviderInstanceId.make("posthog_gateway");
     const PRIMARY_SELECTION = { instanceId: PRIMARY, model: "claude-sonnet-4-5" } as const;
     const EXHAUSTED: ProviderUsageLimit = {
       status: "exhausted",
@@ -3483,6 +3493,50 @@ describe("ProviderCommandReactor", () => {
       expect(harness.startSession.mock.calls[1]?.[1]).toMatchObject({
         providerInstanceId: FALLBACK,
       });
+    });
+
+    it("moves a started thread to a fallback on another driver that shares its continuation key", async () => {
+      const usageLimits = new Map<ProviderInstanceId, ProviderUsageLimit>();
+      const harness = await createHarness({
+        threadModelSelection: PRIMARY_SELECTION,
+        providerInstances: {
+          [PRIMARY]: { driver: "claudeAgent", fallback: { instanceId: COMPOSITE_FALLBACK } },
+          [COMPOSITE_FALLBACK]: { driver: "posthogGateway" },
+        },
+        usageLimits,
+        extraProviderSnapshots: [
+          { instanceId: COMPOSITE_FALLBACK, enabled: true, displayName: "PostHog AI Gateway" },
+        ],
+      });
+      await dispatchTurn(harness, "cmd-fallback-composite-1");
+      await waitFor(() => harness.startSession.mock.calls.length === 1);
+
+      usageLimits.set(PRIMARY, EXHAUSTED);
+      await Effect.runPromise(
+        harness.engine.dispatch({
+          type: "thread.turn.start",
+          commandId: CommandId.make("cmd-fallback-composite-2"),
+          threadId: ThreadId.make("thread-1"),
+          message: {
+            messageId: asMessageId("user-message-2"),
+            role: "user",
+            text: "second turn",
+            attachments: [],
+          },
+          interactionMode: DEFAULT_PROVIDER_INTERACTION_MODE,
+          runtimeMode: "approval-required",
+          createdAt: "2026-01-01T00:00:05.000Z",
+        }),
+      );
+
+      await waitFor(() => harness.sendTurn.mock.calls.length === 2);
+      expect(
+        harness.startSession.mock.calls.some(
+          (call) =>
+            (call[1] as { readonly providerInstanceId?: ProviderInstanceId }).providerInstanceId ===
+            COMPOSITE_FALLBACK,
+        ),
+      ).toBe(true);
     });
 
     it("keeps the primary instance mid-thread when the driver forbids switching", async () => {

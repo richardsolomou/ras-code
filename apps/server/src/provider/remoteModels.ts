@@ -23,6 +23,7 @@ import {
   ANTHROPIC_API_KEY_VARIABLE,
   gatewayBaseUrl,
   gatewayKey,
+  type GatewayEnvironmentVariable,
   GATEWAY_BASE_URL_VARIABLES,
   GATEWAY_KEY_VARIABLES,
 } from "@ras-code/shared/posthogGateway";
@@ -59,6 +60,54 @@ const parseRemoteModels = (body: unknown): ReadonlyArray<ProviderRemoteModel> | 
 };
 
 /**
+ * Read a gateway's catalog directly from a resolved origin and key.
+ *
+ * Split out from `listRemoteModels` so a driver that already knows its own
+ * gateway coordinates does not have to round-trip through server settings to
+ * ask for them.
+ */
+export const fetchGatewayModels = Effect.fn("fetchGatewayModels")(function* (input: {
+  readonly instanceId: ProviderInstanceId;
+  readonly baseUrl: string;
+  readonly key: GatewayEnvironmentVariable;
+}) {
+  const httpClient = yield* HttpClient.HttpClient;
+  const request = HttpClientRequest.get(`${input.baseUrl.replace(/\/+$/, "")}/v1/models`).pipe(
+    HttpClientRequest.acceptJson,
+    HttpClientRequest.setHeaders({
+      authorization: `Bearer ${input.key.value}`,
+      // Gateways that authenticate the Anthropic way read the key header
+      // instead; sending both keeps one call working against either.
+      ...(input.key.name === ANTHROPIC_API_KEY_VARIABLE ? { "x-api-key": input.key.value } : {}),
+    }),
+  );
+
+  const body = yield* httpClient.execute(request).pipe(
+    Effect.flatMap(HttpClientResponse.filterStatusOk),
+    Effect.flatMap((response) => response.json),
+    Effect.timeout(REQUEST_TIMEOUT_MS),
+    Effect.mapError(
+      () =>
+        new ProviderListRemoteModelsError({
+          instanceId: input.instanceId,
+          reason: "request-failed",
+          detail: `Request to ${input.baseUrl} failed.`,
+        }),
+    ),
+  );
+
+  const models = parseRemoteModels(body);
+  if (models === undefined) {
+    return yield* new ProviderListRemoteModelsError({
+      instanceId: input.instanceId,
+      reason: "invalid-response",
+      detail: `${input.baseUrl} did not return a model list.`,
+    });
+  }
+  return models;
+});
+
+/**
  * List the models a provider instance's configured gateway advertises.
  *
  * Fails with a typed reason so the client can tell "you have not configured a
@@ -67,7 +116,6 @@ const parseRemoteModels = (body: unknown): ReadonlyArray<ProviderRemoteModel> | 
 export const listRemoteModels = Effect.fn("listRemoteModels")(function* (
   instanceId: ProviderInstanceId,
 ) {
-  const httpClient = yield* HttpClient.HttpClient;
   const serverSettings = yield* ServerSettingsService;
   const settings = yield* serverSettings.getSettings.pipe(
     Effect.mapError(
@@ -105,38 +153,6 @@ export const listRemoteModels = Effect.fn("listRemoteModels")(function* (
     });
   }
 
-  const request = HttpClientRequest.get(`${baseUrl.replace(/\/+$/, "")}/v1/models`).pipe(
-    HttpClientRequest.acceptJson,
-    HttpClientRequest.setHeaders({
-      authorization: `Bearer ${key.value}`,
-      // Gateways that authenticate the Anthropic way read the key header
-      // instead; sending both keeps one call working against either.
-      ...(key.name === ANTHROPIC_API_KEY_VARIABLE ? { "x-api-key": key.value } : {}),
-    }),
-  );
-
-  const body = yield* httpClient.execute(request).pipe(
-    Effect.flatMap(HttpClientResponse.filterStatusOk),
-    Effect.flatMap((response) => response.json),
-    Effect.timeout(REQUEST_TIMEOUT_MS),
-    Effect.mapError(
-      () =>
-        new ProviderListRemoteModelsError({
-          instanceId,
-          reason: "request-failed",
-          detail: `Request to ${baseUrl} failed.`,
-        }),
-    ),
-  );
-
-  const models = parseRemoteModels(body);
-  if (models === undefined) {
-    return yield* new ProviderListRemoteModelsError({
-      instanceId,
-      reason: "invalid-response",
-      detail: `${baseUrl} did not return a model list.`,
-    });
-  }
-
+  const models = yield* fetchGatewayModels({ instanceId, baseUrl, key });
   return { models } satisfies ProviderListRemoteModelsResult;
 });

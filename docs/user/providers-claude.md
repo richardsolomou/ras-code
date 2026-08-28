@@ -221,43 +221,13 @@ working across the switch.
 
 ## PostHog AI Gateway
 
-The PostHog AI Gateway is an Anthropic-compatible proxy. It is a good fallback for a Claude
-subscription because it serves the same protocol and needs no separate Claude login.
+The PostHog AI Gateway is its own provider now, not a Claude preset. It serves the whole gateway
+catalog and routes each model to the harness that can run it. See
+[PostHog AI Gateway](./providers-posthog-gateway.md).
 
-### Add It
-
-In Settings, choose **Add provider**, then pick the **PostHog AI Gateway** preset. Enter your
-gateway key and add the instance. RAS Code creates a Claude provider with these environment
-variables:
-
-```text
-ANTHROPIC_BASE_URL   https://ai-gateway.us.posthog.com
-ANTHROPIC_AUTH_TOKEN phs_...                            Sensitive
-ANTHROPIC_API_KEY                                       Empty value
-```
-
-The key is marked sensitive: RAS Code stores it as a server secret and does not send it back to the
-app after saving. `ANTHROPIC_API_KEY` is written empty on purpose, so an Anthropic key exported in
-your shell cannot outrank the gateway token.
-
-The preset leaves `CLAUDE_CONFIG_DIR path` empty on purpose. Sharing your primary Claude provider's
-config directory is what lets this provider pick up a thread the primary started.
-
-### Models
-
-After the provider is created, RAS Code asks the gateway for its catalog and adds every model it
-reports. Claude's own models are hidden on this provider, so its picker offers gateway models only.
-
-Use **Refresh models from gateway** on the provider's Models tab to pick up new models later. The
-action appears on any Claude provider that sets `ANTHROPIC_BASE_URL`.
-
-Model IDs are spelled with the `posthog/` prefix and the publisher's own organisation name:
-
-```text
-posthog/zai-org/glm-5.2
-```
-
-The `z-ai/...` spelling does not resolve.
+If you still have a `claude_posthog_gateway` provider from the old preset, it keeps working as an
+ordinary Claude provider. Add the new provider when you want the rest of the catalog, then remove
+the old instance.
 
 ## I Want To Use Claude Code Router
 

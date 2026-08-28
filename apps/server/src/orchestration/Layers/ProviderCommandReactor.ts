@@ -669,14 +669,16 @@ const make = Effect.gen(function* () {
       fallback: providerService.getInstanceInfo(fallback.instanceId),
     }).pipe(Effect.orElseSucceed(() => undefined));
 
-    // A fallback on another driver is another harness with another catalog,
-    // so the turn's own model means nothing there. The binding has to name a
-    // model the fallback can serve, or there is nothing to route to.
-    if (
+    // Continuation key, not driver kind, is what says whether two instances
+    // are interchangeable: a composite driver can carry another driver's key
+    // precisely so it can stand in for it. Instances that do not share one
+    // are separate catalogs, so the turn's own model means nothing on the
+    // fallback and the binding has to name one.
+    const sharesContinuation =
       instanceInfo !== undefined &&
-      instanceInfo.primary.driverKind !== instanceInfo.fallback.driverKind &&
-      !fallback.model?.trim()
-    ) {
+      instanceInfo.primary.continuationIdentity.continuationKey ===
+        instanceInfo.fallback.continuationIdentity.continuationKey;
+    if (instanceInfo !== undefined && !sharesContinuation && !fallback.model?.trim()) {
       yield* Effect.logWarning("provider fallback skipped: cross-driver binding names no model", {
         instanceId: input.selection.instanceId,
         fallbackInstanceId: fallback.instanceId,
@@ -684,18 +686,11 @@ const make = Effect.gen(function* () {
       return undefined;
     }
 
-    if (input.hasStartedSession) {
-      // A started thread can only move to an instance that shares its resume
-      // state; otherwise `ensureSessionForThread` would reject the switch and
-      // the user would see a confusing error instead of the provider's own.
-      const compatible =
-        instanceInfo !== undefined &&
-        instanceInfo.primary.driverKind === instanceInfo.fallback.driverKind &&
-        instanceInfo.primary.continuationIdentity.continuationKey ===
-          instanceInfo.fallback.continuationIdentity.continuationKey;
-      if (!compatible) {
-        return undefined;
-      }
+    // A started thread can only move to an instance that shares its resume
+    // state; otherwise `ensureSessionForThread` would reject the switch and
+    // the user would see a confusing error instead of the provider's own.
+    if (input.hasStartedSession && !sharesContinuation) {
+      return undefined;
     }
 
     return {
@@ -826,13 +821,9 @@ const make = Effect.gen(function* () {
       requestedModelSelection !== undefined &&
       requestedModelSelection.instanceId !== currentInstanceId
     ) {
-      if (currentInfo.driverKind !== desiredInfo.driverKind) {
-        return yield* new ProviderAdapterRequestError({
-          provider: preferredProvider,
-          method: "thread.turn.start",
-          detail: `Thread '${threadId}' is bound to driver '${currentInfo.driverKind}' and cannot switch to '${desiredInfo.driverKind}'.`,
-        });
-      }
+      // Driver kinds may differ as long as the resume state matches — a
+      // composite driver adopts the continuation key of the harness it wraps
+      // so it can pick up a thread that harness started.
       if (
         currentInfo.continuationIdentity.continuationKey !==
         desiredInfo.continuationIdentity.continuationKey

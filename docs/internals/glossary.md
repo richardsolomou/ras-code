@@ -94,7 +94,11 @@ The live backend agent implementation and its event stream. The main service is 
 
 #### Provider
 
-The backend agent runtime that actually performs work. Five drivers ship built in: Codex, Claude, Cursor, Grok, and OpenCode. See [ProviderService.ts][14], [ProviderAdapter.ts][15], and [CodexAdapter.ts][17] as a representative adapter.
+The backend agent runtime that actually performs work. Six drivers ship built in: Codex, Claude, Cursor, Grok, OpenCode, and PostHog AI Gateway. See [ProviderService.ts][14], [ProviderAdapter.ts][15], and [CodexAdapter.ts][17] as a representative adapter.
+
+#### Composite driver
+
+A driver that runs other drivers rather than a harness of its own. `posthogGateway` is the only one: it creates a Claude child and a Codex child in its own scope, serves the gateway's whole catalog, and routes each model to the child whose request shape the gateway will accept for it. It rewrites its children's sessions and runtime events onto its own instance id and driver kind, and adopts the Claude child's continuation key so a plain Claude instance can hand it a started thread. See [PostHogGatewayDriver.ts][25] and the [provider architecture][16].
 
 #### Session
 
@@ -189,3 +193,4 @@ The file patch and changed-file summary for one turn. It is usually computed in 
 [22]: ../../apps/server/src/checkpointing/Utils.ts
 [23]: ../../apps/server/src/checkpointing/Diffs.ts
 [24]: ./overview.md
+[25]: ../../apps/server/src/provider/Drivers/PostHogGatewayDriver.ts

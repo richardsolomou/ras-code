@@ -176,3 +176,44 @@ describe("fallbackNeedsExplicitModel", () => {
     ).toBe(false);
   });
 });
+
+describe("fallbackDriverRelation with continuation keys", () => {
+  const claudeInstance = ProviderInstanceId.make("claudeAgent");
+  const gatewayInstance = ProviderInstanceId.make("posthog_gateway");
+  const instances = {
+    [claudeInstance]: { driver: ProviderDriverKind.make("claudeAgent") },
+    [gatewayInstance]: { driver: ProviderDriverKind.make("posthogGateway") },
+  };
+  const instance = {
+    driver: ProviderDriverKind.make("claudeAgent"),
+    fallback: { instanceId: gatewayInstance },
+  };
+
+  it("treats a shared continuation key as continuable even across drivers", () => {
+    expect(
+      fallbackDriverRelation(
+        instance,
+        instances,
+        {
+          [claudeInstance]: "claude:home:/home/dev",
+          [gatewayInstance]: "claude:home:/home/dev",
+        },
+        claudeInstance,
+      ),
+    ).toBe("same-driver");
+  });
+
+  it("treats different continuation keys as a new-threads-only fallback", () => {
+    expect(
+      fallbackDriverRelation(
+        instance,
+        instances,
+        {
+          [claudeInstance]: "claude:home:/home/dev",
+          [gatewayInstance]: "claude:home:/home/other",
+        },
+        claudeInstance,
+      ),
+    ).toBe("cross-driver");
+  });
+});

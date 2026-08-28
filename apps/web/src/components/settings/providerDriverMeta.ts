@@ -4,6 +4,7 @@ import {
   CursorSettings,
   GrokSettings,
   OpenCodeSettings,
+  PostHogGatewaySettings,
   ProviderDriverKind,
 } from "@ras-code/contracts";
 import type * as Schema from "effect/Schema";
@@ -67,6 +68,12 @@ export const PROVIDER_CLIENT_DEFINITIONS: readonly ProviderClientDefinition[] = 
     icon: OpenCodeIcon,
     settingsSchema: OpenCodeSettings,
   },
+  {
+    value: ProviderDriverKind.make("posthogGateway"),
+    label: "PostHog AI Gateway",
+    icon: PostHog,
+    settingsSchema: PostHogGatewaySettings,
+  },
 ];
 
 export const PROVIDER_CLIENT_DEFINITION_BY_VALUE: Partial<
@@ -88,25 +95,3 @@ export function getDriverOption(driver: ProviderDriverKind | undefined): DriverO
   if (driver === undefined) return undefined;
   return PROVIDER_CLIENT_DEFINITION_BY_VALUE[driver];
 }
-
-/**
- * Presets are one-click starting points offered beside the raw drivers in
- * the add-provider wizard. A preset is not a driver: it picks a driver and
- * pre-fills the instance, so the rest of the app never has to know it
- * existed.
- */
-export interface ProviderPresetDefinition {
-  readonly id: string;
-  readonly label: string;
-  readonly icon: Icon;
-  readonly description: string;
-  readonly badgeLabel?: string;
-}
-
-export const POSTHOG_GATEWAY_PRESET_DEFINITION: ProviderPresetDefinition = {
-  id: "posthogGateway",
-  label: "PostHog AI Gateway",
-  icon: PostHog,
-  description: "Claude Code pointed at PostHog's gateway. Ready to stand in for a subscription.",
-  badgeLabel: "Fallback-ready",
-};

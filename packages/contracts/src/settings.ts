@@ -466,6 +466,63 @@ export const ClaudeSettings = makeProviderSettingsSchema(
 );
 export type ClaudeSettings = typeof ClaudeSettings.Type;
 
+/**
+ * Default gateway origin. Duplicated from `@ras-code/shared/posthogGateway`
+ * because `@ras-code/shared` depends on this package; the shared module stays
+ * the single source of truth for everything that runs outside contracts.
+ */
+const POSTHOG_GATEWAY_DEFAULT_BASE_URL = "https://ai-gateway.us.posthog.com";
+
+/**
+ * Config for the composite PostHog AI Gateway driver.
+ *
+ * The driver runs one Claude harness and one Codex harness against the same
+ * origin and routes each model to the one that can serve it, so it needs a
+ * binary path for each. The gateway key is not config: it lives in the
+ * instance environment as a sensitive `RAS_GATEWAY_KEY` variable.
+ */
+export const PostHogGatewaySettings = makeProviderSettingsSchema(
+  {
+    enabled: Schema.Boolean.pipe(
+      Schema.withDecodingDefault(Effect.succeed(true)),
+      Schema.annotateKey({ providerSettingsForm: { hidden: true } }),
+    ),
+    baseUrl: TrimmedString.pipe(
+      Schema.withDecodingDefault(Effect.succeed(POSTHOG_GATEWAY_DEFAULT_BASE_URL)),
+      Schema.annotateKey({
+        title: "Gateway base URL",
+        description: "Origin serving the gateway's model catalog and both request shapes.",
+        providerSettingsForm: {
+          placeholder: POSTHOG_GATEWAY_DEFAULT_BASE_URL,
+          clearWhenEmpty: "omit",
+        },
+      }),
+    ),
+    claudeBinaryPath: makeBinaryPathSetting("claude").pipe(
+      Schema.annotateKey({
+        title: "Claude binary path",
+        description: "Harness used for the gateway's claude-* models.",
+        providerSettingsForm: { placeholder: "claude", clearWhenEmpty: "omit" },
+      }),
+    ),
+    codexBinaryPath: makeBinaryPathSetting("codex").pipe(
+      Schema.annotateKey({
+        title: "Codex binary path",
+        description: "Harness used for every other model the gateway serves.",
+        providerSettingsForm: { placeholder: "codex", clearWhenEmpty: "omit" },
+      }),
+    ),
+    customModels: Schema.Array(Schema.String).pipe(
+      Schema.withDecodingDefault(Effect.succeed([])),
+      Schema.annotateKey({ providerSettingsForm: { hidden: true } }),
+    ),
+  },
+  {
+    order: ["baseUrl", "claudeBinaryPath", "codexBinaryPath"],
+  },
+);
+export type PostHogGatewaySettings = typeof PostHogGatewaySettings.Type;
+
 export const CursorSettings = makeProviderSettingsSchema(
   {
     // Off by default like Grok and OpenCode. Users opt in from Settings.

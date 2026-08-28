@@ -7,21 +7,49 @@ orchestration layer does not know which one is behind a thread.
 
 ## Built-in drivers
 
-[`builtInDrivers.ts`][drivers] exports `BUILT_IN_DRIVERS` with five entries:
+[`builtInDrivers.ts`][drivers] exports `BUILT_IN_DRIVERS` with six entries:
 
-| Driver kind   | Driver source                           |
-| ------------- | --------------------------------------- |
-| `codex`       | [`Drivers/CodexDriver.ts`][codex]       |
-| `claudeAgent` | [`Drivers/ClaudeDriver.ts`][claude]     |
-| `cursor`      | [`Drivers/CursorDriver.ts`][cursor]     |
-| `grok`        | [`Drivers/GrokDriver.ts`][grok]         |
-| `opencode`    | [`Drivers/OpenCodeDriver.ts`][opencode] |
+| Driver kind      | Driver source                                |
+| ---------------- | -------------------------------------------- |
+| `codex`          | [`Drivers/CodexDriver.ts`][codex]            |
+| `claudeAgent`    | [`Drivers/ClaudeDriver.ts`][claude]          |
+| `cursor`         | [`Drivers/CursorDriver.ts`][cursor]          |
+| `grok`           | [`Drivers/GrokDriver.ts`][grok]              |
+| `opencode`       | [`Drivers/OpenCodeDriver.ts`][opencode]      |
+| `posthogGateway` | [`Drivers/PostHogGatewayDriver.ts`][posthog] |
 
 Each driver declares its `driverKind`, a `configSchema`, and a `create` function that builds an
 adapter in a child scope. Adapter implementations live beside them in
 `apps/server/src/provider/Layers/` (`CodexAdapter.ts`, `ClaudeAdapter.ts`, and so on) and conform to
 [`ProviderAdapter.ts`][adapter]. Read the driver plus its adapter to see how a specific agent's
 transport, config, and event shapes are mapped.
+
+### The composite driver
+
+`posthogGateway` is the one driver that is not a harness of its own. The PostHog AI Gateway serves
+its whole catalog from one origin but on two request shapes — `claude-*` ids only on Anthropic
+Messages, everything else only on Responses (`@ras-code/shared/posthogGateway`) — and no shipped
+harness speaks both. `PostHogGatewayDriver.create` therefore calls `ClaudeDriver.create` and
+`CodexDriver.create` in its own scope and composes the two children:
+
+- **Snapshot.** The models come from the gateway's own catalog (`fetchGatewayModels`, refreshed
+  every five minutes with the last good list kept), each model taking its capabilities from the
+  child that will serve it. Status is "ready" when the child needed for at least one catalog model
+  is ready, so a missing Codex install does not hide the Claude half of the catalog. The usage limit
+  is the worse of the two children's, so the composite can be a fallback primary too.
+- **Adapter.** Every call routes on `gatewayModelShape(model)`. A thread's shape is recorded at
+  `startSession`; a `sendTurn` that asks for a model on the other shape is refused, because the two
+  harnesses hold no shared resume state. Sessions and runtime events are rewritten to carry the
+  composite's instance id and driver kind — `ProviderService.correlateRuntimeEventWithInstance`
+  rejects an event whose driver kind is not the one the registry bound to that instance, so passing
+  a child's kind through would be a defect.
+- **Continuation.** The composite adopts the Claude child's continuation key
+  (`claude:home:<resolved home>`), which is what lets a plain Claude instance hand a started thread
+  to it. Continuation key, not driver kind, is the compatibility test everywhere it matters:
+  `ProviderCommandReactor.ensureSessionForThread` and `resolveFallbackSelection` both compare keys.
+
+The children are internal. Their instance ids (`<id>_claude`, `<id>_codex`) never reach settings,
+the registry, or the wire.
 
 ## Registry and routing
 
@@ -64,7 +92,7 @@ fallback, the turn runs on the fallback instead and the thread gets a `provider.
 activity naming both instances. Substitution is skipped — and the provider's own error surfaces
 unchanged — when the fallback is missing, disabled, unavailable, or itself exhausted, and when a
 started thread could not move between the two instances anyway (either driver requires a new thread
-for a model change, or the instances do not share a continuation group). Fallbacks are never
+for a model change, or the instances do not share a continuation key). Fallbacks are never
 chained: at most one hop is followed, so an exhausted fallback ends the search rather than
 consulting its own. A turn that fails with a usage-limit error before producing any assistant
 output is retried once on the fallback; a turn already running on a fallback is not retried again.
@@ -128,6 +156,7 @@ when a request opens (approval) or user input is requested, via
 [cursor]: ../../apps/server/src/provider/Drivers/CursorDriver.ts
 [grok]: ../../apps/server/src/provider/Drivers/GrokDriver.ts
 [opencode]: ../../apps/server/src/provider/Drivers/OpenCodeDriver.ts
+[posthog]: ../../apps/server/src/provider/Drivers/PostHogGatewayDriver.ts
 [adapter]: ../../apps/server/src/provider/Services/ProviderAdapter.ts
 [instances]: ../../apps/server/src/provider/Services/ProviderInstanceRegistry.ts
 [registry]: ../../apps/server/src/provider/Services/ProviderAdapterRegistry.ts

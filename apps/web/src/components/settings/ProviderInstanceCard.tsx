@@ -44,7 +44,11 @@ import { providerSettingsTabClassName } from "./providerSettingsTabs";
 import { ProviderSettingsForm } from "./ProviderSettingsForm";
 import { ProviderModelsSection } from "./ProviderModelsSection";
 import { ProviderFallbackSection } from "./ProviderFallbackSection";
-import { instanceUsesGateway, mergeRemoteModelsIntoCustomModels } from "./providerGateway.logic";
+import {
+  instanceUsesGateway,
+  LEGACY_POSTHOG_GATEWAY_INSTANCE_ID,
+  mergeRemoteModelsIntoCustomModels,
+} from "./providerGateway.logic";
 import { usageLimitPill } from "./providerUsageLimit.logic";
 import { useClientSettings } from "../../hooks/useSettings";
 import { formatShortTimestamp } from "../../timestampFormat";
@@ -527,6 +531,10 @@ export function ProviderInstanceCard({
   };
 
   const showsGatewayRefresh = instanceUsesGateway(instance);
+  // The retired preset made a Claude instance pointed at the gateway. It still
+  // works, so nothing migrates on its own — the card just says where the real
+  // driver lives now.
+  const isLegacyGatewayPreset = String(instanceId) === LEGACY_POSTHOG_GATEWAY_INSTANCE_ID;
   const refreshGatewayModels = async () => {
     setIsRefreshingGatewayModels(true);
     const models = await listGatewayModels({ environmentId, instanceId });
@@ -803,6 +811,12 @@ export function ProviderInstanceCard({
             <p className="flex min-w-0 flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
               <span>{summary.headline}</span>
               {summary.detail ? <span>· {summary.detail}</span> : null}
+            </p>
+          ) : null}
+          {isLegacyGatewayPreset ? (
+            <p className="text-xs text-muted-foreground">
+              PostHog AI Gateway is now a provider of its own — add it from Add provider and remove
+              this instance.
             </p>
           ) : null}
         </div>
