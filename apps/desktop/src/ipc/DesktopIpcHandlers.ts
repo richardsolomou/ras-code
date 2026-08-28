@@ -2,6 +2,7 @@ import * as Effect from "effect/Effect";
 
 import * as DesktopIpc from "./DesktopIpc.ts";
 import { getClientSettings, setClientSettings } from "./methods/clientSettings.ts";
+import { setDockIcon } from "./methods/dockIcon.ts";
 import { notify, setBadgeCount } from "./methods/notifications.ts";
 import {
   clearConnectionCatalog,
@@ -91,6 +92,7 @@ export const installDesktopIpcHandlers = Effect.fn("desktop.ipc.installHandlers"
   yield* ipc.handle(openExternal);
   yield* ipc.handle(notify);
   yield* ipc.handle(setBadgeCount);
+  yield* ipc.handle(setDockIcon);
   yield* ipc.handle(probeRemoteEditors);
   yield* ipc.handle(getUpdateState);
   yield* ipc.handle(setUpdateChannel);

@@ -1160,6 +1160,13 @@ export interface DesktopBridge {
   /** Dock/taskbar badge. Zero clears it. Optional for the same reason. */
   setBadgeCount?: (count: number) => Promise<boolean>;
   /**
+   * Repaint the macOS dock tile with the active theme, as a square PNG data
+   * URL the renderer draws. Resolves false when the platform has no dock or
+   * the image is unusable. Optional: older desktop builds lack it, and web
+   * clients have no dock at all.
+   */
+  setDockIcon?: (pngDataUrl: string) => Promise<boolean>;
+  /**
    * Hold-to-quit hint pushes: "down" when the quit shortcut is first pressed,
    * "up" when it is released before the hold completes. Optional: older
    * desktop builds never emit it.

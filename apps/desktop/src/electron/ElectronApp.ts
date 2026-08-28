@@ -72,6 +72,8 @@ export class ElectronApp extends Context.Service<
     ) => Effect.Effect<boolean>;
     readonly setDesktopName: (desktopName: string) => Effect.Effect<void>;
     readonly setDockIcon: (iconPath: string) => Effect.Effect<void>;
+    /** Paints the dock tile from a PNG data URL. False when there is no dock. */
+    readonly setDockIconImage: (pngDataUrl: string) => Effect.Effect<boolean>;
     readonly appendCommandLineSwitch: (switchName: string, value?: string) => Effect.Effect<void>;
     readonly onBeforeQuitForUpdate: (
       listener: () => void,
@@ -184,6 +186,15 @@ export const make = ElectronApp.of({
   setDockIcon: (iconPath) =>
     Effect.sync(() => {
       Electron.app.dock?.setIcon(iconPath);
+    }),
+  setDockIconImage: (pngDataUrl) =>
+    Effect.sync(() => {
+      const dock = Electron.app.dock;
+      if (dock === undefined) return false;
+      const image = Electron.nativeImage.createFromDataURL(pngDataUrl);
+      if (image.isEmpty()) return false;
+      dock.setIcon(image);
+      return true;
     }),
   appendCommandLineSwitch: (switchName, value) =>
     Effect.sync(() => {

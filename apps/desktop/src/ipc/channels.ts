@@ -86,3 +86,4 @@ export const PREVIEW_POINTER_EVENT_CHANNEL = "desktop:preview-pointer-event";
 export const NOTIFY_CHANNEL = "desktop:notify";
 export const NOTIFICATION_ACTIVATED_CHANNEL = "desktop:notification-activated";
 export const SET_BADGE_COUNT_CHANNEL = "desktop:set-badge-count";
+export const SET_DOCK_ICON_CHANNEL = "desktop:set-dock-icon";

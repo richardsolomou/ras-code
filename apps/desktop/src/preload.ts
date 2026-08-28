@@ -140,6 +140,8 @@ contextBridge.exposeInMainWorld("desktopBridge", {
     };
   },
   setBadgeCount: (count: number) => ipcRenderer.invoke(IpcChannels.SET_BADGE_COUNT_CHANNEL, count),
+  setDockIcon: (pngDataUrl: string) =>
+    ipcRenderer.invoke(IpcChannels.SET_DOCK_ICON_CHANNEL, pngDataUrl),
   onQuitShortcut: (listener) => {
     const wrappedListener = (_event: Electron.IpcRendererEvent, state: unknown) => {
       if (state !== "down" && state !== "up") return;

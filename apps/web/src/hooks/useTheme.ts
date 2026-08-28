@@ -2,6 +2,8 @@ import type { DesktopBridge } from "@ras-code/contracts";
 import { safeErrorLogAttributes } from "@ras-code/client-runtime/errors";
 import * as Schema from "effect/Schema";
 import { useCallback, useEffect, useSyncExternalStore } from "react";
+
+import { syncDesktopDockIcon } from "../dockIcon";
 import {
   applyThemePalette,
   CUSTOM_THEMES_STORAGE_KEY,
@@ -296,6 +298,7 @@ function applyTheme(theme: Theme, suppressTransitions = false) {
     themeHalvesSignature(lastAppliedTheme.themeHalves) === themeHalvesSignature(themeHalves)
   ) {
     syncDesktopTheme(theme, followSystem, appearanceMode);
+    syncDesktopDockIcon();
     return;
   }
 
@@ -315,6 +318,7 @@ function applyTheme(theme: Theme, suppressTransitions = false) {
   lastAppliedTheme = { theme, systemDark, followSystem, appearanceMode, themeHalves };
   syncBrowserChromeTheme();
   syncDesktopTheme(theme, followSystem, appearanceMode);
+  syncDesktopDockIcon();
   if (suppressTransitions) {
     // Force a reflow so the no-transitions class takes effect before removal
     // oxlint-disable-next-line no-unused-expressions
