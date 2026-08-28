@@ -1,3 +1,5 @@
+import * as NodeOS from "node:os";
+
 /**
  * PostHogGatewayDriver — one provider, two harnesses.
  *
@@ -54,6 +56,8 @@ import {
 } from "@ras-code/shared/posthogGateway";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
+import * as FileSystem from "effect/FileSystem";
+import * as Path from "effect/Path";
 import * as PubSub from "effect/PubSub";
 import * as Ref from "effect/Ref";
 import * as Schedule from "effect/Schedule";
@@ -61,7 +65,11 @@ import * as Schema from "effect/Schema";
 import * as Stream from "effect/Stream";
 import { HttpClient } from "effect/unstable/http";
 
-import { ProviderAdapterRequestError, type ProviderAdapterError } from "../Errors.ts";
+import {
+  ProviderAdapterRequestError,
+  ProviderDriverError,
+  type ProviderAdapterError,
+} from "../Errors.ts";
 import { ClaudeDriver, type ClaudeDriverEnv } from "./ClaudeDriver.ts";
 import { CodexDriver, type CodexDriverEnv } from "./CodexDriver.ts";
 import type { ProviderDriver, ProviderInstance } from "../ProviderDriver.ts";
@@ -498,6 +506,24 @@ export const PostHogGatewayDriver: ProviderDriver<PostHogGatewaySettings, PostHo
           // a plain Claude instance hand a started thread to this one.
           config: decodeClaudeSettings({ binaryPath: config.claudeBinaryPath }),
         });
+        // The Codex child gets its own config directory. Sharing ~/.codex would
+        // load the user's MCP servers and connector apps, which Codex advertises
+        // as tool types the gateway bridge rejects; the gateway key authenticates
+        // through env_key, so no login is needed there.
+        const fileSystem = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const codexHomePath = path.join(NodeOS.homedir(), ".codex-ras", "posthog-gateway");
+        yield* fileSystem.makeDirectory(codexHomePath, { recursive: true }).pipe(
+          Effect.mapError(
+            (cause) =>
+              new ProviderDriverError({
+                driver: DRIVER_KIND,
+                instanceId: String(instanceId),
+                detail: `Could not create the gateway Codex home '${codexHomePath}'.`,
+                cause,
+              }),
+          ),
+        );
         const codexChild = yield* CodexDriver.create({
           instanceId: childInstanceId(instanceId, "codex"),
           displayName,
@@ -506,6 +532,7 @@ export const PostHogGatewayDriver: ProviderDriver<PostHogGatewaySettings, PostHo
           environment: buildCodexChildEnvironment({ environment, key: keyValue }),
           config: decodeCodexSettings({
             binaryPath: config.codexBinaryPath,
+            homePath: codexHomePath,
             launchArgs: posthogGatewayCodexLaunchArgs(RAS_GATEWAY_KEY_VARIABLE, baseUrl).launchArgs,
           }),
         });

@@ -97,6 +97,9 @@ describe("posthogGatewayCodexLaunchArgs", () => {
       "model_providers.posthog.env_key=RAS_GATEWAY_KEY",
       "-c",
       "model_providers.posthog.wire_api=responses",
+      "web_search=disabled",
+      "features.multi_agent=false",
+      "features.apps=false",
     ]);
   });
 

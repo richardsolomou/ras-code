@@ -129,6 +129,12 @@ export function posthogGatewayCodexLaunchArgs(
     `model_providers.${id}.base_url=${providerBaseUrl}`,
     `model_providers.${id}.env_key=${envKeyName}`,
     `model_providers.${id}.wire_api=responses`,
+    // The gateway's Responses→Chat bridge accepts `function` tools only, so the
+    // tool families Codex would otherwise advertise (web search, multi-agent,
+    // connector apps) are switched off for gateway sessions.
+    "web_search=disabled",
+    "features.multi_agent=false",
+    "features.apps=false",
   ];
   return {
     argv: values.flatMap((value) => ["-c", value]),
