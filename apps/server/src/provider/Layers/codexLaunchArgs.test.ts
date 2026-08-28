@@ -73,8 +73,11 @@ describe("PostHog AI Gateway launch args", () => {
       "model_providers.posthog.env_key=RAS_GATEWAY_KEY",
       "-c",
       "model_providers.posthog.wire_api=responses",
+      "-c",
       "web_search=disabled",
+      "-c",
       "features.multi_agent=false",
+      "-c",
       "features.apps=false",
     ]);
   });
