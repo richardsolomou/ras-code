@@ -84,8 +84,17 @@ describe("instanceUsesAnthropicGateway", () => {
 describe("mergeRemoteModelsIntoCustomModels", () => {
   it("appends new ids after the ones already saved", () => {
     expect(
-      mergeRemoteModelsIntoCustomModels(["kept"], [{ id: "gateway-a" }, { id: "gateway-b" }]),
-    ).toEqual(["kept", "gateway-a", "gateway-b"]);
+      mergeRemoteModelsIntoCustomModels(["kept"], [{ id: "claude-a" }, { id: "claude-b" }]),
+    ).toEqual(["kept", "claude-a", "claude-b"]);
+  });
+
+  it("skips catalog ids Claude Code cannot request through the Anthropic shape", () => {
+    expect(
+      mergeRemoteModelsIntoCustomModels(
+        [],
+        [{ id: "claude-sonnet-4-6" }, { id: "gpt-5.4" }, { id: "zai-org/glm-5.2" }],
+      ),
+    ).toEqual(["claude-sonnet-4-6"]);
   });
 
   it("drops ids the instance already has", () => {
@@ -93,7 +102,9 @@ describe("mergeRemoteModelsIntoCustomModels", () => {
   });
 
   it("drops duplicates within one gateway response", () => {
-    expect(mergeRemoteModelsIntoCustomModels([], [{ id: "a" }, { id: "a" }])).toEqual(["a"]);
+    expect(mergeRemoteModelsIntoCustomModels([], [{ id: "claude-a" }, { id: "claude-a" }])).toEqual(
+      ["claude-a"],
+    );
   });
 
   it("ignores blank ids", () => {
@@ -109,7 +120,7 @@ describe("gatewayModelSettingsPatch", () => {
       instance: gatewayInstance(),
       instances: {},
       modelPreferences: undefined,
-      remoteModels: [{ id: "posthog/zai-org/glm-5.2" }],
+      remoteModels: [{ id: "claude-sonnet-4-6" }],
       builtInModelSlugs: ["claude-sonnet-4-6", "claude-opus-4-6"],
     });
 
@@ -117,7 +128,7 @@ describe("gatewayModelSettingsPatch", () => {
     const config = patch().providerInstances[instanceId]?.config as
       | { readonly customModels: ReadonlyArray<string> }
       | undefined;
-    expect(config?.customModels).toEqual(["posthog/zai-org/glm-5.2"]);
+    expect(config?.customModels).toEqual(["claude-sonnet-4-6"]);
   });
 
   it("hides the driver's own models so the picker offers only gateway models", () => {

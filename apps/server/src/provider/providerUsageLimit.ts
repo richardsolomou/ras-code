@@ -208,3 +208,27 @@ export const isUsageLimitFailureMessage = (message: string | undefined | null): 
   const normalized = message.toLowerCase();
   return USAGE_LIMIT_ERROR_PATTERNS.some((pattern) => normalized.includes(pattern));
 };
+
+/** Items that carry no user-visible work of their own, so a retry repeats nothing. */
+export const PASSIVE_ITEM_TYPES: ReadonlySet<string> = new Set([
+  "user_message",
+  "assistant_message",
+  "reasoning",
+  "error",
+  "unknown",
+]);
+
+/**
+ * Whether streamed assistant text is real output rather than the provider
+ * echoing its own failure (Claude surfaces API errors as assistant text).
+ */
+export function hasMeaningfulAssistantText(
+  assistantText: string,
+  errorMessage: string | undefined,
+): boolean {
+  const text = assistantText.trim();
+  if (text.length === 0) return false;
+  if (/^API Error\b/i.test(text)) return false;
+  const error = errorMessage?.trim() ?? "";
+  return error.length === 0 || !error.includes(text);
+}

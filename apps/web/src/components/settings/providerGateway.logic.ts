@@ -80,9 +80,15 @@ export function instanceUsesAnthropicGateway(instance: ProviderInstanceConfig): 
   return readEnvironmentValue(instance, ANTHROPIC_BASE_URL_VARIABLE).length > 0;
 }
 
+/** Claude Code speaks the Anthropic Messages shape, so only Claude ids are servable through it. */
+export function isClaudeServableModel(id: string): boolean {
+  return id.startsWith("claude-");
+}
+
 /**
- * Append gateway-reported model ids to the instance's saved custom models,
- * preserving existing entries and their order.
+ * Append gateway-reported Claude model ids to the instance's saved custom
+ * models, preserving existing entries and their order. Other catalog entries
+ * (OpenAI and open-weight ids) need the OpenAI request shape and are skipped.
  */
 export function mergeRemoteModelsIntoCustomModels(
   customModels: ReadonlyArray<string>,
@@ -92,7 +98,7 @@ export function mergeRemoteModelsIntoCustomModels(
   const seen = new Set(merged);
   for (const model of remoteModels) {
     const id = model.id.trim();
-    if (id.length === 0 || seen.has(id)) continue;
+    if (id.length === 0 || seen.has(id) || !isClaudeServableModel(id)) continue;
     seen.add(id);
     merged.push(id);
   }

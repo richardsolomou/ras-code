@@ -14,6 +14,7 @@ import {
   type ProviderSession,
   type RuntimeMode,
   type ServerProvider,
+  PROVIDER_DISPLAY_NAMES,
   type TurnId,
 } from "@ras-code/contracts";
 import {
@@ -43,7 +44,9 @@ import { TextGeneration } from "../../textGeneration/TextGeneration.ts";
 import { ProviderService } from "../../provider/Services/ProviderService.ts";
 import {
   exhaustedUsageLimitFromError,
+  hasMeaningfulAssistantText,
   isUsageLimitFailureMessage,
+  PASSIVE_ITEM_TYPES,
   normalizeProviderUsageLimit,
 } from "../../provider/providerUsageLimit.ts";
 import { ProviderRegistry } from "../../provider/Services/ProviderRegistry.ts";
@@ -325,7 +328,11 @@ function providerDisplayLabel(
   snapshot: ServerProvider | undefined,
   instanceId: ProviderInstanceId,
 ): string {
-  return snapshot?.displayName ?? String(instanceId);
+  return (
+    snapshot?.displayName ??
+    (snapshot ? PROVIDER_DISPLAY_NAMES[snapshot.driver] : undefined) ??
+    String(instanceId)
+  );
 }
 
 function formatFallbackNotice(input: {
@@ -1287,7 +1294,10 @@ const make = Effect.gen(function* () {
     readonly attachments?: ReadonlyArray<ChatAttachment>;
     readonly instanceId: ProviderInstanceId;
     readonly onFallback: boolean;
-    sawAssistantOutput: boolean;
+    /** Streamed assistant text, capped; compared against the failure message on error. */
+    assistantText: string;
+    /** Tool calls, plans, and other non-message items: work a retry would repeat. */
+    sawWorkItem: boolean;
   };
 
   /** At most one in-flight turn per thread, so a plain map is enough. */
@@ -1474,7 +1484,8 @@ const make = Effect.gen(function* () {
       ...(message.attachments !== undefined ? { attachments: message.attachments } : {}),
       instanceId: (routed?.selection ?? baseSelection).instanceId,
       onFallback: routed !== undefined,
-      sawAssistantOutput: false,
+      assistantText: "",
+      sawWorkItem: false,
     });
 
     yield* dispatchTurn({
@@ -1525,14 +1536,19 @@ const make = Effect.gen(function* () {
       return;
     }
 
-    // Any assistant-visible output means the turn did real work; re-sending it
-    // on another provider would duplicate that work.
-    if (
-      event.type === "content.delta" ||
-      event.type === "item.started" ||
-      event.type === "item.completed"
-    ) {
-      pending.sawAssistantOutput = true;
+    // Track what the turn produced. Claude reports an API failure as an
+    // assistant message whose text is the error itself, so text alone is not
+    // proof of work; it is judged against the failure message below.
+    if (event.type === "content.delta") {
+      if (event.payload.streamKind === "assistant_text" && pending.assistantText.length < 4000) {
+        pending.assistantText += event.payload.delta;
+      }
+      return;
+    }
+    if (event.type === "item.started" || event.type === "item.completed") {
+      if (!PASSIVE_ITEM_TYPES.has(event.payload.itemType)) {
+        pending.sawWorkItem = true;
+      }
       return;
     }
 
@@ -1557,7 +1573,11 @@ const make = Effect.gen(function* () {
       usageLimit: exhaustedUsageLimitFromError({ nowMs }),
     });
 
-    if (pending.onFallback || pending.sawAssistantOutput) {
+    if (
+      pending.onFallback ||
+      pending.sawWorkItem ||
+      hasMeaningfulAssistantText(pending.assistantText, event.payload.errorMessage)
+    ) {
       return;
     }
     yield* retryTurnOnFallback(pending);
@@ -1607,7 +1627,8 @@ const make = Effect.gen(function* () {
       ...pending,
       instanceId: routed.selection.instanceId,
       onFallback: true,
-      sawAssistantOutput: false,
+      assistantText: "",
+      sawWorkItem: false,
     });
     yield* dispatchTurn({
       event: pending.event,

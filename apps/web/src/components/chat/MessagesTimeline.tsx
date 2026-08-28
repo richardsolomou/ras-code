@@ -4,6 +4,7 @@ import {
   type ProviderInstanceId,
   type ScopedThreadRef,
   type ServerProviderSkill,
+  PROVIDER_DISPLAY_NAMES,
   type TurnId,
 } from "@ras-code/contracts";
 import { parseScopedThreadKey } from "@ras-code/client-runtime/environment";
@@ -2615,8 +2616,14 @@ const FallbackNoticeRow = memo(function FallbackNoticeRow(props: {
 }) {
   const timestampFormat = useClientSettings((settings) => settings.timestampFormat);
   const providerInstances = usePrimarySettings((settings) => settings.providerInstances);
-  const instanceName = (instanceId: string) =>
-    providerInstances[instanceId as ProviderInstanceId]?.displayName?.trim() || instanceId;
+  const instanceName = (instanceId: string) => {
+    const instance = providerInstances[instanceId as ProviderInstanceId];
+    return (
+      instance?.displayName?.trim() ||
+      (instance ? PROVIDER_DISPLAY_NAMES[instance.driver] : undefined) ||
+      instanceId
+    );
+  };
   const text = describeFallbackNotice({
     payload: props.notice,
     primaryName: instanceName(props.notice.primaryInstanceId),

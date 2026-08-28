@@ -3493,8 +3493,8 @@ describe("ProviderCommandReactor", () => {
         providerInstanceId: PRIMARY,
         threadId: ThreadId.make("thread-1"),
         createdAt: "2026-01-01T00:00:01.000Z",
-        type: "item.started",
-        payload: { itemType: "assistant_message", status: "inProgress" },
+        type: "content.delta",
+        payload: { streamKind: "assistant_text", delta: "Sure — looking at the repo now." },
       });
       await harness.publishRuntimeEvent({
         eventId: EventId.make("runtime-event-turn-failed-2"),
@@ -3509,6 +3509,48 @@ describe("ProviderCommandReactor", () => {
       await Effect.runPromise(Effect.yieldNow);
       await Effect.runPromise(Effect.yieldNow);
       expect(harness.sendTurn.mock.calls.length).toBe(1);
+    });
+
+    it("retries when the only assistant text is the provider echoing its API error", async () => {
+      const harness = await createHarness(fallbackHarnessInput({ usageLimits: new Map() }));
+      await awaitRuntimeSubscriber(harness);
+      await dispatchTurn(harness, "cmd-fallback-9");
+      await waitFor(() => harness.sendTurn.mock.calls.length === 1);
+
+      const errorText =
+        "API Error: Server is temporarily limiting requests · You have exceeded your usage limit for this period.";
+      await harness.publishRuntimeEvent({
+        eventId: EventId.make("runtime-event-echo-item"),
+        provider: ProviderDriverKind.make("claudeAgent"),
+        providerInstanceId: PRIMARY,
+        threadId: ThreadId.make("thread-1"),
+        createdAt: "2026-01-01T00:00:01.000Z",
+        type: "item.started",
+        payload: { itemType: "assistant_message", status: "inProgress" },
+      });
+      await harness.publishRuntimeEvent({
+        eventId: EventId.make("runtime-event-echo-delta"),
+        provider: ProviderDriverKind.make("claudeAgent"),
+        providerInstanceId: PRIMARY,
+        threadId: ThreadId.make("thread-1"),
+        createdAt: "2026-01-01T00:00:01.500Z",
+        type: "content.delta",
+        payload: { streamKind: "assistant_text", delta: errorText },
+      });
+      await harness.publishRuntimeEvent({
+        eventId: EventId.make("runtime-event-turn-failed-3"),
+        provider: ProviderDriverKind.make("claudeAgent"),
+        providerInstanceId: PRIMARY,
+        threadId: ThreadId.make("thread-1"),
+        createdAt: "2026-01-01T00:00:02.000Z",
+        type: "turn.completed",
+        payload: { state: "failed", errorMessage: errorText },
+      });
+
+      await waitFor(() => harness.sendTurn.mock.calls.length === 2);
+      expect(harness.sendTurn.mock.calls[1]?.[0]).toMatchObject({
+        modelSelection: expect.objectContaining({ instanceId: FALLBACK }),
+      });
     });
   });
 });
