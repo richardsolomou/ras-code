@@ -5,8 +5,10 @@ import {
   EnvironmentHttpCommonError,
   type OrchestrationReadModel,
   ProjectId,
+  ProviderInstanceId,
   type ClientOrchestrationCommand,
 } from "@ras-code/contracts";
+import { createModelSelection } from "@ras-code/shared/model";
 import * as Console from "effect/Console";
 import * as Crypto from "effect/Crypto";
 import * as DateTime from "effect/DateTime";
@@ -111,6 +113,15 @@ export class ProjectTitleEmptyError extends Schema.TaggedErrorClass<ProjectTitle
 ) {
   override get message(): string {
     return "Project title cannot be empty.";
+  }
+}
+
+export class ProjectModelFlagsError extends Schema.TaggedErrorClass<ProjectModelFlagsError>()(
+  "ProjectModelFlagsError",
+  { detail: Schema.String },
+) {
+  override get message(): string {
+    return this.detail;
   }
 }
 
@@ -569,7 +580,75 @@ const projectRenameCommand = Command.make("rename", {
   ),
 );
 
+const projectModelCommand = Command.make("model", {
+  ...projectLocationFlags,
+  project: Argument.string("project").pipe(
+    Argument.withDescription("Project id or workspace root."),
+  ),
+  model: Flag.string("model").pipe(
+    Flag.withDescription("Model id new threads in this project start with."),
+    Flag.optional,
+  ),
+  provider: Flag.string("provider").pipe(
+    Flag.withDescription("Provider instance id that serves --model (for example claudeAgent)."),
+    Flag.optional,
+  ),
+  inherit: Flag.boolean("inherit").pipe(
+    Flag.withDescription("Clear the project default so new threads use the global default model."),
+    Flag.withDefault(false),
+  ),
+}).pipe(
+  Command.withDescription("Set or clear a project's default model."),
+  Command.withHandler((flags) =>
+    runProjectMutation(
+      flags,
+      Effect.fn("projectModelMutation")(function* ({
+        snapshot,
+        dispatch,
+      }: {
+        readonly snapshot: OrchestrationReadModel;
+        readonly dispatch: (
+          command: ProjectCliDispatchCommand,
+        ) => Effect.Effect<void, Error, FileSystem.FileSystem | HttpClient.HttpClient | Path.Path>;
+      }) {
+        const model = Option.getOrUndefined(flags.model)?.trim();
+        const provider = Option.getOrUndefined(flags.provider)?.trim();
+        if (flags.inherit === Boolean(model)) {
+          return yield* new ProjectModelFlagsError({
+            detail: "Pass either --inherit or --model <id> --provider <instance>.",
+          });
+        }
+        if (model && !provider) {
+          return yield* new ProjectModelFlagsError({
+            detail: "--model requires --provider <instance id>.",
+          });
+        }
+        const project = yield* findActiveProjectTarget({
+          snapshot,
+          identifier: flags.project,
+        });
+        const defaultModelSelection =
+          model && provider ? createModelSelection(ProviderInstanceId.make(provider), model) : null;
+        yield* dispatch({
+          type: "project.meta.update",
+          commandId: CommandId.make(yield* projectCommandUuid),
+          projectId: project.id,
+          defaultModelSelection,
+        });
+        return defaultModelSelection
+          ? `Project ${project.id} now starts new threads with ${provider}/${model}.`
+          : `Project ${project.id} now inherits the global default model.`;
+      }),
+    ),
+  ),
+);
+
 export const projectCommand = Command.make("project").pipe(
   Command.withDescription("Manage projects."),
-  Command.withSubcommands([projectAddCommand, projectRemoveCommand, projectRenameCommand]),
+  Command.withSubcommands([
+    projectAddCommand,
+    projectRemoveCommand,
+    projectRenameCommand,
+    projectModelCommand,
+  ]),
 );

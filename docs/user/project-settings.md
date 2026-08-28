@@ -52,3 +52,5 @@ To give one project a different model, open **Settings**, select **Projects**, s
 and select a model under **New threads**. The project setting applies to each checkout in the
 project group and replaces the default model for that project. Select **Reset** to make the project
 follow the default model again.
+
+From a terminal, `ras project model <project> --inherit` clears a project's own default, and `ras project model <project> --model <id> --provider <instance>` sets one. `<project>` is the project id or its workspace root.
