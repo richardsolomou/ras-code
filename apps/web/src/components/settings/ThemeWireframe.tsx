@@ -12,6 +12,10 @@ export function ThemeWireframePane({
   clip?: "left" | "right" | undefined;
 }) {
   const line = "rgb(127 127 127 / 0.25)";
+  // Lamp hues are theme-independent in the app, so the miniature borrows the
+  // stock indicator colors instead of following the palette.
+  const lampWorking = "#52c46f";
+  const lampWaiting = "#f0c24b";
   return (
     <span
       className="absolute inset-0"
@@ -100,7 +104,7 @@ export function ThemeWireframePane({
               className="block aspect-square h-[26%] rounded-full"
               style={{
                 backgroundColor:
-                  row === 0 ? "#34d399" : row === 1 ? colors.messageAction : "#fbbf24",
+                  row === 0 ? lampWorking : row === 1 ? colors.messageAction : lampWaiting,
                 opacity: 0.55,
               }}
             />

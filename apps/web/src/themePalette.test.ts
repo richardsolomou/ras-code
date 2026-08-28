@@ -36,6 +36,7 @@ import {
   createManagedThemeColors,
   createVividThemeColors,
   getDefaultThemeColors,
+  getStandardThemeColors,
   themeColorToHex,
   toCanonicalThemeColor,
   THEME_FILE_VERSION,
@@ -87,6 +88,23 @@ describe("theme files", () => {
         }
       }
     }
+  });
+
+  it("mirrors the app's stock tokens in the standard palette", () => {
+    expectThemeColors(getStandardThemeColors("light"), {
+      canvas: "#fcfcfc",
+      surface: "#ffffff",
+      sidebar: "#fafafa",
+      accent: "#2a2733",
+      messageAction: "#2a2733",
+    });
+    expectThemeColors(getStandardThemeColors("dark"), {
+      canvas: "#16141c",
+      surface: "#1f1c26",
+      sidebar: "#100f15",
+      accent: "#f0c24b",
+      messageAction: "#f0c24b",
+    });
   });
 
   it("derives a readable palette from extreme simple-editor colors", () => {
