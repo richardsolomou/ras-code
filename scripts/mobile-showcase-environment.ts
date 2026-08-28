@@ -94,30 +94,30 @@ export function RemoteHandoffCard(props: { machine: string; latencyMs: number })
 
 const PROJECT_FAVICONS = {
   rasCode: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
-  <rect width="128" height="128" rx="10" fill="#2A3230"/>
+  <rect width="128" height="128" rx="10" fill="#2A2733"/>
   <rect x="31" y="7" width="18" height="18" rx="3" fill="#F0C24B" />
   <rect x="34" y="10" width="12" height="12" rx="2" fill="#FFE08A" fill-opacity="0.5" />
   <rect x="55" y="7" width="18" height="18" rx="3" fill="#F0C24B" />
   <rect x="58" y="10" width="12" height="12" rx="2" fill="#FFE08A" fill-opacity="0.5" />
-  <rect x="79" y="7" width="18" height="18" rx="3" fill="#38423F" fill-opacity="0.28" />
+  <rect x="79" y="7" width="18" height="18" rx="3" fill="#3B3746" fill-opacity="0.28" />
   <rect x="31" y="31" width="18" height="18" rx="3" fill="#F0C24B" />
   <rect x="34" y="34" width="12" height="12" rx="2" fill="#FFE08A" fill-opacity="0.5" />
-  <rect x="55" y="31" width="18" height="18" rx="3" fill="#38423F" fill-opacity="0.28" />
+  <rect x="55" y="31" width="18" height="18" rx="3" fill="#3B3746" fill-opacity="0.28" />
   <rect x="79" y="31" width="18" height="18" rx="3" fill="#F0C24B" />
   <rect x="82" y="34" width="12" height="12" rx="2" fill="#FFE08A" fill-opacity="0.5" />
   <rect x="31" y="55" width="18" height="18" rx="3" fill="#F0C24B" />
   <rect x="34" y="58" width="12" height="12" rx="2" fill="#FFE08A" fill-opacity="0.5" />
   <rect x="55" y="55" width="18" height="18" rx="3" fill="#F0C24B" />
   <rect x="58" y="58" width="12" height="12" rx="2" fill="#FFE08A" fill-opacity="0.5" />
-  <rect x="79" y="55" width="18" height="18" rx="3" fill="#38423F" fill-opacity="0.28" />
+  <rect x="79" y="55" width="18" height="18" rx="3" fill="#3B3746" fill-opacity="0.28" />
   <rect x="31" y="79" width="18" height="18" rx="3" fill="#F0C24B" />
   <rect x="34" y="82" width="12" height="12" rx="2" fill="#FFE08A" fill-opacity="0.5" />
-  <rect x="55" y="79" width="18" height="18" rx="3" fill="#38423F" fill-opacity="0.28" />
+  <rect x="55" y="79" width="18" height="18" rx="3" fill="#3B3746" fill-opacity="0.28" />
   <rect x="79" y="79" width="18" height="18" rx="3" fill="#F0C24B" />
   <rect x="82" y="82" width="12" height="12" rx="2" fill="#FFE08A" fill-opacity="0.5" />
   <rect x="31" y="103" width="18" height="18" rx="3" fill="#F0C24B" />
   <rect x="34" y="106" width="12" height="12" rx="2" fill="#FFE08A" fill-opacity="0.5" />
-  <rect x="55" y="103" width="18" height="18" rx="3" fill="#38423F" fill-opacity="0.28" />
+  <rect x="55" y="103" width="18" height="18" rx="3" fill="#3B3746" fill-opacity="0.28" />
   <rect x="79" y="103" width="18" height="18" rx="3" fill="#F0C24B" />
   <rect x="82" y="106" width="12" height="12" rx="2" fill="#FFE08A" fill-opacity="0.5" />
 </svg>`,

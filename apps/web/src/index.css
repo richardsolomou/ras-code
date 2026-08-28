@@ -119,8 +119,8 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(ras-code
 
   @variant dark {
     --appearance-contrast-target: white;
-    --app-scrollbar-thumb: rgb(255 255 255 / 8%);
-    --app-scrollbar-thumb-hover: rgb(255 255 255 / 12%);
+    --app-scrollbar-thumb: #4a5551;
+    --app-scrollbar-thumb-hover: #5e6b67;
     --glass-blur: 16px;
     --glass-saturation: 1.08;
   }
@@ -273,14 +273,10 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(ras-code
   }
 }
 
+/* Enamel panel, not glass: opaque chrome so type never sits on a blurred
+   transcript, and no backdrop-filter repainting behind scrolling content. */
 @utility surface-glass {
-  background: color-mix(in srgb, var(--background) var(--glass-opacity), transparent);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
-
-  @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
-    background: var(--background) !important;
-  }
+  background: var(--background);
 }
 
 @utility alert-glass {
@@ -290,9 +286,7 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(ras-code
       color-mix(in srgb, var(--alert-glass-tint) 4%, transparent),
       color-mix(in srgb, var(--alert-glass-tint) 4%, transparent)
     ),
-    color-mix(in srgb, var(--background) var(--glass-opacity), transparent) !important;
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+    var(--popover) !important;
 
   &[data-variant="error"] {
     --alert-glass-tint: var(--destructive);
@@ -309,28 +303,17 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(ras-code
   &[data-variant="warning"] {
     --alert-glass-tint: var(--warning);
   }
-
-  @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
-    background: var(--background) !important;
-  }
 }
 
 @utility dialog-glass {
-  background: color-mix(in srgb, var(--background) var(--glass-opacity), transparent);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
-  border-color: color-mix(in srgb, var(--contrast-foreground) 10%, transparent);
+  background: var(--popover);
+  border-color: var(--console-rule);
   box-shadow: 0 24px 64px -24px rgb(0 0 0 / 65%);
 
   @variant dark {
-    border-color: color-mix(in srgb, var(--color-white) 8%, transparent);
     box-shadow:
       inset 0 1px rgb(255 255 255 / 4%),
       0 24px 72px -20px rgb(0 0 0 / 90%);
-  }
-
-  @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
-    background: var(--popover) !important;
   }
 }
 
@@ -345,18 +328,8 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(ras-code
 }
 
 @utility dropdown-glass {
-  background: color-mix(
-    in srgb,
-    var(--popover) 18%,
-    color-mix(in srgb, var(--popover) var(--glass-opacity), transparent)
-  );
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
-  border: 1px solid color-mix(in srgb, var(--contrast-foreground) 10%, transparent);
-
-  @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
-    background: var(--popover) !important;
-  }
+  background: var(--popover);
+  border: 1px solid var(--console-rule);
 }
 
 @utility topbar-scroll-fade {
@@ -1233,19 +1206,19 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(ras-code
     color-scheme: dark;
     /* Keep the workspace in the same neutral-black family as sidebar v2.
        Surfaces lift from this base instead of starting from a milky gray. */
-    --background: #2a3230;
+    --background: #2a2733;
     --surface-raised: var(--secondary);
-    --foreground: #d9ddd6;
-    --card: #343d3a;
-    --card-foreground: #d9ddd6;
-    --popover: #38423f;
-    --popover-foreground: #d9ddd6;
+    --foreground: #ddd9e6;
+    --card: #353140;
+    --card-foreground: #ddd9e6;
+    --popover: #3a3646;
+    --popover-foreground: #ddd9e6;
     --primary: #f0c24b;
-    --primary-foreground: #1f2624;
+    --primary-foreground: #201d28;
     --secondary: --alpha(var(--color-white) / 4%);
     --secondary-foreground: var(--color-neutral-100);
     --muted: --alpha(var(--color-white) / 4%);
-    --muted-foreground: #8e9a94;
+    --muted-foreground: #948fa3;
     --accent: --alpha(var(--color-white) / 4%);
     --accent-foreground: var(--color-neutral-100);
     --error: #e5645a;
@@ -1293,14 +1266,14 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(ras-code
   --sidebar-border: var(--color-zinc-200);
 
   @variant dark {
-    --background: #1f2624;
-    --foreground: #d9ddd6;
-    --card: #1f2624;
+    --background: #201d28;
+    --foreground: #ddd9e6;
+    --card: #201d28;
     --card-foreground: var(--foreground);
-    --accent: #2c3532;
+    --accent: #332f3d;
     --accent-foreground: #e6eae4;
-    --muted: #283130;
-    --muted-foreground: #8e9a94;
+    --muted: #2e2a38;
+    --muted-foreground: #948fa3;
     --border: rgb(255 255 255 / 8%);
     --input: rgb(255 255 255 / 18%);
     --sidebar: var(--card);
@@ -2291,4 +2264,100 @@ code {
   .preview-loading-progress[data-loading="true"] {
     transform: scaleX(0.9);
   }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Console grammar: indicator lamps, engraved legends, selector caps.
+   ───────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --lamp-unlit: var(--color-zinc-300);
+  --lamp-rim: rgb(0 0 0 / 20%);
+  --lamp-working: var(--color-emerald-600);
+  --lamp-waiting: var(--color-amber-600);
+  --lamp-failed: var(--color-red-600);
+  --console-cap: var(--color-zinc-100);
+  --console-cap-rim: rgb(0 0 0 / 12%);
+  --console-rule: var(--border);
+
+  @variant dark {
+    --lamp-unlit: #4a5551;
+    --lamp-rim: rgb(0 0 0 / 45%);
+    --lamp-working: #7fd1b9;
+    --lamp-waiting: #f0c24b;
+    --lamp-failed: #e5645a;
+    --console-cap: #353140;
+    --console-cap-rim: rgb(0 0 0 / 32%);
+    --console-rule: #3d3948;
+  }
+}
+
+/* Engraved legend face: section headers, small caps labels, keyboard hints. */
+@utility legend {
+  font-family: var(--font-legend);
+  font-weight: 600;
+  font-size: 0.6875rem;
+  line-height: 1.2;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Square indicator lamp. State sets --lamp; the rim is the bezel it sits in. */
+@utility console-lamp {
+  display: inline-block;
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--lamp, var(--lamp-unlit));
+  box-shadow: inset 0 0 0 1px var(--lamp-rim);
+
+  &[data-lamp="working"] {
+    --lamp: var(--lamp-working);
+  }
+
+  &[data-lamp="waiting"] {
+    --lamp: var(--lamp-waiting);
+  }
+
+  &[data-lamp="failed"] {
+    --lamp: var(--lamp-failed);
+  }
+}
+
+@keyframes console-lamp-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* The one moving element in the console: a working lamp breathing. */
+.console-lamp-pulse {
+  animation: console-lamp-pulse 1.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .console-lamp-pulse {
+    animation: none;
+  }
+}
+
+/* Engraved selector cap: raised panel face with a cut rim. */
+@utility console-cap {
+  background: var(--console-cap);
+  box-shadow: inset 0 0 0 1px var(--console-cap-rim);
+}
+
+/* Browser surfaces belong to the palette too. */
+::selection {
+  background: color-mix(in srgb, var(--primary) 30%, transparent);
+  color: var(--foreground);
+}
+
+:root {
+  caret-color: var(--primary);
 }
