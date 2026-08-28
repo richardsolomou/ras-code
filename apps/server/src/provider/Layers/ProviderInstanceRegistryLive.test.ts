@@ -94,6 +94,7 @@ const BackgroundPolicyAlwaysRunLayer = Layer.mock(BackgroundPolicy.BackgroundPol
 
 const makeCodexConfig = (overrides: Partial<CodexSettings>): CodexSettings => ({
   enabled: false,
+  rasMcpServer: true,
   binaryPath: "codex",
   homePath: "",
   shadowHomePath: "",

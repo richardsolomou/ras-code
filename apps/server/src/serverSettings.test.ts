@@ -221,6 +221,7 @@ it.layer(NodeServices.layer)("server settings", (it) => {
 
       assert.deepEqual(next.providers.codex, {
         enabled: true,
+        rasMcpServer: true,
         binaryPath: "/opt/homebrew/bin/codex",
         homePath: "/Users/julius/.codex",
         shadowHomePath: "",
@@ -858,6 +859,7 @@ it.layer(NodeServices.layer)("server settings", (it) => {
 
       assert.deepEqual(next.providers.codex, {
         enabled: true,
+        rasMcpServer: true,
         binaryPath: "/opt/homebrew/bin/codex",
         homePath: "",
         shadowHomePath: "",
