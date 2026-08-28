@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "acb599d2dc5b28d5bad82fa2a280ac2abe771ec9",
+  "lastReviewed": "48c176b3cfda7a714c10f18a12d398528ff4c2f9",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -165,6 +165,42 @@
       "ours": "019e0a63fcbd340704a1048833ab7d99f518d1dd",
       "reason": "Clean cherry-pick.",
       "reviewedAt": "2026-08-29T16:09:00.970Z"
+    },
+    {
+      "upstream": "84b9d9bc2d8a13a8b13d59b81f1012f5cb57ebd2",
+      "pr": 6011,
+      "title": "fix(clients): honor project default models in new threads",
+      "decision": "adapted",
+      "ours": "be3d46defe1e941658e3a79a60df81ee50f8996c",
+      "reason": "Cherry-picked; took upstream's sticky-selection resolver and kept our effectiveDefaultModelSelection naming.",
+      "reviewedAt": "2026-08-29T16:12:45.530Z"
+    },
+    {
+      "upstream": "45c0dff8ec33a023c79ccb4e06494309253d1c25",
+      "pr": 8215,
+      "title": "fix(mobile): show file actions on Android",
+      "decision": "adopted",
+      "ours": "68fef03a7e3cdbf329dbdd640fe658675123d265",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-29T16:12:55.741Z"
+    },
+    {
+      "upstream": "94f1948166620c804937f5548a68f5739d76c9fb",
+      "pr": 8351,
+      "title": "fix(connect): explain DPoP connection failures",
+      "decision": "adopted",
+      "ours": "83908e7017c6f17eefba11c45b7c475c235a64d7",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-29T16:12:58.864Z"
+    },
+    {
+      "upstream": "48c176b3cfda7a714c10f18a12d398528ff4c2f9",
+      "pr": 5931,
+      "title": "feat(web): make the sidebar project filter a searchable combobox",
+      "decision": "adopted",
+      "ours": "48f7ad44605271e99ef669df97fb36cc2660be80",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-29T16:13:01.713Z"
     }
   ]
 }
