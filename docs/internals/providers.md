@@ -39,6 +39,41 @@ directory to route session and turn operations for a thread, so callers name a t
 Adding a driver means writing the driver plus adapter and adding it to `BUILT_IN_DRIVERS`. No
 orchestration, contract, or client change is required for the common case.
 
+## Usage limits and fallback providers
+
+A provider instance can name a **fallback provider**: another configured instance that takes new
+turns while the first one is out of quota. The intended shape is "subscription first, gateway as
+fallback" — a Claude instance on a personal subscription with a second Claude-driver instance
+pointed at an API gateway through `ANTHROPIC_BASE_URL` and a bearer token.
+
+The binding lives on `ProviderInstanceConfig.fallback` in `ServerSettings`
+(`{ instanceId, model? }`). An absent or null `model` keeps whatever model the turn already asked
+for, which is right when the gateway proxies the same catalog.
+
+Quota state is derived from the `account.rate-limits.updated` runtime event, which both the Claude
+and Codex adapters forward with their native payload. `providerUsageLimit.ts` normalises those two
+shapes into one `ProviderUsageLimit` (`status`, `resetsAt`, `kind`, `utilization`), and
+`ProviderRegistry` holds the result in memory keyed by instance id, projecting it onto
+`ServerProvider.usageLimit` so clients see it on the provider snapshot. The state is deliberately
+volatile: it is never written to the provider status cache, and an exhausted window reads back as
+`ok` once `resetsAt` has passed. A turn that fails with a usage-limit message also marks its
+instance exhausted, with a 30-minute cooldown because that path carries no reset instant.
+
+`ProviderCommandReactor` owns the routing. When a turn's instance is exhausted and names a
+fallback, the turn runs on the fallback instead and the thread gets a `provider.fallback.engaged`
+activity naming both instances. Substitution is skipped — and the provider's own error surfaces
+unchanged — when the fallback is missing, disabled, unavailable, or itself exhausted, and when a
+started thread could not move between the two instances anyway (either driver requires a new thread
+for a model change, or the instances do not share a continuation group). Fallbacks are never
+chained: at most one hop is followed, so an exhausted fallback ends the search rather than
+consulting its own. A turn that fails with a usage-limit error before producing any assistant
+output is retried once on the fallback; a turn already running on a fallback is not retried again.
+
+Gateway-backed instances have a catalog the driver's own probe cannot see. The
+`provider.listRemoteModels` RPC reads the instance's materialised environment and fetches
+`GET {ANTHROPIC_BASE_URL}/v1/models`, parsing the OpenRouter-shaped `{ data: [{ id, name? }] }`
+envelope. See `apps/server/src/provider/remoteModels.ts`.
+
 ## Model manifest
 
 The model picker's legacy section is driven by `apps/server/src/provider/model-manifest.json`, which

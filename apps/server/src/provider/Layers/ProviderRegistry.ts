@@ -26,10 +26,12 @@ import {
   defaultInstanceIdForDriver,
   ProviderDriverKind,
   type ProviderInstanceId,
+  type ProviderUsageLimit,
   type ServerProvider,
   type ServerProviderUpdateState,
 } from "@ras-code/contracts";
 import * as Cause from "effect/Cause";
+import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
 import * as Equal from "effect/Equal";
 import * as FileSystem from "effect/FileSystem";
@@ -53,6 +55,7 @@ import {
 } from "../providerStatusCache.ts";
 import type { ProviderInstance } from "../ProviderDriver.ts";
 import { makeManualOnlyProviderMaintenanceCapabilities } from "../providerMaintenance.ts";
+import { effectiveUsageLimit } from "../providerUsageLimit.ts";
 import type { ProviderSnapshotSource } from "../builtInProviderCatalog.ts";
 
 const loadProviders = (
@@ -292,6 +295,12 @@ export const ProviderRegistryLive = Layer.effect(
     const maintenanceActionStatesRef = yield* Ref.make<
       ReadonlyMap<ProviderInstanceId, { readonly update?: ServerProviderUpdateState | undefined }>
     >(new Map());
+    // Volatile usage-limit state, keyed by instance id. Deliberately not
+    // persisted: quota windows are short-lived, and replaying a stale
+    // "exhausted" across a restart would park a healthy instance.
+    const usageLimitsRef = yield* Ref.make<ReadonlyMap<ProviderInstanceId, ProviderUsageLimit>>(
+      new Map(),
+    );
 
     // Live-source registry — the dynamic counterpart to the boot-time
     // `bootSources`. Keyed by `instanceId`; the stored `ProviderInstance`
@@ -317,11 +326,13 @@ export const ProviderRegistryLive = Layer.effect(
         // without the aggregator holding a stale `cachePathByInstance`
         // entry.
         const key = snapshotInstanceKey(provider);
+        // Usage limits are volatile; never let one reach the on-disk cache.
+        const { usageLimit: _usageLimit, ...providerToPersist } = provider;
         const filePath = yield* resolveProviderStatusCachePath({
           cacheDir: config.providerStatusCacheDir,
           instanceId: key,
         }).pipe(Effect.provideService(Path.Path, path));
-        yield* writeProviderStatusCache({ filePath, provider }).pipe(
+        yield* writeProviderStatusCache({ filePath, provider: providerToPersist }).pipe(
           Effect.provideService(FileSystem.FileSystem, fileSystem),
           Effect.provideService(Path.Path, path),
           Effect.tapError(Effect.logError),
@@ -344,6 +355,23 @@ export const ProviderRegistryLive = Layer.effect(
       };
     });
 
+    const readUsageLimit = Effect.fn("readUsageLimit")(function* (instanceId: ProviderInstanceId) {
+      const nowMs = yield* Clock.currentTimeMillis;
+      const stored = (yield* Ref.get(usageLimitsRef)).get(instanceId);
+      return effectiveUsageLimit(stored, nowMs);
+    });
+
+    const applyProviderUsageLimit = Effect.fn("applyProviderUsageLimit")(function* (
+      provider: ServerProvider,
+    ) {
+      const usageLimit = yield* readUsageLimit(provider.instanceId);
+      if (usageLimit === null) {
+        const { usageLimit: _usageLimit, ...providerWithoutUsageLimit } = provider;
+        return providerWithoutUsageLimit;
+      }
+      return { ...provider, usageLimit };
+    });
+
     const upsertProviders = Effect.fn("upsertProviders")(function* (
       nextProviders: ReadonlyArray<ServerProvider>,
       options?: {
@@ -354,7 +382,8 @@ export const ProviderRegistryLive = Layer.effect(
     ) {
       const nextProvidersWithUpdateState = yield* Effect.forEach(
         nextProviders,
-        applyProviderUpdateState,
+        (provider) =>
+          applyProviderUpdateState(provider).pipe(Effect.flatMap(applyProviderUsageLimit)),
         {
           concurrency: "unbounded",
         },
@@ -448,6 +477,32 @@ export const ProviderRegistryLive = Layer.effect(
         });
       },
     );
+
+    const setProviderUsageLimit = Effect.fn("setProviderUsageLimit")(function* (input: {
+      readonly instanceId: ProviderInstanceId;
+      readonly usageLimit: ProviderUsageLimit | null;
+    }) {
+      yield* Ref.update(usageLimitsRef, (previous) => {
+        const next = new Map(previous);
+        if (input.usageLimit === null) {
+          next.delete(input.instanceId);
+        } else {
+          next.set(input.instanceId, input.usageLimit);
+        }
+        return next;
+      });
+
+      const existingProviders = yield* Ref.get(providersRef);
+      const matchingProvider = existingProviders.find(
+        (candidate) => candidate.instanceId === input.instanceId,
+      );
+      if (!matchingProvider) {
+        return existingProviders;
+      }
+      // `replace` so clearing the limit removes the field rather than
+      // merging the previous snapshot's value back in.
+      return yield* upsertProviders([matchingProvider], { persist: false, replace: true });
+    });
 
     const refreshOneSource = Effect.fn("refreshOneSource")(function* (
       providerSource: ProviderSnapshotSource,
@@ -627,6 +682,15 @@ export const ProviderRegistryLive = Layer.effect(
           }
           return next;
         });
+        yield* Ref.update(usageLimitsRef, (previous) => {
+          const next = new Map(previous);
+          for (const instanceId of previous.keys()) {
+            if (!knownInstanceIds.has(instanceId)) {
+              next.delete(instanceId);
+            }
+          }
+          return next;
+        });
       }),
     );
     const syncLiveSourcesAndContinue = syncLiveSources.pipe(
@@ -712,6 +776,8 @@ export const ProviderRegistryLive = Layer.effect(
         refreshInstance(instanceId).pipe(Effect.catchCause(recoverRefreshFailure)),
       getProviderMaintenanceCapabilitiesForInstance,
       setProviderMaintenanceActionState,
+      setProviderUsageLimit,
+      getProviderUsageLimit: readUsageLimit,
       get streamChanges() {
         return Stream.fromPubSub(changesPubSub);
       },

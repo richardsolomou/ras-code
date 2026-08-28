@@ -5,6 +5,7 @@ import * as NodePath from "node:path";
 
 import {
   ModelSelection,
+  type ProviderUsageLimit,
   ProviderRuntimeEvent,
   ProviderSession,
   ProviderDriverKind,
@@ -155,6 +156,9 @@ describe("ProviderCommandReactor", () => {
     readonly startSessionEffect?: (
       session: ProviderSession,
     ) => Effect.Effect<ProviderSession, ProviderAdapterRequestError>;
+    readonly providerInstances?: Record<string, unknown>;
+    readonly usageLimits?: Map<ProviderInstanceId, ProviderUsageLimit>;
+    readonly extraProviderSnapshots?: ReadonlyArray<Record<string, unknown>>;
   }) {
     const now = "2026-01-01T00:00:00.000Z";
     const baseDir =
@@ -309,13 +313,16 @@ describe("ProviderCommandReactor", () => {
         }),
       ),
     );
+    const usageLimits = input?.usageLimits ?? new Map<ProviderInstanceId, ProviderUsageLimit>();
     const providerSnapshots = [
       {
         instanceId: modelSelection.instanceId,
+        enabled: true,
         ...(input?.requiresNewThreadForModelChange === true
           ? { requiresNewThreadForModelChange: true }
           : {}),
       },
+      ...(input?.extraProviderSnapshots ?? []),
     ];
 
     const unsupported = () => Effect.die(new Error("Unsupported provider call in test")) as never;
@@ -343,10 +350,15 @@ describe("ProviderCommandReactor", () => {
           enabled: true,
           continuationIdentity: {
             driverKind,
+            // Mirrors production: instances of a driver that share a home
+            // directory share a continuation group, so a thread can move
+            // between them without losing its resume state.
             continuationKey:
               driverKind === ProviderDriverKind.make("codex")
                 ? "codex:home:/shared-codex"
-                : `${driverKind}:instance:${instanceId}`,
+                : driverKind === ProviderDriverKind.make("claudeAgent")
+                  ? "claude:home:/shared-claude"
+                  : `${driverKind}:instance:${instanceId}`,
           },
         });
       },
@@ -403,7 +415,7 @@ describe("ProviderCommandReactor", () => {
       Layer.provideMerge(reactorOrchestrationLayer),
       Layer.provideMerge(projectionSnapshotLayer),
       Layer.provideMerge(Layer.succeed(ProviderService, service)),
-      Layer.provideMerge(makeProviderRegistryLayer(providerSnapshots as never)),
+      Layer.provideMerge(makeProviderRegistryLayer(providerSnapshots as never, usageLimits)),
       Layer.provideMerge(
         Layer.mock(GitWorkflowService.GitWorkflowService)({
           renameBranch,
@@ -426,7 +438,13 @@ describe("ProviderCommandReactor", () => {
           generateThreadTitle,
         }),
       ),
-      Layer.provideMerge(ServerSettingsService.layerTest()),
+      Layer.provideMerge(
+        ServerSettingsService.layerTest(
+          input?.providerInstances !== undefined
+            ? ({ providerInstances: input.providerInstances } as never)
+            : {},
+        ),
+      ),
       Layer.provideMerge(ServerConfig.layerTest(process.cwd(), baseDir)),
       Layer.provideMerge(NodeServices.layer),
     );
@@ -519,6 +537,9 @@ describe("ProviderCommandReactor", () => {
       generateBranchName,
       generateThreadTitle,
       runtimeSessions,
+      usageLimits,
+      publishRuntimeEvent: (event: ProviderRuntimeEvent) =>
+        Effect.runPromise(PubSub.publish(runtimeEventPubSub, event)),
       stateDir,
       drain,
       runEffect,
@@ -3214,5 +3235,280 @@ describe("ProviderCommandReactor", () => {
     expect(thread?.session?.threadId).toBe("thread-1");
     expect(thread?.session?.providerInstanceId).toBe(ProviderInstanceId.make("codex_work"));
     expect(thread?.session?.activeTurnId).toBeNull();
+  });
+
+  describe("usage-limit fallback routing", () => {
+    const PRIMARY = ProviderInstanceId.make("claude_subscription");
+    const FALLBACK = ProviderInstanceId.make("claude_gateway");
+    const PRIMARY_SELECTION = { instanceId: PRIMARY, model: "claude-sonnet-4-5" } as const;
+    const EXHAUSTED: ProviderUsageLimit = {
+      status: "exhausted",
+      resetsAt: "2099-01-01T00:00:00.000Z",
+      kind: "five_hour",
+      utilization: 1,
+    };
+
+    const fallbackHarnessInput = (overrides?: {
+      readonly fallbackModel?: string;
+      readonly usageLimits?: Map<ProviderInstanceId, ProviderUsageLimit>;
+      readonly requiresNewThreadForModelChange?: boolean;
+    }) => ({
+      threadModelSelection: PRIMARY_SELECTION,
+      providerInstances: {
+        [PRIMARY]: {
+          driver: "claudeAgent",
+          fallback: {
+            instanceId: FALLBACK,
+            ...(overrides?.fallbackModel !== undefined ? { model: overrides.fallbackModel } : {}),
+          },
+        },
+        [FALLBACK]: { driver: "claudeAgent" },
+      },
+      usageLimits: overrides?.usageLimits ?? new Map([[PRIMARY, EXHAUSTED]]),
+      extraProviderSnapshots: [
+        {
+          instanceId: FALLBACK,
+          enabled: true,
+          displayName: "Claude (gateway)",
+          ...(overrides?.requiresNewThreadForModelChange === true
+            ? { requiresNewThreadForModelChange: true }
+            : {}),
+        },
+      ],
+      ...(overrides?.requiresNewThreadForModelChange === true
+        ? { requiresNewThreadForModelChange: true }
+        : {}),
+    });
+
+    /**
+     * The reactor subscribes to the provider runtime stream on a forked
+     * fiber, so the first publish can land before the subscription exists.
+     * Publish a harmless "allowed" event until it is observed, which proves
+     * the consumer is attached before the test publishes what it cares about.
+     */
+    const awaitRuntimeSubscriber = async (harness: Awaited<ReturnType<typeof createHarness>>) => {
+      await waitFor(async () => {
+        await harness.publishRuntimeEvent({
+          eventId: EventId.make("runtime-event-probe"),
+          provider: ProviderDriverKind.make("claudeAgent"),
+          providerInstanceId: PRIMARY,
+          threadId: ThreadId.make("thread-1"),
+          createdAt: "2026-01-01T00:00:00.000Z",
+          type: "account.rate-limits.updated",
+          payload: {
+            rateLimits: { type: "rate_limit_event", rate_limit_info: { status: "allowed" } },
+          },
+        });
+        return harness.usageLimits.get(PRIMARY)?.status === "ok";
+      });
+    };
+
+    const dispatchTurn = (harness: Awaited<ReturnType<typeof createHarness>>, commandId: string) =>
+      Effect.runPromise(
+        harness.engine.dispatch({
+          type: "thread.turn.start",
+          commandId: CommandId.make(commandId),
+          threadId: ThreadId.make("thread-1"),
+          message: {
+            messageId: asMessageId("user-message-1"),
+            role: "user",
+            text: "hello reactor",
+            attachments: [],
+          },
+          interactionMode: DEFAULT_PROVIDER_INTERACTION_MODE,
+          runtimeMode: "approval-required",
+          createdAt: "2026-01-01T00:00:00.000Z",
+        }),
+      );
+
+    it("routes a turn to the fallback instance when the primary is exhausted", async () => {
+      const harness = await createHarness(fallbackHarnessInput());
+      await dispatchTurn(harness, "cmd-fallback-1");
+
+      await waitFor(() => harness.startSession.mock.calls.length === 1);
+      expect(harness.startSession.mock.calls[0]?.[1]).toMatchObject({
+        providerInstanceId: FALLBACK,
+        modelSelection: { instanceId: FALLBACK, model: "claude-sonnet-4-5" },
+      });
+    });
+
+    it("uses the fallback binding's model override", async () => {
+      const harness = await createHarness(
+        fallbackHarnessInput({ fallbackModel: "anthropic/claude-sonnet-4.5" }),
+      );
+      await dispatchTurn(harness, "cmd-fallback-2");
+
+      await waitFor(() => harness.startSession.mock.calls.length === 1);
+      expect(harness.startSession.mock.calls[0]?.[1]).toMatchObject({
+        modelSelection: { instanceId: FALLBACK, model: "anthropic/claude-sonnet-4.5" },
+      });
+    });
+
+    it("announces the substitution on the thread", async () => {
+      const harness = await createHarness(fallbackHarnessInput());
+      await dispatchTurn(harness, "cmd-fallback-3");
+
+      await waitFor(async () => {
+        const readModel = await harness.readModel();
+        const thread = readModel.threads.find((entry) => entry.id === ThreadId.make("thread-1"));
+        return (
+          thread?.activities.some((activity) => activity.kind === "provider.fallback.engaged") ===
+          true
+        );
+      });
+      const readModel = await harness.readModel();
+      const thread = readModel.threads.find((entry) => entry.id === ThreadId.make("thread-1"));
+      const notice = thread?.activities.find(
+        (activity) => activity.kind === "provider.fallback.engaged",
+      );
+      expect(notice?.summary).toBe(
+        "Usage limit reached on claude_subscription; using Claude (gateway) (claude-sonnet-4-5) until 2099-01-01T00:00:00.000Z.",
+      );
+    });
+
+    it("keeps the primary instance when it is not exhausted", async () => {
+      const harness = await createHarness(fallbackHarnessInput({ usageLimits: new Map() }));
+      await dispatchTurn(harness, "cmd-fallback-4");
+
+      await waitFor(() => harness.startSession.mock.calls.length === 1);
+      expect(harness.startSession.mock.calls[0]?.[1]).toMatchObject({
+        providerInstanceId: PRIMARY,
+      });
+    });
+
+    it("keeps the primary instance when the fallback is itself exhausted", async () => {
+      const harness = await createHarness(
+        fallbackHarnessInput({
+          usageLimits: new Map([
+            [PRIMARY, EXHAUSTED],
+            [FALLBACK, EXHAUSTED],
+          ]),
+        }),
+      );
+      await dispatchTurn(harness, "cmd-fallback-5");
+
+      await waitFor(() => harness.startSession.mock.calls.length === 1);
+      expect(harness.startSession.mock.calls[0]?.[1]).toMatchObject({
+        providerInstanceId: PRIMARY,
+      });
+    });
+
+    it("records exhaustion from an account.rate-limits.updated event", async () => {
+      const harness = await createHarness(fallbackHarnessInput({ usageLimits: new Map() }));
+      await awaitRuntimeSubscriber(harness);
+      await harness.publishRuntimeEvent({
+        eventId: EventId.make("runtime-event-rate-limit"),
+        provider: ProviderDriverKind.make("claudeAgent"),
+        providerInstanceId: PRIMARY,
+        threadId: ThreadId.make("thread-1"),
+        createdAt: "2026-01-01T00:00:00.000Z",
+        type: "account.rate-limits.updated",
+        payload: {
+          rateLimits: {
+            type: "rate_limit_event",
+            rate_limit_info: { status: "rejected", resetsAt: 4_070_908_800 },
+          },
+        },
+      });
+      await waitFor(() => harness.usageLimits.get(PRIMARY)?.status === "exhausted");
+
+      await dispatchTurn(harness, "cmd-fallback-6");
+      await waitFor(() => harness.startSession.mock.calls.length === 1);
+      expect(harness.startSession.mock.calls[0]?.[1]).toMatchObject({
+        providerInstanceId: FALLBACK,
+      });
+    });
+
+    it("retries a usage-limit turn failure once on the fallback", async () => {
+      const harness = await createHarness(fallbackHarnessInput({ usageLimits: new Map() }));
+      await awaitRuntimeSubscriber(harness);
+      await dispatchTurn(harness, "cmd-fallback-7");
+      await waitFor(() => harness.sendTurn.mock.calls.length === 1);
+      expect(harness.startSession.mock.calls[0]?.[1]).toMatchObject({
+        providerInstanceId: PRIMARY,
+      });
+
+      await harness.publishRuntimeEvent({
+        eventId: EventId.make("runtime-event-turn-failed"),
+        provider: ProviderDriverKind.make("claudeAgent"),
+        providerInstanceId: PRIMARY,
+        threadId: ThreadId.make("thread-1"),
+        createdAt: "2026-01-01T00:00:01.000Z",
+        type: "turn.completed",
+        payload: { state: "failed", errorMessage: "Claude AI usage limit reached" },
+      });
+
+      await waitFor(() => harness.sendTurn.mock.calls.length === 2);
+      await waitFor(() => harness.startSession.mock.calls.length === 2);
+      expect(harness.startSession.mock.calls[1]?.[1]).toMatchObject({
+        providerInstanceId: FALLBACK,
+      });
+    });
+
+    it("keeps the primary instance mid-thread when the driver forbids switching", async () => {
+      const usageLimits = new Map<ProviderInstanceId, ProviderUsageLimit>();
+      const harness = await createHarness(
+        fallbackHarnessInput({ usageLimits, requiresNewThreadForModelChange: true }),
+      );
+      await dispatchTurn(harness, "cmd-fallback-9");
+      await waitFor(() => harness.startSession.mock.calls.length === 1);
+
+      usageLimits.set(PRIMARY, EXHAUSTED);
+      await Effect.runPromise(
+        harness.engine.dispatch({
+          type: "thread.turn.start",
+          commandId: CommandId.make("cmd-fallback-10"),
+          threadId: ThreadId.make("thread-1"),
+          message: {
+            messageId: asMessageId("user-message-2"),
+            role: "user",
+            text: "second turn",
+            attachments: [],
+          },
+          interactionMode: DEFAULT_PROVIDER_INTERACTION_MODE,
+          runtimeMode: "approval-required",
+          createdAt: "2026-01-01T00:00:05.000Z",
+        }),
+      );
+
+      await waitFor(() => harness.sendTurn.mock.calls.length === 2);
+      expect(
+        harness.startSession.mock.calls.some(
+          (call) =>
+            (call[1] as { readonly providerInstanceId?: ProviderInstanceId }).providerInstanceId ===
+            FALLBACK,
+        ),
+      ).toBe(false);
+    });
+
+    it("does not retry a usage-limit failure that already produced assistant output", async () => {
+      const harness = await createHarness(fallbackHarnessInput({ usageLimits: new Map() }));
+      await awaitRuntimeSubscriber(harness);
+      await dispatchTurn(harness, "cmd-fallback-8");
+      await waitFor(() => harness.sendTurn.mock.calls.length === 1);
+
+      await harness.publishRuntimeEvent({
+        eventId: EventId.make("runtime-event-content"),
+        provider: ProviderDriverKind.make("claudeAgent"),
+        providerInstanceId: PRIMARY,
+        threadId: ThreadId.make("thread-1"),
+        createdAt: "2026-01-01T00:00:01.000Z",
+        type: "item.started",
+        payload: { itemType: "assistant_message", status: "inProgress" },
+      });
+      await harness.publishRuntimeEvent({
+        eventId: EventId.make("runtime-event-turn-failed-2"),
+        provider: ProviderDriverKind.make("claudeAgent"),
+        providerInstanceId: PRIMARY,
+        threadId: ThreadId.make("thread-1"),
+        createdAt: "2026-01-01T00:00:02.000Z",
+        type: "turn.completed",
+        payload: { state: "failed", errorMessage: "Claude AI usage limit reached" },
+      });
+
+      await Effect.runPromise(Effect.yieldNow);
+      await Effect.runPromise(Effect.yieldNow);
+      expect(harness.sendTurn.mock.calls.length).toBe(1);
+    });
   });
 });

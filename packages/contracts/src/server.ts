@@ -158,6 +158,36 @@ export const ServerProviderUpdateState = Schema.Struct({
 });
 export type ServerProviderUpdateState = typeof ServerProviderUpdateState.Type;
 
+/**
+ * Normalised usage-limit state for one provider instance.
+ *
+ * Providers report quota exhaustion in incompatible shapes (Claude's
+ * `rate_limit_event`, Codex's `account/rateLimits/updated` windows). The
+ * server normalises both into this one shape so clients and the routing
+ * layer share a single vocabulary.
+ *
+ *  - `ok` — quota available.
+ *  - `warning` — the provider is warning about approaching its limit; turns
+ *    still run on this instance.
+ *  - `exhausted` — new turns must not be routed here until `resetsAt`.
+ *
+ * `resetsAt` is `null` when the provider did not say when the window
+ * reopens; the server then applies its own cooldown.
+ */
+export const ProviderUsageLimitStatus = Schema.Literals(["ok", "warning", "exhausted"]);
+export type ProviderUsageLimitStatus = typeof ProviderUsageLimitStatus.Type;
+
+export const ProviderUsageLimit = Schema.Struct({
+  status: ProviderUsageLimitStatus,
+  resetsAt: Schema.NullOr(IsoDateTime),
+  // Provider-specific window name (Claude: `five_hour`, `seven_day`; Codex:
+  // `primary`, `secondary`). Open string: the set grows provider-side.
+  kind: Schema.NullOr(TrimmedNonEmptyString),
+  // Fraction of the window consumed, 0..1, when the provider reports it.
+  utilization: Schema.NullOr(Schema.Number),
+});
+export type ProviderUsageLimit = typeof ProviderUsageLimit.Type;
+
 export const ServerProvider = Schema.Struct({
   // Routing key for the configured instance this snapshot represents. This
   // is the only stable identity consumers may use for provider routing.
@@ -194,6 +224,9 @@ export const ServerProvider = Schema.Struct({
   skills: Schema.Array(ServerProviderSkill).pipe(Schema.withDecodingDefault(Effect.succeed([]))),
   versionAdvisory: Schema.optionalKey(ServerProviderVersionAdvisory),
   updateState: Schema.optionalKey(ServerProviderUpdateState),
+  // Volatile, never persisted to the status cache. Absent or `null` means
+  // "no usage-limit signal seen", which consumers treat as `ok`.
+  usageLimit: Schema.optional(Schema.NullOr(ProviderUsageLimit)),
 });
 export type ServerProvider = typeof ServerProvider.Type;
 

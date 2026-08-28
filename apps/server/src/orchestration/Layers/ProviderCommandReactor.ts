@@ -2,14 +2,18 @@ import {
   type ChatAttachment,
   CommandId,
   EventId,
+  isProviderAvailable,
   type ModelSelection,
   type OrchestrationEvent,
   ProviderDriverKind,
+  type ProviderInstanceId,
+  type ProviderRuntimeEvent,
   type ProjectId,
   type OrchestrationSession,
   ThreadId,
   type ProviderSession,
   type RuntimeMode,
+  type ServerProvider,
   type TurnId,
 } from "@ras-code/contracts";
 import {
@@ -19,6 +23,7 @@ import {
 } from "@ras-code/shared/git";
 import * as Cache from "effect/Cache";
 import * as Cause from "effect/Cause";
+import * as Clock from "effect/Clock";
 import * as Crypto from "effect/Crypto";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
@@ -36,6 +41,11 @@ import { ProviderAdapterRequestError } from "../../provider/Errors.ts";
 import type { ProviderServiceError } from "../../provider/Errors.ts";
 import { TextGeneration } from "../../textGeneration/TextGeneration.ts";
 import { ProviderService } from "../../provider/Services/ProviderService.ts";
+import {
+  exhaustedUsageLimitFromError,
+  isUsageLimitFailureMessage,
+  normalizeProviderUsageLimit,
+} from "../../provider/providerUsageLimit.ts";
 import { ProviderRegistry } from "../../provider/Services/ProviderRegistry.ts";
 import { OrchestrationEngineService } from "../Services/OrchestrationEngine.ts";
 import { ProjectionSnapshotQuery } from "../Services/ProjectionSnapshotQuery.ts";
@@ -307,6 +317,29 @@ function buildGeneratedWorktreeBranchName(raw: string): string {
   return `${WORKTREE_BRANCH_PREFIX}/${safeFragment}`;
 }
 
+/**
+ * Label a provider instance for a user-facing notice. Display names are
+ * optional on the snapshot; the instance id is always meaningful.
+ */
+function providerDisplayLabel(
+  snapshot: ServerProvider | undefined,
+  instanceId: ProviderInstanceId,
+): string {
+  return snapshot?.displayName ?? String(instanceId);
+}
+
+function formatFallbackNotice(input: {
+  readonly primaryLabel: string;
+  readonly fallbackLabel: string;
+  readonly model: string;
+  readonly resetsAt: string | null;
+}): string {
+  // The instant is rendered verbatim; clients localise it from the activity
+  // payload's `resetsAt`.
+  const until = input.resetsAt ?? "further notice";
+  return `Usage limit reached on ${input.primaryLabel}; using ${input.fallbackLabel} (${input.model}) until ${until}.`;
+}
+
 const make = Effect.gen(function* () {
   const crypto = yield* Crypto.Crypto;
   const orchestrationEngine = yield* OrchestrationEngineService;
@@ -520,6 +553,141 @@ const make = Effect.gen(function* () {
       method: "thread.turn.start",
       detail: `Thread '${input.threadId}' cannot switch models after the conversation has started. Start a new thread to use '${requestedModelSelection.model}'.`,
     });
+  });
+
+  /**
+   * One notice per exhaustion episode per thread. Keyed on the reset instant
+   * so a later exhaustion (a new window) speaks up again, while every turn
+   * inside one window stays quiet.
+   */
+  const announcedFallbacks = new Set<string>();
+
+  const appendFallbackActivity = (input: {
+    readonly threadId: ThreadId;
+    readonly summary: string;
+    readonly primaryInstanceId: ProviderInstanceId;
+    readonly fallbackInstanceId: ProviderInstanceId;
+    readonly model: string;
+    readonly resetsAt: string | null;
+    readonly createdAt: string;
+  }) =>
+    Effect.all({
+      commandId: serverCommandId("provider-fallback-activity"),
+      eventId: serverEventId(),
+    }).pipe(
+      Effect.flatMap(({ commandId, eventId }) =>
+        orchestrationEngine.dispatch({
+          type: "thread.activity.append",
+          commandId,
+          threadId: input.threadId,
+          activity: {
+            id: eventId,
+            tone: "info",
+            kind: "provider.fallback.engaged",
+            summary: input.summary,
+            payload: {
+              primaryInstanceId: input.primaryInstanceId,
+              fallbackInstanceId: input.fallbackInstanceId,
+              model: input.model,
+              resetsAt: input.resetsAt,
+            },
+            turnId: null,
+            createdAt: input.createdAt,
+          },
+          createdAt: input.createdAt,
+        }),
+      ),
+      Effect.asVoid,
+    );
+
+  /**
+   * Decide whether this turn should run on the desired instance's configured
+   * fallback instead.
+   *
+   * Substitution happens only when every one of these holds:
+   *   - the desired instance names a fallback in settings;
+   *   - the desired instance's usage limit is currently exhausted;
+   *   - the fallback exists, is available and enabled, and is not itself
+   *     exhausted (a fallback's own fallback is never followed);
+   *   - switching instances mid-thread is allowed for both drivers.
+   *
+   * Anything else returns `undefined` and the turn proceeds unchanged, so the
+   * caller surfaces the provider's own error rather than a silent reroute.
+   */
+  const resolveFallbackSelection = Effect.fn("resolveFallbackSelection")(function* (input: {
+    readonly selection: ModelSelection;
+    readonly hasStartedSession: boolean;
+  }) {
+    const settings = yield* serverSettingsService.getSettings.pipe(
+      Effect.orElseSucceed(() => undefined),
+    );
+    const fallback = settings?.providerInstances[input.selection.instanceId]?.fallback;
+    if (!fallback || fallback.instanceId === input.selection.instanceId) {
+      return undefined;
+    }
+
+    const primaryUsage = yield* providerRegistry.getProviderUsageLimit(input.selection.instanceId);
+    if (primaryUsage?.status !== "exhausted") {
+      return undefined;
+    }
+    const fallbackUsage = yield* providerRegistry.getProviderUsageLimit(fallback.instanceId);
+    if (fallbackUsage?.status === "exhausted") {
+      return undefined;
+    }
+
+    const providers = yield* providerRegistry.getProviders;
+    const primarySnapshot = providers.find(
+      (snapshot) => snapshot.instanceId === input.selection.instanceId,
+    );
+    const fallbackSnapshot = providers.find(
+      (snapshot) => snapshot.instanceId === fallback.instanceId,
+    );
+    if (
+      fallbackSnapshot === undefined ||
+      !isProviderAvailable(fallbackSnapshot) ||
+      !fallbackSnapshot.enabled
+    ) {
+      return undefined;
+    }
+    if (
+      input.hasStartedSession &&
+      (primarySnapshot?.requiresNewThreadForModelChange === true ||
+        fallbackSnapshot.requiresNewThreadForModelChange === true)
+    ) {
+      return undefined;
+    }
+    if (input.hasStartedSession) {
+      // A started thread can only move to an instance that shares its resume
+      // state; otherwise `ensureSessionForThread` would reject the switch and
+      // the user would see a confusing error instead of the provider's own.
+      const compatible = yield* Effect.all({
+        primary: providerService.getInstanceInfo(input.selection.instanceId),
+        fallback: providerService.getInstanceInfo(fallback.instanceId),
+      }).pipe(
+        Effect.map(
+          ({ primary, fallback: fallbackInfo }) =>
+            primary.driverKind === fallbackInfo.driverKind &&
+            primary.continuationIdentity.continuationKey ===
+              fallbackInfo.continuationIdentity.continuationKey,
+        ),
+        Effect.orElseSucceed(() => false),
+      );
+      if (!compatible) {
+        return undefined;
+      }
+    }
+
+    return {
+      selection: {
+        ...input.selection,
+        instanceId: fallback.instanceId,
+        model: fallback.model ?? input.selection.model,
+      } satisfies ModelSelection,
+      primaryLabel: providerDisplayLabel(primarySnapshot, input.selection.instanceId),
+      fallbackLabel: providerDisplayLabel(fallbackSnapshot, fallback.instanceId),
+      primaryInstanceId: input.selection.instanceId,
+      resetsAt: primaryUsage.resetsAt,
+    } as const;
   });
 
   const ensureSessionForThread = Effect.fn("ensureSessionForThread")(function* (
@@ -1113,6 +1281,92 @@ const make = Effect.gen(function* () {
     processThreadTitleRegenerationSafely,
   );
 
+  type PendingTurnAttempt = {
+    readonly event: Extract<ProviderIntentEvent, { type: "thread.turn-start-requested" }>;
+    readonly messageText: string;
+    readonly attachments?: ReadonlyArray<ChatAttachment>;
+    readonly instanceId: ProviderInstanceId;
+    readonly onFallback: boolean;
+    sawAssistantOutput: boolean;
+  };
+
+  /** At most one in-flight turn per thread, so a plain map is enough. */
+  const pendingTurnAttempts = new Map<ThreadId, PendingTurnAttempt>();
+
+  /**
+   * Failure handling for a turn start: mark the thread's session errored and
+   * append the failure to the thread's activity. `recover` is the total
+   * variant used where the failure has nowhere left to go.
+   */
+  const makeTurnStartFailureHandlers = (
+    event: Extract<ProviderIntentEvent, { type: "thread.turn-start-requested" }>,
+  ) => {
+    const handle = (cause: Cause.Cause<unknown>) => {
+      if (Cause.hasInterruptsOnly(cause)) {
+        return Effect.void;
+      }
+      const detail = formatFailureDetail(cause);
+      return setThreadSessionErrorOnTurnStartFailure({
+        threadId: event.payload.threadId,
+        detail,
+        createdAt: event.payload.createdAt,
+      }).pipe(
+        Effect.flatMap(() =>
+          appendProviderFailureActivity({
+            threadId: event.payload.threadId,
+            kind: "provider.turn.start.failed",
+            summary: "Provider turn start failed",
+            detail,
+            turnId: null,
+            createdAt: event.payload.createdAt,
+          }),
+        ),
+        Effect.asVoid,
+      );
+    };
+    const recover = (cause: Cause.Cause<unknown>) =>
+      handle(cause).pipe(
+        Effect.catchCause((recoveryCause) =>
+          Effect.logWarning("provider command reactor failed to recover turn start failure", {
+            eventType: event.type,
+            threadId: event.payload.threadId,
+            cause: Cause.pretty(recoveryCause),
+            originalCause: Cause.pretty(cause),
+          }),
+        ),
+      );
+    return recover;
+  };
+
+  const dispatchTurn = Effect.fn("dispatchTurn")(function* (input: {
+    readonly event: Extract<ProviderIntentEvent, { type: "thread.turn-start-requested" }>;
+    readonly messageText: string;
+    readonly attachments?: ReadonlyArray<ChatAttachment>;
+    readonly modelSelection?: ModelSelection;
+  }) {
+    const recover = makeTurnStartFailureHandlers(input.event);
+    const sendTurnRequest = yield* buildSendTurnRequestForThread({
+      threadId: input.event.payload.threadId,
+      messageText: input.messageText,
+      ...(input.attachments !== undefined ? { attachments: input.attachments } : {}),
+      ...(input.modelSelection !== undefined ? { modelSelection: input.modelSelection } : {}),
+      interactionMode: input.event.payload.interactionMode,
+      createdAt: input.event.payload.createdAt,
+    }).pipe(
+      Effect.map(Option.some),
+      Effect.catchCause((cause) => recover(cause).pipe(Effect.as(Option.none()))),
+    );
+
+    if (Option.isNone(sendTurnRequest)) {
+      pendingTurnAttempts.delete(input.event.payload.threadId);
+      return;
+    }
+
+    yield* providerService
+      .sendTurn(sendTurnRequest.value)
+      .pipe(Effect.catchCause(recover), Effect.forkScoped);
+  });
+
   const processTurnStartRequested = Effect.fn("processTurnStartRequested")(function* (
     event: Extract<ProviderIntentEvent, { type: "thread.turn-start-requested" }>,
   ) {
@@ -1172,63 +1426,195 @@ const make = Effect.gen(function* () {
       }
     }
 
-    const handleTurnStartFailure = (cause: Cause.Cause<unknown>) => {
-      if (Cause.hasInterruptsOnly(cause)) {
-        return Effect.void;
+    // Route this turn to the desired instance's fallback when the desired
+    // instance is out of quota. Failure to decide is never fatal: the turn
+    // runs unchanged and the provider reports its own error.
+    const baseSelection =
+      event.payload.modelSelection ??
+      threadModelSelections.get(event.payload.threadId) ??
+      thread.modelSelection;
+    const routed = yield* resolveFallbackSelection({
+      selection: baseSelection,
+      hasStartedSession: thread.session !== null,
+    }).pipe(
+      Effect.catchCause((cause) =>
+        Effect.logWarning("provider command reactor failed to resolve provider fallback", {
+          threadId: event.payload.threadId,
+          cause: Cause.pretty(cause),
+        }).pipe(Effect.as(undefined)),
+      ),
+    );
+    if (routed !== undefined) {
+      const noticeKey = `${event.payload.threadId}:${routed.selection.instanceId}:${routed.resetsAt ?? "unknown"}`;
+      if (!announcedFallbacks.has(noticeKey)) {
+        announcedFallbacks.add(noticeKey);
+        yield* appendFallbackActivity({
+          threadId: event.payload.threadId,
+          summary: formatFallbackNotice({
+            primaryLabel: routed.primaryLabel,
+            fallbackLabel: routed.fallbackLabel,
+            model: routed.selection.model,
+            resetsAt: routed.resetsAt,
+          }),
+          primaryInstanceId: routed.primaryInstanceId,
+          fallbackInstanceId: routed.selection.instanceId,
+          model: routed.selection.model,
+          resetsAt: routed.resetsAt,
+          createdAt: event.payload.createdAt,
+        }).pipe(Effect.ignoreCause({ log: true }));
       }
-      const detail = formatFailureDetail(cause);
-      return setThreadSessionErrorOnTurnStartFailure({
-        threadId: event.payload.threadId,
-        detail,
-        createdAt: event.payload.createdAt,
-      }).pipe(
-        Effect.flatMap(() =>
-          appendProviderFailureActivity({
-            threadId: event.payload.threadId,
-            kind: "provider.turn.start.failed",
-            summary: "Provider turn start failed",
-            detail,
-            turnId: null,
-            createdAt: event.payload.createdAt,
-          }),
-        ),
-        Effect.asVoid,
-      );
-    };
+    }
 
-    const recoverTurnStartFailure = (cause: Cause.Cause<unknown>) =>
-      handleTurnStartFailure(cause).pipe(
-        Effect.catchCause((recoveryCause) =>
-          Effect.logWarning("provider command reactor failed to recover turn start failure", {
-            eventType: event.type,
-            threadId: event.payload.threadId,
-            cause: Cause.pretty(recoveryCause),
-            originalCause: Cause.pretty(cause),
-          }),
-        ),
-      );
-
-    const sendTurnRequest = yield* buildSendTurnRequestForThread({
-      threadId: event.payload.threadId,
+    // Track the attempt so a usage-limit failure arriving on the runtime
+    // stream can retry once on the fallback. A turn already running on the
+    // fallback is not retried again.
+    pendingTurnAttempts.set(event.payload.threadId, {
+      event,
       messageText: message.text,
       ...(message.attachments !== undefined ? { attachments: message.attachments } : {}),
-      ...(event.payload.modelSelection !== undefined
-        ? { modelSelection: event.payload.modelSelection }
-        : {}),
-      interactionMode: event.payload.interactionMode,
-      createdAt: event.payload.createdAt,
-    }).pipe(
-      Effect.map(Option.some),
-      Effect.catchCause((cause) => handleTurnStartFailure(cause).pipe(Effect.as(Option.none()))),
-    );
+      instanceId: (routed?.selection ?? baseSelection).instanceId,
+      onFallback: routed !== undefined,
+      sawAssistantOutput: false,
+    });
 
-    if (Option.isNone(sendTurnRequest)) {
+    yield* dispatchTurn({
+      event,
+      messageText: message.text,
+      ...(message.attachments !== undefined ? { attachments: message.attachments } : {}),
+      ...(routed !== undefined
+        ? { modelSelection: routed.selection }
+        : event.payload.modelSelection !== undefined
+          ? { modelSelection: event.payload.modelSelection }
+          : {}),
+    });
+  });
+
+  /**
+   * Observe the provider runtime stream for usage-limit signals.
+   *
+   * Two signals matter:
+   *   - `account.rate-limits.updated` — the authoritative, structured report.
+   *     Normalised and recorded against the emitting instance.
+   *   - a turn that fails with a usage-limit message — the only signal Claude
+   *     gives when a subscription runs dry mid-turn, because the SDK's
+   *     `result` errors reach us as prose (see `resultUserFacingError` in
+   *     ClaudeAdapter). Recorded as exhausted with the default cooldown.
+   *
+   * The second signal also drives the retry: if the failed turn produced no
+   * assistant output and was not already running on a fallback, it is
+   * re-sent once against the fallback instance.
+   */
+  const processRuntimeEvent = Effect.fn("processRuntimeEvent")(function* (
+    event: ProviderRuntimeEvent,
+  ) {
+    const instanceId = event.providerInstanceId;
+    if (event.type === "account.rate-limits.updated") {
+      if (instanceId === undefined) {
+        return;
+      }
+      const usageLimit = normalizeProviderUsageLimit(event.payload.rateLimits);
+      if (usageLimit === null) {
+        return;
+      }
+      yield* providerRegistry.setProviderUsageLimit({ instanceId, usageLimit });
       return;
     }
 
-    yield* providerService
-      .sendTurn(sendTurnRequest.value)
-      .pipe(Effect.catchCause(recoverTurnStartFailure), Effect.forkScoped);
+    const pending = pendingTurnAttempts.get(event.threadId);
+    if (pending === undefined) {
+      return;
+    }
+
+    // Any assistant-visible output means the turn did real work; re-sending it
+    // on another provider would duplicate that work.
+    if (
+      event.type === "content.delta" ||
+      event.type === "item.started" ||
+      event.type === "item.completed"
+    ) {
+      pending.sawAssistantOutput = true;
+      return;
+    }
+
+    if (event.type === "turn.aborted" || event.type === "session.exited") {
+      pendingTurnAttempts.delete(event.threadId);
+      return;
+    }
+    if (event.type !== "turn.completed") {
+      return;
+    }
+    pendingTurnAttempts.delete(event.threadId);
+    if (event.payload.state !== "failed") {
+      return;
+    }
+    if (!isUsageLimitFailureMessage(event.payload.errorMessage)) {
+      return;
+    }
+
+    const nowMs = yield* Clock.currentTimeMillis;
+    yield* providerRegistry.setProviderUsageLimit({
+      instanceId: pending.instanceId,
+      usageLimit: exhaustedUsageLimitFromError({ nowMs }),
+    });
+
+    if (pending.onFallback || pending.sawAssistantOutput) {
+      return;
+    }
+    yield* retryTurnOnFallback(pending);
+  });
+
+  const retryTurnOnFallback = Effect.fn("retryTurnOnFallback")(function* (
+    pending: PendingTurnAttempt,
+  ) {
+    const threadId = pending.event.payload.threadId;
+    const thread = yield* resolveThread(threadId);
+    if (!thread) {
+      return;
+    }
+    const baseSelection =
+      pending.event.payload.modelSelection ??
+      threadModelSelections.get(threadId) ??
+      thread.modelSelection;
+    const routed = yield* resolveFallbackSelection({
+      selection: baseSelection,
+      hasStartedSession: thread.session !== null,
+    });
+    if (routed === undefined) {
+      return;
+    }
+
+    const noticeKey = `${threadId}:${routed.selection.instanceId}:${routed.resetsAt ?? "unknown"}`;
+    if (!announcedFallbacks.has(noticeKey)) {
+      announcedFallbacks.add(noticeKey);
+      yield* appendFallbackActivity({
+        threadId,
+        summary: formatFallbackNotice({
+          primaryLabel: routed.primaryLabel,
+          fallbackLabel: routed.fallbackLabel,
+          model: routed.selection.model,
+          resetsAt: routed.resetsAt,
+        }),
+        primaryInstanceId: routed.primaryInstanceId,
+        fallbackInstanceId: routed.selection.instanceId,
+        model: routed.selection.model,
+        resetsAt: routed.resetsAt,
+        createdAt: pending.event.payload.createdAt,
+      }).pipe(Effect.ignoreCause({ log: true }));
+    }
+
+    // `onFallback` closes the loop: this attempt is never retried again.
+    pendingTurnAttempts.set(threadId, {
+      ...pending,
+      instanceId: routed.selection.instanceId,
+      onFallback: true,
+      sawAssistantOutput: false,
+    });
+    yield* dispatchTurn({
+      event: pending.event,
+      messageText: pending.messageText,
+      ...(pending.attachments !== undefined ? { attachments: pending.attachments } : {}),
+      modelSelection: routed.selection,
+    });
   });
 
   const processTurnInterruptRequested = Effect.fn("processTurnInterruptRequested")(function* (
@@ -1533,6 +1919,20 @@ const make = Effect.gen(function* () {
     });
 
     yield* forkParked(Stream.runForEach(orchestrationEngine.streamDomainEvents, processEvent));
+    yield* forkParked(
+      Stream.runForEach(providerService.streamEvents, (event) =>
+        processRuntimeEvent(event).pipe(
+          Effect.catchCause((cause) =>
+            Cause.hasInterruptsOnly(cause)
+              ? Effect.interrupt
+              : Effect.logWarning(
+                  "provider command reactor failed to process provider runtime event",
+                  { eventType: event.type, cause: Cause.pretty(cause) },
+                ),
+          ),
+        ),
+      ),
+    );
 
     // The domain event stream is hot, so work pending before this reactor
     // starts cannot be resumed. Correlated completions only clear the request

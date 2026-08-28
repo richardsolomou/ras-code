@@ -153,3 +153,50 @@ export const ProviderEvent = Schema.Struct({
   payload: Schema.optional(Schema.Unknown),
 });
 export type ProviderEvent = typeof ProviderEvent.Type;
+
+/**
+ * Remote model catalog listing for a provider instance that talks to an
+ * OpenAI/Anthropic-shaped gateway rather than a first-party subscription.
+ *
+ * The server reads the instance's materialised environment
+ * (`ANTHROPIC_BASE_URL` plus `ANTHROPIC_AUTH_TOKEN` or `ANTHROPIC_API_KEY`)
+ * and fetches `GET {baseUrl}/v1/models`. Gateways answer with the
+ * OpenRouter-shaped `{ data: [{ id, name? }] }` envelope.
+ */
+export const ProviderListRemoteModelsInput = Schema.Struct({
+  instanceId: ProviderInstanceId,
+});
+export type ProviderListRemoteModelsInput = typeof ProviderListRemoteModelsInput.Type;
+
+export const ProviderRemoteModel = Schema.Struct({
+  id: TrimmedNonEmptyString,
+  name: Schema.NullOr(TrimmedNonEmptyString),
+});
+export type ProviderRemoteModel = typeof ProviderRemoteModel.Type;
+
+export const ProviderListRemoteModelsResult = Schema.Struct({
+  models: Schema.Array(ProviderRemoteModel),
+});
+export type ProviderListRemoteModelsResult = typeof ProviderListRemoteModelsResult.Type;
+
+export const ProviderListRemoteModelsErrorReason = Schema.Literals([
+  "instance-not-found",
+  "missing-base-url",
+  "missing-auth",
+  "request-failed",
+  "invalid-response",
+]);
+export type ProviderListRemoteModelsErrorReason = typeof ProviderListRemoteModelsErrorReason.Type;
+
+export class ProviderListRemoteModelsError extends Schema.TaggedErrorClass<ProviderListRemoteModelsError>()(
+  "ProviderListRemoteModelsError",
+  {
+    instanceId: ProviderInstanceId,
+    reason: ProviderListRemoteModelsErrorReason,
+    detail: Schema.optional(TrimmedNonEmptyString),
+  },
+) {
+  override get message(): string {
+    return this.detail ?? `Failed to list remote models for instance ${this.instanceId}.`;
+  }
+}

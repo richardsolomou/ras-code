@@ -109,6 +109,23 @@ export const ProviderInstanceEnvironmentVariable = Schema.Struct({
 });
 export type ProviderInstanceEnvironmentVariable = typeof ProviderInstanceEnvironmentVariable.Type;
 
+/**
+ * Fallback routing for one provider instance.
+ *
+ * When the primary instance's usage limit is exhausted, new turns route to
+ * `instanceId` instead. `model` is the model id to use on the fallback;
+ * `null` or absent means "keep the model the turn already asked for", which
+ * is the right default when the fallback is a gateway proxying the same
+ * catalog as the subscription it stands in for.
+ *
+ * Fallbacks are never chained: the routing layer follows at most one hop.
+ */
+export const ProviderInstanceFallback = Schema.Struct({
+  instanceId: ProviderInstanceId,
+  model: Schema.optional(Schema.NullOr(TrimmedNonEmptyString)),
+});
+export type ProviderInstanceFallback = typeof ProviderInstanceFallback.Type;
+
 export const ProviderInstanceEnvironment = Schema.Array(ProviderInstanceEnvironmentVariable);
 export type ProviderInstanceEnvironment = typeof ProviderInstanceEnvironment.Type;
 
@@ -128,6 +145,10 @@ export const ProviderInstanceConfig = Schema.Struct({
   environment: Schema.optionalKey(ProviderInstanceEnvironment),
   enabled: Schema.optionalKey(Schema.Boolean),
   config: Schema.optionalKey(Schema.Unknown),
+  // Additive and always optional: settings written by builds that predate
+  // fallback routing decode unchanged, and `null` clears a configured
+  // fallback without needing a key-removal patch.
+  fallback: Schema.optional(Schema.NullOr(ProviderInstanceFallback)),
 });
 export type ProviderInstanceConfig = typeof ProviderInstanceConfig.Type;
 

@@ -75,6 +75,9 @@ import {
   OrchestrationGetWorkflowScriptError,
 } from "./orchestration.ts";
 import {
+  ProviderListRemoteModelsError,
+  ProviderListRemoteModelsInput,
+  ProviderListRemoteModelsResult,
   ProviderUploadFeedbackError,
   ProviderUploadFeedbackInput,
   ProviderUploadFeedbackResult,
@@ -228,6 +231,7 @@ export const WS_METHODS = {
 
   // Provider methods
   providerUploadFeedback: "provider.uploadFeedback",
+  providerListRemoteModels: "provider.listRemoteModels",
 
   // VCS methods
   vcsPull: "vcs.pull",
@@ -700,6 +704,12 @@ export const WsProviderUploadFeedbackRpc = Rpc.make(WS_METHODS.providerUploadFee
   error: Schema.Union([ProviderUploadFeedbackError, EnvironmentAuthorizationError]),
 });
 
+export const WsProviderListRemoteModelsRpc = Rpc.make(WS_METHODS.providerListRemoteModels, {
+  payload: ProviderListRemoteModelsInput,
+  success: ProviderListRemoteModelsResult,
+  error: Schema.Union([ProviderListRemoteModelsError, EnvironmentAuthorizationError]),
+});
+
 export const WsSubscribeVcsStatusRpc = Rpc.make(WS_METHODS.subscribeVcsStatus, {
   payload: VcsStatusInput,
   success: VcsStatusStreamEvent,
@@ -1072,6 +1082,7 @@ export const WsRpcGroup = RpcGroup.make(
   WsAttachmentsCreateUploadUrlRpc,
   WsAttachmentsDeleteRpc,
   WsProviderUploadFeedbackRpc,
+  WsProviderListRemoteModelsRpc,
   WsSubscribeVcsStatusRpc,
   WsVcsPullRpc,
   WsVcsRefreshStatusRpc,

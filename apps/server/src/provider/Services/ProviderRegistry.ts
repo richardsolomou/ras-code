@@ -9,6 +9,7 @@
 import type {
   ProviderInstanceId,
   ProviderDriverKind,
+  ProviderUsageLimit,
   ServerProvider,
   ServerProviderUpdateState,
 } from "@ras-code/contracts";
@@ -68,6 +69,27 @@ export interface ProviderRegistryShape {
     readonly action: ProviderMaintenanceActionKind;
     readonly state: ServerProviderUpdateState | null;
   }) => Effect.Effect<ReadonlyArray<ServerProvider>>;
+
+  /**
+   * Record the latest normalised usage-limit state for one configured
+   * instance, projecting it onto `ServerProvider.usageLimit`. Volatile:
+   * never written to the on-disk status cache, and lost on restart. Pass
+   * `null` to clear.
+   */
+  readonly setProviderUsageLimit: (input: {
+    readonly instanceId: ProviderInstanceId;
+    readonly usageLimit: ProviderUsageLimit | null;
+  }) => Effect.Effect<ReadonlyArray<ServerProvider>>;
+
+  /**
+   * Read the usage-limit state for one instance with the expiry rule already
+   * applied — an exhausted window whose `resetsAt` has passed reads back as
+   * `ok`. This is the routing layer's question, so it must never answer from
+   * a stale record.
+   */
+  readonly getProviderUsageLimit: (
+    instanceId: ProviderInstanceId,
+  ) => Effect.Effect<ProviderUsageLimit | null>;
 
   /**
    * Stream of provider snapshot updates — one emission per aggregated
