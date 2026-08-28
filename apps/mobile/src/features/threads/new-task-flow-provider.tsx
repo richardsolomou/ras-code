@@ -34,6 +34,7 @@ import {
   buildModelOptions,
   groupByProvider,
   resolveDefaultableModelSelection,
+  resolveNewTaskModelSelection,
   resolveSelectableModelSelection,
 } from "../../lib/modelOptions";
 import { scopedProjectKey } from "../../lib/scopedEntities";
@@ -49,8 +50,10 @@ import {
   removeComposerDraftAttachment,
   replaceComposerDraftAttachments,
   setComposerDraftText,
+  setStickyComposerModelSelection,
   updateComposerDraftSettings,
   useComposerDraft,
+  useStickyComposerModelSelection,
 } from "../../state/use-composer-drafts";
 import { useDebouncedValue, usePaginatedBranches } from "../../state/queries";
 import { vcsEnvironment } from "../../state/vcs";
@@ -424,21 +427,33 @@ export function NewTaskFlowProvider(props: React.PropsWithChildren) {
       selectedEnvironmentServerConfig?.settings,
     ),
   );
+  const storedStickyModelSelection = useStickyComposerModelSelection();
+  const stickyModelSelection = resolveDefaultableModelSelection(
+    selectedEnvironmentServerConfig,
+    storedStickyModelSelection,
+  );
   const modelOptions = useMemo(
     () =>
       buildModelOptions(
         selectedEnvironmentServerConfig,
-        draftModelSelection ?? effectiveDefaultModelSelection,
+        draftModelSelection ?? effectiveDefaultModelSelection ?? stickyModelSelection,
       ),
-    [selectedEnvironmentServerConfig, draftModelSelection, effectiveDefaultModelSelection],
+    [
+      selectedEnvironmentServerConfig,
+      draftModelSelection,
+      effectiveDefaultModelSelection,
+      stickyModelSelection,
+    ],
   );
 
-  const selectedModel =
-    draftModelSelection ??
-    effectiveDefaultModelSelection ??
-    modelOptions.find((option) => option.isDefault)?.selection ??
-    modelOptions[0]?.selection ??
-    null;
+  // An unsent draft keeps its explicit pick. Fresh drafts resolve the project
+  // default before the last manual app-wide selection and provider default.
+  const selectedModel = resolveNewTaskModelSelection({
+    draftSelection: draftModelSelection,
+    projectDefaultSelection: effectiveDefaultModelSelection,
+    stickySelection: stickyModelSelection,
+    modelOptions,
+  });
   const selectedModelKey = selectedModel
     ? `${selectedModel.instanceId}:${selectedModel.model}`
     : null;
@@ -468,9 +483,9 @@ export function NewTaskFlowProvider(props: React.PropsWithChildren) {
       if (!option) {
         return;
       }
-      updateComposerDraftSettings(selectedProjectDraftKey, {
-        modelSelection: options ? { ...option.selection, options } : option.selection,
-      });
+      const selection = options ? { ...option.selection, options } : option.selection;
+      updateComposerDraftSettings(selectedProjectDraftKey, { modelSelection: selection });
+      setStickyComposerModelSelection(selection);
     },
     [modelOptions, selectedProjectDraftKey],
   );
@@ -488,6 +503,7 @@ export function NewTaskFlowProvider(props: React.PropsWithChildren) {
       updateComposerDraftSettings(selectedProjectDraftKey, {
         modelSelection: nextSelection,
       });
+      setStickyComposerModelSelection(nextSelection);
     },
     [selectedModel, selectedProjectDraftKey],
   );
