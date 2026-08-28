@@ -98,7 +98,7 @@ function ModelRow(props: {
   const checkmarkColor = useThemeColor("--color-icon");
   return (
     <Pressable
-      accessibilityLabel={props.option.label}
+      accessibilityLabel={[props.option.label, props.option.subtitle].filter(Boolean).join(", ")}
       accessibilityRole="radio"
       accessibilityState={{ checked: props.selected }}
       onPress={props.onPress}
@@ -108,23 +108,31 @@ function ModelRow(props: {
         props.isLast ? "rounded-b-2xl" : "border-b border-border-subtle",
       )}
     >
-      <Text
-        className="min-w-0 shrink text-base font-ras-code-medium text-foreground"
-        numberOfLines={1}
-      >
-        {props.option.label}
-      </Text>
-      {props.option.isDefault ? (
-        <View className="rounded-md bg-subtle-strong px-1.5 py-0.5">
-          <Text className="text-3xs font-ras-code-bold text-foreground-muted">Default</Text>
+      <View className="min-w-0 flex-1">
+        <View className="flex-row items-center gap-2">
+          <Text
+            className="min-w-0 shrink text-base font-ras-code-medium text-foreground"
+            numberOfLines={1}
+          >
+            {props.option.label}
+          </Text>
+          {props.option.isDefault ? (
+            <View className="rounded-md bg-subtle-strong px-1.5 py-0.5">
+              <Text className="text-3xs font-ras-code-bold text-foreground-muted">Default</Text>
+            </View>
+          ) : null}
+          {props.option.isLegacy ? (
+            <View className="rounded-md bg-subtle px-1.5 py-0.5">
+              <Text className="text-3xs font-ras-code-bold text-foreground-muted">Legacy</Text>
+            </View>
+          ) : null}
         </View>
-      ) : null}
-      {props.option.isLegacy ? (
-        <View className="rounded-md bg-subtle px-1.5 py-0.5">
-          <Text className="text-3xs font-ras-code-bold text-foreground-muted">Legacy</Text>
-        </View>
-      ) : null}
-      <View className="flex-1" />
+        {props.option.subtitle ? (
+          <Text className="text-xs text-foreground-muted" numberOfLines={1}>
+            {props.option.subtitle}
+          </Text>
+        ) : null}
+      </View>
       {props.selected ? (
         <SymbolView
           name="checkmark"
