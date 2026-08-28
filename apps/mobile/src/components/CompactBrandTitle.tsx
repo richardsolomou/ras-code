@@ -57,17 +57,6 @@ export function CompactBrandTitle(
       }}
     >
       <RasCodeWordmark color={iconColor} height={15} />
-      <Text
-        allowFontScaling={props.allowFontScaling}
-        style={{
-          color: mutedColor,
-          fontFamily: "DMSans-Medium",
-          fontSize: 21,
-          letterSpacing: -0.5,
-        }}
-      >
-        Code
-      </Text>
       <View
         style={{
           backgroundColor: subtleColor,

@@ -72,9 +72,6 @@ function SidebarBrand() {
       to="/"
     >
       <RasCodeWordmark />
-      <span className="truncate text-sm font-medium tracking-tight text-muted-foreground">
-        Code
-      </span>
     </Link>
   );
 }
