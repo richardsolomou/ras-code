@@ -37,7 +37,7 @@ export function CompactBrandTitle(
     readonly nativeLeadingItem?: boolean;
   } = {},
 ) {
-  const iconColor = useThemeColor("--color-icon");
+  const wordmarkColor = useThemeColor("--color-wordmark");
   const mutedColor = useThemeColor("--color-foreground-muted");
   const subtleColor = useThemeColor("--color-subtle");
   const stageLabel = resolveMobileStageLabel(Constants.expoConfig?.extra?.appVariant);
@@ -56,7 +56,7 @@ export function CompactBrandTitle(
         marginLeft: titleOffset,
       }}
     >
-      <RasCodeWordmark color={iconColor} height={15} />
+      <RasCodeWordmark color={wordmarkColor} height={15} />
       <View
         style={{
           backgroundColor: subtleColor,
@@ -69,7 +69,7 @@ export function CompactBrandTitle(
           allowFontScaling={props.allowFontScaling}
           style={{
             color: mutedColor,
-            fontFamily: "DMSans-Bold",
+            fontFamily: "BarlowSemiCondensed-SemiBold",
             fontSize: 9,
             letterSpacing: 0.9,
             textTransform: "uppercase",

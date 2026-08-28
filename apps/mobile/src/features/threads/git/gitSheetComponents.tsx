@@ -37,7 +37,7 @@ export function SheetActionButton(props: {
       <SymbolView name={props.icon} size={16} tintColor={textColor} type="monochrome" />
       <Text
         className={cn(
-          "text-xs font-ras-code-bold tracking-[0.9px] uppercase",
+          "text-xs font-ras-code-legend",
           tone === "primary"
             ? "text-primary-foreground"
             : tone === "danger"
@@ -54,9 +54,7 @@ export function SheetActionButton(props: {
 export function MetaCard(props: { readonly label: string; readonly value: string }) {
   return (
     <View className="rounded-[18px] border border-border bg-card px-4 py-3">
-      <Text className="text-foreground-muted text-2xs font-ras-code-bold tracking-[0.9px] uppercase">
-        {props.label}
-      </Text>
+      <Text className="text-foreground-muted text-2xs font-ras-code-legend">{props.label}</Text>
       <Text selectable className="text-foreground text-sm font-medium" numberOfLines={1}>
         {props.value}
       </Text>

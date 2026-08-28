@@ -20,25 +20,25 @@ function statusDotTone(state: ConnectionStatusDotState): {
   switch (state) {
     case "available":
       return {
-        dotColor: "#9ca3af",
-        haloColor: "rgba(156,163,175,0.42)",
+        dotColor: "#3a3646",
+        haloColor: "rgba(58,54,70,0.42)",
       };
     case "connected":
       return {
-        dotColor: "#34d399",
-        haloColor: "rgba(52,211,153,0.48)",
+        dotColor: "#52c46f",
+        haloColor: "rgba(82,196,111,0.48)",
       };
     case "connecting":
     case "reconnecting":
       return {
-        dotColor: "#f59e0b",
-        haloColor: "rgba(245,158,11,0.5)",
+        dotColor: "#f0c24b",
+        haloColor: "rgba(240,194,75,0.5)",
       };
     case "offline":
     case "error":
       return {
-        dotColor: "#ef4444",
-        haloColor: "rgba(239,68,68,0.48)",
+        dotColor: "#e5645a",
+        haloColor: "rgba(229,100,90,0.48)",
       };
   }
 }

@@ -141,9 +141,7 @@ export function ConnectionEnvironmentRow(props: {
           ) : (
             <>
               <View className="gap-1.5">
-                <Text className="text-2xs font-ras-code-bold tracking-[0.8px] uppercase text-foreground-muted">
-                  Label
-                </Text>
+                <Text className="text-2xs font-ras-code-legend text-foreground-muted">Label</Text>
                 <TextInput
                   autoCapitalize="words"
                   autoCorrect={false}
@@ -155,9 +153,7 @@ export function ConnectionEnvironmentRow(props: {
               </View>
 
               <View className="gap-1.5">
-                <Text className="text-2xs font-ras-code-bold tracking-[0.8px] uppercase text-foreground-muted">
-                  URL
-                </Text>
+                <Text className="text-2xs font-ras-code-legend text-foreground-muted">URL</Text>
                 <TextInput
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -178,9 +174,7 @@ export function ConnectionEnvironmentRow(props: {
                 onPress={handleSave}
               >
                 <SymbolView name="checkmark" size={13} tintColor={primaryFg} type="monochrome" />
-                <Text className="text-xs font-ras-code-bold tracking-[0.8px] uppercase text-primary-foreground">
-                  Save
-                </Text>
+                <Text className="text-xs font-ras-code-legend text-primary-foreground">Save</Text>
               </Pressable>
             )}
 

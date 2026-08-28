@@ -29,7 +29,7 @@ export function PendingApprovalCard(props: PendingApprovalCardProps) {
   // behind this card, so a translucent surface bleeds messages through it.
   return (
     <View className="gap-2.5 rounded-[20px] border border-neutral-200 bg-neutral-100 p-4 dark:border-white/6 dark:bg-neutral-900">
-      <Text className="font-ras-code-bold text-2xs uppercase tracking-[1.1px] text-sky-700 dark:text-sky-300">
+      <Text className="font-ras-code-legend text-2xs text-[#8a6a12] dark:text-[#f0c24b]">
         Approval needed
       </Text>
       <Text className="font-ras-code-bold text-lg text-neutral-950 dark:text-neutral-50">

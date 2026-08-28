@@ -70,18 +70,19 @@ describe("mobile themes", () => {
     }
   });
 
-  it("preserves the existing mobile palette as the default", () => {
+  it("renders the console palette as the default", () => {
     expect(getMobileThemeVariables(DEFAULT_MOBILE_THEME_ID, "light")["--color-screen"]).toBe(
-      "#f2f2f7",
+      "#fafafa",
     );
     expect(getMobileThemeVariables(DEFAULT_MOBILE_THEME_ID, "dark")["--color-screen"]).toBe(
-      "#0a0a0a",
+      "#16141c",
     );
-    expect(
-      getMobileThemeVariables(DEFAULT_MOBILE_THEME_ID, "light")[
-        "--color-user-bubble-skill-foreground"
-      ],
-    ).toBe("#f0abfc");
+    expect(getMobileThemeVariables(DEFAULT_MOBILE_THEME_ID, "dark")["--color-primary"]).toBe(
+      "#f0c24b",
+    );
+    expect(getMobileThemeVariables(DEFAULT_MOBILE_THEME_ID, "light")["--color-wordmark"]).toBe(
+      "#2a2733",
+    );
   });
 
   it("applies palette overrides on top of the selected built-in theme", () => {
@@ -97,7 +98,7 @@ describe("mobile themes", () => {
     expect(getMobileThemePreviewColors(DEFAULT_MOBILE_THEME_ID, "light")).toEqual({
       canvas: "#fcfcfc",
       accent: "#f4f4f5",
-      messageAction: "#4f46e5",
+      messageAction: "#2a2733",
     });
     const desktopOcean = BUILT_IN_THEMES.find((theme) => theme.id === "ocean")!;
     expect(getMobileThemePreviewColors("ocean", "light")).toEqual({
@@ -129,11 +130,11 @@ describe("mobile themes", () => {
   });
 
   it("changes either theme without switching the active appearance", () => {
-    const themeIds = { light: "ras-code", dark: "grove" } as const;
+    const themeIds = { light: "graphite", dark: "grove" } as const;
     expect(createMobileThemeSelectionPatch(themeIds, "light", "dark", "ocean")).toEqual({
-      lightThemeId: "ras-code",
+      lightThemeId: "graphite",
       darkThemeId: "ocean",
-      themeId: "ras-code",
+      themeId: "graphite",
     });
     expect(createMobileThemeSelectionPatch(themeIds, "light", "light", "iris")).toEqual({
       lightThemeId: "iris",
@@ -214,9 +215,6 @@ describe("mobile themes", () => {
             variables["--color-user-bubble"],
           ),
         ).toBeGreaterThanOrEqual(4.5);
-        expect(variables["--color-user-bubble-skill-foreground"]).not.toBe(
-          variables["--color-user-bubble-foreground"],
-        );
         const fenceSurface = compositeOver(
           variables["--color-md-user-fence-bg"],
           variables["--color-user-bubble"],

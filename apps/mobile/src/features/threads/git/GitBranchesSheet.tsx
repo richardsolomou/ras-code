@@ -69,7 +69,7 @@ export function GitBranchesSheet(_props: GitBranchesSheetProps) {
         contentContainerClassName="gap-4 px-5 pt-2"
       >
         <View className="gap-2 rounded-[18px] border border-border bg-card px-4 py-4">
-          <Text className="text-foreground-secondary text-2xs font-ras-code-bold tracking-[1px] uppercase">
+          <Text className="text-foreground-secondary text-2xs font-ras-code-legend">
             New branch
           </Text>
           <TextInput
@@ -95,7 +95,7 @@ export function GitBranchesSheet(_props: GitBranchesSheetProps) {
         </View>
 
         <View className="gap-2 rounded-[18px] border border-border bg-card px-4 py-4">
-          <Text className="text-foreground-secondary text-2xs font-ras-code-bold tracking-[1px] uppercase">
+          <Text className="text-foreground-secondary text-2xs font-ras-code-legend">
             New worktree
           </Text>
           <TextInput
@@ -132,7 +132,7 @@ export function GitBranchesSheet(_props: GitBranchesSheetProps) {
         </View>
 
         <View className="gap-2">
-          <Text className="text-foreground-secondary text-2xs font-ras-code-bold tracking-[1px] uppercase">
+          <Text className="text-foreground-secondary text-2xs font-ras-code-legend">
             Existing branches
           </Text>
           {branchesLoading ? (

@@ -110,9 +110,7 @@ export function GitConfirmSheet(props: GitConfirmSheetProps) {
       )}
 
       <View className="items-center gap-1 px-5 pb-3 pt-4">
-        <Text className="text-xs font-ras-code-bold tracking-[1px] uppercase text-foreground-muted">
-          Confirm
-        </Text>
+        <Text className="text-xs font-ras-code-legend text-foreground-muted">Confirm</Text>
         <Text className="text-center text-3xl font-ras-code-bold">
           {copy?.title ?? "Run action on default branch?"}
         </Text>

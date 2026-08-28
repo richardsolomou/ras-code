@@ -173,7 +173,7 @@ export function PendingUserInputCard(props: PendingUserInputCardProps) {
         onPress={props.onToggleCollapsed}
         className="min-h-10 flex-1 flex-row items-center gap-2 active:opacity-70"
       >
-        <Text className="font-ras-code-bold text-2xs uppercase tracking-[1.1px] text-sky-700 dark:text-sky-300">
+        <Text className="font-ras-code-legend text-2xs text-[#8a6a12] dark:text-[#f0c24b]">
           User input needed
         </Text>
         <Text className="font-sans text-xs text-neutral-500 dark:text-neutral-400">
@@ -227,7 +227,7 @@ export function PendingUserInputCard(props: PendingUserInputCardProps) {
         className="flex-row items-start gap-2"
       >
         <View className="flex-1 gap-2.5">
-          <Text className="font-ras-code-bold text-2xs uppercase tracking-[1.1px] text-sky-700 dark:text-sky-300">
+          <Text className="font-ras-code-legend text-2xs text-[#8a6a12] dark:text-[#f0c24b]">
             User input needed
           </Text>
           <Text className="font-ras-code-bold text-lg text-neutral-950 dark:text-neutral-50">
@@ -251,7 +251,7 @@ export function PendingUserInputCard(props: PendingUserInputCardProps) {
           const draft = props.drafts[question.id];
           return (
             <View key={question.id} className="gap-2 pt-1">
-              <Text className="font-ras-code-bold text-xs uppercase tracking-[1px] text-neutral-500 dark:text-neutral-500">
+              <Text className="font-ras-code-legend text-xs text-neutral-500 dark:text-neutral-500">
                 {question.header}
               </Text>
               <Text className="font-sans text-base leading-snug text-neutral-950 dark:text-neutral-50">
@@ -284,7 +284,7 @@ export function PendingUserInputCard(props: PendingUserInputCardProps) {
                           className={cn(
                             "font-ras-code-bold text-sm",
                             selected
-                              ? "text-sky-700 dark:text-sky-300"
+                              ? "text-[#8a6a12] dark:text-[#f0c24b]"
                               : "text-neutral-700 dark:text-neutral-200",
                           )}
                         >

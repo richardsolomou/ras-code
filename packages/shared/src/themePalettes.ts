@@ -1,4 +1,4 @@
-export const BUILT_IN_THEME_IDS = ["ras-code", "grove", "ocean", "ember", "iris"] as const;
+export const BUILT_IN_THEME_IDS = ["graphite", "grove", "ocean", "ember", "iris"] as const;
 
 /** The mobile app's own hand-tuned palette, which is not part of the built-in library. */
 export const MOBILE_DEFAULT_THEME_ID = "ras-code-mobile";

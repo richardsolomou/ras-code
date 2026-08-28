@@ -4,6 +4,7 @@ const FONT_FAMILY_VARIABLES = {
   regular: "--font-sans",
   medium: "--font-medium",
   bold: "--font-bold",
+  legend: "--font-legend",
 } as const;
 
 /**

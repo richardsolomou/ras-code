@@ -25,6 +25,7 @@ import { useThreadPr, type ThreadPr } from "../../state/use-thread-pr";
 import type { HomeGroupDisplayAction } from "../home/homeListItems";
 import { ThreadSwipeable } from "../home/thread-swipe-actions";
 import { buildThreadTitleRegenerationMenuItems } from "./thread-title-regeneration-menu";
+import { StatusLamp } from "../../components/StatusLamp";
 import { resolveThreadStatus } from "./threadPresentation";
 import { ThreadSearchMatchExcerpt } from "./thread-search-match";
 
@@ -471,14 +472,6 @@ export const ThreadListRow = memo(function ThreadListRow(props: {
   const effectivePressedBackground = selected
     ? themeColorWithAlpha(String(selectedForegroundColor), 0.16)
     : pressedBackgroundColor;
-  const effectiveStatus =
-    selected && status
-      ? {
-          ...status,
-          pillClassName: "bg-user-bubble-foreground/20",
-          textClassName: "text-user-bubble-foreground",
-        }
-      : status;
 
   const handleDelete = useCallback(() => onDeleteThread(thread), [onDeleteThread, thread]);
   const handleArchive = useCallback(() => onArchiveThread(thread), [onArchiveThread, thread]);
@@ -515,10 +508,16 @@ export const ThreadListRow = memo(function ThreadListRow(props: {
     [handleArchive, handleDelete, handleRegenerateTitle],
   );
 
-  const statusPill = effectiveStatus ? (
-    <View className={`${effectiveStatus.pillClassName} rounded-full px-1.5 py-0.5`}>
-      <Text className={`text-3xs font-ras-code-bold ${effectiveStatus.textClassName}`}>
-        {effectiveStatus.label}
+  const statusPill = status ? (
+    <View className="flex-row items-center gap-1.5">
+      <StatusLamp state={status.lamp} />
+      <Text
+        className={cn(
+          "text-3xs font-ras-code-legend",
+          selected ? "text-user-bubble-foreground" : "text-foreground-muted",
+        )}
+      >
+        {status.label}
       </Text>
     </View>
   ) : null;

@@ -281,8 +281,8 @@ function MetricToggle(props: {
             <Text
               className={
                 active
-                  ? "text-xs font-ras-code-medium uppercase text-foreground"
-                  : "text-xs uppercase text-foreground-muted"
+                  ? "text-xs font-ras-code-legend text-foreground"
+                  : "text-xs font-ras-code-legend text-foreground-muted"
               }
             >
               {option}

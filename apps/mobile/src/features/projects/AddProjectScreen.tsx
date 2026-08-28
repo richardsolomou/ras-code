@@ -113,7 +113,7 @@ function sourceFromParam(value: string | string[] | undefined): AddProjectRemote
 
 function SectionTitle(props: { readonly children: string }) {
   return (
-    <Text className="px-1 text-2xs font-ras-code-bold tracking-[0.7px] uppercase text-foreground-muted">
+    <Text className="px-1 text-2xs font-ras-code-legend text-foreground-muted">
       {props.children}
     </Text>
   );

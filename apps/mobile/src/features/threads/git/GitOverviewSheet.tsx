@@ -390,9 +390,7 @@ export function GitOverviewSheet(props: GitOverviewSheetProps) {
               weight="medium"
             />
           </Pressable>
-          <Text className="text-xs font-ras-code-bold tracking-[1px] uppercase text-foreground-muted">
-            Repository
-          </Text>
+          <Text className="text-xs font-ras-code-legend text-foreground-muted">Repository</Text>
           <Text className="pr-10 text-xl font-ras-code-bold">{currentBranchLabel}</Text>
           <Text className="text-foreground-secondary text-sm font-medium leading-normal">
             {currentStatusSummary}

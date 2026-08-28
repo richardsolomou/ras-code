@@ -36,7 +36,7 @@ export function BrandMark(props: { readonly compact?: boolean; readonly stageLab
             RAS Code
           </Text>
           <View className="rounded-full bg-subtle px-2 py-1">
-            <Text className="text-3xs font-ras-code-bold tracking-[1.1px] uppercase text-foreground-muted">
+            <Text className="text-3xs font-ras-code-legend text-foreground-muted">
               {stageLabel}
             </Text>
           </View>

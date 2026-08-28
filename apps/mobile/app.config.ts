@@ -105,10 +105,12 @@ const iosBundleIdentifier = isIosPersonalTeamBuild
   ? personalTeamBundleIdentifier!
   : variant.iosBundleIdentifier;
 
-const dmSansFonts = {
-  regular: "@expo-google-fonts/dm-sans/400Regular/DMSans_400Regular.ttf",
-  medium: "@expo-google-fonts/dm-sans/500Medium/DMSans_500Medium.ttf",
-  bold: "@expo-google-fonts/dm-sans/700Bold/DMSans_700Bold.ttf",
+const barlowFonts = {
+  regular: "@expo-google-fonts/barlow/400Regular/Barlow_400Regular.ttf",
+  medium: "@expo-google-fonts/barlow/500Medium/Barlow_500Medium.ttf",
+  bold: "@expo-google-fonts/barlow/600SemiBold/Barlow_600SemiBold.ttf",
+  legend:
+    "@expo-google-fonts/barlow-semi-condensed/600SemiBold/BarlowSemiCondensed_600SemiBold.ttf",
 } as const;
 
 const widgetsPlugin: NonNullable<ExpoConfig["plugins"]>[number] = [
@@ -242,21 +244,25 @@ const config: ExpoConfig = {
       "expo-font",
       {
         ios: {
-          fonts: [dmSansFonts.regular, dmSansFonts.medium, dmSansFonts.bold],
+          fonts: [barlowFonts.regular, barlowFonts.medium, barlowFonts.bold, barlowFonts.legend],
         },
         android: {
           fonts: [
             {
-              fontFamily: "DMSans-Regular",
-              fontDefinitions: [{ path: dmSansFonts.regular, weight: 400 }],
+              fontFamily: "Barlow-Regular",
+              fontDefinitions: [{ path: barlowFonts.regular, weight: 400 }],
             },
             {
-              fontFamily: "DMSans-Medium",
-              fontDefinitions: [{ path: dmSansFonts.medium, weight: 500 }],
+              fontFamily: "Barlow-Medium",
+              fontDefinitions: [{ path: barlowFonts.medium, weight: 500 }],
             },
             {
-              fontFamily: "DMSans-Bold",
-              fontDefinitions: [{ path: dmSansFonts.bold, weight: 700 }],
+              fontFamily: "Barlow-SemiBold",
+              fontDefinitions: [{ path: barlowFonts.bold, weight: 600 }],
+            },
+            {
+              fontFamily: "BarlowSemiCondensed-SemiBold",
+              fontDefinitions: [{ path: barlowFonts.legend, weight: 600 }],
             },
           ],
         },
