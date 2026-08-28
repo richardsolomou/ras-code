@@ -26,6 +26,7 @@ import {
   useSidebar,
 } from "../ui/sidebar";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
+import { SidebarLegendStrip } from "./SidebarLegendStrip";
 import { SidebarProviderUpdatePill } from "./SidebarProviderUpdatePill";
 import { SidebarUpdateArchitectureWarning, SidebarUpdatePill } from "./SidebarUpdatePill";
 
@@ -72,7 +73,9 @@ function SidebarBrand() {
       to="/"
     >
       <RasCodeWordmark />
-      <span className="truncate text-sm font-semibold tracking-tight">RAS Code</span>
+      <span className="truncate text-sm font-medium tracking-tight text-muted-foreground">
+        Code
+      </span>
     </Link>
   );
 }
@@ -80,26 +83,42 @@ function SidebarBrand() {
 function RasCodeWordmark() {
   return (
     <svg
-      aria-label="RAS Code"
+      aria-label="RAS"
       className="h-4 w-auto shrink-0"
-      viewBox="31 7 66 114"
+      viewBox="0 0 234 114"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <rect x="31" y="7" width="18" height="18" rx="3" fill="#F0C24B" />
-      <rect x="55" y="7" width="18" height="18" rx="3" fill="#F0C24B" />
-      <rect x="79" y="7" width="18" height="18" rx="3" fill="currentColor" opacity="0.28" />
-      <rect x="31" y="31" width="18" height="18" rx="3" fill="#F0C24B" />
-      <rect x="55" y="31" width="18" height="18" rx="3" fill="currentColor" opacity="0.28" />
-      <rect x="79" y="31" width="18" height="18" rx="3" fill="#F0C24B" />
-      <rect x="31" y="55" width="18" height="18" rx="3" fill="#F0C24B" />
-      <rect x="55" y="55" width="18" height="18" rx="3" fill="#F0C24B" />
-      <rect x="79" y="55" width="18" height="18" rx="3" fill="currentColor" opacity="0.28" />
-      <rect x="31" y="79" width="18" height="18" rx="3" fill="#F0C24B" />
-      <rect x="55" y="79" width="18" height="18" rx="3" fill="currentColor" opacity="0.28" />
-      <rect x="79" y="79" width="18" height="18" rx="3" fill="#F0C24B" />
-      <rect x="31" y="103" width="18" height="18" rx="3" fill="#F0C24B" />
-      <rect x="55" y="103" width="18" height="18" rx="3" fill="currentColor" opacity="0.28" />
-      <rect x="79" y="103" width="18" height="18" rx="3" fill="#F0C24B" />
+      <rect x="0" y="0" width="18" height="18" rx="3" fill="#F0C24B" />
+      <rect x="24" y="0" width="18" height="18" rx="3" fill="#F0C24B" />
+      <rect x="0" y="24" width="18" height="18" rx="3" fill="#F0C24B" />
+      <rect x="48" y="24" width="18" height="18" rx="3" fill="#F0C24B" />
+      <rect x="0" y="48" width="18" height="18" rx="3" fill="#F0C24B" />
+      <rect x="24" y="48" width="18" height="18" rx="3" fill="#F0C24B" />
+      <rect x="0" y="72" width="18" height="18" rx="3" fill="#F0C24B" />
+      <rect x="48" y="72" width="18" height="18" rx="3" fill="#F0C24B" />
+      <rect x="0" y="96" width="18" height="18" rx="3" fill="#F0C24B" />
+      <rect x="48" y="96" width="18" height="18" rx="3" fill="#F0C24B" />
+      <rect x="108" y="0" width="18" height="18" rx="3" fill="#F0C24B" />
+      <rect x="84" y="24" width="18" height="18" rx="3" fill="#F0C24B" />
+      <rect x="132" y="24" width="18" height="18" rx="3" fill="#F0C24B" />
+      <rect x="84" y="48" width="18" height="18" rx="3" fill="#F0C24B" />
+      <rect x="108" y="48" width="18" height="18" rx="3" fill="#F0C24B" />
+      <rect x="132" y="48" width="18" height="18" rx="3" fill="#F0C24B" />
+      <rect x="84" y="72" width="18" height="18" rx="3" fill="#F0C24B" />
+      <rect x="132" y="72" width="18" height="18" rx="3" fill="#F0C24B" />
+      <rect x="84" y="96" width="18" height="18" rx="3" fill="#F0C24B" />
+      <rect x="132" y="96" width="18" height="18" rx="3" fill="#F0C24B" />
+      <rect x="168" y="0" width="18" height="18" rx="3" fill="#F0C24B" />
+      <rect x="192" y="0" width="18" height="18" rx="3" fill="#F0C24B" />
+      <rect x="216" y="0" width="18" height="18" rx="3" fill="#F0C24B" />
+      <rect x="168" y="24" width="18" height="18" rx="3" fill="#F0C24B" />
+      <rect x="168" y="48" width="18" height="18" rx="3" fill="#F0C24B" />
+      <rect x="192" y="48" width="18" height="18" rx="3" fill="#F0C24B" />
+      <rect x="216" y="48" width="18" height="18" rx="3" fill="#F0C24B" />
+      <rect x="216" y="72" width="18" height="18" rx="3" fill="#F0C24B" />
+      <rect x="168" y="96" width="18" height="18" rx="3" fill="#F0C24B" />
+      <rect x="192" y="96" width="18" height="18" rx="3" fill="#F0C24B" />
+      <rect x="216" y="96" width="18" height="18" rx="3" fill="#F0C24B" />
     </svg>
   );
 }
@@ -214,11 +233,23 @@ export const SidebarUtilityMenu = memo(function SidebarUtilityMenu() {
   );
 });
 
-export const SidebarChromeFooter = memo(function SidebarChromeFooter() {
+/** `legendCounts` is omitted by sidebar implementations that do not partition
+ * threads by console state; the legend strip is then left out entirely. */
+export const SidebarChromeFooter = memo(function SidebarChromeFooter({
+  legendCounts,
+}: {
+  legendCounts?: { readonly working: number; readonly waiting: number };
+}) {
   return (
     <SidebarFooter className="p-[var(--sidebar-content-inset)]">
       <SidebarProviderUpdatePill />
       <SidebarUpdateArchitectureWarning />
+      {legendCounts ? (
+        <SidebarLegendStrip
+          workingCount={legendCounts.working}
+          waitingCount={legendCounts.waiting}
+        />
+      ) : null}
       <SidebarUtilityMenu />
     </SidebarFooter>
   );

@@ -6,29 +6,45 @@ import Svg, { Rect } from "react-native-svg";
  * Width derives from the viewBox aspect ratio.
  */
 export function RasCodeWordmark(props: { readonly height: number; readonly color: ColorValue }) {
-  const aspectRatio = 66 / 114;
+  const aspectRatio = 234 / 114;
   return (
     <Svg
-      accessibilityLabel="RAS Code"
+      accessibilityLabel="RAS"
       height={props.height}
       width={props.height * aspectRatio}
-      viewBox="31 7 66 114"
+      viewBox="0 0 234 114"
     >
-      <Rect x={31} y={7} width={18} height={18} rx={3} fill="#F0C24B" />
-      <Rect x={55} y={7} width={18} height={18} rx={3} fill="#F0C24B" />
-      <Rect x={79} y={7} width={18} height={18} rx={3} fill={props.color} opacity={0.28} />
-      <Rect x={31} y={31} width={18} height={18} rx={3} fill="#F0C24B" />
-      <Rect x={55} y={31} width={18} height={18} rx={3} fill={props.color} opacity={0.28} />
-      <Rect x={79} y={31} width={18} height={18} rx={3} fill="#F0C24B" />
-      <Rect x={31} y={55} width={18} height={18} rx={3} fill="#F0C24B" />
-      <Rect x={55} y={55} width={18} height={18} rx={3} fill="#F0C24B" />
-      <Rect x={79} y={55} width={18} height={18} rx={3} fill={props.color} opacity={0.28} />
-      <Rect x={31} y={79} width={18} height={18} rx={3} fill="#F0C24B" />
-      <Rect x={55} y={79} width={18} height={18} rx={3} fill={props.color} opacity={0.28} />
-      <Rect x={79} y={79} width={18} height={18} rx={3} fill="#F0C24B" />
-      <Rect x={31} y={103} width={18} height={18} rx={3} fill="#F0C24B" />
-      <Rect x={55} y={103} width={18} height={18} rx={3} fill={props.color} opacity={0.28} />
-      <Rect x={79} y={103} width={18} height={18} rx={3} fill="#F0C24B" />
+      <Rect x={0} y={0} width={18} height={18} rx={3} fill="#F0C24B" />
+      <Rect x={24} y={0} width={18} height={18} rx={3} fill="#F0C24B" />
+      <Rect x={0} y={24} width={18} height={18} rx={3} fill="#F0C24B" />
+      <Rect x={48} y={24} width={18} height={18} rx={3} fill="#F0C24B" />
+      <Rect x={0} y={48} width={18} height={18} rx={3} fill="#F0C24B" />
+      <Rect x={24} y={48} width={18} height={18} rx={3} fill="#F0C24B" />
+      <Rect x={0} y={72} width={18} height={18} rx={3} fill="#F0C24B" />
+      <Rect x={48} y={72} width={18} height={18} rx={3} fill="#F0C24B" />
+      <Rect x={0} y={96} width={18} height={18} rx={3} fill="#F0C24B" />
+      <Rect x={48} y={96} width={18} height={18} rx={3} fill="#F0C24B" />
+      <Rect x={108} y={0} width={18} height={18} rx={3} fill="#F0C24B" />
+      <Rect x={84} y={24} width={18} height={18} rx={3} fill="#F0C24B" />
+      <Rect x={132} y={24} width={18} height={18} rx={3} fill="#F0C24B" />
+      <Rect x={84} y={48} width={18} height={18} rx={3} fill="#F0C24B" />
+      <Rect x={108} y={48} width={18} height={18} rx={3} fill="#F0C24B" />
+      <Rect x={132} y={48} width={18} height={18} rx={3} fill="#F0C24B" />
+      <Rect x={84} y={72} width={18} height={18} rx={3} fill="#F0C24B" />
+      <Rect x={132} y={72} width={18} height={18} rx={3} fill="#F0C24B" />
+      <Rect x={84} y={96} width={18} height={18} rx={3} fill="#F0C24B" />
+      <Rect x={132} y={96} width={18} height={18} rx={3} fill="#F0C24B" />
+      <Rect x={168} y={0} width={18} height={18} rx={3} fill="#F0C24B" />
+      <Rect x={192} y={0} width={18} height={18} rx={3} fill="#F0C24B" />
+      <Rect x={216} y={0} width={18} height={18} rx={3} fill="#F0C24B" />
+      <Rect x={168} y={24} width={18} height={18} rx={3} fill="#F0C24B" />
+      <Rect x={168} y={48} width={18} height={18} rx={3} fill="#F0C24B" />
+      <Rect x={192} y={48} width={18} height={18} rx={3} fill="#F0C24B" />
+      <Rect x={216} y={48} width={18} height={18} rx={3} fill="#F0C24B" />
+      <Rect x={216} y={72} width={18} height={18} rx={3} fill="#F0C24B" />
+      <Rect x={168} y={96} width={18} height={18} rx={3} fill="#F0C24B" />
+      <Rect x={192} y={96} width={18} height={18} rx={3} fill="#F0C24B" />
+      <Rect x={216} y={96} width={18} height={18} rx={3} fill="#F0C24B" />
     </Svg>
   );
 }

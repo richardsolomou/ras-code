@@ -522,8 +522,6 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(ras-code
       var(--chat-composer-glass-surface, var(--card)) var(--glass-opacity),
       transparent
     );
-    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
-    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
     box-shadow: 0 -8px 24px -18px rgb(0 0 0 / 45%);
 
     @variant dark {
@@ -541,13 +539,7 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(ras-code
       --chat-composer-outline,
       color-mix(in srgb, var(--contrast-foreground) 8%, transparent)
     );
-    background: color-mix(
-      in srgb,
-      var(--chat-composer-attached-surface) var(--glass-opacity),
-      transparent
-    );
-    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
-    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+    background: var(--chat-composer-attached-surface);
 
     @variant dark {
       --chat-composer-attached-surface: var(
@@ -603,11 +595,7 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(ras-code
             rgb(0 0 0 / 18%) var(--chat-composer-attachment-overlap),
             transparent calc(var(--chat-composer-attachment-overlap) + 10px)
           ),
-          color-mix(
-            in srgb,
-            var(--chat-composer-attached-surface) var(--glass-opacity),
-            transparent
-          );
+          var(--chat-composer-attached-surface);
         box-shadow: 0 14px 32px -18px rgb(0 0 0 / 75%);
       }
     }
@@ -642,9 +630,7 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(ras-code
     border-radius: 16px 16px 0 0;
     background:
       linear-gradient(var(--chat-composer-attached-tint), var(--chat-composer-attached-tint)),
-      color-mix(in srgb, var(--chat-composer-attached-surface) var(--glass-opacity), transparent);
-    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
-    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+      var(--chat-composer-attached-surface);
     -webkit-mask-image: linear-gradient(
       to top,
       transparent 0 var(--chat-composer-attachment-overlap),
@@ -715,13 +701,7 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(ras-code
     z-index: 0;
     inset: 0;
     border-radius: 22px;
-    background: color-mix(
-      in srgb,
-      var(--chat-composer-glass-surface) var(--glass-opacity),
-      transparent
-    );
-    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
-    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+    background: var(--chat-composer-glass-surface);
     content: "";
   }
 
@@ -821,13 +801,7 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(ras-code
     )
     .chat-composer-glass-host
     [data-chat-composer-main-surface="true"] {
-    background: color-mix(
-      in srgb,
-      var(--chat-composer-glass-surface) var(--glass-opacity),
-      transparent
-    );
-    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
-    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+    background: var(--chat-composer-glass-surface);
     box-shadow: 0 12px 28px -18px rgb(0 0 0 / 40%);
 
     &::after {
@@ -920,13 +894,7 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(ras-code
     )
     .chat-composer-context-strip {
     &::before {
-      background: color-mix(
-        in srgb,
-        var(--chat-composer-glass-surface) var(--glass-opacity),
-        transparent
-      );
-      -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
-      backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+      background: var(--chat-composer-glass-surface);
     }
 
     @variant dark {
@@ -939,7 +907,7 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(ras-code
             transparent calc(1rem + 10px)
           ),
           linear-gradient(rgb(255 255 255 / 2%), rgb(255 255 255 / 2%)),
-          color-mix(in srgb, var(--chat-composer-glass-surface) var(--glass-opacity), transparent);
+          var(--chat-composer-glass-surface);
       }
     }
   }
@@ -952,13 +920,7 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(ras-code
     }
 
     .chat-composer-context-strip::before {
-      background: color-mix(
-        in srgb,
-        var(--chat-composer-glass-surface) var(--glass-opacity),
-        transparent
-      );
-      -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
-      backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+      background: var(--chat-composer-glass-surface);
     }
 
     .chat-composer-context-strip {
@@ -972,7 +934,7 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(ras-code
               transparent calc(1rem + 10px)
             ),
             linear-gradient(rgb(255 255 255 / 2%), rgb(255 255 255 / 2%)),
-            color-mix(in srgb, var(--chat-composer-glass-surface) var(--glass-opacity), transparent);
+            var(--chat-composer-glass-surface);
         }
       }
     }
@@ -1206,19 +1168,19 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(ras-code
     color-scheme: dark;
     /* Keep the workspace in the same neutral-black family as sidebar v2.
        Surfaces lift from this base instead of starting from a milky gray. */
-    --background: #2a2733;
+    --background: #1f1c26;
     --surface-raised: var(--secondary);
-    --foreground: #ddd9e6;
-    --card: #353140;
-    --card-foreground: #ddd9e6;
-    --popover: #3a3646;
-    --popover-foreground: #ddd9e6;
+    --foreground: #e6e2ee;
+    --card: #2a2733;
+    --card-foreground: #e6e2ee;
+    --popover: #2f2b3a;
+    --popover-foreground: #e6e2ee;
     --primary: #f0c24b;
-    --primary-foreground: #201d28;
+    --primary-foreground: #171520;
     --secondary: --alpha(var(--color-white) / 4%);
     --secondary-foreground: var(--color-neutral-100);
     --muted: --alpha(var(--color-white) / 4%);
-    --muted-foreground: #948fa3;
+    --muted-foreground: #9b96a9;
     --accent: --alpha(var(--color-white) / 4%);
     --accent-foreground: var(--color-neutral-100);
     --error: #e5645a;
@@ -1266,14 +1228,14 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(ras-code
   --sidebar-border: var(--color-zinc-200);
 
   @variant dark {
-    --background: #201d28;
-    --foreground: #ddd9e6;
-    --card: #201d28;
+    --background: #171520;
+    --foreground: #e6e2ee;
+    --card: #171520;
     --card-foreground: var(--foreground);
-    --accent: #332f3d;
+    --accent: #2a2733;
     --accent-foreground: #e6eae4;
-    --muted: #2e2a38;
-    --muted-foreground: #948fa3;
+    --muted: #262330;
+    --muted-foreground: #9b96a9;
     --border: rgb(255 255 255 / 8%);
     --input: rgb(255 255 255 / 18%);
     --sidebar: var(--card);
@@ -2286,9 +2248,9 @@ code {
     --lamp-working: #7fd1b9;
     --lamp-waiting: #f0c24b;
     --lamp-failed: #e5645a;
-    --console-cap: #353140;
+    --console-cap: #2a2733;
     --console-cap-rim: rgb(0 0 0 / 32%);
-    --console-rule: #3d3948;
+    --console-rule: #332f3d;
   }
 }
 
