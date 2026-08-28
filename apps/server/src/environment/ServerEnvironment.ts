@@ -1,4 +1,8 @@
-import { EnvironmentId, type ExecutionEnvironmentDescriptor } from "@ras-code/contracts";
+import {
+  EnvironmentId,
+  PROVIDER_SEND_TURN_MAX_FILE_BYTES,
+  type ExecutionEnvironmentDescriptor,
+} from "@ras-code/contracts";
 import { HostProcessArchitecture, HostProcessPlatform } from "@ras-code/shared/hostProcess";
 import * as Context from "effect/Context";
 import * as Crypto from "effect/Crypto";
@@ -147,6 +151,7 @@ export const make = Effect.gen(function* () {
       repositoryIdentity: true,
       connectionProbe: true,
       attachmentUploads: true,
+      fileAttachments: { maxUploadBytes: PROVIDER_SEND_TURN_MAX_FILE_BYTES },
       pullRequests: true,
       threadSettlement: true,
       threadSnooze: true,

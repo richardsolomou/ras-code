@@ -8,7 +8,7 @@ import {
   ThreadId,
   TurnId,
   ProviderInstanceId,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
@@ -325,7 +325,7 @@ it.layer(BaseTestLayer)("OrchestrationProjectionPipeline", (it) => {
   );
 });
 
-it.layer(Layer.fresh(makeProjectionPipelinePrefixedTestLayer("ras-code-base-")))(
+it.layer(Layer.fresh(makeProjectionPipelinePrefixedTestLayer("t3-base-")))(
   "OrchestrationProjectionPipeline",
   (it) => {
     it.effect("stores message attachment references without mutating payloads", () =>
@@ -885,6 +885,7 @@ it.layer(
       const now = "2026-01-01T00:00:00.000Z";
       const threadId = ThreadId.make("Thread Revert.Files");
       const keepAttachmentId = "thread-revert-files-00000000-0000-4000-8000-000000000001";
+      const keepFileAttachmentId = "thread-revert-files-00000000-0000-4000-8000-000000000004-pdf";
       const removeAttachmentId = "thread-revert-files-00000000-0000-4000-8000-000000000002";
       const otherThreadAttachmentId =
         "thread-revert-files-extra-00000000-0000-4000-8000-000000000003";
@@ -986,6 +987,13 @@ it.layer(
               mimeType: "image/png",
               sizeBytes: 5,
             },
+            {
+              type: "file",
+              id: keepFileAttachmentId,
+              name: "keep.pdf",
+              mimeType: "application/pdf",
+              sizeBytes: 5,
+            },
           ],
           turnId: TurnId.make("turn-keep"),
           streaming: false,
@@ -1048,9 +1056,11 @@ it.layer(
       });
 
       const keepPath = path.join(attachmentsDir, `${keepAttachmentId}.png`);
+      const keepFilePath = path.join(attachmentsDir, `${keepFileAttachmentId}.pdf`);
       const removePath = path.join(attachmentsDir, `${removeAttachmentId}.png`);
       yield* fileSystem.makeDirectory(attachmentsDir, { recursive: true });
       yield* fileSystem.writeFileString(keepPath, "keep");
+      yield* fileSystem.writeFileString(keepFilePath, "keep");
       yield* fileSystem.writeFileString(removePath, "remove");
       const otherThreadPath = path.join(attachmentsDir, `${otherThreadAttachmentId}.png`);
       yield* fileSystem.writeFileString(otherThreadPath, "other");
@@ -1075,6 +1085,7 @@ it.layer(
       });
 
       assert.isTrue(yield* exists(keepPath));
+      assert.isTrue(yield* exists(keepFilePath));
       assert.isFalse(yield* exists(removePath));
       assert.isTrue(yield* exists(otherThreadPath));
     }),
@@ -1094,6 +1105,7 @@ it.layer(
       const now = "2026-01-01T00:00:00.000Z";
       const threadId = ThreadId.make("Thread Delete.Files");
       const attachmentId = "thread-delete-files-00000000-0000-4000-8000-000000000001";
+      const fileAttachmentId = "thread-delete-files-00000000-0000-4000-8000-000000000003-pdf";
       const otherThreadAttachmentId =
         "thread-delete-files-extra-00000000-0000-4000-8000-000000000002";
 
@@ -1172,6 +1184,13 @@ it.layer(
               mimeType: "image/png",
               sizeBytes: 5,
             },
+            {
+              type: "file",
+              id: fileAttachmentId,
+              name: "delete.pdf",
+              mimeType: "application/pdf",
+              sizeBytes: 6,
+            },
           ],
           turnId: null,
           streaming: false,
@@ -1181,11 +1200,14 @@ it.layer(
       });
 
       const threadAttachmentPath = path.join(attachmentsDir, `${attachmentId}.png`);
+      const threadFileAttachmentPath = path.join(attachmentsDir, `${fileAttachmentId}.pdf`);
       const otherThreadAttachmentPath = path.join(attachmentsDir, `${otherThreadAttachmentId}.png`);
       yield* fileSystem.makeDirectory(attachmentsDir, { recursive: true });
       yield* fileSystem.writeFileString(threadAttachmentPath, "delete");
+      yield* fileSystem.writeFileString(threadFileAttachmentPath, "delete");
       yield* fileSystem.writeFileString(otherThreadAttachmentPath, "other-thread");
       assert.isTrue(yield* exists(threadAttachmentPath));
+      assert.isTrue(yield* exists(threadFileAttachmentPath));
       assert.isTrue(yield* exists(otherThreadAttachmentPath));
 
       yield* appendAndProject({
@@ -1205,6 +1227,7 @@ it.layer(
       });
 
       assert.isFalse(yield* exists(threadAttachmentPath));
+      assert.isFalse(yield* exists(threadFileAttachmentPath));
       assert.isTrue(yield* exists(otherThreadAttachmentPath));
     }),
   );
@@ -1811,154 +1834,6 @@ it.layer(BaseTestLayer)("OrchestrationProjectionPipeline", (it) => {
       assert.equal(messageRows.length, 1);
       assert.equal(messageRows[0]?.text, "Hello world");
       assert.isFalse(Boolean(messageRows[0]?.isStreaming));
-    }),
-  );
-
-  it.effect("records the fallback stamp and assistant preview on the thread shell", () =>
-    Effect.gen(function* () {
-      const projectionPipeline = yield* OrchestrationProjectionPipeline;
-      const eventStore = yield* OrchestrationEventStore;
-      const sql = yield* SqlClient.SqlClient;
-      const now = "2026-01-01T00:00:00.000Z";
-
-      yield* eventStore.append({
-        type: "project.created",
-        eventId: EventId.make("evt-shell-1"),
-        aggregateKind: "project",
-        aggregateId: ProjectId.make("project-shell"),
-        occurredAt: now,
-        commandId: CommandId.make("cmd-shell-1"),
-        causationEventId: null,
-        correlationId: CorrelationId.make("cmd-shell-1"),
-        metadata: {},
-        payload: {
-          projectId: ProjectId.make("project-shell"),
-          title: "Project Shell",
-          workspaceRoot: "/tmp/project-shell",
-          defaultModelSelection: null,
-          scripts: [],
-          createdAt: now,
-          updatedAt: now,
-        },
-      });
-
-      yield* eventStore.append({
-        type: "thread.created",
-        eventId: EventId.make("evt-shell-2"),
-        aggregateKind: "thread",
-        aggregateId: ThreadId.make("thread-shell"),
-        occurredAt: now,
-        commandId: CommandId.make("cmd-shell-2"),
-        causationEventId: null,
-        correlationId: CorrelationId.make("cmd-shell-2"),
-        metadata: {},
-        payload: {
-          threadId: ThreadId.make("thread-shell"),
-          projectId: ProjectId.make("project-shell"),
-          title: "Thread Shell",
-          modelSelection: {
-            instanceId: ProviderInstanceId.make("codex"),
-            model: "gpt-5-codex",
-          },
-          runtimeMode: "full-access",
-          branch: null,
-          worktreePath: null,
-          createdAt: now,
-          updatedAt: now,
-        },
-      });
-
-      yield* eventStore.append({
-        type: "thread.activity-appended",
-        eventId: EventId.make("evt-shell-3"),
-        aggregateKind: "thread",
-        aggregateId: ThreadId.make("thread-shell"),
-        occurredAt: "2026-01-01T00:00:01.000Z",
-        commandId: CommandId.make("cmd-shell-3"),
-        causationEventId: null,
-        correlationId: CorrelationId.make("cmd-shell-3"),
-        metadata: {},
-        payload: {
-          threadId: ThreadId.make("thread-shell"),
-          activity: {
-            id: EventId.make("evt-shell-3"),
-            tone: "info",
-            kind: "provider.fallback.engaged",
-            summary: "Usage limit reached",
-            payload: {
-              primaryInstanceId: "codex",
-              fallbackInstanceId: "claude",
-              model: "claude-opus-4-6",
-              resetsAt: "2026-01-01T04:00:00.000Z",
-            },
-            turnId: null,
-            createdAt: "2026-01-01T00:00:01.000Z",
-          },
-        },
-      });
-
-      yield* eventStore.append({
-        type: "thread.message-sent",
-        eventId: EventId.make("evt-shell-4"),
-        aggregateKind: "thread",
-        aggregateId: ThreadId.make("thread-shell"),
-        occurredAt: "2026-01-01T00:00:02.000Z",
-        commandId: CommandId.make("cmd-shell-4"),
-        causationEventId: null,
-        correlationId: CorrelationId.make("cmd-shell-4"),
-        metadata: {},
-        payload: {
-          threadId: ThreadId.make("thread-shell"),
-          messageId: MessageId.make("assistant-shell"),
-          role: "assistant",
-          text: "  Sidebar   fixed\nand tested  ",
-          turnId: null,
-          streaming: true,
-          createdAt: "2026-01-01T00:00:02.000Z",
-          updatedAt: "2026-01-01T00:00:02.000Z",
-        },
-      });
-
-      yield* eventStore.append({
-        type: "thread.message-sent",
-        eventId: EventId.make("evt-shell-5"),
-        aggregateKind: "thread",
-        aggregateId: ThreadId.make("thread-shell"),
-        occurredAt: "2026-01-01T00:00:03.000Z",
-        commandId: CommandId.make("cmd-shell-5"),
-        causationEventId: null,
-        correlationId: CorrelationId.make("cmd-shell-5"),
-        metadata: {},
-        payload: {
-          threadId: ThreadId.make("thread-shell"),
-          messageId: MessageId.make("assistant-shell"),
-          role: "assistant",
-          text: "",
-          turnId: null,
-          streaming: false,
-          createdAt: "2026-01-01T00:00:03.000Z",
-          updatedAt: "2026-01-01T00:00:03.000Z",
-        },
-      });
-
-      yield* projectionPipeline.bootstrap;
-
-      const threadRows = yield* sql<{
-        readonly lastFallbackEngagedAt: string | null;
-        readonly latestAssistantSummary: string | null;
-      }>`
-        SELECT
-          last_fallback_engaged_at AS "lastFallbackEngagedAt",
-          latest_assistant_summary AS "latestAssistantSummary"
-        FROM projection_threads
-        WHERE thread_id = 'thread-shell'
-      `;
-      assert.deepEqual(threadRows, [
-        {
-          lastFallbackEngagedAt: "2026-01-01T00:00:01.000Z",
-          latestAssistantSummary: "Sidebar fixed and tested",
-        },
-      ]);
     }),
   );
 
@@ -2774,7 +2649,7 @@ it.layer(BaseTestLayer)("OrchestrationProjectionPipeline", (it) => {
   );
 });
 
-it.layer(makeProjectionPipelinePrefixedTestLayer("ras-code-pending-turn-terminal-test-"))(
+it.layer(makeProjectionPipelinePrefixedTestLayer("t3-pending-turn-terminal-test-"))(
   "OrchestrationProjectionPipeline pending turn cleanup",
   (it) => {
     it.effect("clears pending turn starts when startup reaches a terminal session state", () =>
@@ -3066,20 +2941,17 @@ engineLayer("OrchestrationProjectionPipeline via engine dispatch", (it) => {
           model: "gpt-5",
         },
         faviconPath: "brand/icon.svg",
-        iconEmoji: "\u{1F680}",
       });
 
       const projectRows = yield* sql<{
         readonly scriptsJson: string;
         readonly defaultModelSelection: string;
         readonly faviconPath: string | null;
-        readonly iconEmoji: string | null;
       }>`
         SELECT
           scripts_json AS "scriptsJson",
           default_model_selection_json AS "defaultModelSelection",
-          favicon_path AS "faviconPath",
-          icon_emoji AS "iconEmoji"
+          favicon_path AS "faviconPath"
         FROM projection_projects
         WHERE project_id = 'project-scripts'
       `;
@@ -3089,7 +2961,6 @@ engineLayer("OrchestrationProjectionPipeline via engine dispatch", (it) => {
             '[{"id":"script-1","name":"Build","command":"bun run build","icon":"build","runOnWorktreeCreate":false}]',
           defaultModelSelection: '{"instanceId":"codex","model":"gpt-5"}',
           faviconPath: "brand/icon.svg",
-          iconEmoji: "\u{1F680}",
         },
       ]);
     }),
