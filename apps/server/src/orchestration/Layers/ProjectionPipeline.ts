@@ -131,9 +131,19 @@ function isStalePendingApprovalFailureDetail(detail: string | null): boolean {
 }
 
 // A full refresh loads all thread history, so skip events that cannot change the summary.
+const FALLBACK_ENGAGED_ACTIVITY_KIND = "provider.fallback.engaged";
+
+/**
+ * Cap for the shell's assistant preview. Matches the notifier's own cap, so a
+ * stored preview always survives into a notification body.
+ */
+const LATEST_ASSISTANT_SUMMARY_MAX_LENGTH = 140;
+
 function shouldRefreshThreadShellSummary(event: OrchestrationEvent): boolean {
   if (event.type === "thread.message-sent") {
-    return event.payload.role === "user";
+    // A settled assistant message moves the shell preview; streaming deltas
+    // arrive by the hundreds and must not each rescan the thread.
+    return event.payload.role === "user" || !event.payload.streaming;
   }
 
   if (event.type !== "thread.activity-appended") {
@@ -147,10 +157,52 @@ function shouldRefreshThreadShellSummary(event: OrchestrationEvent): boolean {
     case "user-input.requested":
     case "user-input.resolved":
     case "provider.user-input.respond.failed":
+    case FALLBACK_ENGAGED_ACTIVITY_KIND:
       return true;
     default:
       return false;
   }
+}
+
+/** Newest `provider.fallback.engaged` stamp on the thread, or null. */
+function deriveLastFallbackEngagedAt(
+  activities: ReadonlyArray<ProjectionThreadActivity>,
+): string | null {
+  let latest: string | null = null;
+  for (const activity of activities) {
+    if (activity.kind !== FALLBACK_ENGAGED_ACTIVITY_KIND) continue;
+    if (latest === null || activity.createdAt > latest) {
+      latest = activity.createdAt;
+    }
+  }
+  return latest;
+}
+
+/**
+ * One-line preview of the newest settled assistant message, for clients that
+ * notify about threads whose detail they never loaded.
+ */
+function deriveLatestAssistantSummary(
+  messages: ReadonlyArray<ProjectionThreadMessage>,
+): string | null {
+  let latest: ProjectionThreadMessage | null = null;
+  for (const message of messages) {
+    if (message.role !== "assistant" || message.isStreaming) continue;
+    if (
+      latest === null ||
+      message.createdAt > latest.createdAt ||
+      (message.createdAt === latest.createdAt && message.messageId > latest.messageId)
+    ) {
+      latest = message;
+    }
+  }
+  if (latest === null) return null;
+  const summary = latest.text
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, LATEST_ASSISTANT_SUMMARY_MAX_LENGTH)
+    .trim();
+  return summary.length > 0 ? summary : null;
 }
 
 function derivePendingUserInputCountFromActivities(
@@ -579,8 +631,15 @@ const makeOrchestrationProjectionPipeline = Effect.fn("makeOrchestrationProjecti
       }
     });
 
+    /**
+     * Recomputes every derived shell column from the thread's projected rows.
+     * `updatedAt` folds the caller's own stamp into the same write, so an
+     * event that both touches the thread and moves a derived column costs one
+     * row update rather than two.
+     */
     const refreshThreadShellSummary = Effect.fn("refreshThreadShellSummary")(function* (
       threadId: ThreadId,
+      updatedAt?: string,
     ) {
       const existingRow = yield* projectionThreadRepository.getById({
         threadId,
@@ -621,6 +680,9 @@ const makeOrchestrationProjectionPipeline = Effect.fn("makeOrchestrationProjecti
         pendingApprovalCount,
         pendingUserInputCount,
         hasActionableProposedPlan: hasActionableProposedPlan ? 1 : 0,
+        lastFallbackEngagedAt: deriveLastFallbackEngagedAt(activities),
+        latestAssistantSummary: deriveLatestAssistantSummary(messages),
+        ...(updatedAt !== undefined ? { updatedAt } : {}),
       });
     });
 
@@ -656,6 +718,8 @@ const makeOrchestrationProjectionPipeline = Effect.fn("makeOrchestrationProjecti
             pendingApprovalCount: 0,
             pendingUserInputCount: 0,
             hasActionableProposedPlan: 0,
+            lastFallbackEngagedAt: null,
+            latestAssistantSummary: null,
             deletedAt: null,
           });
           return;
@@ -901,13 +965,14 @@ const makeOrchestrationProjectionPipeline = Effect.fn("makeOrchestrationProjecti
           if (Option.isNone(existingRow)) {
             return;
           }
+          if (shouldRefreshThreadShellSummary(event)) {
+            yield* refreshThreadShellSummary(event.payload.threadId, event.occurredAt);
+            return;
+          }
           yield* projectionThreadRepository.upsert({
             ...existingRow.value,
             updatedAt: event.occurredAt,
           });
-          if (shouldRefreshThreadShellSummary(event)) {
-            yield* refreshThreadShellSummary(event.payload.threadId);
-          }
           return;
         }
 

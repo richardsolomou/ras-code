@@ -1,4 +1,11 @@
 import type { ProviderUsageLimit } from "@ras-code/contracts";
+import {
+  FALLBACK_ENGAGED_ACTIVITY_KIND,
+  readFallbackNoticePayload,
+  type FallbackNoticePayload,
+} from "@ras-code/client-runtime/provider-fallback";
+
+export { FALLBACK_ENGAGED_ACTIVITY_KIND, readFallbackNoticePayload, type FallbackNoticePayload };
 
 /**
  * Renders an ISO instant as local wall-clock time. Injected rather than
@@ -41,40 +48,6 @@ export function usageLimitPill(
   };
 }
 
-export interface FallbackNoticePayload {
-  readonly primaryInstanceId: string;
-  readonly fallbackInstanceId: string;
-  readonly model: string;
-  readonly resetsAt: string | null;
-}
-
-/**
- * Read the typed payload off a `provider.fallback.engaged` activity.
- * Activities carry an opaque payload, so anything malformed is treated as
- * "no notice" rather than rendered half-filled.
- */
-export function readFallbackNoticePayload(payload: unknown): FallbackNoticePayload | null {
-  if (payload === null || typeof payload !== "object") return null;
-  const record = payload as Record<string, unknown>;
-  const primaryInstanceId = record.primaryInstanceId;
-  const fallbackInstanceId = record.fallbackInstanceId;
-  const model = record.model;
-  if (
-    typeof primaryInstanceId !== "string" ||
-    typeof fallbackInstanceId !== "string" ||
-    typeof model !== "string"
-  ) {
-    return null;
-  }
-  const resetsAt = record.resetsAt;
-  return {
-    primaryInstanceId,
-    fallbackInstanceId,
-    model,
-    resetsAt: typeof resetsAt === "string" ? resetsAt : null,
-  };
-}
-
 /**
  * Sentence rendered on the timeline row, built from the payload so the time
  * reads in the viewer's locale rather than as the raw instant the server
@@ -107,8 +80,6 @@ export function activeFallbackNotice(input: {
   if (Number.isNaN(resetsAt)) return input.payload;
   return resetsAt > input.now ? input.payload : null;
 }
-
-export const FALLBACK_ENGAGED_ACTIVITY_KIND = "provider.fallback.engaged";
 
 /**
  * The most recent fallback notice on a thread, or `null` when the thread

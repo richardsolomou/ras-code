@@ -1814,6 +1814,154 @@ it.layer(BaseTestLayer)("OrchestrationProjectionPipeline", (it) => {
     }),
   );
 
+  it.effect("records the fallback stamp and assistant preview on the thread shell", () =>
+    Effect.gen(function* () {
+      const projectionPipeline = yield* OrchestrationProjectionPipeline;
+      const eventStore = yield* OrchestrationEventStore;
+      const sql = yield* SqlClient.SqlClient;
+      const now = "2026-01-01T00:00:00.000Z";
+
+      yield* eventStore.append({
+        type: "project.created",
+        eventId: EventId.make("evt-shell-1"),
+        aggregateKind: "project",
+        aggregateId: ProjectId.make("project-shell"),
+        occurredAt: now,
+        commandId: CommandId.make("cmd-shell-1"),
+        causationEventId: null,
+        correlationId: CorrelationId.make("cmd-shell-1"),
+        metadata: {},
+        payload: {
+          projectId: ProjectId.make("project-shell"),
+          title: "Project Shell",
+          workspaceRoot: "/tmp/project-shell",
+          defaultModelSelection: null,
+          scripts: [],
+          createdAt: now,
+          updatedAt: now,
+        },
+      });
+
+      yield* eventStore.append({
+        type: "thread.created",
+        eventId: EventId.make("evt-shell-2"),
+        aggregateKind: "thread",
+        aggregateId: ThreadId.make("thread-shell"),
+        occurredAt: now,
+        commandId: CommandId.make("cmd-shell-2"),
+        causationEventId: null,
+        correlationId: CorrelationId.make("cmd-shell-2"),
+        metadata: {},
+        payload: {
+          threadId: ThreadId.make("thread-shell"),
+          projectId: ProjectId.make("project-shell"),
+          title: "Thread Shell",
+          modelSelection: {
+            instanceId: ProviderInstanceId.make("codex"),
+            model: "gpt-5-codex",
+          },
+          runtimeMode: "full-access",
+          branch: null,
+          worktreePath: null,
+          createdAt: now,
+          updatedAt: now,
+        },
+      });
+
+      yield* eventStore.append({
+        type: "thread.activity-appended",
+        eventId: EventId.make("evt-shell-3"),
+        aggregateKind: "thread",
+        aggregateId: ThreadId.make("thread-shell"),
+        occurredAt: "2026-01-01T00:00:01.000Z",
+        commandId: CommandId.make("cmd-shell-3"),
+        causationEventId: null,
+        correlationId: CorrelationId.make("cmd-shell-3"),
+        metadata: {},
+        payload: {
+          threadId: ThreadId.make("thread-shell"),
+          activity: {
+            id: EventId.make("evt-shell-3"),
+            tone: "info",
+            kind: "provider.fallback.engaged",
+            summary: "Usage limit reached",
+            payload: {
+              primaryInstanceId: "codex",
+              fallbackInstanceId: "claude",
+              model: "claude-opus-4-6",
+              resetsAt: "2026-01-01T04:00:00.000Z",
+            },
+            turnId: null,
+            createdAt: "2026-01-01T00:00:01.000Z",
+          },
+        },
+      });
+
+      yield* eventStore.append({
+        type: "thread.message-sent",
+        eventId: EventId.make("evt-shell-4"),
+        aggregateKind: "thread",
+        aggregateId: ThreadId.make("thread-shell"),
+        occurredAt: "2026-01-01T00:00:02.000Z",
+        commandId: CommandId.make("cmd-shell-4"),
+        causationEventId: null,
+        correlationId: CorrelationId.make("cmd-shell-4"),
+        metadata: {},
+        payload: {
+          threadId: ThreadId.make("thread-shell"),
+          messageId: MessageId.make("assistant-shell"),
+          role: "assistant",
+          text: "  Sidebar   fixed\nand tested  ",
+          turnId: null,
+          streaming: true,
+          createdAt: "2026-01-01T00:00:02.000Z",
+          updatedAt: "2026-01-01T00:00:02.000Z",
+        },
+      });
+
+      yield* eventStore.append({
+        type: "thread.message-sent",
+        eventId: EventId.make("evt-shell-5"),
+        aggregateKind: "thread",
+        aggregateId: ThreadId.make("thread-shell"),
+        occurredAt: "2026-01-01T00:00:03.000Z",
+        commandId: CommandId.make("cmd-shell-5"),
+        causationEventId: null,
+        correlationId: CorrelationId.make("cmd-shell-5"),
+        metadata: {},
+        payload: {
+          threadId: ThreadId.make("thread-shell"),
+          messageId: MessageId.make("assistant-shell"),
+          role: "assistant",
+          text: "",
+          turnId: null,
+          streaming: false,
+          createdAt: "2026-01-01T00:00:03.000Z",
+          updatedAt: "2026-01-01T00:00:03.000Z",
+        },
+      });
+
+      yield* projectionPipeline.bootstrap;
+
+      const threadRows = yield* sql<{
+        readonly lastFallbackEngagedAt: string | null;
+        readonly latestAssistantSummary: string | null;
+      }>`
+        SELECT
+          last_fallback_engaged_at AS "lastFallbackEngagedAt",
+          latest_assistant_summary AS "latestAssistantSummary"
+        FROM projection_threads
+        WHERE thread_id = 'thread-shell'
+      `;
+      assert.deepEqual(threadRows, [
+        {
+          lastFallbackEngagedAt: "2026-01-01T00:00:01.000Z",
+          latestAssistantSummary: "Sidebar fixed and tested",
+        },
+      ]);
+    }),
+  );
+
   it.effect(
     "resolves turn-count conflicts when checkpoint completion rewrites provisional turns",
     () =>

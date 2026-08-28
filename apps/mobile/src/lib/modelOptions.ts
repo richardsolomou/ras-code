@@ -1,8 +1,10 @@
 import type {
   ModelCapabilities,
   ModelSelection,
+  ProviderDriverKind,
   ServerConfig as RasCodeServerConfig,
 } from "@ras-code/contracts";
+import { PROVIDER_DISPLAY_NAMES } from "@ras-code/contracts";
 import {
   buildProviderOptionSelectionsFromDescriptors,
   getProviderOptionDescriptors,
@@ -27,16 +29,14 @@ export type ProviderGroup = {
   readonly models: ReadonlyArray<ModelOption>;
 };
 
-function providerDisplayLabel(provider: {
+/** What a provider instance is called on screen: its own name, its driver's, then its id. */
+export function providerDisplayLabel(provider: {
   readonly displayName?: string | undefined;
   readonly driver: string;
   readonly instanceId: string;
 }): string {
   if (provider.displayName) return provider.displayName;
-  if (provider.driver === "codex") return "Codex";
-  if (provider.driver === "claudeAgent") return "Claude";
-  if (provider.driver === "posthogGateway") return "PostHog AI Gateway";
-  return provider.instanceId;
+  return PROVIDER_DISPLAY_NAMES[provider.driver as ProviderDriverKind] ?? provider.instanceId;
 }
 
 function normalizeSelectionOptions(

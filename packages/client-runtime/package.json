@@ -43,6 +43,10 @@
       "types": "./src/platform/index.ts",
       "default": "./src/platform/index.ts"
     },
+    "./provider-fallback": {
+      "types": "./src/providerFallback.ts",
+      "default": "./src/providerFallback.ts"
+    },
     "./providerSkills": {
       "types": "./src/providerSkills.ts",
       "default": "./src/providerSkills.ts"

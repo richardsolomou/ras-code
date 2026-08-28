@@ -89,8 +89,37 @@ describe("buildNotificationSnapshots", () => {
     expect(build({ threads: [shell({ archivedAt: "2026-01-01T00:00:00.000Z" })] })).toEqual([]);
   });
 
-  it("has no summary for a thread whose detail is not loaded", () => {
+  it("has no summary for a thread with neither detail nor a projected preview", () => {
     expect(build({ threads: [shell()] })[0]?.summary).toBeNull();
+  });
+
+  it("summarises an unloaded thread from the shell's projected preview", () => {
+    const snapshot = build({
+      threads: [shell({ latestAssistantSummary: "Sidebar fixed and tested" })],
+    })[0];
+    expect(snapshot?.summary).toBe("Sidebar fixed and tested");
+  });
+
+  it("reports a fallback on an unloaded thread from the shell's projected stamp", () => {
+    const snapshot = build({
+      threads: [shell({ lastFallbackEngagedAt: "2026-01-01T00:02:00.000Z" })],
+    })[0];
+    expect(snapshot?.fallbackEngagedAt).toBe("2026-01-01T00:02:00.000Z");
+  });
+
+  it("prefers the loaded detail's turn-scoped summary over the shell's preview", () => {
+    const snapshots = build({
+      threads: [shell({ latestAssistantSummary: "stale preview" })],
+      details: new Map([
+        [
+          THREAD_ID as string,
+          detail({
+            messages: [{ role: "assistant", text: "done", turnId: "turn-1", streaming: false }],
+          } as never),
+        ],
+      ]),
+    });
+    expect(snapshots[0]?.summary).toBe("done");
   });
 
   it("takes the summary from the last settled assistant message of the current turn", () => {

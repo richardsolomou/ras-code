@@ -88,13 +88,14 @@ export function visibleWorkLogActivities(
 }
 
 // Pre-measurement heights for the feed's getFixedItemSize. Collapsed work-log
-// rows are single-line (numberOfLines={1}) inside a min-height that stays
-// taller than the text at every supported base font size (text-xs reaches
-// 23px at the 22pt maximum, under the 32px min-h-8), so row height is
-// deterministic. The "work log" label has no such clamp — its height follows
-// the scaled text-2xs line height. Values mirror the classNames below — keep
-// them in sync; a mismatch only costs a one-time correction on measure.
+// rows are clamped to one or two lines inside a min-height that stays taller
+// than the text at every supported base font size (text-xs reaches 23px at the
+// 22pt maximum, under the 32px min-h-8 and the 52px two-line clamp), so row
+// height is deterministic. The "work log" label has no such clamp — its height
+// follows the scaled text-2xs line height. Values mirror the classNames below
+// — keep them in sync; a mismatch only costs a one-time correction on measure.
 const WORK_ROW_HEIGHT = 32; // min-h-8
+const WORK_ROW_TWO_LINE_HEIGHT = 52; // min-h-[52px]
 const WORK_ROW_GAP = 1; // gap-px
 const WORK_LOG_HEADER_PADDING = 2; // pb-0.5 under the "work log" label
 const WORK_LOG_BOTTOM_MARGIN = 4; // mb-1
@@ -112,10 +113,14 @@ export function collapsedWorkLogHeight(
   const onlyToolRows = rows.every((row) => row.toolLike);
   const headerHeight =
     scaledTypographyLineHeight(MOBILE_TYPOGRAPHY.caption, baseFontSize) + WORK_LOG_HEADER_PADDING;
+  const rowsHeight = rows.reduce(
+    (total, row) => total + (row.maxLines === 2 ? WORK_ROW_TWO_LINE_HEIGHT : WORK_ROW_HEIGHT),
+    0,
+  );
   return (
     WORK_LOG_BOTTOM_MARGIN +
     (onlyToolRows ? 0 : headerHeight) +
-    rows.length * WORK_ROW_HEIGHT +
+    rowsHeight +
     (rows.length - 1) * WORK_ROW_GAP
   );
 }
@@ -183,7 +188,12 @@ export function ThreadWorkLog(props: {
                 })}
                 className="rounded-md px-0.5 py-0"
               >
-                <View className="min-h-8 flex-row items-center gap-1.5">
+                <View
+                  className={cn(
+                    "flex-row items-center gap-1.5",
+                    row.maxLines === 2 ? "min-h-[52px]" : "min-h-8",
+                  )}
+                >
                   <View className="h-[18px] w-5 shrink-0 items-center justify-center">
                     <SymbolView
                       name={workRowSymbolName(row.icon)}
@@ -194,7 +204,10 @@ export function ThreadWorkLog(props: {
                     />
                   </View>
 
-                  <Text className="min-w-0 flex-1 text-xs text-foreground" numberOfLines={1}>
+                  <Text
+                    className="min-w-0 flex-1 text-xs text-foreground"
+                    numberOfLines={row.maxLines}
+                  >
                     <Text
                       className={cn(
                         "font-ras-code-medium text-foreground",

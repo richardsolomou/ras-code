@@ -17,6 +17,7 @@ import {
   buildThreadFeed,
   derivePendingApprovals,
   deriveThreadFeedPresentation,
+  formatFallbackEngagedSummary,
   isPendingUserInputOptionSelected,
   setPendingUserInputCustomAnswer,
   togglePendingUserInputOptionSelection,
@@ -769,6 +770,7 @@ describe("buildThreadFeed", () => {
       icon: "command",
       toolLike: true,
       status,
+      maxLines: 1,
     });
     const feed: ThreadFeedEntry[] = [
       {
@@ -841,5 +843,115 @@ describe("quiet timeline: nested agents", () => {
     );
     expect(ids).toContain("nested-done");
     expect(ids).not.toContain("shell-done");
+  });
+});
+
+describe("formatFallbackEngagedSummary", () => {
+  const payload = {
+    primaryInstanceId: "codex",
+    fallbackInstanceId: "posthog",
+    model: "claude-opus-4-6",
+    resetsAt: "2026-01-01T16:00:00.000Z",
+  };
+  const resolveInstanceName = (instanceId: string) =>
+    instanceId === "codex" ? "Codex" : "PostHog AI Gateway";
+  const formatTime = () => "4:00 PM";
+
+  it("names both instances and the local reset time", () => {
+    expect(formatFallbackEngagedSummary({ payload, resolveInstanceName, formatTime })).toBe(
+      "Usage limit reached on Codex; using PostHog AI Gateway (claude-opus-4-6) until 4:00 PM",
+    );
+  });
+
+  it("says further notice when the payload carries no reset instant", () => {
+    expect(
+      formatFallbackEngagedSummary({
+        payload: { ...payload, resetsAt: null },
+        resolveInstanceName,
+        formatTime,
+      }),
+    ).toBe(
+      "Usage limit reached on Codex; using PostHog AI Gateway (claude-opus-4-6) until further notice",
+    );
+  });
+
+  it("says further notice when the reset instant cannot be formatted", () => {
+    expect(
+      formatFallbackEngagedSummary({
+        payload: { ...payload, resetsAt: "not-a-time" },
+        resolveInstanceName,
+        formatTime: () => "",
+      }),
+    ).toBe(
+      "Usage limit reached on Codex; using PostHog AI Gateway (claude-opus-4-6) until further notice",
+    );
+  });
+
+  it("falls back to instance ids when no resolver is given", () => {
+    expect(formatFallbackEngagedSummary({ payload, formatTime })).toBe(
+      "Usage limit reached on codex; using posthog (claude-opus-4-6) until 4:00 PM",
+    );
+  });
+
+  it("returns null for a payload that is missing its instance ids", () => {
+    expect(formatFallbackEngagedSummary({ payload: { model: "x" } })).toBeNull();
+  });
+});
+
+describe("provider fallback work-log rows", () => {
+  it("renders the payload sentence over two lines instead of the server summary", () => {
+    const thread = {
+      id: ThreadId.make("thread-fallback"),
+      projectId: ProjectId.make("project-fallback"),
+      title: "Fallback",
+      modelSelection: { instanceId: ProviderInstanceId.make("codex"), model: "gpt-5-codex" },
+      runtimeMode: "full-access",
+      interactionMode: "default",
+      branch: null,
+      worktreePath: null,
+      latestTurn: null,
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+      archivedAt: null,
+      settledOverride: null,
+      settledAt: null,
+      unsettledAt: null,
+      snoozedUntil: null,
+      snoozedAt: null,
+      deletedAt: null,
+      messages: [],
+      proposedPlans: [],
+      activities: [
+        {
+          id: EventId.make("activity-fallback"),
+          tone: "info",
+          kind: "provider.fallback.engaged",
+          summary: "Codex reached its usage limit. Using posthog until 2026-01-01T16:00:00.000Z.",
+          payload: {
+            primaryInstanceId: "codex",
+            fallbackInstanceId: "posthog",
+            model: "claude-opus-4-6",
+            resetsAt: null,
+          },
+          turnId: null,
+          createdAt: "2026-01-01T00:00:01.000Z",
+        },
+      ],
+      checkpoints: [],
+      session: null,
+    } as unknown as OrchestrationThread;
+
+    const feed = buildThreadFeed(thread, {
+      resolveInstanceName: (instanceId) =>
+        instanceId === "codex" ? "Codex" : "PostHog AI Gateway",
+    });
+    const activities = feed.flatMap((entry) =>
+      entry.type === "activity-group" ? entry.activities : [],
+    );
+    expect(activities).toHaveLength(1);
+    expect(activities[0]?.summary).toBe(
+      "Usage limit reached on Codex; using PostHog AI Gateway (claude-opus-4-6) until further notice",
+    );
+    expect(activities[0]?.maxLines).toBe(2);
   });
 });

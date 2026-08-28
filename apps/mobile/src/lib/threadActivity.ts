@@ -13,6 +13,10 @@ import type {
   UserInputQuestion,
 } from "@ras-code/contracts";
 import { formatDuration } from "@ras-code/shared/orchestrationTiming";
+import {
+  FALLBACK_ENGAGED_ACTIVITY_KIND,
+  readFallbackNoticePayload,
+} from "@ras-code/client-runtime/provider-fallback";
 
 import * as Arr from "effect/Array";
 import * as Order from "effect/Order";
@@ -65,6 +69,8 @@ export interface ThreadFeedActivity {
     | "zap";
   readonly toolLike: boolean;
   readonly status: "success" | "failure" | "neutral" | null;
+  /** Lines the collapsed row may use. Rows that carry a sentence get two. */
+  readonly maxLines: 1 | 2;
 }
 
 const MAX_VISIBLE_WORK_LOG_ENTRIES = 1;
@@ -90,6 +96,7 @@ interface WorkLogEntry {
 
 interface DerivedWorkLogEntry extends WorkLogEntry {
   activityKind: OrchestrationThreadActivity["kind"];
+  maxLines?: 2;
   collapseKey?: string;
   /** Grouping key for subagent lifecycle rows (one row per agent). */
   taskId?: string;
@@ -325,8 +332,50 @@ function isAgentInternalActivity(activity: OrchestrationThreadActivity): boolean
   return !(isTerminalTaskRow && payload.agentKind === "agent");
 }
 
+const FALLBACK_RESET_TIME_FORMATTER = new Intl.DateTimeFormat(undefined, {
+  hour: "numeric",
+  minute: "2-digit",
+});
+
+function formatFallbackResetTime(isoTime: string): string {
+  const timestamp = Date.parse(isoTime);
+  return Number.isNaN(timestamp) ? "" : FALLBACK_RESET_TIME_FORMATTER.format(timestamp);
+}
+
+/**
+ * Sentence for a `provider.fallback.engaged` row. Built from the activity
+ * payload so the reset instant reads as local wall clock rather than the raw
+ * ISO time the server puts in the activity summary. Returns null when the
+ * payload is unreadable, leaving the caller on the server's summary.
+ */
+export function formatFallbackEngagedSummary(input: {
+  readonly payload: unknown;
+  readonly resolveInstanceName?: ((instanceId: string) => string) | undefined;
+  readonly formatTime?: ((isoTime: string) => string) | undefined;
+}): string | null {
+  const payload = readFallbackNoticePayload(input.payload);
+  if (payload === null) {
+    return null;
+  }
+  const resolveInstanceName = input.resolveInstanceName ?? ((instanceId: string) => instanceId);
+  const formatTime = input.formatTime ?? formatFallbackResetTime;
+  const primary = resolveInstanceName(payload.primaryInstanceId);
+  const fallback = resolveInstanceName(payload.fallbackInstanceId);
+  const head = `Usage limit reached on ${primary}; using ${fallback} (${payload.model})`;
+  const resetsAt = payload.resetsAt === null ? "" : formatTime(payload.resetsAt).trim();
+  return resetsAt.length > 0 ? `${head} until ${resetsAt}` : `${head} until further notice`;
+}
+
+export interface ThreadFeedOptions {
+  readonly loadedMessages?: ReadonlyArray<OrchestrationThread["messages"][number]>;
+  readonly localMessages?: ReadonlyArray<OrchestrationThread["messages"][number]>;
+  /** Names provider instances by id, for rows that name a provider. */
+  readonly resolveInstanceName?: ((instanceId: string) => string) | undefined;
+}
+
 function deriveWorkLogEntries(
   activities: ReadonlyArray<OrchestrationThreadActivity>,
+  resolveInstanceName?: ((instanceId: string) => string) | undefined,
 ): DerivedWorkLogEntry[] {
   const ordered = Arr.sort(activities, activityOrder);
   const entries: DerivedWorkLogEntry[] = [];
@@ -340,7 +389,7 @@ function deriveWorkLogEntries(
     if (activity.summary === "Checkpoint captured") continue;
     if (isPlanBoundaryToolActivity(activity)) continue;
     if (isAgentInternalActivity(activity)) continue;
-    entries.push(toDerivedWorkLogEntry(activity));
+    entries.push(toDerivedWorkLogEntry(activity, resolveInstanceName));
   }
   return collapseDerivedWorkLogEntries(entries);
 }
@@ -357,7 +406,26 @@ function isPlanBoundaryToolActivity(activity: OrchestrationThreadActivity): bool
   return typeof payload?.detail === "string" && payload.detail.startsWith("ExitPlanMode:");
 }
 
-function toDerivedWorkLogEntry(activity: OrchestrationThreadActivity): DerivedWorkLogEntry {
+function toDerivedWorkLogEntry(
+  activity: OrchestrationThreadActivity,
+  resolveInstanceName?: ((instanceId: string) => string) | undefined,
+): DerivedWorkLogEntry {
+  if (activity.kind === FALLBACK_ENGAGED_ACTIVITY_KIND) {
+    // The server summary spells the reset instant as raw ISO, which truncates
+    // off a one-line row; this sentence is short enough to read in two.
+    return {
+      id: activity.id,
+      createdAt: activity.createdAt,
+      turnId: activity.turnId,
+      label:
+        formatFallbackEngagedSummary({ payload: activity.payload, resolveInstanceName }) ??
+        activity.summary,
+      tone: "info",
+      activityKind: activity.kind,
+      maxLines: 2,
+    };
+  }
+
   const payload =
     activity.payload && typeof activity.payload === "object"
       ? (activity.payload as Record<string, unknown>)
@@ -1540,10 +1608,7 @@ export function buildPendingUserInputAnswers(
 
 export function buildThreadFeed(
   thread: OrchestrationThread,
-  options?: {
-    readonly loadedMessages?: ReadonlyArray<OrchestrationThread["messages"][number]>;
-    readonly localMessages?: ReadonlyArray<OrchestrationThread["messages"][number]>;
-  },
+  options?: ThreadFeedOptions,
 ): ThreadFeedEntry[] {
   const loadedMessages = options?.loadedMessages ?? thread.messages;
   const messages = options?.localMessages
@@ -1551,7 +1616,7 @@ export function buildThreadFeed(
     : loadedMessages;
   const oldestLoadedMessageCreatedAt =
     options?.loadedMessages !== undefined ? (loadedMessages[0]?.createdAt ?? null) : null;
-  const workLogEntries = deriveWorkLogEntries(thread.activities);
+  const workLogEntries = deriveWorkLogEntries(thread.activities, options?.resolveInstanceName);
   const entries = Arr.sortWith(
     [
       ...messages.map<RawThreadFeedEntry>((message) => ({
@@ -1597,6 +1662,7 @@ export function buildThreadFeed(
               icon: workEntryIcon(entry),
               toolLike: workLogEntryIsToolLike(entry),
               status: workEntryStatus(entry),
+              maxLines: entry.maxLines ?? 1,
             },
           };
         }),

@@ -2,9 +2,10 @@
  * Projects the shell read model into the shape the notifier reducer expects.
  *
  * The shell stream carries every thread in every environment, which is what a
- * global notifier needs. It does not carry message text or activities, so the
- * open thread's detail — when the client has it — supplies the summary line
- * and the provider-fallback marker.
+ * global notifier needs. It also carries the projected fallback stamp and
+ * assistant preview, so background threads notify with a summary line too.
+ * Loaded thread detail still wins where it exists: it scopes the summary to
+ * the turn that just finished.
  */
 import type {
   EnvironmentProject,
@@ -49,8 +50,8 @@ function lastFallbackEngagedAt(detail: EnvironmentThread): string | null {
 
 /**
  * One snapshot per thread. `details` holds whatever thread detail the client
- * has loaded, keyed by thread id; threads missing from it still notify, just
- * without a summary line or a fallback marker.
+ * has loaded, keyed by thread id; threads missing from it fall back to the
+ * shell's own projected summary and fallback stamp.
  */
 export function buildNotificationSnapshots(input: {
   readonly threads: ReadonlyArray<EnvironmentThreadShell>;
@@ -74,8 +75,12 @@ export function buildNotificationSnapshots(input: {
         turnStatus: turnStatusOf(shell),
         awaitingApproval: shell.hasPendingApprovals,
         awaitingUserInput: shell.hasPendingUserInput,
-        fallbackEngagedAt: detail ? lastFallbackEngagedAt(detail) : null,
-        summary: detail ? lastAssistantText(detail, turnId) : null,
+        fallbackEngagedAt:
+          (detail ? lastFallbackEngagedAt(detail) : null) ?? shell.lastFallbackEngagedAt ?? null,
+        summary:
+          (detail ? lastAssistantText(detail, turnId) : null) ??
+          shell.latestAssistantSummary ??
+          null,
       } satisfies ThreadNotificationSnapshot;
     });
 }

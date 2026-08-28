@@ -531,6 +531,18 @@ export const OrchestrationThreadShell = Schema.Struct({
   hasPendingUserInput: Schema.Boolean,
   hasActionableProposedPlan: Schema.Boolean,
   /**
+   * When the thread last fell back to another provider instance
+   * (`provider.fallback.engaged`). Lets a client notify about a thread it has
+   * never opened. Optional so old servers/clients interop.
+   */
+  lastFallbackEngagedAt: Schema.optional(Schema.NullOr(IsoDateTime)),
+  /**
+   * Opening line of the newest settled assistant message, collapsed to one
+   * line and capped for a notification body. Optional so old servers/clients
+   * interop; null when the thread has no settled assistant message.
+   */
+  latestAssistantSummary: Schema.optional(Schema.NullOr(Schema.String)),
+  /**
    * Native background work alive after the turn settles: "working" while
    * subagents/workflows run, "monitoring" when watch loops are the only
    * live work. Optional so old servers/clients interop; absent = none.

@@ -31,6 +31,7 @@ import {
 import type { DraftComposerImageAttachment } from "../lib/composerImages";
 import { scopedThreadKey } from "../lib/scopedEntities";
 import { copyTextWithHaptic } from "../lib/copyTextWithHaptic";
+import { providerDisplayLabel } from "../lib/modelOptions";
 import { buildThreadFeed } from "../lib/threadActivity";
 import { appAtomRegistry } from "../state/atom-registry";
 import {
@@ -108,6 +109,13 @@ export function useThreadComposerState() {
     () => (selectedThreadKey ? (queuedMessagesByThreadKey[selectedThreadKey] ?? []) : []),
     [queuedMessagesByThreadKey, selectedThreadKey],
   );
+  const providers = selectedEnvironmentRuntime?.serverConfig?.providers;
+  const resolveInstanceName = useMemo(() => {
+    const namesByInstanceId = new Map<string, string>(
+      (providers ?? []).map((provider) => [provider.instanceId, providerDisplayLabel(provider)]),
+    );
+    return (instanceId: string) => namesByInstanceId.get(instanceId) ?? instanceId;
+  }, [providers]);
   const selectedThreadFeed = useMemo(() => {
     if (!selectedThreadDetail) {
       return [];
@@ -121,8 +129,14 @@ export function useThreadComposerState() {
           ? []
           : [codexFeedbackMessage(submission), codexFeedbackMessage(submission, "assistant")],
       ),
+      resolveInstanceName,
     });
-  }, [feedbackSubmissionsByThreadKey, selectedThreadDetail, selectedThreadKey]);
+  }, [
+    feedbackSubmissionsByThreadKey,
+    resolveInstanceName,
+    selectedThreadDetail,
+    selectedThreadKey,
+  ]);
 
   const selectedDraft = selectedThreadKey ? composerDrafts[selectedThreadKey] : null;
   const draftMessage = selectedDraft?.text ?? "";

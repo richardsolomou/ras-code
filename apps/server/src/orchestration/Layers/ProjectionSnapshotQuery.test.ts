@@ -476,6 +476,8 @@ projectionSnapshotLayer("ProjectionSnapshotQuery", (it) => {
           hasPendingApprovals: true,
           hasPendingUserInput: false,
           hasActionableProposedPlan: false,
+          lastFallbackEngagedAt: null,
+          latestAssistantSummary: null,
           backgroundLiveness: null,
           planProgress: null,
         },
@@ -715,6 +717,103 @@ projectionSnapshotLayer("ProjectionSnapshotQuery", (it) => {
       );
       assert.equal(thread?.settledOverride, "settled");
       assert.equal(thread?.settledAt, "2026-04-06T00:00:04.000Z");
+    }),
+  );
+
+  it.effect("carries the fallback stamp and assistant preview onto thread shells", () =>
+    Effect.gen(function* () {
+      const snapshotQuery = yield* ProjectionSnapshotQuery;
+      const sql = yield* SqlClient.SqlClient;
+
+      yield* sql`DELETE FROM projection_projects`;
+      yield* sql`DELETE FROM projection_threads`;
+      yield* sql`DELETE FROM projection_state`;
+
+      yield* sql`
+        INSERT INTO projection_projects (
+          project_id,
+          title,
+          workspace_root,
+          default_model_selection_json,
+          scripts_json,
+          created_at,
+          updated_at,
+          deleted_at
+        )
+        VALUES (
+          'project-notify-test',
+          'Notify Test',
+          '/tmp/notify-test',
+          '{"provider":"codex","model":"gpt-5-codex"}',
+          '[]',
+          '2026-04-06T00:00:00.000Z',
+          '2026-04-06T00:00:01.000Z',
+          NULL
+        )
+      `;
+
+      yield* sql`
+        INSERT INTO projection_threads (
+          thread_id,
+          project_id,
+          title,
+          model_selection_json,
+          runtime_mode,
+          interaction_mode,
+          branch,
+          worktree_path,
+          latest_turn_id,
+          latest_user_message_at,
+          pending_approval_count,
+          pending_user_input_count,
+          has_actionable_proposed_plan,
+          last_fallback_engaged_at,
+          latest_assistant_summary,
+          created_at,
+          updated_at,
+          archived_at,
+          deleted_at
+        )
+        VALUES (
+          'thread-notify',
+          'project-notify-test',
+          'Notify Thread',
+          '{"provider":"codex","model":"gpt-5-codex"}',
+          'full-access',
+          'default',
+          NULL,
+          NULL,
+          NULL,
+          NULL,
+          0,
+          0,
+          0,
+          '2026-04-06T00:00:03.000Z',
+          'Sidebar fixed and tested',
+          '2026-04-06T00:00:02.000Z',
+          '2026-04-06T00:00:05.000Z',
+          NULL,
+          NULL
+        )
+      `;
+
+      yield* sql`
+        INSERT INTO projection_state (projector, last_applied_sequence, updated_at)
+        VALUES
+          (${ORCHESTRATION_PROJECTOR_NAMES.projects}, 4, '2026-04-06T00:00:07.000Z'),
+          (${ORCHESTRATION_PROJECTOR_NAMES.threads}, 4, '2026-04-06T00:00:07.000Z')
+      `;
+
+      const shellSnapshot = yield* snapshotQuery.getShellSnapshot();
+      assert.equal(shellSnapshot.threads[0]?.lastFallbackEngagedAt, "2026-04-06T00:00:03.000Z");
+      assert.equal(shellSnapshot.threads[0]?.latestAssistantSummary, "Sidebar fixed and tested");
+
+      const threadShell = yield* snapshotQuery.getThreadShellById(ThreadId.make("thread-notify"));
+      assert.equal(threadShell._tag, "Some");
+      if (threadShell._tag === "Some") {
+        assert.equal(threadShell.value.lastFallbackEngagedAt, "2026-04-06T00:00:03.000Z");
+        assert.equal(threadShell.value.latestAssistantSummary, "Sidebar fixed and tested");
+      }
     }),
   );
 
