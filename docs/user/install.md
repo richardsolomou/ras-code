@@ -11,11 +11,11 @@ At least one provider CLI, installed and authenticated. See [Providers](#provide
 ## Run Without Installing
 
 ```bash
-npx ras@latest
+npx ras-code@latest
 ```
 
 This starts the RAS Code server on your machine and opens the local web app. Use
-`npx ras@latest --help` for the full CLI reference.
+`npx ras-code@latest --help` for the full CLI reference.
 
 ## Desktop App
 

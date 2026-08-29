@@ -191,7 +191,7 @@ connect the new client to a server on the previous version and verify that the u
 reconnects to the matching server. When the release adds database migrations, verify that the
 remote update applies them and reconnects. A failed trial must restore the database snapshot and
 restart the previous server. If the installed launcher does not support the target protocol,
-verify that the update stops before restart and run `npx ras@<version> service update` once on the
+verify that the update stops before restart and run `npx ras-code@<version> service update` once on the
 server machine. Also test the manual or desktop-managed guidance when those environments are
 available.
 
