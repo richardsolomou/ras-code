@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "be218ac768d809087bfcea4d8f15c431f0d70e16",
+  "lastReviewed": "074bcd6dc897f9c28b1bbc04737daa6ee3d8e40f",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -417,6 +417,33 @@
       "ours": "0d0b3f833719323eb2268ef87e9671bdf23cf0a9",
       "reason": "Cherry-picked; the conflict was our longer brand name rewrapping the notice upstream extracted into BrowserKeybindingNotice, which already carries our copy.",
       "reviewedAt": "2026-08-29T16:36:27.211Z"
+    },
+    {
+      "upstream": "c1c2d5401de5a352cf6722959de076c3da63d233",
+      "pr": 8569,
+      "title": "feat: let an environment publish themes as a file",
+      "decision": "adapted",
+      "ours": "cc67ec55631c8fb991c8721693ad578c31095a06",
+      "reason": "Cherry-picked; kept our GRAPHITE_THEME rename while taking upstream's move of RESERVED_THEME_IDS into shared, which covers our ids through BUILT_IN_THEME_IDS, and kept both new glossary sections.",
+      "reviewedAt": "2026-08-29T16:38:02.969Z"
+    },
+    {
+      "upstream": "5e63aea2df03e8ccc5c8a56cee4c067ecbd3d703",
+      "pr": 8504,
+      "title": "fix(web): clean up provider settings list and editor",
+      "decision": "deferred",
+      "ours": null,
+      "reason": "Restructures the provider editor, including wrapping the body in a readOnly container, over the region where we added the fallback section and usage-limit pill. Needs the two designs reconciled deliberately rather than merged hunk by hunk.",
+      "reviewedAt": "2026-08-29T16:39:29.885Z"
+    },
+    {
+      "upstream": "074bcd6dc897f9c28b1bbc04737daa6ee3d8e40f",
+      "pr": 8627,
+      "title": "fix(web): keep project picker popup inside the sidebar",
+      "decision": "adopted",
+      "ours": "de5d89993c1c8b894bf67a9dc1eff42970bc75fb",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-29T16:39:32.539Z"
     }
   ]
 }
