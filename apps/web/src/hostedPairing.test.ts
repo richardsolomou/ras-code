@@ -80,6 +80,16 @@ describe("hostedPairing", () => {
     expect(isHostedStaticApp(new URL("https://preview.t3.codes/"))).toBe(false);
   });
 
+  it("does not treat a build without a hosted app URL as the hosted app", () => {
+    vi.stubEnv("VITE_HOSTED_APP_URL", "");
+    vi.stubEnv("VITE_HOSTED_APP_CHANNEL", "");
+    vi.stubEnv("VITE_HTTP_URL", "");
+    vi.stubEnv("VITE_WS_URL", "");
+
+    expect(isHostedStaticApp(new URL("ras-code://app/"))).toBe(false);
+    expect(isHostedStaticApp(new URL("http://localhost:3773/"))).toBe(false);
+  });
+
   it("detects hosted channel aliases as static apps", () => {
     vi.stubEnv("VITE_HOSTED_APP_URL", "https://app.t3.codes");
     vi.stubEnv("VITE_HOSTED_APP_CHANNEL", "nightly");

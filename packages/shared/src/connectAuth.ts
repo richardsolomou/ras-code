@@ -10,6 +10,14 @@ const CONNECT_AUTHORIZE_PATH = "/connect";
 const CONNECT_CALLBACK_PATH = "/connect/callback";
 
 /**
+ * The RAS-hosted deployment. The web bundle compares its own origin against
+ * this to decide whether it is that deployment, so it must stay a fixed origin:
+ * deriving it from the current origin makes every build think it is hosted.
+ * Builds for another deployment override it with `VITE_HOSTED_APP_URL`.
+ */
+export const DEFAULT_HOSTED_APP_URL = "https://code.ras.sh";
+
+/**
  * Requested at authorize time by the hosted page and honored by the CLI's
  * token exchange; keep both sides on this single definition.
  */
