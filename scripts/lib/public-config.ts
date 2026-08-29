@@ -10,10 +10,8 @@ export interface RasCodePublicConfig {
   readonly clerkCliOAuthClientId: string | undefined;
   readonly relayUrl: string | undefined;
   readonly mobileOtlpTracesUrl: string | undefined;
-  readonly mobileOtlpTracesDataset: string | undefined;
   readonly mobileOtlpTracesToken: string | undefined;
   readonly relayClientOtlpTracesUrl: string | undefined;
-  readonly relayClientOtlpTracesDataset: string | undefined;
   readonly relayClientOtlpTracesToken: string | undefined;
 }
 
@@ -70,12 +68,6 @@ export function loadRepoEnv({
           EXPO_PUBLIC_OTLP_TRACES_URL: config.mobileOtlpTracesUrl,
         }
       : {}),
-    ...(config.mobileOtlpTracesDataset
-      ? {
-          RAS_CODE_MOBILE_OTLP_TRACES_DATASET: config.mobileOtlpTracesDataset,
-          EXPO_PUBLIC_OTLP_TRACES_DATASET: config.mobileOtlpTracesDataset,
-        }
-      : {}),
     ...(config.mobileOtlpTracesToken
       ? {
           RAS_CODE_MOBILE_OTLP_TRACES_TOKEN: config.mobileOtlpTracesToken,
@@ -86,12 +78,6 @@ export function loadRepoEnv({
       ? {
           RAS_CODE_RELAY_CLIENT_OTLP_TRACES_URL: config.relayClientOtlpTracesUrl,
           VITE_RELAY_OTLP_TRACES_URL: config.relayClientOtlpTracesUrl,
-        }
-      : {}),
-    ...(config.relayClientOtlpTracesDataset
-      ? {
-          RAS_CODE_RELAY_CLIENT_OTLP_TRACES_DATASET: config.relayClientOtlpTracesDataset,
-          VITE_RELAY_OTLP_TRACES_DATASET: config.relayClientOtlpTracesDataset,
         }
       : {}),
     ...(config.relayClientOtlpTracesToken
@@ -128,11 +114,6 @@ export function resolvePublicConfig(...sources: readonly Environment[]): RasCode
       "RAS_CODE_MOBILE_OTLP_TRACES_URL",
       "EXPO_PUBLIC_OTLP_TRACES_URL",
     ),
-    mobileOtlpTracesDataset: firstNonEmpty(
-      sources,
-      "RAS_CODE_MOBILE_OTLP_TRACES_DATASET",
-      "EXPO_PUBLIC_OTLP_TRACES_DATASET",
-    ),
     mobileOtlpTracesToken: firstNonEmpty(
       sources,
       "RAS_CODE_MOBILE_OTLP_TRACES_TOKEN",
@@ -142,11 +123,6 @@ export function resolvePublicConfig(...sources: readonly Environment[]): RasCode
       sources,
       "RAS_CODE_RELAY_CLIENT_OTLP_TRACES_URL",
       "VITE_RELAY_OTLP_TRACES_URL",
-    ),
-    relayClientOtlpTracesDataset: firstNonEmpty(
-      sources,
-      "RAS_CODE_RELAY_CLIENT_OTLP_TRACES_DATASET",
-      "VITE_RELAY_OTLP_TRACES_DATASET",
     ),
     relayClientOtlpTracesToken: firstNonEmpty(
       sources,
