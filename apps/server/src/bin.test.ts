@@ -572,31 +572,29 @@ it.layer(NodeServices.layer)("bin cli parsing", (it) => {
     }),
   );
 
-  it.effect("rejects dev-url on project commands", () =>
+  it.effect("accepts dev-url on project commands", () =>
     Effect.gen(function* () {
-      const workspaceRoot = NodeFS.mkdtempSync(
-        NodePath.join(NodeOS.tmpdir(), "ras-code-cli-projects-unknown-option-workspace-"),
+      // --base-dir is load-bearing, not tidiness: deriveServerPaths sends an
+      // implicit base dir to the shared `dev` state whenever --dev-url is set,
+      // so omitting it writes into the developer's real RAS Code home.
+      const baseDir = NodeFS.mkdtempSync(
+        NodePath.join(NodeOS.tmpdir(), "ras-code-cli-projects-dev-url-base-"),
       );
-      const error = yield* runCliWithRuntime([
+      const workspaceRoot = NodeFS.mkdtempSync(
+        NodePath.join(NodeOS.tmpdir(), "ras-code-cli-projects-dev-url-workspace-"),
+      );
+
+      yield* runCliWithRuntime([
         "project",
         "add",
         workspaceRoot,
         "--dev-url",
         "http://127.0.0.1:5173",
-      ]).pipe(Effect.flip);
+        "--base-dir",
+        baseDir,
+      ]);
 
-      if (!CliError.isCliError(error)) {
-        assert.fail(`Expected CliError, got ${String(error)}`);
-      }
-      if (error._tag !== "ShowHelp") {
-        assert.fail(`Expected ShowHelp, got ${error._tag}`);
-      }
-      assert.deepEqual(error.commandPath, ["ras", "project", "add"]);
-      const optionError = error.errors[0] as CliError.CliError | undefined;
-      if (!optionError || optionError._tag !== "UnrecognizedOption") {
-        assert.fail(`Expected UnrecognizedOption, got ${String(optionError?._tag)}`);
-      }
-      assert.equal(optionError.option, "--dev-url");
+      assert.isTrue(NodeFS.existsSync(NodePath.join(baseDir, "userdata", "state.sqlite")));
     }),
   );
 });

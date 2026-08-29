@@ -12,7 +12,7 @@ The agent-facing procedure lives in the [`upstream-sync` skill](../../.agents/sk
 
 | Field            | Meaning                                                                            |
 | ---------------- | ---------------------------------------------------------------------------------- |
-| `upstreamRemote` | Git remote that points at upstream.                                                |
+| `upstreamRemote` | Git remote that points at upstream. RAS Code names this `t3code`.                  |
 | `upstreamBranch` | Branch we track on that remote.                                                    |
 | `forkPoint`      | Upstream commit this fork branched from.                                           |
 | `lastReviewed`   | Newest upstream commit that, together with every commit before it, has a decision. |
@@ -39,7 +39,7 @@ node scripts/upstream-sync.ts report --out report.md
 node scripts/upstream-sync.ts report --no-fetch  # skip the fetch
 ```
 
-The report fetches the upstream remote, lists the first-parent commits in `lastReviewed..upstream/main`, and groups them by the `(#1234)` marker in the subject. Commits without one are their own change.
+The report fetches the `t3code` remote, lists the first-parent commits in `lastReviewed..t3code/main`, and groups them by the `(#1234)` marker in the subject. Commits without one are their own change. We avoid the conventional name `upstream` because RAS Code treats that name as the canonical repository identity when grouping projects and presenting repository names.
 
 For each change it reports the files touched with our path mapping applied, the areas hit, the paths that land on surfaces we keep compatible or replaced, the files we already changed since the fork point, and the `git show` command to read the diff.
 
@@ -74,4 +74,4 @@ node scripts/upstream-sync.ts mark --upstream <sha> --decision adapted \
 - Marketing, legal, and branding changes are skipped. We replaced those surfaces.
 - Wire contracts stay compatible with upstream. Adopt contract changes and leave the protocol names alone.
 - UI changes are adapted into our console grammar rather than copied verbatim. See [`apps/web/DESIGN.md`](../../apps/web/DESIGN.md) and [`apps/web/PRODUCT.md`](../../apps/web/PRODUCT.md).
-- Never `git merge upstream/main`. The fork diverges on purpose.
+- Never `git merge t3code/main`. The fork diverges on purpose.

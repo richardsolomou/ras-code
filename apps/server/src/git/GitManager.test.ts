@@ -2165,7 +2165,7 @@ it.layer(GitManagerTestLayer)("GitManager", (it) => {
       });
 
       expect(result.branch.status).toBe("created");
-      expect(result.branch.name).toBe("feature/feat-custom-summary-line");
+      expect(result.branch.name).toBe("feat-custom-summary-line");
       expect(result.commit.status).toBe("created");
       expect(result.commit.subject).toBe("feat: custom summary line");
       expect(generatedCount).toBe(0);
