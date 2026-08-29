@@ -15,7 +15,7 @@ import { fromYaml } from "@ras-code/shared/schemaYaml";
 
 import { referenceRepos, type ReferenceRepo } from "./lib/reference-repos.ts";
 
-export type ReferenceRepoSyncAction = "add" | "pull";
+export type ReferenceRepoSyncAction = "clone" | "fetch";
 
 export interface ReferenceRepoSyncOptions {
   readonly rootDir?: string | undefined;
@@ -24,11 +24,18 @@ export interface ReferenceRepoSyncOptions {
   readonly dryRun?: boolean | undefined;
 }
 
+export interface ReferenceRepoSyncCommand {
+  readonly args: ReadonlyArray<string>;
+  readonly cwd: string;
+}
+
 export interface ReferenceRepoSyncPlan {
   readonly repo: ReferenceRepo;
   readonly action: ReferenceRepoSyncAction;
   readonly ref: string;
-  readonly args: ReadonlyArray<string>;
+  /** Set when a non-git directory is in the way and must be cleared before cloning. */
+  readonly removeExisting: boolean;
+  readonly commands: ReadonlyArray<ReferenceRepoSyncCommand>;
 }
 
 export class ReferenceRepoSelectionError extends Schema.TaggedErrorClass<ReferenceRepoSelectionError>()(
@@ -70,12 +77,12 @@ export class ReferenceRepoVersionResolutionError extends Schema.TaggedErrorClass
   }
 }
 
-export class ReferenceRepoGitSubtreeError extends Schema.TaggedErrorClass<ReferenceRepoGitSubtreeError>()(
-  "ReferenceRepoGitSubtreeError",
+export class ReferenceRepoGitError extends Schema.TaggedErrorClass<ReferenceRepoGitError>()(
+  "ReferenceRepoGitError",
   {
     operation: Schema.Literals(["spawn", "communicate", "exit"]),
     repoId: Schema.String,
-    action: Schema.Literals(["add", "pull"]),
+    action: Schema.Literals(["clone", "fetch"]),
     repository: Schema.String,
     ref: Schema.String,
     rootDir: Schema.String,
@@ -87,7 +94,7 @@ export class ReferenceRepoGitSubtreeError extends Schema.TaggedErrorClass<Refere
   },
 ) {
   override get message(): string {
-    return `Git subtree ${this.action} for reference repo "${this.repoId}" failed during "${this.operation}".`;
+    return `Git ${this.action} for reference repo "${this.repoId}" failed during "${this.operation}".`;
   }
 }
 
@@ -95,7 +102,7 @@ export const ReferenceRepoSyncError = Schema.Union([
   ReferenceRepoSelectionError,
   ReferenceRepoVersionSourceError,
   ReferenceRepoVersionResolutionError,
-  ReferenceRepoGitSubtreeError,
+  ReferenceRepoGitError,
 ]);
 export type ReferenceRepoSyncError = typeof ReferenceRepoSyncError.Type;
 export const isReferenceRepoSyncError = Schema.is(ReferenceRepoSyncError);
@@ -207,39 +214,57 @@ export const planReferenceRepoSync = Effect.fn("planReferenceRepoSync")(function
 ) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
-  const action: ReferenceRepoSyncAction = (yield* fs.exists(path.join(rootDir, repo.prefix)))
-    ? "pull"
-    : "add";
+  const targetDir = path.join(rootDir, repo.prefix);
+  // Keyed on .git, not the directory: a leftover checkout from the vendored
+  // subtree era has no remote to fetch from and must be re-cloned.
+  const cloned = yield* fs.exists(path.join(targetDir, ".git"));
+  const action: ReferenceRepoSyncAction = cloned ? "fetch" : "clone";
+  const removeExisting = !cloned && (yield* fs.exists(targetDir));
   const ref = yield* resolveReferenceRepoRef(repo, rootDir, latest);
 
-  return {
-    repo,
-    action,
-    ref,
-    args: ["subtree", action, `--prefix=${repo.prefix}`, repo.repository, ref, "--squash"],
-  } satisfies ReferenceRepoSyncPlan;
+  // Shallow and detached: these checkouts are read-only references, so a
+  // single commit at the pinned ref is all any of them ever needs.
+  const commands: ReadonlyArray<ReferenceRepoSyncCommand> =
+    action === "clone"
+      ? [
+          {
+            args: ["clone", "--depth=1", "--branch", ref, repo.repository, repo.prefix],
+            cwd: rootDir,
+          },
+        ]
+      : [
+          { args: ["fetch", "--depth=1", "origin", ref], cwd: targetDir },
+          { args: ["checkout", "--detach", "FETCH_HEAD"], cwd: targetDir },
+        ];
+
+  return { repo, action, ref, removeExisting, commands } satisfies ReferenceRepoSyncPlan;
 });
 
-const runGit = Effect.fn("runGit")(function* (rootDir: string, plan: ReferenceRepoSyncPlan) {
+const runGit = Effect.fn("runGit")(function* (
+  plan: ReferenceRepoSyncPlan,
+  command: ReferenceRepoSyncCommand,
+) {
   const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
   const errorContext = {
     repoId: plan.repo.id,
     action: plan.action,
     repository: plan.repo.repository,
     ref: plan.ref,
-    rootDir,
-    argumentCount: plan.args.length,
+    rootDir: command.cwd,
+    argumentCount: command.args.length,
   } as const;
-  const child = yield* spawner.spawn(ChildProcess.make("git", plan.args, { cwd: rootDir })).pipe(
-    Effect.mapError(
-      (cause) =>
-        new ReferenceRepoGitSubtreeError({
-          ...errorContext,
-          operation: "spawn",
-          cause,
-        }),
-    ),
-  );
+  const child = yield* spawner
+    .spawn(ChildProcess.make("git", command.args, { cwd: command.cwd }))
+    .pipe(
+      Effect.mapError(
+        (cause) =>
+          new ReferenceRepoGitError({
+            ...errorContext,
+            operation: "spawn",
+            cause,
+          }),
+      ),
+    );
   const [stdout, stderr, exitCode] = yield* Effect.all(
     [
       collectStreamAsString(child.stdout),
@@ -250,7 +275,7 @@ const runGit = Effect.fn("runGit")(function* (rootDir: string, plan: ReferenceRe
   ).pipe(
     Effect.mapError(
       (cause) =>
-        new ReferenceRepoGitSubtreeError({
+        new ReferenceRepoGitError({
           ...errorContext,
           operation: "communicate",
           cause,
@@ -259,7 +284,7 @@ const runGit = Effect.fn("runGit")(function* (rootDir: string, plan: ReferenceRe
   );
 
   if (exitCode !== 0) {
-    return yield* new ReferenceRepoGitSubtreeError({
+    return yield* new ReferenceRepoGitError({
       ...errorContext,
       operation: "exit",
       exitCode,
@@ -284,9 +309,15 @@ export const syncReferenceRepos = Effect.fn("syncReferenceRepos")(function* (
   for (const repo of repos) {
     const plan = yield* planReferenceRepoSync(repo, rootDir, options.latest ?? false);
     plans.push(plan);
-    yield* Console.log(`Syncing ${repo.id} from ${plan.ref} with git subtree ${plan.action}.`);
+    yield* Console.log(`Syncing ${repo.id} from ${plan.ref} with git ${plan.action}.`);
     if (!(options.dryRun ?? false)) {
-      yield* runGit(rootDir, plan).pipe(Effect.scoped);
+      if (plan.removeExisting) {
+        const fs = yield* FileSystem.FileSystem;
+        yield* fs.remove(path.join(rootDir, repo.prefix), { recursive: true });
+      }
+      for (const command of plan.commands) {
+        yield* runGit(plan, command).pipe(Effect.scoped);
+      }
     }
   }
 
@@ -307,11 +338,11 @@ export const syncReferenceReposCommand = Command.make(
       Flag.withDefault(false),
     ),
     root: Flag.string("root").pipe(
-      Flag.withDescription("Workspace root used to resolve versions and subtree prefixes."),
+      Flag.withDescription("Workspace root used to resolve versions and checkout prefixes."),
       Flag.optional,
     ),
     dryRun: Flag.boolean("dry-run").pipe(
-      Flag.withDescription("Print planned subtree operations without running git."),
+      Flag.withDescription("Print planned git operations without running them."),
       Flag.withDefault(false),
     ),
   },
@@ -322,7 +353,7 @@ export const syncReferenceReposCommand = Command.make(
       latest,
       dryRun,
     }),
-).pipe(Command.withDescription("Sync vendored reference repositories under .repos/."));
+).pipe(Command.withDescription("Sync read-only reference checkouts under .repos/."));
 
 if (import.meta.main) {
   Command.run(syncReferenceReposCommand, { version: "0.0.0" }).pipe(

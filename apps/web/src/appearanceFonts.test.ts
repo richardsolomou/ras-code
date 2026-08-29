@@ -10,7 +10,6 @@ import {
   appearanceFontStack,
   cssFontFamilies,
   resolveDefaultFamilyLabel,
-  resolveTerminalFontPreference,
   resolveTerminalFontSizePreference,
 } from "./appearanceFonts";
 
@@ -67,34 +66,6 @@ describe("appearanceFontStack", () => {
 
   it("falls back to the default stack when unset", () => {
     expect(appearanceFontStack("", DEFAULT_SANS_FONT_STACK)).toBe(DEFAULT_SANS_FONT_STACK);
-  });
-});
-
-describe("resolveTerminalFontPreference", () => {
-  it("inherits the code font in simple mode", () => {
-    expect(
-      resolveTerminalFontPreference({ advanced: false, code: "Fira Code", terminal: "" }),
-    ).toBe("Fira Code");
-    expect(
-      resolveTerminalFontPreference({
-        advanced: false,
-        code: "Fira Code",
-        terminal: "Berkeley Mono",
-      }),
-    ).toBe("Fira Code");
-  });
-
-  it("keeps code and terminal fonts independent in advanced mode", () => {
-    expect(resolveTerminalFontPreference({ advanced: true, code: "Fira Code", terminal: "" })).toBe(
-      "",
-    );
-    expect(
-      resolveTerminalFontPreference({
-        advanced: true,
-        code: "Fira Code",
-        terminal: "Berkeley Mono",
-      }),
-    ).toBe("Berkeley Mono");
   });
 });
 

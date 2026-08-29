@@ -136,26 +136,6 @@ export class ThreadPinReorderUnsupportedError extends Schema.TaggedErrorClass<Th
   }
 }
 
-export async function requestThreadUnpinConfirmation(input: {
-  enabled: boolean;
-  title: string;
-  confirm: ((message: string) => Promise<boolean>) | null;
-}) {
-  const { confirm } = input;
-  if (!input.enabled || confirm === null) {
-    return AsyncResult.success(true);
-  }
-
-  return settlePromise(() =>
-    confirm(
-      [
-        `Unpin thread "${input.title}"?`,
-        "This will move the thread out of your pinned section.",
-      ].join("\n"),
-    ),
-  );
-}
-
 export function useThreadActions() {
   const closeTerminal = useAtomCommand(terminalEnvironment.close);
   const archiveThreadMutation = useAtomCommand(threadEnvironment.archive, {
@@ -196,8 +176,6 @@ export function useThreadActions() {
     reportFailure: false,
   });
   const sidebarThreadSortOrder = useClientSettings((settings) => settings.sidebarThreadSortOrder);
-  const confirmThreadDelete = useClientSettings((settings) => settings.confirmThreadDelete);
-  const confirmThreadUnpin = useClientSettings((settings) => settings.confirmThreadUnpin);
   const clearComposerDraftForThread = useComposerDraftStore((store) => store.clearDraftThread);
   const clearProjectDraftThreadById = useComposerDraftStore(
     (store) => store.clearProjectDraftThreadById,
@@ -611,24 +589,10 @@ export function useThreadActions() {
     [unpinThreadMutation],
   );
 
+  // Unpinning is trivially reversible, so it never asks.
   const confirmAndUnpinThread = useCallback(
-    async (target: ScopedThreadRef) => {
-      const localApi = readLocalApi();
-      const resolved = resolveThreadTarget(target);
-      const confirmationResult = await requestThreadUnpinConfirmation({
-        enabled: confirmThreadUnpin,
-        title: resolved?.thread.title ?? "this thread",
-        confirm: localApi ? (message) => localApi.dialogs.confirm(message) : null,
-      });
-      if (confirmationResult._tag === "Failure") {
-        return confirmationResult;
-      }
-      if (!confirmationResult.value) {
-        return AsyncResult.success(undefined);
-      }
-      return unpinThread(target);
-    },
-    [confirmThreadUnpin, resolveThreadTarget, unpinThread],
+    async (target: ScopedThreadRef) => unpinThread(target),
+    [unpinThread],
   );
 
   const reorderPinnedThread = useCallback(
@@ -714,7 +678,7 @@ export function useThreadActions() {
       const localApi = readLocalApi();
       const resolved = resolveThreadTarget(target);
 
-      if (confirmThreadDelete && localApi) {
+      if (localApi) {
         const title = resolved?.thread.title ?? "this thread";
         const confirmationResult = await settlePromise(() =>
           localApi.dialogs.confirm(
@@ -735,7 +699,7 @@ export function useThreadActions() {
 
       return deleteThread(target);
     },
-    [confirmThreadDelete, deleteThread, resolveThreadTarget],
+    [deleteThread, resolveThreadTarget],
   );
 
   return useMemo(

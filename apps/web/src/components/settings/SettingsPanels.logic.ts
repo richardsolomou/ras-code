@@ -78,9 +78,7 @@ export function hasChangedBackgroundActivitySettings(
 type TypographySettings = Pick<
   UnifiedSettings,
   | "fontFamilySans"
-  | "fontFamilyComposer"
   | "fontFamilyCode"
-  | "fontFamilyTerminal"
   | "fontSizeInterface"
   | "fontSizePrompt"
   | "fontSizeCode"
@@ -94,16 +92,12 @@ export function getChangedTypographySettingLabels(settings: TypographySettings):
     settings.fontSizeInterface !== DEFAULT_UNIFIED_SETTINGS.fontSizeInterface
       ? ["Interface font"]
       : []),
-    ...(settings.fontFamilyComposer !== DEFAULT_UNIFIED_SETTINGS.fontFamilyComposer ||
-    settings.fontSizePrompt !== DEFAULT_UNIFIED_SETTINGS.fontSizePrompt
-      ? ["Prompt font"]
-      : []),
+    ...(settings.fontSizePrompt !== DEFAULT_UNIFIED_SETTINGS.fontSizePrompt ? ["Prompt font"] : []),
     ...(settings.fontFamilyCode !== DEFAULT_UNIFIED_SETTINGS.fontFamilyCode ||
     settings.fontSizeCode !== DEFAULT_UNIFIED_SETTINGS.fontSizeCode
       ? ["Code font"]
       : []),
-    ...(settings.fontFamilyTerminal !== DEFAULT_UNIFIED_SETTINGS.fontFamilyTerminal ||
-    settings.fontSizeTerminal !== DEFAULT_UNIFIED_SETTINGS.fontSizeTerminal
+    ...(settings.fontSizeTerminal !== DEFAULT_UNIFIED_SETTINGS.fontSizeTerminal
       ? ["Terminal font"]
       : []),
   ];

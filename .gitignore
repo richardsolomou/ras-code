@@ -42,3 +42,6 @@ node_modules/
 # impeccable design-session scratch
 .impeccable/
 **/.impeccable/
+
+# Reference checkouts, fetched on demand by `vpr sync:repos`
+.repos/
