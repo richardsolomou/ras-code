@@ -44,7 +44,7 @@ export function CompactBrandTitle(
         marginLeft: titleOffset,
       }}
     >
-      <RasCodeWordmark color={wordmarkColor} height={15} />
+      <RasCodeWordmark color={wordmarkColor} height={13} />
       <View
         style={{
           backgroundColor: subtleColor,

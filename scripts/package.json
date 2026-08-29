@@ -13,6 +13,7 @@
     "@ras-code/contracts": "workspace:*",
     "@ras-code/shared": "workspace:*",
     "@ras-code/tailscale": "workspace:*",
+    "@resvg/resvg-js": "2.6.2",
     "effect": "catalog:",
     "pngjs": "7.0.0",
     "yaml": "catalog:"

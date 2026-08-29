@@ -21,9 +21,11 @@ const PLATE_INSET = 100;
 const PLATE_RADIUS = 185;
 
 // The lamp-R mark, in the units of the shipped icon art (a 128 canvas holding
-// a 3x5 grid of 18px cells on a 24px pitch, scaled to 0.82 of the plate).
+// a 3x5 grid of 18px cells on a 24px pitch, scaled to 0.72 of the plate). The
+// mark is three cells wide and five tall, so the fill is set by the vertical
+// run: it leaves the plate a top and bottom margin at this height.
 const MARK_CANVAS = 128;
-const MARK_FILL = 0.82;
+const MARK_FILL = 0.72;
 const CELL = 18;
 const CELL_RADIUS = 3;
 const CELL_PITCH = 24;
