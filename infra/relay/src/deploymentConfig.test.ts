@@ -26,12 +26,12 @@ describe("relayStageSlug", () => {
 
 describe("relayPublicDomainForStage", () => {
   it("uses the canonical relay hostname for production", () => {
-    expect(relayPublicDomainForStage("prod", ".example.com.")).toBe("relay.example.com");
+    expect(relayPublicDomainForStage("prod", ".example.com.")).toBe("code-relay.example.com");
   });
 
   it("isolates personal stages below the imported zone", () => {
     expect(relayPublicDomainForStage("dev_julius", "example.com")).toBe(
-      "relay-dev-julius.example.com",
+      "code-relay-dev-julius.example.com",
     );
   });
 
@@ -50,11 +50,11 @@ describe("relayPublicDomainForStage", () => {
     }
     expect(error).toMatchObject({
       stage,
-      label: `relay-dev-${"x".repeat(60)}`,
+      label: `code-relay-dev-${"x".repeat(60)}`,
       maxLength: 63,
     });
     expect(error.message).toBe(
-      `Relay stage '${stage}' produces custom domain label 'relay-dev-${"x".repeat(60)}' (70 characters), exceeding the DNS label limit of 63.`,
+      `Relay stage '${stage}' produces custom domain label 'code-relay-dev-${"x".repeat(60)}' (75 characters), exceeding the DNS label limit of 63.`,
     );
   });
 });

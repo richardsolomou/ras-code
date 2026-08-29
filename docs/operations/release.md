@@ -82,7 +82,7 @@ Required `production` environment variables:
 
 Optional `production` environment variables:
 
-- `RELAY_DOMAIN` when overriding the derived `relay.<RELAY_API_ZONE_NAME>` domain
+- `RELAY_DOMAIN` when overriding the derived `code-relay.<RELAY_API_ZONE_NAME>` domain
 
 Required `production` environment secrets:
 

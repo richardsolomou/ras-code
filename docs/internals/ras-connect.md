@@ -29,7 +29,7 @@ repository-root `.env` or `.env.local` file:
 RAS_CODE_CLERK_PUBLISHABLE_KEY=<publishable key>
 RAS_CODE_CLERK_JWT_TEMPLATE=<JWT template name>
 RAS_CODE_CLERK_CLI_OAUTH_CLIENT_ID=<public OAuth application client ID>
-RAS_CODE_RELAY_URL=https://relay.example.com
+RAS_CODE_RELAY_URL=https://code-relay.example.com
 ```
 
 The shared client loader projects these canonical values into framework-specific `VITE_*` and

@@ -101,8 +101,8 @@ vp run --filter ras-code-relay deploy --env-file .env.local
 
 Alchemy defaults personal deployments to the `dev_$USER` stage. Relay custom domains apply the same
 DNS-safe sanitization as Alchemy physical resource names, so `prod` uses
-`relay.<RELAY_API_ZONE_NAME>` and `dev_julius` uses
-`relay-dev-julius.<RELAY_API_ZONE_NAME>`. Clients use
+`code-relay.<RELAY_API_ZONE_NAME>` and `dev_julius` uses
+`code-relay-dev-julius.<RELAY_API_ZONE_NAME>`. Clients use
 `RELAY_TUNNEL_GATEWAY_DOMAIN/e/<digest>/`; the Worker resolves each request to an internal
 `<namespace>-<digest>.<RELAY_TUNNEL_ZONE_NAME>` record without changing the public Host. Keep the API
 and tunnel zone the same when Cloudflare's Universal SSL certificate must cover only first-level

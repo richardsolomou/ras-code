@@ -8,6 +8,13 @@ const MANAGED_ENDPOINT_ID_PATTERN = /^[a-f0-9]{16}$/u;
 const MANAGED_ENDPOINT_TUNNEL_PREFIX = "ras-code-relay-managedendpoint";
 export const MANAGED_ENDPOINT_ZONE_OWNER_STAGE = "prod";
 
+/**
+ * Hostname label the relay publishes under. Prefixed so the relay is
+ * identifiable on a zone shared with unrelated services, matching the hosted
+ * app's `code` and the gateway's `code-tunnels`.
+ */
+const RELAY_LABEL = "code-relay";
+
 export class RelayPublicDomainLabelTooLongError extends Schema.TaggedErrorClass<RelayPublicDomainLabelTooLongError>()(
   "RelayPublicDomainLabelTooLongError",
   {
@@ -81,7 +88,7 @@ export function relayOwnsManagedEndpointZone(stage: string): boolean {
 
 export function relayPublicDomainForStage(stage: string, zoneName: string): string {
   const stageSlug = relayStageSlug(stage);
-  const relayLabel = stage === "prod" ? "relay" : `relay-${stageSlug}`;
+  const relayLabel = stage === "prod" ? RELAY_LABEL : `${RELAY_LABEL}-${stageSlug}`;
   if (relayLabel.length > DNS_LABEL_MAX_LENGTH) {
     throw new RelayPublicDomainLabelTooLongError({
       stage,

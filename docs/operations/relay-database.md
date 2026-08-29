@@ -10,7 +10,7 @@ deploy host authenticate with the same Access service token.
 
 ```text
 Worker  ──▶ Hyperdrive ──┐
-                         ├─▶ Access (relay-db.ras.sh) ─▶ Tunnel ─▶ cloudflared ─▶ Postgres
+                         ├─▶ Access (code-relay-db.ras.sh) ─▶ Tunnel ─▶ cloudflared ─▶ Postgres
 Deploy  ──▶ cloudflared ─┘
             access tcp
 ```
