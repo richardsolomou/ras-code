@@ -17,19 +17,18 @@ npx ras-code@latest
 This starts the RAS Code server on your machine and opens the local web app. Use
 `npx ras-code@latest --help` for the full CLI reference.
 
-### Linux and npm 12
+### Linux
 
-npm 12 blocks a dependency's build scripts unless you allow them, and the terminal library RAS Code
-uses publishes no prebuilt binary for Linux, so it has to be built during install. Without that
-step the server exits at startup saying it could not load `node-pty`. Allow it once:
+RAS Code ships the terminal binary for `linux-x64` and `linux-arm64`, so a Linux install needs no
+compiler and no build step.
+
+Versions up to 0.0.37 did not. On those, npm 12 blocked the build script that produced it and the
+server exited at startup saying it could not load `node-pty`. If you are on one of them, upgrading
+is the fix. To recover a machine that cannot start well enough to upgrade itself:
 
 ```bash
-npm config set allow-scripts=node-pty --location=user
+cd ~/.ras-code/runtime/versions/<version>/node_modules/node-pty && node-gyp rebuild
 ```
-
-Then run `npx ras-code@latest` again. Building it needs a C++ toolchain, which most distributions
-package as `base-devel` or `build-essential`, plus Python. The background service installs its own
-copy of RAS Code and allows the build itself, so it is unaffected.
 
 ## Desktop App
 
