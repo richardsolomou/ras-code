@@ -178,7 +178,7 @@ it.layer(NodeServices.layer)("sync-reference-repos", (it) => {
     }),
   );
 
-  it.effect("plans an add for a missing subtree and a pull for an existing subtree", () =>
+  it.effect("plans a clone for a missing checkout and a fetch for an existing one", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
@@ -190,23 +190,53 @@ it.layer(NodeServices.layer)("sync-reference-repos", (it) => {
         "catalog:\n  effect: 4.0.0-beta.73\n",
       );
 
-      const addPlan = yield* planReferenceRepoSync(effectSmol, rootDir, false);
-      assert.equal(addPlan.action, "add");
-      assert.deepStrictEqual(addPlan.args, [
-        "subtree",
-        "add",
-        "--prefix=.repos/effect-smol",
-        "https://github.com/Effect-TS/effect.git",
-        "effect@4.0.0-beta.73",
-        "--squash",
+      const clonePlan = yield* planReferenceRepoSync(effectSmol, rootDir, false);
+      assert.equal(clonePlan.action, "clone");
+      assert.deepStrictEqual(clonePlan.commands, [
+        {
+          args: [
+            "clone",
+            "--depth=1",
+            "--branch",
+            "effect@4.0.0-beta.73",
+            "https://github.com/Effect-TS/effect.git",
+            ".repos/effect-smol",
+          ],
+          cwd: rootDir,
+        },
       ]);
 
-      yield* fs.makeDirectory(path.join(rootDir, effectSmol.prefix), { recursive: true });
-      assert.equal((yield* planReferenceRepoSync(effectSmol, rootDir, false)).action, "pull");
+      const targetDir = path.join(rootDir, effectSmol.prefix);
+      yield* fs.makeDirectory(path.join(targetDir, ".git"), { recursive: true });
+      const fetchPlan = yield* planReferenceRepoSync(effectSmol, rootDir, false);
+      assert.equal(fetchPlan.action, "fetch");
+      assert.deepStrictEqual(fetchPlan.commands, [
+        { args: ["fetch", "--depth=1", "origin", "effect@4.0.0-beta.73"], cwd: targetDir },
+        { args: ["checkout", "--detach", "FETCH_HEAD"], cwd: targetDir },
+      ]);
     }),
   );
 
-  it.effect("runs the planned git subtree command through the process service", () => {
+  it.effect("re-clones over a leftover directory that is not a git checkout", () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const rootDir = yield* fs.makeTempDirectoryScoped({
+        prefix: "sync-reference-repos-stale-",
+      });
+      yield* fs.writeFileString(
+        path.join(rootDir, "pnpm-workspace.yaml"),
+        "catalog:\n  effect: 4.0.0-beta.73\n",
+      );
+      yield* fs.makeDirectory(path.join(rootDir, effectSmol.prefix), { recursive: true });
+
+      const plan = yield* planReferenceRepoSync(effectSmol, rootDir, false);
+      assert.equal(plan.action, "clone");
+      assert.equal(plan.removeExisting, true);
+    }),
+  );
+
+  it.effect("runs the planned git command through the process service", () => {
     const commands: Array<{ readonly command: string; readonly args: ReadonlyArray<string> }> = [];
 
     return Effect.gen(function* () {
@@ -228,12 +258,12 @@ it.layer(NodeServices.layer)("sync-reference-repos", (it) => {
         {
           command: "git",
           args: [
-            "subtree",
-            "add",
-            "--prefix=.repos/effect-smol",
-            "https://github.com/Effect-TS/effect.git",
+            "clone",
+            "--depth=1",
+            "--branch",
             "effect@4.0.0-beta.73",
-            "--squash",
+            "https://github.com/Effect-TS/effect.git",
+            ".repos/effect-smol",
           ],
         },
       ]);
@@ -274,25 +304,25 @@ it.layer(NodeServices.layer)("sync-reference-repos", (it) => {
         Effect.provide(
           mockSpawnerLayer(
             commands,
-            mockHandle({ exitCode: 23, stderr: "subtree failed secret-token-value\n" }),
+            mockHandle({ exitCode: 23, stderr: "clone failed secret-token-value\n" }),
           ),
         ),
         Effect.flip,
       );
 
-      if (error._tag !== "ReferenceRepoGitSubtreeError") {
+      if (error._tag !== "ReferenceRepoGitError") {
         assert.fail(`Unexpected error: ${error._tag}`);
       }
       assert.equal(error.operation, "exit");
       assert.equal(error.repoId, effectSmol.id);
-      assert.equal(error.action, "add");
+      assert.equal(error.action, "clone");
       assert.equal(error.repository, effectSmol.repository);
       assert.equal(error.ref, "effect@4.0.0-beta.73");
       assert.equal(error.rootDir, rootDir);
       assert.equal(error.argumentCount, commands[0]?.args.length);
       assert.equal(error.exitCode, 23);
       assert.equal(error.stdoutLength, 5);
-      assert.equal(error.stderrLength, 34);
+      assert.equal(error.stderrLength, 32);
       assert.notProperty(error, "args");
       assert.notProperty(error, "stderr");
       assert.notInclude(error.message, "secret-token-value");
