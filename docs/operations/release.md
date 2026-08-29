@@ -144,6 +144,13 @@ reads that cookie and proxies to the nightly origin when it says `nightly`;
 otherwise it serves its own assets. Requests to a channel domain are never
 proxied, so a stale cookie cannot cause a loop.
 
+Known limitation: Cloudflare serves static assets before invoking the Worker, so
+the router does not see requests whose path exactly matches a built file. Channel
+switching therefore takes effect on application routes but not on `/`, which
+resolves directly to `index.html`. The stack sets `runWorkerFirst` on the router
+deployment, but Alchemy does not currently forward it — a deployed version
+reports `raw_run_worker_first: false`.
+
 The release deploy job rewrites release package versions before the build so the
 hosted app's About panel renders the release version. It also passes
 `VITE_HOSTED_APP_CHANNEL=latest|nightly`, which renders the hosted update track

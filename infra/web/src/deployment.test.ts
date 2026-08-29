@@ -2,9 +2,9 @@ import { describe, expect, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 
 import {
-  brandAssetChannel,
   deploymentForStage,
   routerHostname,
+  runsChannelRouter,
   webWorkerDomain,
   servesOnWorkersDev,
   webWorkerEnv,
@@ -97,16 +97,6 @@ describe("webWorkerEnv", () => {
   });
 });
 
-describe("brandAssetChannel", () => {
-  it("brands a preview as stable", () => {
-    expect(brandAssetChannel(PREVIEW)).toBe("latest");
-  });
-
-  it("brands the nightly channel as nightly", () => {
-    expect(brandAssetChannel(NIGHTLY)).toBe("nightly");
-  });
-});
-
 describe("routerHostname", () => {
   it.effect("takes the hostname from the router URL", () =>
     Effect.gen(function* () {
@@ -132,5 +122,16 @@ describe("webWorkerName", () => {
 describe("previewUrl", () => {
   it("builds the workers.dev origin baked into a preview build", () => {
     expect(previewUrl("pr-329", "tronite")).toBe("https://ras-code-web-pr-329.tronite.workers.dev");
+  });
+});
+
+describe("runsChannelRouter", () => {
+  it("routes only on the latest channel, which owns the router domain", () => {
+    expect(runsChannelRouter(LATEST)).toBe(true);
+  });
+
+  it("does not route on nightly or a preview, which serve their own assets", () => {
+    expect(runsChannelRouter(NIGHTLY)).toBe(false);
+    expect(runsChannelRouter(PREVIEW)).toBe(false);
   });
 });

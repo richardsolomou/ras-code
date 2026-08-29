@@ -5,9 +5,9 @@ import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
 
 import {
-  brandAssetChannel,
   deploymentForStage,
   routerHostname,
+  runsChannelRouter,
   webWorkerDomain,
   servesOnWorkersDev,
   webWorkerEnv,
@@ -35,7 +35,11 @@ export default Alchemy.Stack(
     const site = yield* Cloudflare.Website.StaticSite("ras-code-web", {
       name: webWorkerName(stage),
       cwd: "../..",
-      command: `vp run --filter @ras-code/web build && node scripts/apply-web-brand-assets.ts --channel ${brandAssetChannel(deployment)}`,
+      // A package script, because StaticSite execs the command without a shell:
+      // chaining here would send the second command's flags to the first.
+      // `build:hosted` brands the output from VITE_HOSTED_APP_CHANNEL, which
+      // defaults to latest for previews.
+      command: "vp run --filter @ras-code/web build:hosted",
       outdir: "apps/web/dist",
       main: "../../apps/web/worker.ts",
       ...(domain ? { domain } : {}),
@@ -43,6 +47,12 @@ export default Alchemy.Stack(
       workersDev: servesOnWorkersDev(deployment),
       assets: {
         notFoundHandling: "single-page-application",
+        // Assets are served before the Worker, so the router never sees a
+        // request whose path exactly matches a built file — including `/`.
+        // Alchemy does not currently forward this to Cloudflare (deployed
+        // config reports `raw_run_worker_first: false`), so channel switching
+        // works on app routes but not on `/`. See docs/operations/release.md.
+        runWorkerFirst: runsChannelRouter(deployment),
       },
       env: webWorkerEnv(deployment, domains),
     });

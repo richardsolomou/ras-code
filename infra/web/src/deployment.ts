@@ -102,25 +102,28 @@ export function servesOnWorkersDev(deployment: WebDeployment): boolean {
 }
 
 /**
- * Only the latest channel routes, so only it receives the router configuration.
- * Without these the Worker serves its own assets unconditionally, which is what
- * both the nightly channel and a preview should do.
+ * Only the latest channel answers on the router domain, so only it has to
+ * inspect requests. The others serve their own assets unconditionally.
+ */
+export function runsChannelRouter(deployment: WebDeployment): boolean {
+  return deployment.kind === "channel" && deployment.channel === "latest";
+}
+
+/**
+ * Only the router receives the routing configuration. Without these the Worker
+ * serves its own assets unconditionally, which is what both the nightly channel
+ * and a preview should do.
  */
 export function webWorkerEnv(
   deployment: WebDeployment,
   domains: WebDomains,
 ): Record<string, string> {
-  return deployment.kind === "channel" && deployment.channel === "latest"
+  return runsChannelRouter(deployment)
     ? {
         RAS_CODE_WEB_ROUTER_HOST: domains.routerHost,
         RAS_CODE_WEB_NIGHTLY_ORIGIN: `https://${domains.nightlyDomain}`,
       }
     : {};
-}
-
-/** Previews carry stable branding; only the nightly channel is branded nightly. */
-export function brandAssetChannel(deployment: WebDeployment): WebChannel {
-  return deployment.kind === "channel" ? deployment.channel : "latest";
 }
 
 export function webWorkerName(stage: string): string {
