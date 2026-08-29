@@ -18,7 +18,13 @@ export class NodePtyModuleLoadError extends Schema.TaggedErrorClass<NodePtyModul
   },
 ) {
   override get message(): string {
-    return `Failed to load node-pty for ${this.platform}-${this.architecture}.`;
+    return (
+      `Failed to load node-pty for ${this.platform}-${this.architecture}. ` +
+      "The install left no native binary behind, which is what happens when npm skips " +
+      "node-pty's build script: npm 12 blocks dependency build scripts by default and " +
+      "node-pty publishes no prebuilt binary for Linux. Allow it with " +
+      "`npm config set allow-scripts=node-pty --location=user`, then reinstall."
+    );
   }
 }
 

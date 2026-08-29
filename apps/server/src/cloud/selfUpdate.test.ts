@@ -49,6 +49,19 @@ const makeHarness = Effect.fn("test.make_self_update_harness")(function* (
             stderrInvalidUtf8: false,
           };
         }
+        if (input.args[0] === "-e") {
+          order.push("native-modules");
+          return {
+            stdout: "",
+            stderr: "",
+            code: ChildProcessSpawner.ExitCode(0),
+            timedOut: false,
+            stdoutTruncated: false,
+            stderrTruncated: false,
+            stdoutInvalidUtf8: false,
+            stderrInvalidUtf8: false,
+          };
+        }
         order.push("preflight");
         const result =
           options.preflight === "blocked"
@@ -103,7 +116,9 @@ it.layer(NodeServices.layer)("server self update", (it) => {
         method: "boot-service",
         updateId: "launcher-id",
       });
-      expect(order).toEqual(["install", "preflight", "accept"]);
+      // The native-module check runs before the preflight, so a tree whose
+      // build scripts were skipped never reaches a sentinel.
+      expect(order).toEqual(["install", "native-modules", "preflight", "accept"]);
     }),
   );
 

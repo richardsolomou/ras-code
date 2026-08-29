@@ -102,7 +102,8 @@ it.effect("reports native module load failures as structured startup defects", (
         platform: "win32",
         architecture: "x64",
       });
-      assert.equal(error.message, "Failed to load node-pty for win32-x64.");
+      assert.include(error.message, "Failed to load node-pty for win32-x64.");
+      assert.include(error.message, "allow-scripts=node-pty");
     }
   }).pipe(
     Effect.provide(

@@ -83,10 +83,49 @@ interface PinnedRuntimeInstallInput {
   readonly fs: FileSystem.FileSystem;
   readonly path: Path.Path;
   readonly runner: ProcessRunner.ProcessRunner["Service"];
+  readonly nodePath: string;
   readonly validate: (
     paths: PinnedRuntimePaths,
   ) => Effect.Effect<void, PinnedRuntimeInstallError | PinnedRuntimePreflightBlockedError>;
 }
+
+/**
+ * npm 12 blocks a dependency's install scripts unless the installing project
+ * opts in, and node-pty publishes no Linux prebuild: without its script there
+ * is no pty.node and the server exits on startup. npm rejects the `--allow-scripts`
+ * flag for project-scoped installs, so the opt-in has to be npmrc in the install
+ * root. Older npm ignores the key.
+ */
+const PINNED_RUNTIME_NPMRC = "allow-scripts=node-pty,msgpackr-extract\n";
+
+const NATIVE_MODULE_CHECK_TIMEOUT = Duration.seconds(30);
+
+/**
+ * Loads the runtime's native modules in a throwaway process. npm reports a
+ * blocked install script as a warning and exits 0, so exit status alone does
+ * not tell a working tree from one that will crash-loop on first boot.
+ */
+const pinnedRuntimeNativeModulesLoad = Effect.fn("cloud.pinned_runtime.check_native_modules")(
+  function* (input: {
+    readonly runner: ProcessRunner.ProcessRunner["Service"];
+    readonly nodePath: string;
+    readonly path: Path.Path;
+    readonly versionDir: string;
+  }) {
+    const result = yield* input.runner
+      .run({
+        command: input.nodePath,
+        args: [
+          "-e",
+          "require(process.argv[1])",
+          input.path.join(input.versionDir, "node_modules", "node-pty"),
+        ],
+        timeout: NATIVE_MODULE_CHECK_TIMEOUT,
+      })
+      .pipe(Effect.option);
+    return Option.isSome(result) && result.value.code === 0;
+  },
+);
 
 const installPinnedRuntime = Effect.fn("cloud.pinned_runtime.ensure_installed")(function* (
   input: PinnedRuntimeInstallInput,
@@ -102,8 +141,19 @@ const installPinnedRuntime = Effect.fn("cloud.pinned_runtime.ensure_installed")(
       (cause) => new PinnedRuntimeInstallError({ step: "checking the pinned runtime", cause }),
     ),
   );
-  const alreadyPinned =
+  const sentinelMatches =
     entryExists && Option.isSome(sentinel) && sentinel.value.trim() === input.version;
+  // A runtime installed before the npmrc opt-in existed carries a valid
+  // sentinel over a tree with no pty.node. Treat that as unpinned so it is
+  // reinstalled rather than crash-looping forever.
+  const alreadyPinned =
+    sentinelMatches &&
+    (yield* pinnedRuntimeNativeModulesLoad({
+      runner,
+      nodePath: input.nodePath,
+      path: input.path,
+      versionDir: paths.versionDir,
+    }));
   if (alreadyPinned) {
     yield* input.validate(paths);
     return paths;
@@ -152,6 +202,16 @@ const installPinnedRuntime = Effect.fn("cloud.pinned_runtime.ensure_installed")(
 
   return yield* Effect.gen(function* () {
     const installStep = "installing the pinned ras runtime (this can take a few minutes)";
+    // npm resolves the opt-in from the directory it runs in, not from --prefix.
+    yield* fs.writeFileString(input.path.join(stagingDir, ".npmrc"), PINNED_RUNTIME_NPMRC).pipe(
+      Effect.mapError(
+        (cause) =>
+          new PinnedRuntimeInstallError({
+            step: "allowing native builds for the pinned ras runtime",
+            cause,
+          }),
+      ),
+    );
     yield* runner
       .run({
         command: "npm",
@@ -163,6 +223,7 @@ const installPinnedRuntime = Effect.fn("cloud.pinned_runtime.ensure_installed")(
           "--no-audit",
           `ras-code@${input.version}`,
         ],
+        cwd: stagingDir,
         // Native dependencies may compile from source on slower machines.
         timeout: PINNED_RUNTIME_INSTALL_TIMEOUT,
       })
@@ -180,6 +241,17 @@ const installPinnedRuntime = Effect.fn("cloud.pinned_runtime.ensure_installed")(
         ),
       );
 
+    const nativeModulesLoad = yield* pinnedRuntimeNativeModulesLoad({
+      runner,
+      nodePath: input.nodePath,
+      path: input.path,
+      versionDir: stagingDir,
+    });
+    if (!nativeModulesLoad) {
+      return yield* new PinnedRuntimeInstallError({
+        step: "verifying the pinned ras runtime's native modules",
+      });
+    }
     yield* input.validate(stagingPaths);
     yield* fs
       .writeFileString(stagingPaths.sentinelPath, `${input.version}\n`)
