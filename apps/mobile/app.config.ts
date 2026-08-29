@@ -1,9 +1,8 @@
 import type { ExpoConfig } from "expo/config";
 
-import { clerkFrontendApiHostnameFromPublishableKey } from "@ras-code/shared/relayAuth";
-
 import { BRAND_ASSET_PATHS } from "../../scripts/lib/brand-assets.ts";
 import { loadRepoEnv } from "../../scripts/lib/public-config.ts";
+import { clerkFrontendApiHostnameFromPublishableKey } from "../../packages/shared/src/relayAuth.ts";
 
 type AppVariant = "development" | "preview" | "production";
 
@@ -190,7 +189,7 @@ const config: ExpoConfig = {
   userInterfaceStyle: "automatic",
   updates: {
     enabled: true,
-    url: "https://u.expo.dev/TODO_RAS_CODE_EAS_PROJECT_ID",
+    url: "https://u.expo.dev/284eb2a9-9ba0-4d2d-9096-24240c2efbee",
     checkAutomatically: "ON_LOAD",
     fallbackToCacheTimeout: 0,
   },
@@ -385,10 +384,10 @@ const config: ExpoConfig = {
       tracesToken: repoEnv.EXPO_PUBLIC_OTLP_TRACES_TOKEN ?? null,
     },
     eas: {
-      projectId: "TODO_RAS_CODE_EAS_PROJECT_ID",
+      projectId: "284eb2a9-9ba0-4d2d-9096-24240c2efbee",
     },
   },
-  owner: "TODO_RAS_CODE_EAS_OWNER",
+  owner: "rsolomou",
 };
 
 export default config;

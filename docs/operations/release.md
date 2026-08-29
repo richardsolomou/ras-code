@@ -166,6 +166,23 @@ Deploy a channel by hand with:
 vp run --filter ras-code-web-infra deploy --stage latest --yes
 ```
 
+## Mobile app releases (EAS)
+
+- Workflows: `.github/workflows/mobile-eas-preview.yml` and `mobile-eas-production.yml`
+- Expo account: `rsolomou`, project `@rsolomou/ras-code`
+- Required secret: `EXPO_TOKEN`, an access token belonging to the `ras-code-ci` robot user
+
+`apps/mobile/app.config.ts` pins the EAS project ID and owner, and `apps/mobile/eas.json` pins
+`ascAppId` for App Store submission. All three identify one specific Expo project and one App Store
+Connect app record, so they change together or not at all.
+
+iOS builds sign against the same `com.richardsolomou.ras-code` App ID the desktop app uses. EAS
+enables missing capabilities on that App ID automatically, which invalidates the macOS provisioning
+profile; see the Apple signing notes below.
+
+Trader status must be recorded in App Store Connect before a new app can be submitted in the EU.
+Only an Admin or the Account Holder can provide it.
+
 ## Nightly builds
 
 - Workflow: `.github/workflows/release.yml`
@@ -321,7 +338,10 @@ Checklist:
 
 1. Apple Developer account access:
    - Team has rights to create Developer ID certificates.
-2. Create an explicit App ID for `com.richardsolomou.ras-code` and enable Associated Domains.
+2. Create an explicit App ID for `com.richardsolomou.ras-code` and enable every capability both the
+   desktop and the iOS app need: Associated Domains, Push Notifications, App Groups (assigned to
+   `group.com.richardsolomou.ras-code`), and Sign in with Apple. The iOS app shares this bundle ID,
+   so enabling them all up front avoids a later capability change.
 3. Create a `Developer ID Application` certificate and a compatible provisioning profile for that
    App ID with Associated Domains enabled.
 4. Export the certificate + private key as `.p12` from Keychain.
@@ -344,6 +364,12 @@ Notes:
 - The workflow writes it to a temporary `AuthKey_<id>.p8` file at runtime.
 - The workflow decodes `MACOS_PROVISIONING_PROFILE`, validates it with `security cms`, and passes it
   to the desktop packager.
+- Adding or removing an App ID capability marks every provisioning profile for that App ID
+  `Invalid`. Regenerate the profile and refresh `MACOS_PROVISIONING_PROFILE` whenever the App ID
+  changes, including when an EAS build changes it.
+- The App Store Connect key needs only the Developer role to notarize. Editing capabilities,
+  profiles, or certificates through the API needs Admin, so the portal is the simpler path for those
+  one-off changes.
 
 ## 3) Azure Trusted Signing setup (Windows)
 
