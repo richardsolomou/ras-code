@@ -1,5 +1,7 @@
 import type { ExpoConfig } from "expo/config";
 
+import { clerkFrontendApiHostnameFromPublishableKey } from "@ras-code/shared/relayAuth";
+
 import { BRAND_ASSET_PATHS } from "../../scripts/lib/brand-assets.ts";
 import { loadRepoEnv } from "../../scripts/lib/public-config.ts";
 
@@ -10,6 +12,18 @@ Object.assign(process.env, repoEnv);
 
 const APP_VARIANT = resolveAppVariant(repoEnv.APP_VARIANT);
 const isIosPersonalTeamBuild = repoEnv.RAS_CODE_IOS_PERSONAL_TEAM === "1";
+
+const configuredClerkRelyingParties = (() => {
+  const explicit = repoEnv.RAS_CODE_CLERK_PASSKEY_RP_DOMAINS?.trim();
+  if (explicit) {
+    return explicit
+      .split(",")
+      .map((domain) => domain.trim())
+      .filter(Boolean);
+  }
+  const publishableKey = repoEnv.RAS_CODE_CLERK_PUBLISHABLE_KEY?.trim();
+  return publishableKey ? [clerkFrontendApiHostnameFromPublishableKey(publishableKey)] : [];
+})();
 
 const personalTeamBundleIdentifier = repoEnv.RAS_CODE_IOS_PERSONAL_TEAM_BUNDLE_ID?.trim();
 const IOS_BUNDLE_IDENTIFIER_PATTERN = /^[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$/;
@@ -68,7 +82,6 @@ const VARIANT_CONFIG = {
     scheme: "ras-code-dev",
     iosBundleIdentifier: "com.richardsolomou.ras-code.dev",
     androidPackage: "com.richardsolomou.ras_code.dev",
-    relyingParty: "clerk.t3.codes",
     assets: DEVELOPMENT_ASSETS,
   },
   preview: {
@@ -76,7 +89,6 @@ const VARIANT_CONFIG = {
     scheme: "ras-code-preview",
     iosBundleIdentifier: "com.richardsolomou.ras-code.preview",
     androidPackage: "com.richardsolomou.ras_code.preview",
-    relyingParty: "clerk.t3.codes",
     assets: PREVIEW_ASSETS,
   },
   production: {
@@ -84,7 +96,6 @@ const VARIANT_CONFIG = {
     scheme: "ras-code",
     iosBundleIdentifier: "com.richardsolomou.ras-code",
     androidPackage: "com.richardsolomou.ras_code",
-    relyingParty: "clerk.t3.codes",
     assets: RELEASE_ASSETS,
   },
 } as const;
@@ -194,10 +205,10 @@ const config: ExpoConfig = {
     // does not fall back to a personal team (which cannot sign app groups,
     // Sign in with Apple, or push notification entitlements).
     appleTeamId: "TODO_RAS_CODE_APPLE_TEAM_ID",
-    associatedDomains: [
-      `applinks:${variant.relyingParty}`,
-      `webcredentials:${variant.relyingParty}`,
-    ],
+    associatedDomains: configuredClerkRelyingParties.flatMap((domain) => [
+      `applinks:${domain}`,
+      `webcredentials:${domain}`,
+    ]),
     infoPlist: {
       NSAppTransportSecurity: {
         NSAllowsArbitraryLoads: true,

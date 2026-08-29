@@ -54,7 +54,7 @@ control plane or a copy of session state.
 | ------------------------- | ------------------------------------------------------------------------ |
 | `PrimaryConnectionTarget` | The platform-managed local server (desktop backend, CLI-served web app). |
 | `BearerConnectionTarget`  | Any manually paired endpoint reached over direct HTTP/WebSocket.         |
-| `RelayConnectionTarget`   | Managed T3 Connect relay tunnels.                                        |
+| `RelayConnectionTarget`   | Managed RAS Connect relay tunnels.                                       |
 | `SshConnectionTarget`     | Desktop-managed SSH environments.                                        |
 
 Bearer, relay, and SSH are persisted; primary is platform-managed. Note that Tailscale is not a
@@ -106,7 +106,7 @@ Endpoint identifiers are synthesized in `apps/desktop/src/backend/tailscaleEndpo
 A hosted pairing request is a bootstrap URL for the static web app, not a transport:
 
 ```text
-https://app.t3.codes/pair?host=https://backend.example.com:3773#token=PAIRCODE
+https://code.ras.sh/pair?host=https://backend.example.com:3773#token=PAIRCODE
 ```
 
 The hosted app reads `host`, takes the token from the URL hash, exchanges it directly with that
@@ -142,12 +142,12 @@ are part of it: a hosted HTTPS client cannot connect to plain `ws://` or `http:/
 
 ### Relay-tunneled access
 
-Managed T3 Connect relay tunnels use `RelayConnectionTarget` and are the answer when the host is
+Managed RAS Connect relay tunnels use `RelayConnectionTarget` and are the answer when the host is
 behind NAT, inbound ports are unavailable, or mobile must reach a desktop-hosted environment. From
 the client's perspective this is still an ordinary WebSocket connection; the route is mediated. The
-relay Worker only brokers credentials and a managed endpoint; application traffic then flows over
-the provisioned Cloudflare tunnel hostname for the life of the connection, not through the relay
-Worker itself. See [t3-connect.md](./t3-connect.md).
+relay Worker brokers credentials and routes application traffic from its shared path gateway to the
+provisioned Cloudflare tunnel for the life of the connection. See
+[ras-connect.md](./ras-connect.md).
 
 ### Tailscale access
 
@@ -225,7 +225,7 @@ supervisor owns the resulting disconnect and reconnect like any other involuntar
 These remain unbuilt and are listed to keep the model honest:
 
 - third-party tunnel products as additional endpoint providers;
-- a relay-hosted OAuth callback broker (see [t3-connect.md](./t3-connect.md));
+- a relay-hosted OAuth callback broker (see [ras-connect.md](./ras-connect.md));
 - richer multi-environment UI beyond the current connections list.
 
 [model]: ../../packages/client-runtime/src/connection/model.ts

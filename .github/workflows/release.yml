@@ -118,12 +118,11 @@ jobs:
         env:
           DISPATCH_CHANNEL: ${{ github.event.inputs.channel }}
           DISPATCH_VERSION: ${{ github.event.inputs.version }}
-          NIGHTLY_DATE: ${{ github.run_started_at }}
           NIGHTLY_SHA: ${{ github.sha }}
           NIGHTLY_RUN_NUMBER: ${{ github.run_number }}
         run: |
           if [[ "${GITHUB_EVENT_NAME}" == "schedule" || ( "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && "${DISPATCH_CHANNEL:-stable}" == "nightly" ) ]]; then
-            nightly_date="$(date -u -d "$NIGHTLY_DATE" +%Y%m%d)"
+            nightly_date="$(date -u +%Y%m%d)"
 
             node scripts/resolve-nightly-release.ts \
               --date "$nightly_date" \
@@ -210,7 +209,7 @@ jobs:
         run: vp run test
 
   relay_public_config:
-    name: Resolve T3 Connect public config
+    name: Resolve RAS Connect public config
     # Consumes only the commit SHA, not preflight's resolved version, so it runs
     # alongside preflight instead of after it. The condition mirrors preflight's:
     # check_changes is skipped on non-schedule events (skipped is neither failure
@@ -227,6 +226,7 @@ jobs:
       clerk_publishable_key: ${{ steps.public_config.outputs.clerk_publishable_key }}
       clerk_jwt_template: ${{ steps.public_config.outputs.clerk_jwt_template }}
       clerk_cli_oauth_client_id: ${{ steps.public_config.outputs.clerk_cli_oauth_client_id }}
+      hosted_app_url: ${{ steps.public_config.outputs.hosted_app_url }}
       relay_url: ${{ steps.public_config.outputs.relay_url }}
     env:
       CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
@@ -236,6 +236,7 @@ jobs:
       CLERK_PUBLISHABLE_KEY: ${{ vars.CLERK_PUBLISHABLE_KEY }}
       CLERK_JWT_TEMPLATE: ${{ vars.CLERK_JWT_TEMPLATE }}
       CLERK_CLI_OAUTH_CLIENT_ID: ${{ vars.CLERK_CLI_OAUTH_CLIENT_ID }}
+      RAS_CODE_WEB_ROUTER_URL: ${{ vars.RAS_CODE_WEB_ROUTER_URL }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -288,6 +289,7 @@ jobs:
             CLERK_PUBLISHABLE_KEY
             CLERK_JWT_TEMPLATE
             CLERK_CLI_OAUTH_CLIENT_ID
+            RAS_CODE_WEB_ROUTER_URL
           )
           missing=()
           for name in "${required[@]}"; do
@@ -303,6 +305,7 @@ jobs:
           echo "clerk_publishable_key=$CLERK_PUBLISHABLE_KEY" >> "$GITHUB_OUTPUT"
           echo "clerk_jwt_template=$CLERK_JWT_TEMPLATE" >> "$GITHUB_OUTPUT"
           echo "clerk_cli_oauth_client_id=$CLERK_CLI_OAUTH_CLIENT_ID" >> "$GITHUB_OUTPUT"
+          echo "hosted_app_url=$RAS_CODE_WEB_ROUTER_URL" >> "$GITHUB_OUTPUT"
           echo "relay_url=https://$relay_domain" >> "$GITHUB_OUTPUT"
 
   # node-pty publishes no Linux prebuilt and the WSL backend runs under the
@@ -378,6 +381,7 @@ jobs:
       RAS_CODE_CLERK_PUBLISHABLE_KEY: ${{ needs.relay_public_config.outputs.clerk_publishable_key }}
       RAS_CODE_CLERK_JWT_TEMPLATE: ${{ needs.relay_public_config.outputs.clerk_jwt_template }}
       RAS_CODE_CLERK_CLI_OAUTH_CLIENT_ID: ${{ needs.relay_public_config.outputs.clerk_cli_oauth_client_id }}
+      RAS_CODE_HOSTED_APP_URL: ${{ needs.relay_public_config.outputs.hosted_app_url }}
       RAS_CODE_RELAY_URL: ${{ needs.relay_public_config.outputs.relay_url }}
     strategy:
       fail-fast: false
@@ -741,6 +745,7 @@ jobs:
       RAS_CODE_CLERK_PUBLISHABLE_KEY: ${{ needs.relay_public_config.outputs.clerk_publishable_key }}
       RAS_CODE_CLERK_JWT_TEMPLATE: ${{ needs.relay_public_config.outputs.clerk_jwt_template }}
       RAS_CODE_CLERK_CLI_OAUTH_CLIENT_ID: ${{ needs.relay_public_config.outputs.clerk_cli_oauth_client_id }}
+      RAS_CODE_HOSTED_APP_URL: ${{ needs.relay_public_config.outputs.hosted_app_url }}
       RAS_CODE_RELAY_URL: ${{ needs.relay_public_config.outputs.relay_url }}
     steps:
       - name: Checkout
@@ -941,6 +946,7 @@ jobs:
       RAS_CODE_CLERK_PUBLISHABLE_KEY: ${{ needs.relay_public_config.outputs.clerk_publishable_key }}
       RAS_CODE_CLERK_JWT_TEMPLATE: ${{ needs.relay_public_config.outputs.clerk_jwt_template }}
       RAS_CODE_CLERK_CLI_OAUTH_CLIENT_ID: ${{ needs.relay_public_config.outputs.clerk_cli_oauth_client_id }}
+      RAS_CODE_HOSTED_APP_URL: ${{ needs.relay_public_config.outputs.hosted_app_url }}
       RAS_CODE_RELAY_URL: ${{ needs.relay_public_config.outputs.relay_url }}
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -999,9 +1005,14 @@ jobs:
             exit 1
           fi
 
-          router_url="${RAS_CODE_WEB_ROUTER_URL:-https://app.t3.codes}"
-          latest_domain="${RAS_CODE_WEB_LATEST_DOMAIN:-latest.app.t3.codes}"
-          nightly_domain="${RAS_CODE_WEB_NIGHTLY_DOMAIN:-nightly.app.t3.codes}"
+          if [[ -z "${RAS_CODE_WEB_ROUTER_URL:-}" || -z "${RAS_CODE_WEB_LATEST_DOMAIN:-}" || -z "${RAS_CODE_WEB_NIGHTLY_DOMAIN:-}" ]]; then
+            echo "Missing one or more required hosted web variables: RAS_CODE_WEB_ROUTER_URL, RAS_CODE_WEB_LATEST_DOMAIN, RAS_CODE_WEB_NIGHTLY_DOMAIN." >&2
+            exit 1
+          fi
+
+          router_url="$RAS_CODE_WEB_ROUTER_URL"
+          latest_domain="$RAS_CODE_WEB_LATEST_DOMAIN"
+          nightly_domain="$RAS_CODE_WEB_NIGHTLY_DOMAIN"
           router_domain="${router_url#http://}"
           router_domain="${router_domain#https://}"
           router_domain="${router_domain%%/*}"

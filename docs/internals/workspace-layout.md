@@ -39,10 +39,10 @@ the task commands.
 
 ## infra
 
-- `infra/relay` (`t3code-relay`): the hosted T3 Connect relay, deployed with Alchemy. Handles
-  environment discovery, cloud-side records, and mobile notifications. It is not in the hot path;
-  after connect, client traffic goes directly to the environment. See
-  [t3-connect.md](./t3-connect.md).
+- `infra/relay` (`ras-code-relay`): the hosted RAS Connect relay, deployed with Alchemy. Handles
+  environment discovery, cloud-side records, mobile notifications, and the shared managed-tunnel
+  gateway. After connect, managed traffic passes through the gateway to the selected tunnel. See
+  [ras-connect.md](./ras-connect.md).
 
 ## Other top-level directories
 

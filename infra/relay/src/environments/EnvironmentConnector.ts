@@ -364,6 +364,9 @@ const make = Effect.gen(function* () {
       const endpoint = ManagedEndpointAllocations.resolveReadyManagedEndpoint({
         allocation: input.allocation,
         baseDomain: settings.managedEndpointBaseDomain,
+        ...(settings.managedEndpointGatewayDomain
+          ? { gatewayDomain: settings.managedEndpointGatewayDomain }
+          : {}),
       });
       if (
         endpoint === null ||

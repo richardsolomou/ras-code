@@ -4,7 +4,9 @@ import * as Schema from "effect/Schema";
 import {
   managedEndpointDigestInput,
   managedEndpointForHostname,
+  managedEndpointGatewayTargetHostname,
   managedEndpointHostname,
+  managedEndpointNamespaceForStage,
   isManagedEndpointHostname,
   managedEndpointTunnelName,
   relayOwnsManagedEndpointZone,
@@ -75,6 +77,16 @@ describe("relayResourceNameForStage", () => {
   });
 });
 
+describe("managedEndpointNamespaceForStage", () => {
+  it("uses a branded production namespace when configured", () => {
+    expect(managedEndpointNamespaceForStage("prod", "code")).toBe("code");
+  });
+
+  it("falls back to the deployment stage", () => {
+    expect(managedEndpointNamespaceForStage("dev_julius")).toBe("dev-julius");
+  });
+});
+
 describe("managed endpoint names", () => {
   it("uses the stage slug and a stable stage-scoped digest suffix", () => {
     const hash = "ABCDEF0123456789ABCDEF0123456789";
@@ -113,6 +125,48 @@ describe("managed endpoint names", () => {
       wsBaseUrl: "wss://dev-julius-abcdef0123456789.example.com/ws",
       providerKind: "cloudflare_tunnel",
     });
+  });
+
+  it("publishes managed endpoints through a shared path gateway", () => {
+    expect(
+      managedEndpointForHostname("code-abcdef0123456789.ras.sh", "code-tunnels.ras.sh"),
+    ).toEqual({
+      httpBaseUrl: "https://code-tunnels.ras.sh/e/abcdef0123456789/",
+      wsBaseUrl: "wss://code-tunnels.ras.sh/e/abcdef0123456789/ws",
+      providerKind: "cloudflare_tunnel",
+    });
+  });
+
+  it("resolves gateway paths to the matching internal tunnel hostname", () => {
+    const target = managedEndpointGatewayTargetHostname({
+      requestUrl: new URL("https://code-tunnels.ras.sh/e/abcdef0123456789/api/thread?cursor=next"),
+      gatewayDomain: "code-tunnels.ras.sh",
+      baseDomain: "ras.sh",
+      namespace: "code",
+    });
+
+    expect(target).toBe("code-abcdef0123456789.ras.sh");
+  });
+
+  it("rejects malformed and off-domain gateway requests", () => {
+    const config = {
+      gatewayDomain: "code-tunnels.ras.sh",
+      baseDomain: "ras.sh",
+      namespace: "code",
+    } as const;
+
+    expect(
+      managedEndpointGatewayTargetHostname({
+        ...config,
+        requestUrl: new URL("https://code-tunnels.ras.sh/e/not-an-id/ws"),
+      }),
+    ).toBeNull();
+    expect(
+      managedEndpointGatewayTargetHostname({
+        ...config,
+        requestUrl: new URL("https://attacker.example/e/abcdef0123456789/ws"),
+      }),
+    ).toBeNull();
   });
 
   it("rejects hostnames outside the relay zone", () => {

@@ -36,6 +36,10 @@ describe("rebrandText", () => {
     assert.strictEqual(rebrandText("Welcome to T3 Code."), "Welcome to RAS Code.");
   });
 
+  it("rewrites the remote access product name", () => {
+    assert.strictEqual(rebrandText("Connect through T3 Connect."), "Connect through RAS Connect.");
+  });
+
   it("keeps project file types on the Ras prefix", () => {
     assert.strictEqual(rebrandText("T3ProjectFileLoader"), "RasProjectFileLoader");
   });
@@ -73,11 +77,6 @@ describe("rebrandText do-not-rename list", () => {
 
   it("keeps the checkpoint ref namespace", () => {
     const source = 'const ref = "refs/t3/checkpoints/abc";';
-    assert.strictEqual(rebrandText(source), source);
-  });
-
-  it("keeps the T3 Connect product name", () => {
-    const source = "Connect through T3 Connect for tunnelled access.";
     assert.strictEqual(rebrandText(source), source);
   });
 
@@ -165,10 +164,10 @@ describe("mapUpstreamPath", () => {
     );
   });
 
-  it("keeps the T3 Connect internals doc", () => {
+  it("maps the RAS Connect internals doc", () => {
     assert.strictEqual(
       mapUpstreamPath("docs/internals/t3-connect.md"),
-      "docs/internals/t3-connect.md",
+      "docs/internals/ras-connect.md",
     );
   });
 });

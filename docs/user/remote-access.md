@@ -51,12 +51,12 @@ The default endpoint controls the QR code and primary copy action for pairing li
 When no user default is saved, the app uses the built-in LAN endpoint for pairing links when
 available. You can set another endpoint as the default from the expanded endpoint list.
 
-- HTTPS/WSS-compatible endpoints work from `https://app.t3.codes`, but are not made the default
+- HTTPS/WSS-compatible endpoints work from `https://code.ras.sh`, but are not made the default
   automatically.
 - Non-loopback HTTP endpoints are useful for direct LAN pairing.
 - Loopback-only endpoints are not useful for another device unless that device is the same machine.
 
-If the copied link points directly at `http://192.168.x.y:3773`, open it from a client that can reach that LAN address. If it points at `https://app.t3.codes/pair?...`, the hosted web app will save the environment and connect directly to the backend URL in the link.
+If the copied link points directly at `http://192.168.x.y:3773`, open it from a client that can reach that LAN address. If it points at `https://code.ras.sh/pair?...`, the hosted web app will save the environment and connect directly to the backend URL in the link.
 
 In the mobile app's **Add Environment** form, a numeric IP address without a scheme uses HTTP. Include `https://` explicitly when the backend is served over HTTPS.
 
@@ -76,9 +76,28 @@ on the **Tailscale HTTPS** row in **Settings** → **Connections**. The desktop 
 backend with the same server-side behavior as `ras serve --tailscale-serve`, then the server asks
 Tailscale Serve to proxy HTTPS traffic to the local backend. Turn the same switch off to stop it.
 
-The Tailscale support is an endpoint provider add-on. The core remote model still works without Tailscale: LAN HTTP endpoints, custom HTTPS endpoints, future tunnels, and SSH-launched environments all use the same saved environment and pairing flow.
+The Tailscale support is an endpoint provider add-on. The core remote model still works without Tailscale: LAN HTTP endpoints, custom HTTPS endpoints, managed tunnels, and SSH-launched environments all use the same saved environment and pairing flow.
 
-For `https://app.t3.codes`, prefer an HTTPS Tailnet or other HTTPS endpoint. A plain `http://100.x.y.z:3773` endpoint can still work from a desktop client or another browser page served over HTTP, but it will not work from the hosted HTTPS app because of browser mixed-content rules.
+For `https://code.ras.sh`, prefer an HTTPS Tailnet or other HTTPS endpoint. A plain `http://100.x.y.z:3773` endpoint can still work from a desktop client or another browser page served over HTTP, but it will not work from the hosted HTTPS app because of browser mixed-content rules.
+
+### RAS Connect
+
+RAS Connect gives a linked environment a public HTTPS/WSS endpoint without opening an inbound port
+or depending on the machine's LAN address. Sign in under **Settings** → **Connections**, then link
+the environment. On a headless machine, run:
+
+```bash
+npx ras-code connect
+```
+
+The CLI authorizes the machine, installs the managed relay client, and starts a Cloudflare Tunnel to
+the local RAS Code server. The RAS-hosted service publishes environments below
+`https://code-tunnels.ras.sh/e/<endpoint-id>/`; the endpoint ID is only a routing identifier, while
+normal RAS Code pairing and DPoP-bound session authentication still control access.
+
+Use `ras connect status`, `ras connect unlink`, and `ras connect logout` to inspect or remove the
+link. RAS Connect must be configured by the distributor or self-hosting operator; source builds
+without public Clerk and relay configuration leave the cloud controls disabled.
 
 ### Option 2: Headless Server (CLI)
 
@@ -134,7 +153,7 @@ Use this when you want the desktop app to start or reuse RAS Code on another mac
 
 After setup, the renderer connects to a local forwarded HTTP/WebSocket endpoint. The remote host still owns the actual RAS Code server, projects, files, git state, terminals, and provider sessions.
 
-SSH launch is a desktop feature because it needs local process and SSH access. Once the environment is paired and saved, it uses the same environment list and connection model as direct LAN, Tailscale, HTTPS, or future tunnel-backed environments.
+SSH launch is a desktop feature because it needs local process and SSH access. Once the environment is paired and saved, it uses the same environment list and connection model as direct LAN, Tailscale, HTTPS, or managed tunnel-backed environments.
 
 #### SSH Launch Troubleshooting
 
@@ -194,10 +213,10 @@ After pairing, future access is session-based. You do not need to keep reusing t
 
 ## Hosted Web App Pairing
 
-The hosted web app at `https://app.t3.codes` can save a remote backend in browser local storage from a URL like:
+The hosted web app at `https://code.ras.sh` can save a remote backend in browser local storage from a URL like:
 
 ```text
-https://app.t3.codes/pair?host=https://backend.example.com:3773#token=PAIRCODE
+https://code.ras.sh/pair?host=https://backend.example.com:3773#token=PAIRCODE
 ```
 
 Use hosted pairing when the backend is reachable from the browser over HTTPS/WSS. This includes a backend behind a trusted HTTPS tunnel or another HTTPS endpoint you operate.
@@ -218,11 +237,11 @@ Typical uses:
 
 Use `ras auth --help` and the nested subcommand help pages for the full reference.
 
-### Deregister a T3 Connect Environment
+### Deregister a RAS Connect Environment
 
-Open your account menu and choose **T3 Connect** to see every environment registered to your
-account. On mobile, open **Settings** → **T3 Connect**. Choose **Deregister** to revoke an
-environment's T3 Connect access, remove any managed tunnel, and free its host space.
+Open your account menu and choose **RAS Connect** to see every environment registered to your
+account. On mobile, open **Settings** → **RAS Connect**. Choose **Deregister** to revoke an
+environment's RAS Connect access, remove any managed tunnel, and free its host space.
 
 Deregistration is an account action and does not need a connection to the environment, so it also
 works for a server that was wiped or is no longer reachable. Device-local connect and disconnect

@@ -17,7 +17,7 @@ describe("connectCliAuth", () => {
 
   it("requires both the publishable key and the CLI OAuth client id", () => {
     vi.stubEnv("VITE_CLERK_PUBLISHABLE_KEY", TEST_PUBLISHABLE_KEY);
-    vi.stubEnv("VITE_CLERK_JWT_TEMPLATE", "t3-relay");
+    vi.stubEnv("VITE_CLERK_JWT_TEMPLATE", "ras-code-relay");
     vi.stubEnv("VITE_RAS_CODE_RELAY_URL", "https://relay.example.com");
     expect(hasConnectCliAuthConfig()).toBe(false);
 
@@ -73,6 +73,7 @@ describe("connectCliAuth", () => {
   it("sends the sign-in redirect to the authorize endpoint, not back to /connect", () => {
     vi.stubEnv("VITE_CLERK_PUBLISHABLE_KEY", TEST_PUBLISHABLE_KEY);
     vi.stubEnv("VITE_CLERK_CLI_OAUTH_CLIENT_ID", "oauthapp_123");
+    vi.stubEnv("VITE_HOSTED_APP_URL", "https://code.ras.sh");
 
     const connectUrl = "https://app.t3.codes/connect#state=state-1&challenge=challenge-1";
     const redirectUrl = connectCliSignInRedirectUrl(

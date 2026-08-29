@@ -26,6 +26,7 @@ export class RelayConfiguration extends Context.Service<
     readonly cloudMintPrivateKey: Redacted.Redacted<string>;
     readonly cloudMintPublicKey: string;
     readonly managedEndpointBaseDomain: string | undefined;
+    readonly managedEndpointGatewayDomain?: string;
     readonly managedEndpointNamespace: string | undefined;
   }
 >()("ras-code-relay/Config/RelayConfiguration") {}

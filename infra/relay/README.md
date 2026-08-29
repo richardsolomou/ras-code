@@ -7,9 +7,10 @@ The relay is the hosted control plane for RAS Connect. It helps clients discover
 remote environments, manages the cloud-side records needed for those connections, and delivers
 optional mobile notifications and Live Activities.
 
-The relay is intentionally not in the hot path for normal RAS Code traffic. After a client connects,
-regular API and WebSocket traffic goes directly between that client and the selected environment.
-See the [RAS Connect architecture overview](../../docs/internals/t3-code-connect-auth-flow.html) for the larger system
+The relay API is not in the hot path for normal RAS Code traffic. Managed tunnel traffic passes
+through the relay Worker's shared path gateway, then goes directly through the selected Cloudflare
+Tunnel to the environment.
+See the [RAS Connect architecture overview](../../docs/internals/ras-code-connect-auth-flow.html) for the larger system
 design.
 
 ## Responsibilities
@@ -102,11 +103,11 @@ vp run --filter ras-code-relay deploy -- --env-file .env.local
 Alchemy defaults personal deployments to the `dev_$USER` stage. Relay custom domains apply the same
 DNS-safe sanitization as Alchemy physical resource names, so `prod` uses
 `relay.<RELAY_API_ZONE_NAME>` and `dev_julius` uses
-`relay-dev-julius.<RELAY_API_ZONE_NAME>`. Managed environment endpoints are provisioned below
-`RELAY_TUNNEL_ZONE_NAME`, which may be a different Cloudflare zone. Production tunnel hostnames use
-`prod-<digest>.<RELAY_TUNNEL_ZONE_NAME>`; personal stages use
-`<stage>-<digest>.<RELAY_TUNNEL_ZONE_NAME>`. `RELAY_DOMAIN` remains available as an explicit API
-domain override.
+`relay-dev-julius.<RELAY_API_ZONE_NAME>`. Clients use
+`RELAY_TUNNEL_GATEWAY_DOMAIN/e/<digest>/`; the Worker resolves each request to an internal
+`<namespace>-<digest>.<RELAY_TUNNEL_ZONE_NAME>` record without changing the public Host. Keep the API
+and tunnel zone the same when Cloudflare's Universal SSL certificate must cover only first-level
+subdomains. `RELAY_DOMAIN` remains available as an explicit API domain override.
 
 After a successful deploy, the wrapper updates the repository-root `.env` file with the derived relay
 URL. That makes subsequent source builds point at the relay that was just deployed without copying
@@ -137,6 +138,8 @@ The `production` GitHub environment must define these Actions variables:
 
 - `RELAY_API_ZONE_NAME`
 - `RELAY_TUNNEL_ZONE_NAME`
+- `RELAY_TUNNEL_GATEWAY_DOMAIN`
+- `RELAY_TUNNEL_NAMESPACE`
 - `RELAY_DOMAIN` if overriding the derived production relay domain
 - `CLERK_PUBLISHABLE_KEY`
 - `CLERK_JWT_AUDIENCE`
@@ -159,8 +162,8 @@ and hosted web builds.
 
 See:
 
-- [RAS Connect Clerk Setup](../../docs/internals/t3-connect.md) for Clerk keys, JWT templates, and sign-up restrictions
+- [RAS Connect Clerk Setup](../../docs/internals/ras-connect.md) for Clerk keys, JWT templates, and sign-up restrictions
   setup.
 - [Relay Observability](../../docs/operations/relay-observability.md) for deployment tracing and diagnostics.
-- [RAS Connect Architecture Overview](../../docs/internals/t3-code-connect-auth-flow.html) for the full link,
+- [RAS Connect Architecture Overview](../../docs/internals/ras-code-connect-auth-flow.html) for the full link,
   connect, endpoint, and notification flows.

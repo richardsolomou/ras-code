@@ -57,7 +57,7 @@ const config: ShowcaseConfig = {
       platform: "ios",
       simulator: "iPhone Test",
       appearance: "dark",
-      theme: "ras-code",
+      theme: "ras-code-mobile",
       scenes: ["thread", "review"],
       storeAsset: appleSpec,
     },
@@ -66,7 +66,7 @@ const config: ShowcaseConfig = {
       platform: "android",
       avd: "Pixel_Test",
       appearance: "light",
-      theme: "ras-code",
+      theme: "ras-code-mobile",
       scenes: ["thread", "terminal"],
       storeAsset: googleSpec,
     },
@@ -170,8 +170,8 @@ it("expands both appearances into independent upload-ready directories", () => {
       directory: showcaseCaptureDirectory("/captures", capture),
     })),
     [
-      { appearance: "light", directory: "/captures/apple/iphone-test/light/ras-code" },
-      { appearance: "dark", directory: "/captures/apple/iphone-test/dark/ras-code" },
+      { appearance: "light", directory: "/captures/apple/iphone-test/light/ras-code-mobile" },
+      { appearance: "dark", directory: "/captures/apple/iphone-test/dark/ras-code-mobile" },
     ],
   );
 });

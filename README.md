@@ -1,3 +1,5 @@
+<!-- markdownlint-disable MD033 MD041 -->
+
 <div align="center">
 
 <img src="assets/prod/logo.svg" width="96" height="96" alt="RAS Code logo">
@@ -17,7 +19,7 @@ RAS Code brings the best parts of [T3 Code](https://github.com/pingdotgg/t3code)
 You can:
 
 - Run several agents in parallel, each in its own git worktree, and review their diffs before you merge.
-- Drive the same session from the desktop app, the web app, or the official T3 Code mobile app.
+- Drive the same session from the RAS Code desktop, web, or mobile app.
 - Reach your machine remotely over your local network, Tailscale, or a tunnel.
 - Restore any turn from its checkpoint when an agent goes wrong.
 
@@ -25,7 +27,7 @@ The server is event-sourced: clients send typed commands, a pure decider turns t
 
 ## Scope
 
-RAS Code is a personal, opinionated fork. It tracks upstream T3 Code and merges its releases, so it stays compatible with the official T3 Code mobile app and keeps the T3 Code wire contracts as an append-only API. It does not ship its own mobile app or hosted service.
+RAS Code is an independent, opinionated fork. It tracks upstream T3 Code changes selectively while shipping its own desktop, web, mobile, and hosted RAS Connect surfaces. Existing T3 Code wire contracts remain append-only for compatibility.
 
 ## Use
 

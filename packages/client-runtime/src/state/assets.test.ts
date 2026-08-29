@@ -8,6 +8,7 @@ import {
   createAssetEnvironmentAtoms,
   InvalidAssetCollectionKeyError,
   parseAssetCollectionKey,
+  resolveAssetUrl,
 } from "./assets.ts";
 
 describe("asset collection keys", () => {
@@ -116,5 +117,19 @@ describe("createAssetEnvironmentAtoms", () => {
         resources: [...resources].toReversed(),
       }),
     ).not.toBe(assets.createUrls({ environmentId, resources }));
+  });
+});
+
+describe("resolveAssetUrl", () => {
+  it("preserves a managed endpoint gateway prefix for relative assets", () => {
+    expect(
+      resolveAssetUrl("https://gateway.example.com/e/abcdef0123456789/", "/api/assets/one"),
+    ).toBe("https://gateway.example.com/e/abcdef0123456789/api/assets/one");
+  });
+
+  it("keeps absolute asset URLs unchanged", () => {
+    expect(
+      resolveAssetUrl("https://gateway.example.com/e/abcdef0123456789/", "https://cdn.test/one"),
+    ).toBe("https://cdn.test/one");
   });
 });

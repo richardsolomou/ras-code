@@ -1,8 +1,4 @@
-import {
-  connectLoopbackRedirectUri,
-  CONNECT_OAUTH_SCOPES,
-  DEFAULT_HOSTED_APP_URL,
-} from "@ras-code/shared/connectAuth";
+import { connectLoopbackRedirectUri, CONNECT_OAUTH_SCOPES } from "@ras-code/shared/connectAuth";
 import { clerkFrontendApiUrlFromPublishableKey } from "@ras-code/shared/relayAuth";
 import { normalizeSecureRelayUrl } from "@ras-code/shared/relayUrl";
 import * as Config from "effect/Config";
@@ -14,6 +10,7 @@ import * as SchemaIssue from "effect/SchemaIssue";
 declare const __RAS_CODE_BUILD_RELAY_URL__: string | undefined;
 declare const __RAS_CODE_BUILD_CLERK_PUBLISHABLE_KEY__: string | undefined;
 declare const __RAS_CODE_BUILD_CLERK_CLI_OAUTH_CLIENT_ID__: string | undefined;
+declare const __RAS_CODE_BUILD_HOSTED_APP_URL__: string | undefined;
 declare const __RAS_CODE_BUILD_RELAY_CLIENT_OTLP_TRACES_URL__: string | undefined;
 declare const __RAS_CODE_BUILD_RELAY_CLIENT_OTLP_TRACES_DATASET__: string | undefined;
 declare const __RAS_CODE_BUILD_RELAY_CLIENT_OTLP_TRACES_TOKEN__: string | undefined;
@@ -63,6 +60,11 @@ export const buildTimeClerkCliOAuthClientId = readBuildTimeValue(
     ? undefined
     : __RAS_CODE_BUILD_CLERK_CLI_OAUTH_CLIENT_ID__,
 );
+export const buildTimeHostedAppUrl = readBuildTimeValue(
+  typeof __RAS_CODE_BUILD_HOSTED_APP_URL__ === "undefined"
+    ? undefined
+    : __RAS_CODE_BUILD_HOSTED_APP_URL__,
+);
 export const buildTimeRelayClientTracing = {
   tracesUrl: readBuildTimeValue(
     typeof __RAS_CODE_BUILD_RELAY_CLIENT_OTLP_TRACES_URL__ === "undefined"
@@ -111,7 +113,7 @@ export const relayUrlConfig = makeRelayUrlConfig();
  */
 export const hostedAppUrlConfig = makePublicValueConfig(
   "RAS_CODE_HOSTED_APP_URL",
-  DEFAULT_HOSTED_APP_URL,
+  buildTimeHostedAppUrl,
 ).pipe(Config.mapOrFail(validateHostedAppUrl));
 
 function validateHostedAppUrl(value: string) {
@@ -211,5 +213,6 @@ export const cloudCliOAuthConfig = makeCloudCliOAuthConfig();
 export const hasCloudPublicConfig = Boolean(
   (normalizeSecureRelayUrl(process.env.RAS_CODE_RELAY_URL ?? "") ?? buildTimeRelayUrl) &&
   (process.env.RAS_CODE_CLERK_PUBLISHABLE_KEY?.trim() || buildTimeClerkPublishableKey) &&
-  (process.env.RAS_CODE_CLERK_CLI_OAUTH_CLIENT_ID?.trim() || buildTimeClerkCliOAuthClientId),
+  (process.env.RAS_CODE_CLERK_CLI_OAUTH_CLIENT_ID?.trim() || buildTimeClerkCliOAuthClientId) &&
+  (process.env.RAS_CODE_HOSTED_APP_URL?.trim() || buildTimeHostedAppUrl),
 );

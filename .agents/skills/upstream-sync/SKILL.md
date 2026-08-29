@@ -82,8 +82,6 @@ These keep their upstream spelling wherever they appear:
 - Wire protocol names crossing the WebSocket.
 - `/.well-known/t3/environment`
 - `refs/t3/checkpoints`
-- `app.t3.codes`, `clerk.t3.codes`
-- "T3 Connect"
 - Theme ids `t3-chat` and `t3-chat-dark`
 - Links to `pingdotgg/t3code`
 
