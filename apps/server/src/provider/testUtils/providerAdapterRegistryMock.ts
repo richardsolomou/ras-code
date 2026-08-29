@@ -3,7 +3,7 @@
  * kind-keyed adapter map.
  *
  * Tests historically assembled a `registry` object with only `getByProvider`
- * + `listProviders` populated. Slice D grew the shape with `getByInstance`
+ * populated. Slice D grew the shape with `getByInstance`
  * and `listInstances`; this helper fills both in from a single kind-keyed
  * input so individual fixtures can stay concise.
  *
@@ -21,7 +21,6 @@ import {
 import * as Effect from "effect/Effect";
 import * as PubSub from "effect/PubSub";
 import * as Record from "effect/Record";
-import * as Result from "effect/Result";
 import * as Stream from "effect/Stream";
 
 import { ProviderUnsupportedError, type ProviderAdapterError } from "../Errors.ts";
@@ -80,14 +79,6 @@ export const makeAdapterRegistryMock = (adapters: KindAdapterMap): ProviderAdapt
       });
     },
     listInstances: () => Effect.succeed(Array.from(byInstanceId.keys())),
-    listProviders: () =>
-      Effect.succeed(
-        Record.keys(
-          Record.filterMap(adapters, (adapter, kind) =>
-            adapter !== undefined ? Result.succeed(kind) : Result.failVoid,
-          ),
-        ),
-      ),
     // Static test fixtures don't reload; an empty stream is enough to
     // satisfy the shape. Tests exercising hot-reload build their own
     // stream via the real `ProviderInstanceRegistry`.
