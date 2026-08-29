@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "cb49e5d7201ef6bcb288bf447785bbd374e8644d",
+  "lastReviewed": "b654911f8a1d07f8d74fb6dd58ab4f9884326ea2",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -246,6 +246,24 @@
       "ours": "bbcd714311511a739a2fc174d40985c8e4dcdd95",
       "reason": "Cherry-picked; kept our fallback composer chrome alongside upstream's widened picker deps, listed OpenCode next to PostHog AI Gateway in the docs index, and rebranded @t3tools imports that earlier clean picks had carried in.",
       "reviewedAt": "2026-08-29T16:17:36.370Z"
+    },
+    {
+      "upstream": "0bbecfabf189349b16ad2d7e6558a95a98a3b196",
+      "pr": 8321,
+      "title": "fix: make thread auto-settling opt-in",
+      "decision": "adapted",
+      "ours": "78e2edc8293c1d7eb0e13f15a21a091e42e9714a",
+      "reason": "Cherry-picked; took upstream's new settling tests without resurrecting the theme-transition test we had already removed.",
+      "reviewedAt": "2026-08-29T16:18:19.933Z"
+    },
+    {
+      "upstream": "b654911f8a1d07f8d74fb6dd58ab4f9884326ea2",
+      "pr": 8585,
+      "title": "fix(web): stop session activity timing test from blocking releases",
+      "decision": "adopted",
+      "ours": "4ef4dddd583c3f5c94185c99ebb778eeecb962b4",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-29T16:18:22.489Z"
     }
   ]
 }
