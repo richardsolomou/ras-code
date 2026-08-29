@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "4669eab8e0e01d07141a2cb49ca21a9e15ae1429",
+  "lastReviewed": "3e6ab36f6ed303f95f210971f56cc8642214c6fc",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -354,6 +354,15 @@
       "ours": "a44b432366f61c8918c30ce418653a43a46d668c",
       "reason": "Clean cherry-pick.",
       "reviewedAt": "2026-08-29T16:24:24.982Z"
+    },
+    {
+      "upstream": "3e6ab36f6ed303f95f210971f56cc8642214c6fc",
+      "pr": 8609,
+      "title": "chore(mobile): upgrade to Expo SDK 57",
+      "decision": "adapted",
+      "ours": "02b1d0d9a267e6e6a74d12a9cb44c4d4f333e964",
+      "reason": "Cherry-picked the SDK 57 manifests and patches; regenerated pnpm-lock.yaml rather than merging it, since our lockfile carries relay dependencies upstream lacks and its integrity hashes contain t3 substrings the rebrand map would corrupt.",
+      "reviewedAt": "2026-08-29T16:27:01.601Z"
     }
   ]
 }
