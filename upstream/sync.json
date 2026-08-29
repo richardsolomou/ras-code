@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "4c51b4c9b6a85d96a22e0df41d5cfd2d8fc9901d",
+  "lastReviewed": "acb599d2dc5b28d5bad82fa2a280ac2abe771ec9",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -129,6 +129,42 @@
       "ours": "446f06295ee4dbd12aaa192eb271c1473c7e39a9",
       "reason": "Clean cherry-pick.",
       "reviewedAt": "2026-08-28T13:01:52.206Z"
+    },
+    {
+      "upstream": "9257bd860a44ce2a324c917ca66a1a81e73607bd",
+      "pr": 8168,
+      "title": "fix(web): add back button to project settings",
+      "decision": "adopted",
+      "ours": "42a1a40d3aa509f45c5073aa1b98c26235e06258",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-29T16:08:53.632Z"
+    },
+    {
+      "upstream": "018d7f2775daabd2ef07898af29586915a0b7f67",
+      "pr": 7327,
+      "title": "refactor(mobile): compile semantic themes for Uniwind",
+      "decision": "deferred",
+      "ours": null,
+      "reason": "Upstream compiles its Tailwind palette into semantic adaptive tokens, but our mobile theme replaced those palette colours with RAS Code hex values. Taking the refactor verbatim reverts the brand across 111 files; adopting the mechanism means regenerating the token set for our palette. Wants its own change.",
+      "reviewedAt": "2026-08-29T16:08:56.099Z"
+    },
+    {
+      "upstream": "f94a0d646ed78a4788e4af6417f74202a628a5e9",
+      "pr": 5769,
+      "title": "fix(desktop): Cache Runtime locally on WSL Filesystem, dramatically improving launch times",
+      "decision": "adapted",
+      "ours": "c9488764c5aaafdd58dfb2e4e0fa0b0937c1e32d",
+      "reason": "Cherry-picked; test conflict was rebrand-only on top of upstream's path.join change, kept our binary and fixture names.",
+      "reviewedAt": "2026-08-29T16:08:58.554Z"
+    },
+    {
+      "upstream": "acb599d2dc5b28d5bad82fa2a280ac2abe771ec9",
+      "pr": 8573,
+      "title": "fix(mobile): show OpenCode model sources in picker",
+      "decision": "adopted",
+      "ours": "019e0a63fcbd340704a1048833ab7d99f518d1dd",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-29T16:09:00.970Z"
     }
   ]
 }
