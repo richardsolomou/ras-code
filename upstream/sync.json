@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "0009aacdf146e0532327fa3d9d0109d5adca68b9",
+  "lastReviewed": "cb49e5d7201ef6bcb288bf447785bbd374e8644d",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -237,6 +237,15 @@
       "ours": "02fca6d36f38417442d4c726521dd999e11c4e9f",
       "reason": "Clean cherry-pick.",
       "reviewedAt": "2026-08-29T16:14:04.106Z"
+    },
+    {
+      "upstream": "cb49e5d7201ef6bcb288bf447785bbd374e8644d",
+      "pr": 8480,
+      "title": "fix(opencode): handle child approvals, stops, and model catalogs",
+      "decision": "adapted",
+      "ours": "bbcd714311511a739a2fc174d40985c8e4dcdd95",
+      "reason": "Cherry-picked; kept our fallback composer chrome alongside upstream's widened picker deps, listed OpenCode next to PostHog AI Gateway in the docs index, and rebranded @t3tools imports that earlier clean picks had carried in.",
+      "reviewedAt": "2026-08-29T16:17:36.370Z"
     }
   ]
 }
