@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "d22709f759ced90b0ae7b7cb73d7ad22c2ce962b",
+  "lastReviewed": "be218ac768d809087bfcea4d8f15c431f0d70e16",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -408,6 +408,15 @@
       "ours": "d66a40b7b7c1f1015da3e33a280387382a84e329",
       "reason": "Clean cherry-pick.",
       "reviewedAt": "2026-08-29T16:32:07.863Z"
+    },
+    {
+      "upstream": "be218ac768d809087bfcea4d8f15c431f0d70e16",
+      "pr": 8532,
+      "title": "feat(web): keybinding settings as settings rows",
+      "decision": "adapted",
+      "ours": "0d0b3f833719323eb2268ef87e9671bdf23cf0a9",
+      "reason": "Cherry-picked; the conflict was our longer brand name rewrapping the notice upstream extracted into BrowserKeybindingNotice, which already carries our copy.",
+      "reviewedAt": "2026-08-29T16:36:27.211Z"
     }
   ]
 }
