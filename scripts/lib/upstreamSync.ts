@@ -11,7 +11,14 @@ import { mapUpstreamPath } from "./upstreamRebrandMap.ts";
 
 export const UPSTREAM_SYNC_LEDGER_PATH = "upstream/sync.json";
 
-export const UpstreamSyncDecision = Schema.Literals(["adopted", "adapted", "skipped", "deferred"]);
+export const UpstreamSyncDecision = Schema.Literals([
+  "adopted",
+  "adapted",
+  "reimplemented",
+  "obsolete",
+  "skipped",
+  "deferred",
+]);
 export type UpstreamSyncDecision = typeof UpstreamSyncDecision.Type;
 
 export const UpstreamSyncEntry = Schema.Struct({
@@ -20,6 +27,12 @@ export const UpstreamSyncEntry = Schema.Struct({
   title: Schema.String,
   decision: UpstreamSyncDecision,
   ours: Schema.NullOr(Schema.String),
+  /**
+   * What the change does, in our vocabulary rather than upstream's paths. A `deferred` or
+   * `reimplemented` entry is only actionable later if someone wrote down the behaviour, because the
+   * diff stops applying long before the intent stops mattering.
+   */
+  intent: Schema.optional(Schema.String),
   reason: Schema.String,
   reviewedAt: Schema.String,
 });
@@ -84,7 +97,7 @@ export function summarizeAreas(paths: ReadonlyArray<string>): ReadonlyArray<Upst
   return UpstreamChangeArea.literals.filter((area) => hit.has(area));
 }
 
-export type UpstreamPathPolicyKind = "wire" | "replaced" | "normal";
+export type UpstreamPathPolicyKind = "wire" | "replaced" | "removed" | "diverged" | "normal";
 
 export interface UpstreamPathPolicy {
   readonly kind: UpstreamPathPolicyKind;
@@ -102,6 +115,25 @@ const replacedPrefixes: ReadonlyArray<readonly [string, string]> = [
   ["packaging/", "packaging metadata, which we renamed"],
 ];
 
+/**
+ * Surfaces we deleted outright. A change that only touches these has nothing to land against, so it
+ * is `obsolete` rather than skipped: skipping implies a judgement, obsolete states a fact.
+ */
+const removedPrefixes: ReadonlyArray<readonly [string, string]> = [
+  ["experiments/", "experiments, which we do not carry"],
+];
+
+/**
+ * Surfaces we deliberately built differently and intend to keep that way. A patch here will not
+ * apply and should not be forced; take the behaviour and rebuild it in our shape.
+ *
+ * Only list a surface once we have decided *not* to converge. Somewhere we are merely behind, or
+ * mid-migration toward upstream's design, does not belong here — that is a deferred change with an
+ * intent, not a standing divergence. Keep entries short and specific: a prefix here turns off
+ * cherry-picking for everything beneath it.
+ */
+const divergedPrefixes: ReadonlyArray<readonly [string, string]> = [];
+
 const brandAssetExtensions = [".png", ".svg", ".ico", ".icns", ".webp", ".jpg", ".jpeg"];
 
 /**
@@ -112,9 +144,17 @@ export function classifyPathPolicy(path: string): UpstreamPathPolicy {
   if (path.startsWith("packages/contracts/")) {
     return { kind: "wire", reason: "wire contract we keep compatible with upstream" };
   }
+  const removed = removedPrefixes.find(([prefix]) => path.startsWith(prefix));
+  if (removed) {
+    return { kind: "removed", reason: `touches ${removed[1]}` };
+  }
   const replaced = replacedPrefixes.find(([prefix]) => path.startsWith(prefix));
   if (replaced) {
     return { kind: "replaced", reason: `touches ${replaced[1]}` };
+  }
+  const diverged = divergedPrefixes.find(([prefix]) => path.startsWith(prefix));
+  if (diverged) {
+    return { kind: "diverged", reason: `touches ${diverged[1]}` };
   }
   if (brandAssetExtensions.some((extension) => path.endsWith(extension))) {
     return { kind: "replaced", reason: "touches brand assets, which we replaced" };
@@ -176,7 +216,7 @@ export function groupCommitsByPullRequest(
   return changes;
 }
 
-export type SuggestedAction = "adopt" | "adapt" | "skip";
+export type SuggestedAction = "adopt" | "adapt" | "reimplement" | "obsolete" | "skip";
 
 export interface ActionSuggestion {
   readonly action: SuggestedAction;
@@ -187,7 +227,18 @@ export interface ActionSuggestion {
 export function suggestAction(paths: ReadonlyArray<string>): ActionSuggestion {
   const policies = paths.map(classifyPathPolicy);
   const replaced = policies.filter((policy) => policy.kind === "replaced");
+  const removed = policies.filter((policy) => policy.kind === "removed");
+  const diverged = policies.filter((policy) => policy.kind === "diverged");
 
+  if (policies.length > 0 && removed.length === policies.length) {
+    return { action: "obsolete", reason: removed[0]!.reason ?? "touches surfaces we removed" };
+  }
+  if (diverged.length > 0) {
+    return {
+      action: "reimplement",
+      reason: diverged[0]!.reason ?? "touches a surface we redesigned",
+    };
+  }
   if (policies.length > 0 && replaced.length === policies.length) {
     return { action: "skip", reason: replaced[0]!.reason ?? "touches replaced surfaces" };
   }

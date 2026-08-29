@@ -140,15 +140,6 @@
       "reviewedAt": "2026-08-29T16:08:53.632Z"
     },
     {
-      "upstream": "018d7f2775daabd2ef07898af29586915a0b7f67",
-      "pr": 7327,
-      "title": "refactor(mobile): compile semantic themes for Uniwind",
-      "decision": "deferred",
-      "ours": null,
-      "reason": "Upstream compiles its Tailwind palette into semantic adaptive tokens, but our mobile theme replaced those palette colours with RAS Code hex values. Taking the refactor verbatim reverts the brand across 111 files; adopting the mechanism means regenerating the token set for our palette. Wants its own change.",
-      "reviewedAt": "2026-08-29T16:08:56.099Z"
-    },
-    {
       "upstream": "f94a0d646ed78a4788e4af6417f74202a628a5e9",
       "pr": 5769,
       "title": "fix(desktop): Cache Runtime locally on WSL Filesystem, dramatically improving launch times",
@@ -302,15 +293,6 @@
       "reviewedAt": "2026-08-29T16:22:24.282Z"
     },
     {
-      "upstream": "8fc7f22941969d7a2c06929dc29aa86ae1b02f33",
-      "pr": 8597,
-      "title": "fix(mobile): restore composer glass and rounded shadows",
-      "decision": "deferred",
-      "ours": null,
-      "reason": "Follow-on to the deferred #7327: restores glass and shadows through Uniwind classnames and withUniwind mappings, while our GlassSurface and ThreadComposer resolve those colours through useThemeColor against the RAS Code palette. Lands with #7327.",
-      "reviewedAt": "2026-08-29T16:23:08.726Z"
-    },
-    {
       "upstream": "ac3a331918b7b25271058ae7e12f1e15772fb3de",
       "pr": 8599,
       "title": "Remove Messages Glass Lab experiment",
@@ -428,15 +410,6 @@
       "reviewedAt": "2026-08-29T16:38:02.969Z"
     },
     {
-      "upstream": "5e63aea2df03e8ccc5c8a56cee4c067ecbd3d703",
-      "pr": 8504,
-      "title": "fix(web): clean up provider settings list and editor",
-      "decision": "deferred",
-      "ours": null,
-      "reason": "Restructures the provider editor, including wrapping the body in a readOnly container, over the region where we added the fallback section and usage-limit pill. Needs the two designs reconciled deliberately rather than merged hunk by hunk.",
-      "reviewedAt": "2026-08-29T16:39:29.885Z"
-    },
-    {
       "upstream": "074bcd6dc897f9c28b1bbc04737daa6ee3d8e40f",
       "pr": 8627,
       "title": "fix(web): keep project picker popup inside the sidebar",
@@ -471,6 +444,36 @@
       "ours": "e2953c8137ec4d8174100a804d0275bc93bf5e2d",
       "reason": "Clean cherry-pick.",
       "reviewedAt": "2026-08-29T16:40:26.909Z"
+    },
+    {
+      "upstream": "018d7f2775daabd2ef07898af29586915a0b7f67",
+      "pr": 7327,
+      "title": "refactor(mobile): compile semantic themes for Uniwind",
+      "decision": "deferred",
+      "ours": null,
+      "intent": "Mobile themes compile to semantic adaptive tokens, so a registered theme drives colour everywhere instead of dark:/light: utilities guessing at it.",
+      "reason": "We are adopting Uniwind rather than keeping our useThemeColor approach: the token system is the better structure and we should express the RAS Code palette through it. Deferred only because it wants its own change, generating our palette as adaptive tokens across 111 files.",
+      "reviewedAt": "2026-08-29T16:57:13.202Z"
+    },
+    {
+      "upstream": "8fc7f22941969d7a2c06929dc29aa86ae1b02f33",
+      "pr": 8597,
+      "title": "fix(mobile): restore composer glass and rounded shadows",
+      "decision": "deferred",
+      "ours": null,
+      "intent": "The composer keeps its glass surface and rounded drop shadow, with the shadow outside the clipped content so it is not cut off on iOS.",
+      "reason": "Expressed in the Uniwind tokens and withUniwind mappings that #7327 introduces. Lands with it.",
+      "reviewedAt": "2026-08-29T16:57:15.691Z"
+    },
+    {
+      "upstream": "5e63aea2df03e8ccc5c8a56cee4c067ecbd3d703",
+      "pr": 8504,
+      "title": "fix(web): clean up provider settings list and editor",
+      "decision": "deferred",
+      "ours": null,
+      "intent": "Provider settings list and editor get a cleaner layout, with the editor body wrapped in a readOnly container that dims and disables it.",
+      "reason": "The rewrap covers the region where we added the fallback section and usage-limit pill. Wants the two designs reconciled deliberately rather than merged hunk by hunk.",
+      "reviewedAt": "2026-08-29T16:57:18.097Z"
     }
   ]
 }

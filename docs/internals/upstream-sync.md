@@ -4,6 +4,8 @@
 
 RAS Code is a diverging fork of [`pingdotgg/t3code`](https://github.com/pingdotgg/t3code). We do not merge upstream. We review upstream changes one at a time, on the real code diff, and record what we did with each one.
 
+We want the improvements upstream makes. We do not want their repository structure, feature set, or release cadence. Those goals separate as the fork moves, so the unit of work is the change an upstream author made, not the patch they wrote. A cherry-pick is a shortcut that holds while a file still means the same thing in both trees; when it stops holding, we port the behavior instead. Neither forcing the patch nor dropping the improvement is acceptable.
+
 The agent-facing procedure lives in the [`upstream-sync` skill](../../.agents/skills/upstream-sync/SKILL.md). This page describes the machinery it drives.
 
 ## The ledger
@@ -18,18 +20,50 @@ The agent-facing procedure lives in the [`upstream-sync` skill](../../.agents/sk
 | `lastReviewed`   | Newest upstream commit that, together with every commit before it, has a decision. |
 | `entries`        | One decision per upstream commit, in upstream history order.                       |
 
-Each entry records `upstream` (the commit), `pr` (the pull request number, or `null` for a commit pushed without one), `title`, `decision`, `ours` (our commit that carries the change, or `null`), `reason`, and `reviewedAt`.
+Each entry records `upstream` (the commit), `pr` (the pull request number, or `null` for a commit pushed without one), `title`, `decision`, `ours` (our commit that carries the change, or `null`), `intent` (optional), `reason`, and `reviewedAt`.
+
+`intent` is what the change does, written in our vocabulary rather than upstream's paths. It matters because a diff stops applying long before the intent stops mattering: once the surrounding code has moved, the sha alone is not enough to act on. Record it whenever the code did not come across verbatim, and always for `deferred` and `reimplemented`.
 
 `decision` is one of:
 
 - `adopted` — taken as-is, modulo the rebrand substitutions.
-- `adapted` — the behavior came across, the implementation differs.
+- `adapted` — the patch landed, with conflicts resolved in our favor where they touched our shape.
+- `reimplemented` — the patch could not land, so we built the behavior ourselves. We have the improvement; we did not copy the code.
+- `obsolete` — the surface no longer exists here, so there was nothing to decide. A fact, not a judgement.
 - `skipped` — deliberately not taken. The `reason` becomes precedent.
-- `deferred` — wanted, not landed yet. Stays visible for a later pass.
+- `deferred` — wanted, not landed yet. Stays visible for a later pass, and needs an `intent` to be actionable.
 
 The schema is an Effect Schema in [`scripts/lib/upstreamSync.ts`](../../scripts/lib/upstreamSync.ts). `node scripts/upstream-sync.ts validate` checks the file against it.
 
 `lastReviewed` only ever advances across the leading run of commits that have entries. Deciding a later change before an earlier one is fine; it just does not move the marker past the undecided one.
+
+## The surface map
+
+`scripts/lib/upstreamSync.ts` declares what an upstream path means here, so the report can say "there is nothing to land" instead of producing a conflict nobody can resolve:
+
+| Kind       | Meaning                                                   | Suggests      |
+| ---------- | --------------------------------------------------------- | ------------- |
+| `wire`     | Kept compatible with upstream on purpose.                 | `adopt`       |
+| `replaced` | We substituted our own surface (brand, marketing, legal). | `skip`        |
+| `removed`  | We deleted the surface outright.                          | `obsolete`    |
+| `diverged` | We built it differently and intend to keep it that way.   | `reimplement` |
+| `normal`   | Ordinary source we still track with upstream.             | `adopt`       |
+
+Add entries as we move and delete code — the map is what keeps the report useful once paths stop lining up.
+
+One rule keeps `diverged` from rotting: **a surface we are migrating toward is not a divergence.** It is for designs we have decided to keep different, permanently. Somewhere we are behind upstream, or mid-migration onto their design, is a deferred change with an intent. Listing it as diverged turns off cherry-picking for that whole subtree and quietly commits us to maintaining a fork of it forever.
+
+## Verifying a pick
+
+```bash
+node scripts/upstream-sync.ts verify
+```
+
+A cherry-pick that reports no conflict can still leave the tree wrong, because git only reports overlapping edits. `verify` fails when the tree still names upstream: package scopes (`@t3tools/...`) surviving in files no conflict touched, or upstream directory names arriving as new paths. Both compile-break or resurrect upstream's layout, and neither shows up until a full typecheck runs — usually several changes later.
+
+It exempts the rebrand map and its fixtures, which name upstream deliberately. A bare `grep | xargs` over the tree does not, and rewriting them breaks the map.
+
+Run it after every pick, then a typecheck for each package the change touched. Per-file tests do not catch this class of failure.
 
 ## The report
 
