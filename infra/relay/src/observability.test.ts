@@ -15,7 +15,6 @@ import { makeRelayTraceLayer } from "./observability.ts";
 interface ExportedRequest {
   readonly authorization: string | undefined;
   readonly body: string;
-  readonly dataset: string | undefined;
 }
 
 const otlpAttributeValue = (value: {
@@ -36,7 +35,6 @@ it.effect("exports schema error fields as span attributes", () =>
         yield* Deferred.succeed(exportedRequest, {
           authorization: request.headers.authorization,
           body: yield* request.text,
-          dataset: request.headers["x-axiom-dataset"],
         });
         return HttpServerResponse.empty({ status: 204 });
       }),
@@ -54,7 +52,6 @@ it.effect("exports schema error fields as span attributes", () =>
       Effect.provide(
         makeRelayTraceLayer({
           tracesEndpoint: "/v1/traces",
-          tracesDatasetName: "relay-test-traces",
           ingestToken: Redacted.make("test-token"),
         }),
       ),
@@ -74,7 +71,6 @@ it.effect("exports schema error fields as span attributes", () =>
     );
 
     expect(request.authorization).toBe("Bearer test-token");
-    expect(request.dataset).toBe("relay-test-traces");
     expect(attributes).toMatchObject({
       "error.type": "EnvironmentConnectNotAuthorized",
       "error.environmentId": "environment-1",

@@ -57,19 +57,17 @@ GitHub Actions environment before building desktop, CLI, or hosted web artifacts
 Required repository variables shared by relay deployments:
 
 - `CLOUDFLARE_ACCOUNT_ID`
-- `PLANETSCALE_ORGANIZATION`
-- `AXIOM_ORG_ID`
 
 Required repository secrets shared by relay deployments:
 
 - `CLOUDFLARE_API_TOKEN`
-- `PLANETSCALE_API_TOKEN_ID`
-- `PLANETSCALE_API_TOKEN`
-- `AXIOM_TOKEN`
 
 Required `production` environment variables:
 
 - `RELAY_API_ZONE_NAME`
+- `RELAY_DATABASE_HOST`
+- `RELAY_DATABASE_NAME`
+- `RELAY_DATABASE_USER`
 - `RELAY_TUNNEL_ZONE_NAME`
 - `RELAY_TUNNEL_GATEWAY_DOMAIN`
 - `RELAY_TUNNEL_NAMESPACE`
@@ -90,11 +88,18 @@ Required `production` environment secrets:
 
 - `CLERK_SECRET_KEY`
 - `APNS_PRIVATE_KEY`
+- `POSTHOG_PROJECT_TOKEN`
+- `RELAY_DATABASE_PASSWORD`
+- `RELAY_DATABASE_ACCESS_CLIENT_ID`
+- `RELAY_DATABASE_ACCESS_CLIENT_SECRET`
 
 The account-scoped repository credentials are consumed by Alchemy while provisioning relay stages; they
-are not bound into the relay Worker. The production deployment uses an Axiom personal access token,
-so `AXIOM_ORG_ID` must accompany `AXIOM_TOKEN`. The `prod` stage owns the retained PlanetScale
-database. Local personal stages provision isolated branches from it and are never deployed by CI.
+are not bound into the relay Worker. Postgres is self-hosted and never exposed on a public port:
+cloudflared publishes it as `RELAY_DATABASE_HOST`, a Cloudflare Access application guards that
+hostname, and Hyperdrive authenticates with the Access service token. The `prod` stage owns
+`RELAY_DATABASE_NAME`; every other stage gets its own `<RELAY_DATABASE_NAME>-<stage>` database on the
+same server. Migrations run from the deploy host over `cloudflared access tcp`, which the deploy
+workflow opens before the stack runs and closes afterwards.
 Production adopts the configured relay API and tunnel DNS zones as retained Cloudflare resources.
 Personal stages reference the production-owned zones.
 

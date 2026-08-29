@@ -19,7 +19,7 @@ describe("RelayDeployError", () => {
   it("reports the incomplete state source, stage, and missing fields", () => {
     const missingFields = missingRelayPublicConfigFields({
       url: "https://relay.example.test",
-      mobileTracingUrl: "https://api.axiom.co/v1/traces",
+      mobileTracingUrl: "https://us.i.posthog.com/i/v1/traces",
     });
     const error = new RelayDeployError({
       source: "alchemy_state",
@@ -30,16 +30,10 @@ describe("RelayDeployError", () => {
     expect(error).toMatchObject({
       source: "alchemy_state",
       stage: "production",
-      missingFields: [
-        "mobileTracingDataset",
-        "mobileTracingToken",
-        "clientTracingUrl",
-        "clientTracingDataset",
-        "clientTracingToken",
-      ],
+      missingFields: ["mobileTracingToken", "clientTracingUrl", "clientTracingToken"],
     });
     expect(error.message).toBe(
-      "Relay deploy output from 'alchemy_state' for stage 'production' is missing required public config fields: mobileTracingDataset, mobileTracingToken, clientTracingUrl, clientTracingDataset, clientTracingToken",
+      "Relay deploy output from 'alchemy_state' for stage 'production' is missing required public config fields: mobileTracingToken, clientTracingUrl, clientTracingToken",
     );
   });
 
@@ -89,11 +83,9 @@ describe("hasDeployChanges", () => {
 describe("reconcileRootEnvPublicConfig", () => {
   const config = {
     relayUrl: "https://relay.example.test",
-    mobileTracingUrl: "https://api.axiom.co/v1/traces",
-    mobileTracingDataset: "ras-code-mobile-traces-dev",
+    mobileTracingUrl: "https://us.i.posthog.com/i/v1/traces",
     mobileTracingToken: "xaat-public-ingest",
-    clientTracingUrl: "https://api.axiom.co/v1/traces",
-    clientTracingDataset: "ras-code-relay-client-traces-dev",
+    clientTracingUrl: "https://us.i.posthog.com/i/v1/traces",
     clientTracingToken: "xaat-relay-client-ingest",
   } as const;
 
@@ -101,11 +93,9 @@ describe("reconcileRootEnvPublicConfig", () => {
     expect(reconcileRootEnvPublicConfig("", config)).toBe(
       [
         "RAS_CODE_RELAY_URL=https://relay.example.test",
-        "RAS_CODE_MOBILE_OTLP_TRACES_URL=https://api.axiom.co/v1/traces",
-        "RAS_CODE_MOBILE_OTLP_TRACES_DATASET=ras-code-mobile-traces-dev",
+        "RAS_CODE_MOBILE_OTLP_TRACES_URL=https://us.i.posthog.com/i/v1/traces",
         "RAS_CODE_MOBILE_OTLP_TRACES_TOKEN=xaat-public-ingest",
-        "RAS_CODE_RELAY_CLIENT_OTLP_TRACES_URL=https://api.axiom.co/v1/traces",
-        "RAS_CODE_RELAY_CLIENT_OTLP_TRACES_DATASET=ras-code-relay-client-traces-dev",
+        "RAS_CODE_RELAY_CLIENT_OTLP_TRACES_URL=https://us.i.posthog.com/i/v1/traces",
         "RAS_CODE_RELAY_CLIENT_OTLP_TRACES_TOKEN=xaat-relay-client-ingest",
         "",
       ].join("\n"),
@@ -119,10 +109,8 @@ describe("reconcileRootEnvPublicConfig", () => {
           "RAS_CODE_CLERK_PUBLISHABLE_KEY=pk_test_example",
           "RAS_CODE_RELAY_URL=https://old.example.test",
           "RAS_CODE_MOBILE_OTLP_TRACES_URL=https://old.example.test/v1/traces",
-          "RAS_CODE_MOBILE_OTLP_TRACES_DATASET=old-dataset",
           "RAS_CODE_MOBILE_OTLP_TRACES_TOKEN=old-token",
           "RAS_CODE_RELAY_CLIENT_OTLP_TRACES_URL=https://old.example.test/v1/traces",
-          "RAS_CODE_RELAY_CLIENT_OTLP_TRACES_DATASET=old-client-dataset",
           "RAS_CODE_RELAY_CLIENT_OTLP_TRACES_TOKEN=old-client-token",
           "",
         ].join("\n"),
@@ -132,11 +120,9 @@ describe("reconcileRootEnvPublicConfig", () => {
       [
         "RAS_CODE_CLERK_PUBLISHABLE_KEY=pk_test_example",
         "RAS_CODE_RELAY_URL=https://relay.example.test",
-        "RAS_CODE_MOBILE_OTLP_TRACES_URL=https://api.axiom.co/v1/traces",
-        "RAS_CODE_MOBILE_OTLP_TRACES_DATASET=ras-code-mobile-traces-dev",
+        "RAS_CODE_MOBILE_OTLP_TRACES_URL=https://us.i.posthog.com/i/v1/traces",
         "RAS_CODE_MOBILE_OTLP_TRACES_TOKEN=xaat-public-ingest",
-        "RAS_CODE_RELAY_CLIENT_OTLP_TRACES_URL=https://api.axiom.co/v1/traces",
-        "RAS_CODE_RELAY_CLIENT_OTLP_TRACES_DATASET=ras-code-relay-client-traces-dev",
+        "RAS_CODE_RELAY_CLIENT_OTLP_TRACES_URL=https://us.i.posthog.com/i/v1/traces",
         "RAS_CODE_RELAY_CLIENT_OTLP_TRACES_TOKEN=xaat-relay-client-ingest",
         "",
       ].join("\n"),
@@ -161,17 +147,14 @@ describe("serializeRelayClientTracingEnvironment", () => {
     expect(
       serializeRelayClientTracingEnvironment({
         relayUrl: "https://relay.example.test",
-        mobileTracingUrl: "https://api.axiom.co/v1/traces",
-        mobileTracingDataset: "mobile",
+        mobileTracingUrl: "https://us.i.posthog.com/i/v1/traces",
         mobileTracingToken: "mobile-token",
-        clientTracingUrl: "https://api.axiom.co/v1/traces",
-        clientTracingDataset: "relay",
+        clientTracingUrl: "https://us.i.posthog.com/i/v1/traces",
         clientTracingToken: "client-token",
       }),
     ).toBe(
       [
-        "RAS_CODE_RELAY_CLIENT_OTLP_TRACES_URL=https://api.axiom.co/v1/traces",
-        "RAS_CODE_RELAY_CLIENT_OTLP_TRACES_DATASET=relay",
+        "RAS_CODE_RELAY_CLIENT_OTLP_TRACES_URL=https://us.i.posthog.com/i/v1/traces",
         "RAS_CODE_RELAY_CLIENT_OTLP_TRACES_TOKEN=client-token",
         "",
       ].join("\n"),
@@ -203,20 +186,16 @@ describe("publicConfigFromOutput", () => {
     expect(
       publicConfigFromOutput({
         url: "https://relay.example.test",
-        mobileTracingUrl: "https://api.axiom.co/v1/traces",
-        mobileTracingDataset: "mobile",
+        mobileTracingUrl: "https://us.i.posthog.com/i/v1/traces",
         mobileTracingToken: "mobile-token",
-        clientTracingUrl: "https://api.axiom.co/v1/traces",
-        clientTracingDataset: "relay",
+        clientTracingUrl: "https://us.i.posthog.com/i/v1/traces",
         clientTracingToken: "client-token",
       }),
     ).toEqual({
       relayUrl: "https://relay.example.test",
-      mobileTracingUrl: "https://api.axiom.co/v1/traces",
-      mobileTracingDataset: "mobile",
+      mobileTracingUrl: "https://us.i.posthog.com/i/v1/traces",
       mobileTracingToken: "mobile-token",
-      clientTracingUrl: "https://api.axiom.co/v1/traces",
-      clientTracingDataset: "relay",
+      clientTracingUrl: "https://us.i.posthog.com/i/v1/traces",
       clientTracingToken: "client-token",
     });
   });

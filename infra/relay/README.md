@@ -90,10 +90,9 @@ file from the relay directory. Runtime secrets include Clerk and APNs credential
 the configured API and tunnel DNS zones as retained Cloudflare resources. Personal stages reference
 the production-owned zones.
 
-The `prod` Alchemy stage owns the retained PlanetScale database and is the shared hosted relay for
-stable and nightly clients. Every other stage references that database and provisions an isolated
-PlanetScale branch and runtime role for local development, so deploy `prod` before creating
-developer stages:
+The `prod` Alchemy stage is the shared hosted relay for stable and nightly clients and owns the
+database named by `RELAY_DATABASE_NAME`. Every other stage gets its own
+`<RELAY_DATABASE_NAME>-<stage>` database on the same Postgres server, so stages never share tables:
 
 ```sh
 vp run --filter ras-code-relay deploy -- --stage prod
@@ -124,19 +123,17 @@ deploy personal non-production stages locally with any stage name other than `pr
 The repository must define these Actions variables shared by relay deployments:
 
 - `CLOUDFLARE_ACCOUNT_ID`
-- `PLANETSCALE_ORGANIZATION`
-- `AXIOM_ORG_ID`
 
 The repository must define these Actions secrets shared by relay deployments:
 
 - `CLOUDFLARE_API_TOKEN`
-- `PLANETSCALE_API_TOKEN_ID`
-- `PLANETSCALE_API_TOKEN`
-- `AXIOM_TOKEN`
 
 The `production` GitHub environment must define these Actions variables:
 
 - `RELAY_API_ZONE_NAME`
+- `RELAY_DATABASE_HOST`
+- `RELAY_DATABASE_NAME`
+- `RELAY_DATABASE_USER`
 - `RELAY_TUNNEL_ZONE_NAME`
 - `RELAY_TUNNEL_GATEWAY_DOMAIN`
 - `RELAY_TUNNEL_NAMESPACE`
@@ -153,17 +150,23 @@ The `production` GitHub environment must define these Actions secrets:
 
 - `CLERK_SECRET_KEY`
 - `APNS_PRIVATE_KEY`
+- `POSTHOG_PROJECT_TOKEN`
+- `RELAY_DATABASE_PASSWORD`
+- `RELAY_DATABASE_ACCESS_CLIENT_ID`
+- `RELAY_DATABASE_ACCESS_CLIENT_SECRET`
 
 The account-scoped repository credentials are consumed by Alchemy while provisioning relay stages; they
-are not bound into the relay Worker. The production deployment uses an Axiom personal access token,
-so `AXIOM_ORG_ID` must accompany `AXIOM_TOKEN`. The release workflow reads the production relay's
-derived public URL and Clerk publishable key from the same environment for downstream desktop, CLI,
-and hosted web builds.
+are not bound into the relay Worker. Postgres is reached through a Cloudflare Tunnel guarded by an
+Access application, so it needs no public port; Hyperdrive authenticates with the Access service
+token. Migrations run from the deploy host over `cloudflared access tcp` rather than through
+Hyperdrive. The release workflow reads the production relay's derived public URL and Clerk
+publishable key from the same environment for downstream desktop, CLI, and hosted web builds.
 
 See:
 
 - [RAS Connect Clerk Setup](../../docs/internals/ras-connect.md) for Clerk keys, JWT templates, and sign-up restrictions
   setup.
+- [Relay Database](../../docs/operations/relay-database.md) for the tunnel, Access, and migration topology.
 - [Relay Observability](../../docs/operations/relay-observability.md) for deployment tracing and diagnostics.
 - [RAS Connect Architecture Overview](../../docs/internals/ras-code-connect-auth-flow.html) for the full link,
   connect, endpoint, and notification flows.

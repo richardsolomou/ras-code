@@ -33,7 +33,6 @@ describe("resolveCloudPublicConfig", () => {
       },
       observability: {
         tracesUrl: null,
-        tracesDataset: null,
         tracesToken: null,
       },
     });
@@ -45,8 +44,7 @@ describe("resolveCloudPublicConfig", () => {
         clerk: { publishableKey: "  pk_test_example  ", jwtTemplate: "  ras-code-relay  " },
         relay: { url: " https://relay.example.test/// " },
         observability: {
-          tracesUrl: " https://api.axiom.co/v1/traces ",
-          tracesDataset: " mobile-traces ",
+          tracesUrl: " https://us.i.posthog.com/i/v1/traces ",
           tracesToken: " public-ingest-token ",
         },
       }),
@@ -59,8 +57,7 @@ describe("resolveCloudPublicConfig", () => {
         url: "https://relay.example.test",
       },
       observability: {
-        tracesUrl: "https://api.axiom.co/v1/traces",
-        tracesDataset: "mobile-traces",
+        tracesUrl: "https://us.i.posthog.com/i/v1/traces",
         tracesToken: "public-ingest-token",
       },
     });
@@ -82,7 +79,6 @@ describe("resolveCloudPublicConfig", () => {
       },
       observability: {
         tracesUrl: null,
-        tracesDataset: null,
         tracesToken: null,
       },
     });
@@ -92,14 +88,12 @@ describe("resolveCloudPublicConfig", () => {
     expect(
       resolveCloudPublicConfig({
         observability: {
-          tracesUrl: "http://api.axiom.co/v1/traces",
-          tracesDataset: "mobile-traces",
+          tracesUrl: "http://us.i.posthog.com/i/v1/traces",
           tracesToken: "public-ingest-token",
         },
       }).observability,
     ).toEqual({
       tracesUrl: null,
-      tracesDataset: "mobile-traces",
       tracesToken: "public-ingest-token",
     });
   });
@@ -110,8 +104,7 @@ describe("resolveCloudPublicConfig", () => {
       hasTracingPublicConfig(
         resolveCloudPublicConfig({
           observability: {
-            tracesUrl: "https://api.axiom.co/v1/traces",
-            tracesDataset: "mobile-traces",
+            tracesUrl: "https://us.i.posthog.com/i/v1/traces",
           },
         }),
       ),
@@ -120,8 +113,7 @@ describe("resolveCloudPublicConfig", () => {
       hasTracingPublicConfig(
         resolveCloudPublicConfig({
           observability: {
-            tracesUrl: "https://api.axiom.co/v1/traces",
-            tracesDataset: "mobile-traces",
+            tracesUrl: "https://us.i.posthog.com/i/v1/traces",
             tracesToken: "public-ingest-token",
           },
         }),
