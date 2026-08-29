@@ -1127,7 +1127,7 @@ describe("resolveThreadBranchMetadataPatch", () => {
 describe("resolveAutoFeatureBranchName", () => {
   it("uses semantic preferred ref names when available", () => {
     const ref = resolveAutoFeatureBranchName(["main", "feature/other"], "fix toast copy");
-    assert.equal(ref, "feature/fix-toast-copy");
+    assert.equal(ref, "fix-toast-copy");
   });
 
   it("normalizes preferred names that already include a ref namespace", () => {
@@ -1137,10 +1137,10 @@ describe("resolveAutoFeatureBranchName", () => {
 
   it("increments suffix when the preferred ref name already exists", () => {
     const ref = resolveAutoFeatureBranchName(
-      ["main", "feature/fix-toast-copy", "feature/fix-toast-copy-2"],
+      ["main", "fix-toast-copy", "fix-toast-copy-2"],
       "fix toast copy",
     );
-    assert.equal(ref, "feature/fix-toast-copy-3");
+    assert.equal(ref, "fix-toast-copy-3");
   });
 
   it("treats existing ref names as case-insensitive for collision checks", () => {
@@ -1148,8 +1148,8 @@ describe("resolveAutoFeatureBranchName", () => {
     assert.equal(ref, "feature/ticket-1-2");
   });
 
-  it("falls back to feature/update when no preferred name is provided", () => {
+  it("falls back to update when no preferred name is provided", () => {
     const ref = resolveAutoFeatureBranchName(["main"]);
-    assert.equal(ref, "feature/update");
+    assert.equal(ref, "update");
   });
 });

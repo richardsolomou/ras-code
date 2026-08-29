@@ -70,16 +70,16 @@ describe("theme failure handling", () => {
     }
   });
 
-  it("reads the persisted RAS Code theme preference", async () => {
+  it("reads a persisted built-in theme preference", async () => {
     vi.stubGlobal("window", {
       localStorage: createStorage({
-        getItem: () => "ras-code",
+        getItem: () => "graphite",
       }),
     });
 
     const { readThemePreference } = await import("./useTheme");
 
-    expect(readThemePreference()).toBe("ras-code");
+    expect(readThemePreference()).toBe("graphite");
   });
 
   it("falls back during initial theme application and logs only safe attributes", async () => {
