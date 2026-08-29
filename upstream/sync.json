@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "ebb9b9fda03d33a81cad3ce7f4d1106adba3044b",
+  "lastReviewed": "660cddd3bc9801e089afcabba11c62f41aeac5c3",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -284,24 +284,6 @@
       "reviewedAt": "2026-08-29T16:22:20.744Z"
     },
     {
-      "upstream": "38154388d7b0274aefd3f29c38db3b2659c46c29",
-      "pr": 8596,
-      "title": "fix: restore automatic thread settling defaults",
-      "decision": "adapted",
-      "ours": "a629d302b1123c45c834679e1bb727ecdf6daa25",
-      "reason": "Cherry-picked; conflicts were rebrand-only.",
-      "reviewedAt": "2026-08-29T16:22:24.282Z"
-    },
-    {
-      "upstream": "ac3a331918b7b25271058ae7e12f1e15772fb3de",
-      "pr": 8599,
-      "title": "Remove Messages Glass Lab experiment",
-      "decision": "adapted",
-      "ours": "1fb585e8801791a8b99913286915bd3cdbca3a34",
-      "reason": "Cherry-picked; conflicts were rebrand-only.",
-      "reviewedAt": "2026-08-29T16:23:22.932Z"
-    },
-    {
       "upstream": "3251b7548b4f32c3e47b0e081cd40fd76de13709",
       "pr": null,
       "title": "chore(release): prepare v0.0.36",
@@ -446,16 +428,6 @@
       "reviewedAt": "2026-08-29T16:40:26.909Z"
     },
     {
-      "upstream": "018d7f2775daabd2ef07898af29586915a0b7f67",
-      "pr": 7327,
-      "title": "refactor(mobile): compile semantic themes for Uniwind",
-      "decision": "deferred",
-      "ours": null,
-      "intent": "Mobile themes compile to semantic adaptive tokens, so a registered theme drives colour everywhere instead of dark:/light: utilities guessing at it.",
-      "reason": "We are adopting Uniwind rather than keeping our useThemeColor approach: the token system is the better structure and we should express the RAS Code palette through it. Deferred only because it wants its own change, generating our palette as adaptive tokens across 111 files.",
-      "reviewedAt": "2026-08-29T16:57:13.202Z"
-    },
-    {
       "upstream": "8fc7f22941969d7a2c06929dc29aa86ae1b02f33",
       "pr": 8597,
       "title": "fix(mobile): restore composer glass and rounded shadows",
@@ -474,6 +446,45 @@
       "intent": "Provider settings list and editor get a cleaner layout, with the editor body wrapped in a readOnly container that dims and disables it.",
       "reason": "The rewrap covers the region where we added the fallback section and usage-limit pill. Wants the two designs reconciled deliberately rather than merged hunk by hunk.",
       "reviewedAt": "2026-08-29T16:57:18.097Z"
+    },
+    {
+      "upstream": "660cddd3bc9801e089afcabba11c62f41aeac5c3",
+      "pr": 8090,
+      "title": "fix(web): four composer spacing defects",
+      "decision": "adopted",
+      "ours": "89df279352a6aa3802458caff0252ac4ec55f896",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-29T17:10:13.403Z"
+    },
+    {
+      "upstream": "ac3a331918b7b25271058ae7e12f1e15772fb3de",
+      "pr": 8599,
+      "title": "Remove Messages Glass Lab experiment",
+      "decision": "adapted",
+      "ours": "1fb585e8801791a8b99913286915bd3cdbca3a34",
+      "intent": "The Messages Glass Lab experiment is gone.",
+      "reason": "Not rebrand-only, despite what the helper reported: the two files our rebrand had touched came through as delete/modify conflicts and resolved to keeping them, so the pick deleted only the untouched Swift entry point. The rest was removed in a follow-up commit.",
+      "reviewedAt": "2026-08-29T17:11:46.448Z"
+    },
+    {
+      "upstream": "38154388d7b0274aefd3f29c38db3b2659c46c29",
+      "pr": 8596,
+      "title": "fix: restore automatic thread settling defaults",
+      "decision": "adapted",
+      "ours": "a629d302b1123c45c834679e1bb727ecdf6daa25",
+      "intent": "Thread auto-settling goes back to being on by default, reverting #8321.",
+      "reason": "Not rebrand-only, despite what the helper reported: reverting #8321 also restored the Uniwind escape-hatch lint rule under upstream's oxlint-plugin-t3code path. That rule belongs to the deferred #7327, so it was removed again in a follow-up commit.",
+      "reviewedAt": "2026-08-29T17:11:48.807Z"
+    },
+    {
+      "upstream": "018d7f2775daabd2ef07898af29586915a0b7f67",
+      "pr": 7327,
+      "title": "refactor(mobile): compile semantic themes for Uniwind",
+      "decision": "deferred",
+      "ours": null,
+      "intent": "Mobile themes compile to semantic adaptive tokens, so a registered theme drives colour everywhere instead of dark:/light: utilities guessing at it. Ships the generator (scripts/generate-uniwind-themes.mts), the mobileTheme runtime and variables modules, useUniwindTheme, and the no-mobile-uniwind-theme-escape-hatches lint rule; retires apps/mobile/src/lib/useThemeColor.ts.",
+      "reason": "We are adopting Uniwind rather than keeping our useThemeColor approach: the token system is the better structure and we should express the RAS Code palette through it. Deferred only because it wants its own change, generating our palette as adaptive tokens across 111 files.",
+      "reviewedAt": "2026-08-29T17:11:51.094Z"
     }
   ]
 }
