@@ -82,8 +82,6 @@ export function useThreadActionMenu(input: {
   const markThreadUnread = useUiStateStore((s) => s.markThreadUnread);
   const autoSettleAfterDays = useClientSettings((s) => s.sidebarAutoSettleAfterDays);
   const autoSettleOnMerge = useClientSettings((s) => s.sidebarAutoSettleOnMerge);
-  const confirmThreadDelete = useClientSettings((s) => s.confirmThreadDelete);
-  const confirmThreadArchive = useClientSettings((s) => s.confirmThreadArchive);
   const timestampFormat = useClientSettings((s) => s.timestampFormat);
   const { copyToClipboard: copyPathToClipboard } = useCopyToClipboard<{ path: string }>({
     onCopy: ({ path }) => {
@@ -258,12 +256,6 @@ export function useThreadActionMenu(input: {
             copyThreadIdToClipboard(thread.id, { threadId: thread.id });
             return;
           case "archive": {
-            if (confirmThreadArchive) {
-              const confirmed = await settlePromise(() =>
-                api.dialogs.confirm(`Archive thread "${thread.title}"?`),
-              );
-              if (confirmed._tag === "Failure" || !confirmed.value) return;
-            }
             let didArchive = false;
             const result = await archiveThread(threadRef, {
               onArchived: () => {
@@ -279,18 +271,16 @@ export function useThreadActionMenu(input: {
             return;
           }
           case "delete": {
-            if (confirmThreadDelete) {
-              const confirmed = await settlePromise(() =>
-                api.dialogs.confirm(
-                  [
-                    `Delete thread "${thread.title}"?`,
-                    "This permanently clears conversation history for this thread.",
-                  ].join("\n"),
-                  { variant: "destructive" },
-                ),
-              );
-              if (confirmed._tag === "Failure" || !confirmed.value) return;
-            }
+            const confirmed = await settlePromise(() =>
+              api.dialogs.confirm(
+                [
+                  `Delete thread "${thread.title}"?`,
+                  "This permanently clears conversation history for this thread.",
+                ].join("\n"),
+                { variant: "destructive" },
+              ),
+            );
+            if (confirmed._tag === "Failure" || !confirmed.value) return;
             const deleted = await deleteThread(threadRef);
             if (
               deleted._tag === "Failure" &&
@@ -314,8 +304,6 @@ export function useThreadActionMenu(input: {
       autoSettleAfterDays,
       autoSettleOnMerge,
       changeRequest,
-      confirmThreadArchive,
-      confirmThreadDelete,
       confirmAndUnpinThread,
       copyBranchToClipboard,
       copyPathToClipboard,

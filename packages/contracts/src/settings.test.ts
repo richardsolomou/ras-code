@@ -66,38 +66,6 @@ describe("ClientSettings word wrap", () => {
   });
 });
 
-describe("ClientSettings glass opacity", () => {
-  it("defaults to a readable translucent surface", () => {
-    expect(decodeClientSettings({}).glassOpacity).toBe(80);
-  });
-
-  it.each([39, 101, 72.5])("rejects an invalid glass opacity: %s", (value) => {
-    expect(() => decodeClientSettings({ glassOpacity: value })).toThrow();
-    expect(() => decodeClientSettingsPatch({ glassOpacity: value })).toThrow();
-  });
-
-  it.each([40, 75, 100])("accepts a glass opacity within the supported range: %s", (value) => {
-    expect(decodeClientSettings({ glassOpacity: value }).glassOpacity).toBe(value);
-    expect(decodeClientSettingsPatch({ glassOpacity: value }).glassOpacity).toBe(value);
-  });
-});
-
-describe("ClientSettings appearance contrast", () => {
-  it("defaults to the theme's original contrast", () => {
-    expect(decodeClientSettings({}).appearanceContrast).toBe(100);
-  });
-
-  it.each([49, 201, 92.5])("rejects an invalid appearance contrast: %s", (value) => {
-    expect(() => decodeClientSettings({ appearanceContrast: value })).toThrow();
-    expect(() => decodeClientSettingsPatch({ appearanceContrast: value })).toThrow();
-  });
-
-  it.each([50, 100, 150, 200])("accepts an appearance contrast in range: %s", (value) => {
-    expect(decodeClientSettings({ appearanceContrast: value }).appearanceContrast).toBe(value);
-    expect(decodeClientSettingsPatch({ appearanceContrast: value }).appearanceContrast).toBe(value);
-  });
-});
-
 describe("ClientSettings environment identification", () => {
   it("defaults to the version pill and accepts each stored presentation mode", () => {
     expect(decodeClientSettings({}).environmentIdentificationMode).toBe("pill");
@@ -130,12 +98,6 @@ describe("ClientSettings sidebar", () => {
     });
     expect(decoded).not.toHaveProperty("sidebarV2Enabled");
     expect(decoded).not.toHaveProperty("sidebarV2ConfiguredByUser");
-  });
-
-  it("keeps unpin confirmation opt-in and patchable", () => {
-    expect(decodeClientSettings({}).confirmThreadUnpin).toBe(false);
-    expect(decodeClientSettingsPatch({ confirmThreadUnpin: true }).confirmThreadUnpin).toBe(true);
-    expect(() => decodeClientSettingsPatch({ confirmThreadUnpin: "yes" })).toThrow();
   });
 
   it("allows auto-settle by inactivity to be disabled", () => {

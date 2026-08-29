@@ -71,7 +71,6 @@ import { openTerminalLinkInPreview } from "./preview/openTerminalLinkInPreview";
 import { useAtomCommand } from "../state/use-atom-command";
 import { preventTerminalCloseShortcut } from "../lib/terminalCloseShortcut";
 import {
-  resolveTerminalFontPreference,
   resolveTerminalFontSizePreference,
   TYPOGRAPHY_ADVANCED_STORAGE_KEY,
 } from "../appearanceFonts";
@@ -388,13 +387,7 @@ export function TerminalViewport({
     onAddTerminalContext(selection);
   });
   const readTerminalLabel = useEffectEvent(() => terminalLabel);
-  const terminalFontFamily = useClientSettings((settings) =>
-    resolveTerminalFontPreference({
-      advanced: advancedTypography,
-      code: settings.fontFamilyCode,
-      terminal: settings.fontFamilyTerminal,
-    }),
-  );
+  const terminalFontFamily = useClientSettings((settings) => settings.fontFamilyCode);
   const terminalFontSize = useClientSettings((settings) =>
     resolveTerminalFontSizePreference({
       advanced: advancedTypography,

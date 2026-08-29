@@ -28,19 +28,9 @@ export const DEFAULT_CODE_FONT_STACK =
 export const TYPOGRAPHY_ADVANCED_STORAGE_KEY = "ras-code:typography-advanced";
 
 /**
- * Simple typography treats the terminal as another monospace surface. In
- * Advanced mode an empty terminal preference means the terminal default,
- * keeping later code-font changes isolated to code surfaces.
+ * The terminal is another monospace surface, so it follows the code font. Only
+ * its size can be overridden, in Advanced mode.
  */
-export function resolveTerminalFontPreference(input: {
-  readonly advanced: boolean;
-  readonly code: string;
-  readonly terminal: string;
-}): string {
-  if (input.advanced) return input.terminal;
-  return input.code;
-}
-
 export function resolveTerminalFontSizePreference(input: {
   readonly advanced: boolean;
   readonly code: number;
@@ -80,12 +70,9 @@ export function appearanceFontStack(custom: string, defaultStack: string): strin
 export interface AppearanceFontPreferences {
   readonly sans: string;
   readonly code: string;
-  readonly composer: string;
   readonly sizeInterface: number;
   readonly sizePrompt: number;
   readonly sizeCode: number;
-  /** Grayscale `antialiased` rendering; false keeps the heavier platform default. */
-  readonly smoothing: boolean;
 }
 
 /**
@@ -103,9 +90,9 @@ export function applyAppearanceFontVariables(
   const families: ReadonlyArray<readonly [variable: string, custom: string, fallback: string]> = [
     ["--font-sans", preferences.sans, DEFAULT_SANS_FONT_STACK],
     ["--font-mono", preferences.code, DEFAULT_CODE_FONT_STACK],
-    // The composer falls back to whatever the sans preference resolves to.
-    ["--font-composer", preferences.composer, "var(--font-sans)"],
   ];
+  // The composer has no font of its own; it tracks the sans preference.
+  root.style.setProperty("--font-composer", "var(--font-sans)");
   for (const [variable, custom, fallback] of families) {
     const list = cssFontFamilies(custom);
     if (list === null) {
@@ -122,15 +109,10 @@ export function applyAppearanceFontVariables(
   // The @pierre/diffs surfaces read their own hook for code text.
   root.style.setProperty("--diffs-font-size", `${code}px`);
 
-  // Inherited from the root; only macOS engines honor the property, so no
-  // platform gate is needed here. Smoothing on means grayscale `antialiased`
-  // (thinner strokes); off restores the platform default, which macOS renders
-  // with heavier stem darkening.
-  if (preferences.smoothing) {
-    root.style.setProperty("-webkit-font-smoothing", "antialiased");
-  } else {
-    root.style.removeProperty("-webkit-font-smoothing");
-  }
+  // Inherited from the root, and only macOS engines honor it: grayscale
+  // `antialiased` gives thinner strokes than the platform default, which macOS
+  // renders with heavier stem darkening.
+  root.style.setProperty("-webkit-font-smoothing", "antialiased");
 }
 
 function clampFontSize(value: number, minimum: number, maximum: number, fallback: number): number {
