@@ -26,7 +26,6 @@ import { ControlPillMenu } from "../../components/ControlPill";
 import { SymbolView } from "../../components/AppSymbol";
 import { NATIVE_LIQUID_GLASS_SUPPORTED } from "../../native/native-glass";
 import { NativeStackScreenOptions } from "../../native/StackHeader";
-import { resolveMobileAutoSettlePreferences } from "../../persistence/mobile-preferences";
 import { scopedProjectKey, scopedThreadKey } from "../../lib/scopedEntities";
 import { useThemeColor } from "../../lib/useThemeColor";
 import { useProjects, useThreadShells } from "../../state/entities";
@@ -175,9 +174,9 @@ function ThreadNavigationSidebarPane(
   } = useThreadListActions();
   const threadListV2Enabled = useThreadListV2Enabled();
   const preferencesResult = useAtomValue(mobilePreferencesAtom);
-  const autoSettlePreferences = resolveMobileAutoSettlePreferences(
-    AsyncResult.isSuccess(preferencesResult) ? preferencesResult.value : {},
-  );
+  const autoSettleOnMerge =
+    !AsyncResult.isSuccess(preferencesResult) ||
+    preferencesResult.value.autoSettleOnMerge !== false;
   const pendingTasks = usePendingNewTasks();
   const { openPendingTask, confirmDeletePendingTask } = usePendingTaskListActions();
   const environments = useMemo(
@@ -520,8 +519,7 @@ function ThreadNavigationSidebarPane(
       searchQuery: props.searchQuery,
       matchedThreadKeys,
       changeRequestByKey,
-      autoSettleAfterDays: autoSettlePreferences.autoSettleAfterDays,
-      autoSettleMode: autoSettlePreferences.autoSettleMode,
+      autoSettleOnMerge,
       settlementEnvironmentIds,
       snoozeEnvironmentIds,
       settledLimit: settledVisibleCount,
@@ -533,8 +531,7 @@ function ThreadNavigationSidebarPane(
     });
   }, [
     changeRequestByKey,
-    autoSettlePreferences.autoSettleAfterDays,
-    autoSettlePreferences.autoSettleMode,
+    autoSettleOnMerge,
     nowMinute,
     snoozeWakeTick,
     snoozedShelfExpanded,

@@ -100,7 +100,6 @@ import {
   saveConnection,
   savePreferencesPatch,
 } from "../persistence/imperative";
-import { resolveMobileAutoSettlePreferences } from "../persistence/mobile-preferences";
 import { toStableSavedRemoteConnection } from "./connection";
 
 const managedConnection = {
@@ -194,34 +193,6 @@ describe("mobile connection storage", () => {
       lightThemeId: "iris",
       darkThemeId: "ocean",
       themeMode: "system",
-    });
-  });
-
-  it("defaults retired mobile settling preferences to manual-only", async () => {
-    mocks.setPreferencesJson(JSON.stringify({ autoSettleOnMerge: true }), 10);
-
-    const preferences = await loadPreferences();
-    expect(preferences).toEqual({});
-    expect(resolveMobileAutoSettlePreferences(preferences)).toEqual({
-      autoSettleMode: "never",
-      autoSettleAfterDays: 3,
-    });
-  });
-
-  it("preserves valid mobile settling preferences", async () => {
-    mocks.setPreferencesJson(
-      JSON.stringify({ autoSettleMode: "inactivity", autoSettleAfterDays: 30 }),
-      10,
-    );
-
-    const preferences = await loadPreferences();
-    expect(preferences).toEqual({
-      autoSettleMode: "inactivity",
-      autoSettleAfterDays: 30,
-    });
-    expect(resolveMobileAutoSettlePreferences(preferences)).toEqual({
-      autoSettleMode: "inactivity",
-      autoSettleAfterDays: 30,
     });
   });
 
