@@ -169,7 +169,7 @@ vp run --filter ras-code-web-infra deploy --stage latest --yes
 ## Mobile app releases (EAS)
 
 - Workflows: `.github/workflows/mobile-eas-preview.yml` and `mobile-eas-production.yml`
-- Expo account: `rsolomou`, project `@rsolomou/ras-code`
+- Expo account: `richardsolomou`, project `@richardsolomou/ras-code`
 - Required secret: `EXPO_TOKEN`, an access token belonging to the `ras-code-ci` robot user
 
 `apps/mobile/app.config.ts` pins the EAS project ID and owner, and `apps/mobile/eas.json` pins
