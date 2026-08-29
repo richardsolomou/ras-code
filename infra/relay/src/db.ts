@@ -8,6 +8,7 @@ import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Path from "effect/Path";
+import * as Redacted from "effect/Redacted";
 
 import { relayDatabaseName } from "./dbConfig.ts";
 import { applyRelayMigrations } from "./migrations.ts";
@@ -103,10 +104,31 @@ export const RelayDatabase = Effect.gen(function* () {
   return { origin, applied };
 });
 
+/**
+ * Hyperdrive refuses an Access-protected origin without a direct fallback, since
+ * local development cannot complete the Access handshake. The migration URL is
+ * already a direct route to the same database — the loopback port
+ * `cloudflared access tcp` binds — so it doubles as that fallback.
+ */
+const relayDevOrigin = Effect.gen(function* () {
+  const url = new URL(Redacted.value(yield* Config.redacted("RELAY_MIGRATION_DATABASE_URL")));
+  return {
+    scheme: "postgres",
+    host: url.hostname,
+    port: Number(url.port || 5432),
+    user: decodeURIComponent(url.username),
+    password: Redacted.make(decodeURIComponent(url.password)),
+    database: url.pathname.replace(/^\//, ""),
+    sslmode: "require",
+  } as const;
+});
+
 export const RelayHyperdrive = Effect.gen(function* () {
   const origin = yield* RelayDatabaseOrigin;
+  const dev = yield* relayDevOrigin;
   return yield* Cloudflare.Hyperdrive.Connection("RelayHyperdrive", {
     origin,
+    dev,
     caching: {
       disabled: true,
     },
