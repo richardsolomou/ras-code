@@ -111,11 +111,17 @@ const ApnsDeliveryJobSigningSecret = Alchemy.makeRandom("ApnsDeliveryJobSigningS
 /**
  * Hands a proxied upgrade back to the client.
  *
- * A 101 leaves a socket that outlives this handler, so the request scope has to
- * be ejected: the worker bridge closes a scope that is not, and closing it takes
- * the proxied socket with it. `scopeTransferToStream` only ejects for streaming
- * bodies, and the upstream response rides through as a raw body so the runtime
- * receives the same `Response` object and its `webSocket`.
+ * The upstream response cannot be forwarded as-is. Its headers are immutable,
+ * and the response pipeline appends a `traceparent` on the way out, so copying
+ * that header onto it throws `Can't modify immutable headers` and the request
+ * dies as a worker exception. Carrying the socket on a response we construct
+ * keeps the headers writable.
+ *
+ * The socket also outlives this handler, so the request scope has to be
+ * ejected: the worker bridge closes a scope that is not, and closing it takes
+ * the socket with it. `scopeTransferToStream` only ejects for streaming bodies,
+ * and an upgrade has to ride through as a raw body for the runtime to receive a
+ * `Response` carrying `webSocket`.
  */
 export const managedEndpointGatewayResponse = Effect.fn("relay.managedEndpointGateway.response")(
   function* (response: Response) {
@@ -123,9 +129,13 @@ export const managedEndpointGatewayResponse = Effect.fn("relay.managedEndpointGa
       return HttpServerResponse.fromWeb(response);
     }
     HttpEffect.scopeDisableClose(yield* Effect.scope);
+    const upgrade = new Response(null, {
+      status: 101,
+      webSocket: (response as Response & { readonly webSocket?: unknown }).webSocket,
+    } as ResponseInit);
     return HttpServerResponse.setBody(
       HttpServerResponse.empty({ status: 101 }),
-      HttpBody.raw(response),
+      HttpBody.raw(upgrade),
     );
   },
 );
