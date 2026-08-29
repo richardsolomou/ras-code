@@ -741,10 +741,15 @@ export const make = Effect.gen(function* () {
       yield* tunnels
         .putConfiguration(tunnel.id, {
           ingress: [
-            {
-              hostname: config.managedEndpointGatewayDomain ?? hostname,
-              service: formatOriginService(input.origin),
-            },
+            ...(config.managedEndpointGatewayDomain
+              ? [
+                  {
+                    hostname: config.managedEndpointGatewayDomain,
+                    service: formatOriginService(input.origin),
+                  },
+                ]
+              : []),
+            { hostname, service: formatOriginService(input.origin) },
             { service: "http_status:404" },
           ],
         })

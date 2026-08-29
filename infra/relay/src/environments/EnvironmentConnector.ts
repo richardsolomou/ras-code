@@ -43,7 +43,7 @@ import * as HttpClientError from "effect/unstable/http/HttpClientError";
 import * as EnvironmentLinks from "./EnvironmentLinks.ts";
 import * as ManagedEndpointAllocations from "./ManagedEndpointAllocations.ts";
 import * as RelayConfiguration from "../Config.ts";
-import { isManagedEndpointHostname } from "../deploymentConfig.ts";
+import { isManagedEndpointHostname, managedEndpointRequestOrigin } from "../deploymentConfig.ts";
 
 function environmentConnectNotAuthorizedReasonMessage(
   reason: RelayEnvironmentConnectNotAuthorizedReason,
@@ -390,7 +390,10 @@ const make = Effect.gen(function* () {
           reason: "managed_endpoint_mismatch",
         });
       }
-      return endpoint;
+      return {
+        endpoint,
+        requestBaseUrl: managedEndpointRequestOrigin(input.allocation.hostname),
+      };
     },
   );
 
@@ -414,7 +417,7 @@ const make = Effect.gen(function* () {
           reason: "environment_link_not_found",
         });
       }
-      const endpoint = yield* resolveManagedEndpoint({
+      const { endpoint, requestBaseUrl } = yield* resolveManagedEndpoint({
         operation: "status",
         link,
         allocation,
@@ -467,7 +470,7 @@ const make = Effect.gen(function* () {
       );
       const checkedAt = DateTime.formatIso(now);
       const traceId = yield* currentTraceId;
-      const environmentClient = yield* makeEnvironmentClient(endpoint.httpBaseUrl);
+      const environmentClient = yield* makeEnvironmentClient(requestBaseUrl);
       const responseOption = yield* environmentClient.connect.health({ payload: { proof } }).pipe(
         withoutRedirects,
         Effect.match({
@@ -569,7 +572,7 @@ const make = Effect.gen(function* () {
           reason: "environment_link_not_found",
         });
       }
-      const endpoint = yield* resolveManagedEndpoint({
+      const { endpoint, requestBaseUrl } = yield* resolveManagedEndpoint({
         operation: "connect",
         link,
         allocation,
@@ -623,7 +626,7 @@ const make = Effect.gen(function* () {
             }),
         ),
       );
-      const environmentClient = yield* makeEnvironmentClient(endpoint.httpBaseUrl);
+      const environmentClient = yield* makeEnvironmentClient(requestBaseUrl);
       const decoded = yield* environmentClient.connect
         .t3MintCredential({ payload: { proof } })
         .pipe(
