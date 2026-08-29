@@ -10,7 +10,6 @@ import { OtlpSerialization, OtlpTracer } from "effect/unstable/observability";
 
 export interface RelayClientTracingConfig {
   readonly tracesUrl: string;
-  readonly tracesDataset: string;
   readonly tracesToken: string;
 }
 
@@ -136,7 +135,6 @@ export function makeRelayClientTracingLayer(
     url: config.tracesUrl,
     headers: {
       Authorization: `Bearer ${config.tracesToken}`,
-      "X-Axiom-Dataset": config.tracesDataset,
     },
     resource: {
       serviceName: resource.serviceName,

@@ -19,7 +19,6 @@ export interface CloudPublicConfig {
   readonly relayUrl: string | null;
   readonly relayTracing: {
     readonly tracesUrl: string | null;
-    readonly tracesDataset: string | null;
     readonly tracesToken: string | null;
   };
 }
@@ -50,9 +49,6 @@ export function resolveCloudPublicConfig(): CloudPublicConfig {
       tracesUrl: normalizeSecureUrl(
         (import.meta.env.VITE_RELAY_OTLP_TRACES_URL as string | undefined) ?? "",
       ),
-      tracesDataset: trimNonEmpty(
-        import.meta.env.VITE_RELAY_OTLP_TRACES_DATASET as string | undefined,
-      ),
       tracesToken: trimNonEmpty(import.meta.env.VITE_RELAY_OTLP_TRACES_TOKEN as string | undefined),
     },
   };
@@ -60,10 +56,9 @@ export function resolveCloudPublicConfig(): CloudPublicConfig {
 
 export function resolveRelayTracingConfig() {
   const { relayTracing } = resolveCloudPublicConfig();
-  return relayTracing.tracesUrl && relayTracing.tracesDataset && relayTracing.tracesToken
+  return relayTracing.tracesUrl && relayTracing.tracesToken
     ? {
         tracesUrl: relayTracing.tracesUrl,
-        tracesDataset: relayTracing.tracesDataset,
         tracesToken: relayTracing.tracesToken,
       }
     : null;

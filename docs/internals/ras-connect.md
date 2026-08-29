@@ -29,7 +29,7 @@ repository-root `.env` or `.env.local` file:
 RAS_CODE_CLERK_PUBLISHABLE_KEY=<publishable key>
 RAS_CODE_CLERK_JWT_TEMPLATE=<JWT template name>
 RAS_CODE_CLERK_CLI_OAUTH_CLIENT_ID=<public OAuth application client ID>
-RAS_CODE_RELAY_URL=https://relay.example.com
+RAS_CODE_RELAY_URL=https://code-relay.example.com
 ```
 
 The shared client loader projects these canonical values into framework-specific `VITE_*` and
@@ -65,12 +65,12 @@ no checked-in deployment defaults.
 `vp run --filter ras-code-relay deploy` invokes Alchemy from the relay directory, so Alchemy loads
 `infra/relay/.env`. After a successful deployment, the wrapper updates the repository-root `.env`
 with the deployed HTTPS relay URL. The relay still requires
-`CLERK_SECRET_KEY` as an Alchemy secret. Never put `CLERK_SECRET_KEY` in a client application
+`CLERK_SECRET_KEY` and the `RELAY_DATABASE_*` values as Alchemy secrets. Never put `CLERK_SECRET_KEY` in a client application
 environment or commit it to the repository.
 
-The `prod` Alchemy stage owns the retained PlanetScale database. Non-production stages reference
-that database and provision isolated PlanetScale branches, so deploy `prod` before creating a
-personal developer stage.
+The `prod` Alchemy stage owns the database named by `RELAY_DATABASE_NAME`. Non-production stages get
+their own `<RELAY_DATABASE_NAME>-<stage>` database on the same self-hosted Postgres server, reached
+through a Cloudflare Tunnel guarded by an Access application.
 
 ## Headless CLI OAuth Application
 

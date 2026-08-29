@@ -125,7 +125,7 @@ const sections = [
 
     <h3>Operational Traces</h3>
     <p>
-      RAS Connect emits request traces to Axiom. A trace records the request method, path, route,
+      RAS Connect emits request traces to PostHog. A trace records the request method, path, route,
       response status, duration, and your account identifier. Authorization credentials are not
       recorded in traces.
     </p>
@@ -174,8 +174,8 @@ const sections = [
     <p class="section-number">06</p>
     <h2>The RAS Code Website</h2>
     <p>
-      The website is a static site hosted by Vercel. Vercel logs standard request information,
-      including IP addresses, as part of serving and protecting it. The site loads web fonts from
+      The website is a static site hosted by Cloudflare. Cloudflare logs standard request
+      information, including IP addresses, as part of serving and protecting it. The site loads web fonts from
       Google Fonts, which means your browser sends a request, and therefore your IP address, to
       Google when a page loads. The site sets no analytics, advertising, or tracking cookies.
     </p>
@@ -212,16 +212,11 @@ const sections = [
       </li>
       <li>
         <strong>Cloudflare</strong> <em>(Cloudflare, Inc.)</em>.<br />
-        Hosts the relay worker and its queues, and provides the tunnels and DNS used for managed
-        endpoints.<br />
+        Hosts the relay worker, the RAS Code website, and the relay's queues, and provides the
+        tunnels and DNS used for managed endpoints and for reaching the database.<br />
         <a href="https://www.cloudflare.com/policies/privacy/"
           >https://www.cloudflare.com/policies/privacy/</a
         >
-      </li>
-      <li>
-        <strong>PlanetScale</strong> <em>(PlanetScale, Inc.)</em>.<br />
-        Hosts the Postgres database holding the records described above.<br />
-        <a href="https://planetscale.com/legal/privacy">https://planetscale.com/legal/privacy</a>
       </li>
       <li>
         <strong>Apple</strong> <em>(Apple Inc.)</em>.<br />
@@ -230,20 +225,15 @@ const sections = [
         <a href="https://www.apple.com/legal/privacy/">https://www.apple.com/legal/privacy/</a>
       </li>
       <li>
-        <strong>Axiom</strong> <em>(Axiom, Inc.)</em>.<br />
+        <strong>PostHog</strong> <em>(PostHog, Inc.)</em>.<br />
         Stores the operational request traces described above.<br />
-        <a href="https://axiom.co/docs/legal/privacy">https://axiom.co/docs/legal/privacy</a>
+        <a href="https://posthog.com/privacy">https://posthog.com/privacy</a>
       </li>
       <li>
         <strong>Expo</strong> <em>(650 Industries, Inc.)</em>.<br />
         Builds the mobile app and serves its over-the-air updates, which means the app checks for
         updates against Expo's servers.<br />
         <a href="https://expo.dev/privacy">https://expo.dev/privacy</a>
-      </li>
-      <li>
-        <strong>Vercel</strong> <em>(Vercel Inc.)</em>.<br />
-        Hosts the RAS Code website.<br />
-        <a href="https://vercel.com/legal/privacy-notice">https://vercel.com/legal/privacy-notice</a>
       </li>
       <li>
         <strong>Google</strong> <em>(Google LLC)</em>.<br />
@@ -271,7 +261,7 @@ const sections = [
       Agent activity records are removed when the thread reaches a finished state, and a scheduled
       job removes stale ones: after two hours for a running thread, and after twenty-four hours for
       one waiting on you. Replay-protection records are removed once they expire. Operational traces
-      are retained by Axiom for 30 days and then deleted. Notification delivery records are retained
+      are retained by PostHog for 14 days and then deleted. Notification delivery records are retained
       for diagnostics and are not currently deleted on a schedule; they can be deleted on request.
     </p>
     <p>

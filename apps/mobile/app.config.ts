@@ -1,9 +1,8 @@
 import type { ExpoConfig } from "expo/config";
 
-import { clerkFrontendApiHostnameFromPublishableKey } from "@ras-code/shared/relayAuth";
-
 import { BRAND_ASSET_PATHS } from "../../scripts/lib/brand-assets.ts";
 import { loadRepoEnv } from "../../scripts/lib/public-config.ts";
+import { clerkFrontendApiHostnameFromPublishableKey } from "../../packages/shared/src/relayAuth.ts";
 
 type AppVariant = "development" | "preview" | "production";
 
@@ -190,7 +189,7 @@ const config: ExpoConfig = {
   userInterfaceStyle: "automatic",
   updates: {
     enabled: true,
-    url: "https://u.expo.dev/TODO_RAS_CODE_EAS_PROJECT_ID",
+    url: "https://u.expo.dev/284eb2a9-9ba0-4d2d-9096-24240c2efbee",
     checkAutomatically: "ON_LOAD",
     fallbackToCacheTimeout: 0,
   },
@@ -204,7 +203,7 @@ const config: ExpoConfig = {
     // Pin code signing to the Apple developer team so non-interactive `expo run:ios`
     // does not fall back to a personal team (which cannot sign app groups,
     // Sign in with Apple, or push notification entitlements).
-    appleTeamId: "TODO_RAS_CODE_APPLE_TEAM_ID",
+    appleTeamId: "A3X8464573",
     associatedDomains: configuredClerkRelyingParties.flatMap((domain) => [
       `applinks:${domain}`,
       `webcredentials:${domain}`,
@@ -381,15 +380,14 @@ const config: ExpoConfig = {
     EXPO_PUBLIC_CLERK_GOOGLE_ANDROID_CLIENT_ID: repoEnv.EXPO_PUBLIC_CLERK_GOOGLE_ANDROID_CLIENT_ID,
     EXPO_PUBLIC_CLERK_GOOGLE_IOS_URL_SCHEME: repoEnv.EXPO_PUBLIC_CLERK_GOOGLE_IOS_URL_SCHEME,
     observability: {
-      tracesUrl: repoEnv.EXPO_PUBLIC_OTLP_TRACES_URL ?? "https://api.axiom.co/v1/traces",
-      tracesDataset: repoEnv.EXPO_PUBLIC_OTLP_TRACES_DATASET ?? null,
+      tracesUrl: repoEnv.EXPO_PUBLIC_OTLP_TRACES_URL ?? "https://us.i.posthog.com/i/v1/traces",
       tracesToken: repoEnv.EXPO_PUBLIC_OTLP_TRACES_TOKEN ?? null,
     },
     eas: {
-      projectId: "TODO_RAS_CODE_EAS_PROJECT_ID",
+      projectId: "284eb2a9-9ba0-4d2d-9096-24240c2efbee",
     },
   },
-  owner: "TODO_RAS_CODE_EAS_OWNER",
+  owner: "richardsolomou",
 };
 
 export default config;

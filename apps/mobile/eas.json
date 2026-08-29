@@ -54,7 +54,7 @@
   "submit": {
     "production": {
       "ios": {
-        "ascAppId": "TODO_RAS_CODE_ASC_APP_ID"
+        "ascAppId": "6806574290"
       },
       "android": {
         "track": "internal"

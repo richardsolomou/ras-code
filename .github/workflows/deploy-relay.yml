@@ -24,8 +24,10 @@ jobs:
       name: production
     env:
       CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-      PLANETSCALE_ORGANIZATION: ${{ vars.PLANETSCALE_ORGANIZATION }}
-      AXIOM_ORG_ID: ${{ vars.AXIOM_ORG_ID }}
+      RELAY_DATABASE_HOST: ${{ vars.RELAY_DATABASE_HOST }}
+      RELAY_DATABASE_NAME: ${{ vars.RELAY_DATABASE_NAME }}
+      RELAY_DATABASE_USER: ${{ vars.RELAY_DATABASE_USER }}
+      POSTHOG_OTLP_TRACES_URL: ${{ vars.POSTHOG_OTLP_TRACES_URL }}
       RELAY_DOMAIN: ${{ vars.RELAY_DOMAIN }}
       RELAY_API_ZONE_NAME: ${{ vars.RELAY_API_ZONE_NAME }}
       RELAY_TUNNEL_ZONE_NAME: ${{ vars.RELAY_TUNNEL_ZONE_NAME }}
@@ -38,6 +40,9 @@ jobs:
       APNS_KEY_ID: ${{ vars.APNS_KEY_ID }}
       APNS_BUNDLE_ID: ${{ vars.APNS_BUNDLE_ID }}
       ALCHEMY_TELEMETRY_DISABLED: "1"
+      RELAY_MIGRATION_PORT: "45432"
+      CLOUDFLARED_VERSION: "2026.8.2"
+      CLOUDFLARED_SHA256: "fcfb02b575a52ca1af2e3267af4e1517bcdeb30ac48c834c69abaed3c0576ad2"
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -56,16 +61,63 @@ jobs:
             args:
               - --filter=ras-code-relay...
 
+      - name: Configure Alchemy credentials
+        uses: ./.github/actions/alchemy-credentials
+        with:
+          state-store-credentials: ${{ secrets.ALCHEMY_STATE_STORE_CREDENTIALS }}
+
+      - name: Open an Access tunnel to the relay database
+        env:
+          RELAY_DATABASE_HOST: ${{ vars.RELAY_DATABASE_HOST }}
+          TUNNEL_SERVICE_TOKEN_ID: ${{ secrets.RELAY_DATABASE_ACCESS_CLIENT_ID }}
+          TUNNEL_SERVICE_TOKEN_SECRET: ${{ secrets.RELAY_DATABASE_ACCESS_CLIENT_SECRET }}
+        run: |
+          set -euo pipefail
+
+          curl -fsSL -o cloudflared \
+            "https://github.com/cloudflare/cloudflared/releases/download/$CLOUDFLARED_VERSION/cloudflared-linux-amd64"
+          echo "$CLOUDFLARED_SHA256  cloudflared" | sha256sum -c -
+          chmod +x cloudflared
+
+          nohup ./cloudflared access tcp \
+            --hostname "$RELAY_DATABASE_HOST" \
+            --url "127.0.0.1:$RELAY_MIGRATION_PORT" \
+            --service-token-id "$TUNNEL_SERVICE_TOKEN_ID" \
+            --service-token-secret "$TUNNEL_SERVICE_TOKEN_SECRET" \
+            > cloudflared.log 2>&1 &
+          echo "$!" > cloudflared.pid
+
+          for attempt in $(seq 1 30); do
+            if nc -z 127.0.0.1 "$RELAY_MIGRATION_PORT"; then
+              echo "Access tunnel is listening on 127.0.0.1:$RELAY_MIGRATION_PORT"
+              exit 0
+            fi
+            sleep 1
+          done
+
+          echo "Access tunnel did not come up within 30s." >&2
+          cat cloudflared.log >&2
+          exit 1
+
       - name: Deploy production relay stage
         id: deploy
         run: vp run --filter ras-code-relay deploy --stage prod --yes --github-output
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          PLANETSCALE_API_TOKEN_ID: ${{ secrets.PLANETSCALE_API_TOKEN_ID }}
-          PLANETSCALE_API_TOKEN: ${{ secrets.PLANETSCALE_API_TOKEN }}
-          AXIOM_TOKEN: ${{ secrets.AXIOM_TOKEN }}
+          RELAY_DATABASE_PASSWORD: ${{ secrets.RELAY_DATABASE_PASSWORD }}
+          RELAY_DATABASE_ACCESS_CLIENT_ID: ${{ secrets.RELAY_DATABASE_ACCESS_CLIENT_ID }}
+          RELAY_DATABASE_ACCESS_CLIENT_SECRET: ${{ secrets.RELAY_DATABASE_ACCESS_CLIENT_SECRET }}
+          RELAY_MIGRATION_DATABASE_URL: postgres://${{ vars.RELAY_DATABASE_USER }}:${{ secrets.RELAY_DATABASE_PASSWORD }}@127.0.0.1:${{ env.RELAY_MIGRATION_PORT }}/${{ vars.RELAY_DATABASE_NAME }}
+          POSTHOG_PROJECT_TOKEN: ${{ secrets.POSTHOG_PROJECT_TOKEN }}
           CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
           APNS_PRIVATE_KEY: ${{ secrets.APNS_PRIVATE_KEY }}
+
+      - name: Close the Access tunnel
+        if: always()
+        run: |
+          if [[ -f cloudflared.pid ]]; then
+            kill "$(cat cloudflared.pid)" 2>/dev/null || true
+          fi
 
       - name: Publish relay deploy commit status
         uses: actions/github-script@v8

@@ -28,16 +28,12 @@ describe("loadRepoEnv", () => {
     expect(env.RAS_CODE_RELAY_URL).toBeUndefined();
     expect(env.VITE_RAS_CODE_RELAY_URL).toBeUndefined();
     expect(env.RAS_CODE_MOBILE_OTLP_TRACES_URL).toBeUndefined();
-    expect(env.RAS_CODE_MOBILE_OTLP_TRACES_DATASET).toBeUndefined();
     expect(env.RAS_CODE_MOBILE_OTLP_TRACES_TOKEN).toBeUndefined();
     expect(env.EXPO_PUBLIC_OTLP_TRACES_URL).toBeUndefined();
-    expect(env.EXPO_PUBLIC_OTLP_TRACES_DATASET).toBeUndefined();
     expect(env.EXPO_PUBLIC_OTLP_TRACES_TOKEN).toBeUndefined();
     expect(env.RAS_CODE_RELAY_CLIENT_OTLP_TRACES_URL).toBeUndefined();
-    expect(env.RAS_CODE_RELAY_CLIENT_OTLP_TRACES_DATASET).toBeUndefined();
     expect(env.RAS_CODE_RELAY_CLIENT_OTLP_TRACES_TOKEN).toBeUndefined();
     expect(env.VITE_RELAY_OTLP_TRACES_URL).toBeUndefined();
-    expect(env.VITE_RELAY_OTLP_TRACES_DATASET).toBeUndefined();
     expect(env.VITE_RELAY_OTLP_TRACES_TOKEN).toBeUndefined();
   });
 
@@ -85,8 +81,7 @@ describe("loadRepoEnv", () => {
         VITE_CLERK_JWT_TEMPLATE: "template_legacy",
         RAS_CODE_CLERK_CLI_OAUTH_CLIENT_ID: "oauth_canonical",
         VITE_RAS_CODE_RELAY_URL: "https://legacy.example.test",
-        EXPO_PUBLIC_OTLP_TRACES_URL: "https://api.axiom.co/v1/traces",
-        EXPO_PUBLIC_OTLP_TRACES_DATASET: "mobile-traces",
+        EXPO_PUBLIC_OTLP_TRACES_URL: "https://us.i.posthog.com/i/v1/traces",
         EXPO_PUBLIC_OTLP_TRACES_TOKEN: "mobile-token",
       }),
     ).toEqual({
@@ -94,11 +89,9 @@ describe("loadRepoEnv", () => {
       clerkJwtTemplate: "template_legacy",
       clerkCliOAuthClientId: "oauth_canonical",
       relayUrl: "https://legacy.example.test",
-      mobileOtlpTracesUrl: "https://api.axiom.co/v1/traces",
-      mobileOtlpTracesDataset: "mobile-traces",
+      mobileOtlpTracesUrl: "https://us.i.posthog.com/i/v1/traces",
       mobileOtlpTracesToken: "mobile-token",
       relayClientOtlpTracesUrl: undefined,
-      relayClientOtlpTracesDataset: undefined,
       relayClientOtlpTracesToken: undefined,
     });
   });
@@ -107,18 +100,15 @@ describe("loadRepoEnv", () => {
     expect(
       loadRepoEnv({
         baseEnv: {
-          RAS_CODE_RELAY_CLIENT_OTLP_TRACES_URL: "https://api.axiom.co/v1/traces",
-          RAS_CODE_RELAY_CLIENT_OTLP_TRACES_DATASET: "relay-client-traces",
+          RAS_CODE_RELAY_CLIENT_OTLP_TRACES_URL: "https://us.i.posthog.com/i/v1/traces",
           RAS_CODE_RELAY_CLIENT_OTLP_TRACES_TOKEN: "relay-client-token",
         },
         repoRoot: makeTemporaryDirectory(),
       }),
     ).toEqual({
-      RAS_CODE_RELAY_CLIENT_OTLP_TRACES_URL: "https://api.axiom.co/v1/traces",
-      RAS_CODE_RELAY_CLIENT_OTLP_TRACES_DATASET: "relay-client-traces",
+      RAS_CODE_RELAY_CLIENT_OTLP_TRACES_URL: "https://us.i.posthog.com/i/v1/traces",
       RAS_CODE_RELAY_CLIENT_OTLP_TRACES_TOKEN: "relay-client-token",
-      VITE_RELAY_OTLP_TRACES_URL: "https://api.axiom.co/v1/traces",
-      VITE_RELAY_OTLP_TRACES_DATASET: "relay-client-traces",
+      VITE_RELAY_OTLP_TRACES_URL: "https://us.i.posthog.com/i/v1/traces",
       VITE_RELAY_OTLP_TRACES_TOKEN: "relay-client-token",
     });
   });
@@ -128,8 +118,7 @@ describe("loadRepoEnv", () => {
       loadRepoEnv({
         baseEnv: {
           RAS_CODE_RELAY_URL: "https://relay.example.test",
-          RAS_CODE_MOBILE_OTLP_TRACES_URL: "https://api.axiom.co/v1/traces",
-          RAS_CODE_MOBILE_OTLP_TRACES_DATASET: "mobile-traces",
+          RAS_CODE_MOBILE_OTLP_TRACES_URL: "https://us.i.posthog.com/i/v1/traces",
           RAS_CODE_MOBILE_OTLP_TRACES_TOKEN: "mobile-token",
         },
         repoRoot: makeTemporaryDirectory(),
@@ -137,11 +126,9 @@ describe("loadRepoEnv", () => {
     ).toEqual({
       RAS_CODE_RELAY_URL: "https://relay.example.test",
       VITE_RAS_CODE_RELAY_URL: "https://relay.example.test",
-      RAS_CODE_MOBILE_OTLP_TRACES_URL: "https://api.axiom.co/v1/traces",
-      RAS_CODE_MOBILE_OTLP_TRACES_DATASET: "mobile-traces",
+      RAS_CODE_MOBILE_OTLP_TRACES_URL: "https://us.i.posthog.com/i/v1/traces",
       RAS_CODE_MOBILE_OTLP_TRACES_TOKEN: "mobile-token",
-      EXPO_PUBLIC_OTLP_TRACES_URL: "https://api.axiom.co/v1/traces",
-      EXPO_PUBLIC_OTLP_TRACES_DATASET: "mobile-traces",
+      EXPO_PUBLIC_OTLP_TRACES_URL: "https://us.i.posthog.com/i/v1/traces",
       EXPO_PUBLIC_OTLP_TRACES_TOKEN: "mobile-token",
     });
   });

@@ -12,7 +12,6 @@ declare const __RAS_CODE_BUILD_CLERK_PUBLISHABLE_KEY__: string | undefined;
 declare const __RAS_CODE_BUILD_CLERK_CLI_OAUTH_CLIENT_ID__: string | undefined;
 declare const __RAS_CODE_BUILD_HOSTED_APP_URL__: string | undefined;
 declare const __RAS_CODE_BUILD_RELAY_CLIENT_OTLP_TRACES_URL__: string | undefined;
-declare const __RAS_CODE_BUILD_RELAY_CLIENT_OTLP_TRACES_DATASET__: string | undefined;
 declare const __RAS_CODE_BUILD_RELAY_CLIENT_OTLP_TRACES_TOKEN__: string | undefined;
 
 const CLOUD_CLI_OAUTH_LOOPBACK_PORT = 34338;
@@ -71,11 +70,6 @@ export const buildTimeRelayClientTracing = {
       ? undefined
       : __RAS_CODE_BUILD_RELAY_CLIENT_OTLP_TRACES_URL__,
   ),
-  tracesDataset: readBuildTimeValue(
-    typeof __RAS_CODE_BUILD_RELAY_CLIENT_OTLP_TRACES_DATASET__ === "undefined"
-      ? undefined
-      : __RAS_CODE_BUILD_RELAY_CLIENT_OTLP_TRACES_DATASET__,
-  ),
   tracesToken: readBuildTimeValue(
     typeof __RAS_CODE_BUILD_RELAY_CLIENT_OTLP_TRACES_TOKEN__ === "undefined"
       ? undefined
@@ -88,12 +82,10 @@ export function resolveRelayClientTracingConfig(
   fallback = buildTimeRelayClientTracing,
 ) {
   const tracesUrl = env.RAS_CODE_RELAY_CLIENT_OTLP_TRACES_URL?.trim() || fallback.tracesUrl;
-  const tracesDataset =
-    env.RAS_CODE_RELAY_CLIENT_OTLP_TRACES_DATASET?.trim() || fallback.tracesDataset;
   const tracesToken = env.RAS_CODE_RELAY_CLIENT_OTLP_TRACES_TOKEN?.trim() || fallback.tracesToken;
   const normalizedTracesUrl = normalizeSecureUrl(tracesUrl);
-  return normalizedTracesUrl && tracesDataset && tracesToken
-    ? { tracesUrl: normalizedTracesUrl, tracesDataset, tracesToken }
+  return normalizedTracesUrl && tracesToken
+    ? { tracesUrl: normalizedTracesUrl, tracesToken }
     : null;
 }
 
