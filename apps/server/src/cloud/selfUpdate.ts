@@ -91,6 +91,7 @@ export const make = Effect.fn("cloud.server_self_update.make")(function* () {
         fs,
         path,
         runner,
+        nodePath: execPath,
         validate: (runtime) =>
           runner
             .run({

@@ -435,6 +435,12 @@ export class BootService extends Context.Service<
   {
     readonly install: Effect.Effect<BootServicePlan, BootServiceError>;
     readonly uninstall: Effect.Effect<boolean, BootServiceError>;
+    /**
+     * Restarts an installed service. The server reconciles the desired RAS
+     * Connect link only while starting up, so a change written while it is
+     * running is invisible until it restarts.
+     */
+    readonly restart: Effect.Effect<boolean, BootServiceError>;
     readonly status: Effect.Effect<BootServiceStatus, BootServiceError>;
   }
 >()("ras-code/cloud/bootService") {}
@@ -582,6 +588,7 @@ export const make = Effect.fn("cloud.boot_service.make")(function* (input: {
       fs,
       path,
       runner,
+      nodePath: host.execPath,
       validate: (runtime) =>
         runner
           .run({
@@ -688,6 +695,18 @@ export const make = Effect.fn("cloud.boot_service.make")(function* (input: {
     return true;
   }).pipe(Effect.withSpan("cloud.boot_service.uninstall"));
 
+  const restart: BootService["Service"]["restart"] = Effect.gen(function* () {
+    const manager = yield* requireManager;
+    if (
+      !(yield* fs
+        .exists(unitPath)
+        .pipe(Effect.mapError((cause) => new BootServiceInstallError({ cause }))))
+    )
+      return false;
+    yield* runSteps(manager.restart);
+    return true;
+  }).pipe(Effect.withSpan("cloud.boot_service.restart"));
+
   const status: BootService["Service"]["status"] = Effect.gen(function* () {
     if (detectedManager === undefined) {
       return { supported: false, installed: false, current: false, unitPath, logPath };
@@ -727,7 +746,7 @@ export const make = Effect.fn("cloud.boot_service.make")(function* (input: {
     Effect.withSpan("cloud.boot_service.status"),
   );
 
-  return BootService.of({ install, uninstall, status });
+  return BootService.of({ install, uninstall, restart, status });
 });
 
 export const layer = (input: {

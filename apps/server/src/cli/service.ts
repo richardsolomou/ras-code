@@ -150,6 +150,10 @@ export const offerServiceDuringOnboarding = Effect.gen(function* () {
     return false;
   }
   if (installed && current) {
+    // The running server read the desired link when it started, which was
+    // before `connect` wrote it. Without a restart the link is never
+    // provisioned and the machine silently stays unreachable.
+    yield* service.restart;
     yield* Console.log("RAS Code is already set up to run in the background on this machine.");
     return true;
   }
