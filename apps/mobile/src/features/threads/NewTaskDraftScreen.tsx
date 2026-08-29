@@ -217,7 +217,6 @@ export function NewTaskDraftScreen(props: {
     hasThread: false,
     enabled: isComposerFocused && !isIncomingShareTransferPending,
     onChangeDraftMessage: flow.setPrompt,
-    onUpdateInteractionMode: flow.planModeEnabled ? flow.setInteractionMode : undefined,
   });
   usePreventRemove(
     (isIncomingShareTransferPending && !isProjectPickerReturnActive) || isCancellingShareImport,
@@ -672,9 +671,7 @@ export function NewTaskDraftScreen(props: {
       draft.workspaceSelection?.worktreePath ?? flow.selectedWorktreePath;
     const startFromOrigin = draft.workspaceSelection?.startFromOrigin ?? flow.startFromOrigin;
     const runtimeMode = draft.runtimeMode ?? flow.runtimeMode;
-    const interactionMode = flow.planModeEnabled
-      ? (draft.interactionMode ?? flow.interactionMode)
-      : "default";
+    const interactionMode = "default";
     const initialMessageText = draft.text.trim();
 
     if (
@@ -1039,24 +1036,6 @@ export function NewTaskDraftScreen(props: {
               maxWidth={152}
               onPress={settingsSheetPresentation.open}
             />
-            {flow.planModeEnabled ? (
-              <ComposerInlineControl
-                accessibilityHint={`Switches to ${flow.interactionMode === "plan" ? "Build" : "Plan"} mode`}
-                accessibilityLabel={`Interaction mode: ${flow.interactionMode === "plan" ? "Plan" : "Build"}`}
-                disabled={isIncomingShareTransferPending}
-                emphasized
-                icon={
-                  flow.interactionMode === "plan"
-                    ? { ios: "list.bullet.clipboard", android: "auto_awesome" }
-                    : { ios: "hammer", android: "construction" }
-                }
-                label={flow.interactionMode === "plan" ? "Plan" : "Build"}
-                onPress={() =>
-                  flow.setInteractionMode(flow.interactionMode === "plan" ? "default" : "plan")
-                }
-                showChevron={false}
-              />
-            ) : null}
           </ComposerToolbarScroller>
           <ComposerToolbarButton
             accessibilityLabel={

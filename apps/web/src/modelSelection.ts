@@ -351,18 +351,12 @@ export function withoutPlanAgentSelection(
   return createModelSelection(selection.instanceId, selection.model, options);
 }
 
-// The dropdown hides the opencode "plan" agent while legacy plan mode is off,
-// but the persisted text-generation selections are only healed when the toggle
-// flips. Users who already have plan mode off and a stored "plan" selection
-// never trip the toggle handler, so resolve the heal once per settings load.
+// The opencode "plan" agent went away with plan mode, but a selection stored
+// before that still dispatches. Resolve the heal once per settings load.
 export function resolvePlanAgentHealPatch(input: {
-  readonly planModeEnabled: boolean;
   readonly textGenerationModelSelection: ModelSelection | null | undefined;
   readonly sourceControlWriterModelSelection: ModelSelection | null | undefined;
 }): ServerSettingsPatch | null {
-  if (input.planModeEnabled) {
-    return null;
-  }
   const healedText = withoutPlanAgentSelection(input.textGenerationModelSelection);
   const healedSourceControl = withoutPlanAgentSelection(input.sourceControlWriterModelSelection);
   const patch: ServerSettingsPatch = {
@@ -407,7 +401,6 @@ export function resolveAppModelSelectionState(
       model,
       models: entry.models,
       modelOptions: selectedEntry ? selection.options : undefined,
-      planModeEnabled: settings.planModeEnabled,
     });
 
     return createModelSelection(entry.instanceId, model, modelOptionsForDispatch);
@@ -425,7 +418,6 @@ export function resolveAppModelSelectionState(
     model,
     models: getProviderModels(providers, provider),
     modelOptions: keptSelectedProvider ? selection.options : undefined,
-    planModeEnabled: settings.planModeEnabled,
   });
 
   return createModelSelection(defaultInstanceIdForDriver(provider), model, modelOptionsForDispatch);

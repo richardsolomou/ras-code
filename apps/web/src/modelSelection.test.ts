@@ -492,7 +492,6 @@ describe("instance-scoped model selection", () => {
       model: state.selectedModel,
       models: providers[0]!.models,
       modelOptions: state.modelOptions?.[instanceId],
-      planModeEnabled: false,
     });
 
     expect(state.selectedModel).toBe("gpt-5.6-sol");
@@ -546,7 +545,6 @@ describe("instance-scoped model selection", () => {
       model: state.selectedModel,
       models: providers[0]!.models,
       modelOptions: state.modelOptions?.[instanceId],
-      planModeEnabled: false,
     });
 
     expect(
@@ -584,7 +582,6 @@ describe("instance-scoped model selection", () => {
       model: state.selectedModel,
       models: providers[1]!.models,
       modelOptions: state.modelOptions?.[instanceId],
-      planModeEnabled: false,
     });
 
     expect(
@@ -656,20 +653,9 @@ describe("resolvePlanAgentHealPatch", () => {
     { id: "variant", value: "high" },
     { id: "agent", value: "plan" },
   ]);
-  const nullPatch = {
-    planModeEnabled: true,
-    textGenerationModelSelection: storedPlan,
-    sourceControlWriterModelSelection: null,
-  };
-
-  it("returns null when plan mode is on", () => {
-    expect(resolvePlanAgentHealPatch(nullPatch)).toBeNull();
-  });
-
   it("returns null when nothing needs healing", () => {
     expect(
       resolvePlanAgentHealPatch({
-        planModeEnabled: false,
         textGenerationModelSelection: healed,
         sourceControlWriterModelSelection: null,
       }),
@@ -679,7 +665,6 @@ describe("resolvePlanAgentHealPatch", () => {
   it("patches the stored text generation selection to drop the plan agent", () => {
     expect(
       resolvePlanAgentHealPatch({
-        planModeEnabled: false,
         textGenerationModelSelection: storedPlan,
         sourceControlWriterModelSelection: null,
       }),
@@ -689,7 +674,6 @@ describe("resolvePlanAgentHealPatch", () => {
   it("patches a stored source control writer selection that uses the plan agent", () => {
     expect(
       resolvePlanAgentHealPatch({
-        planModeEnabled: false,
         textGenerationModelSelection: healed,
         sourceControlWriterModelSelection: storedPlan,
       }),

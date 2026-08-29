@@ -32,8 +32,6 @@ export interface Preferences {
   readonly projectGroupingEnabled?: boolean;
   readonly projectGroupingMode?: SidebarProjectGroupingMode;
   readonly autoSettleOnMerge?: boolean;
-  /** Device-local counterpart of desktop's `planModeEnabled` legacy flag. */
-  readonly planModeEnabled?: boolean;
   /** Undefined preserves the default expanded Settled shelf. */
   readonly threadListV2SettledShelfExpanded?: boolean;
   /** Undefined preserves the default collapsed Snoozed shelf. */
@@ -94,7 +92,6 @@ function sanitizePreferences(parsed: Preferences): Preferences {
     projectGroupingEnabled?: boolean;
     projectGroupingMode?: SidebarProjectGroupingMode;
     autoSettleOnMerge?: boolean;
-    planModeEnabled?: boolean;
     threadListV2SettledShelfExpanded?: boolean;
     threadListV2SnoozedShelfExpanded?: boolean;
   } = {};
@@ -160,9 +157,6 @@ function sanitizePreferences(parsed: Preferences): Preferences {
   }
   if (typeof parsed.autoSettleOnMerge === "boolean") {
     preferences.autoSettleOnMerge = parsed.autoSettleOnMerge;
-  }
-  if (typeof parsed.planModeEnabled === "boolean") {
-    preferences.planModeEnabled = parsed.planModeEnabled;
   }
   if (typeof parsed.threadListV2SettledShelfExpanded === "boolean") {
     preferences.threadListV2SettledShelfExpanded = parsed.threadListV2SettledShelfExpanded;
