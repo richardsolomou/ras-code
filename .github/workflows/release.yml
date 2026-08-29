@@ -256,6 +256,11 @@ jobs:
             args:
               - --filter=ras-code-relay...
 
+      - name: Configure Alchemy credentials
+        uses: ./.github/actions/alchemy-credentials
+        with:
+          state-store-credentials: ${{ secrets.ALCHEMY_STATE_STORE_CREDENTIALS }}
+
       - id: relay_state
         name: Read production relay tracing config
         shell: bash
