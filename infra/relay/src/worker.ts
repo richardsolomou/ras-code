@@ -10,6 +10,7 @@ import * as Layer from "effect/Layer";
 import * as Schema from "effect/Schema";
 import * as Stream from "effect/Stream";
 import * as HttpBody from "effect/unstable/http/HttpBody";
+import * as HttpEffect from "effect/unstable/http/HttpEffect";
 import * as Etag from "effect/unstable/http/Etag";
 import * as HttpPlatform from "effect/unstable/http/HttpPlatform";
 import * as HttpRouter from "effect/unstable/http/HttpRouter";
@@ -106,6 +107,28 @@ const CloudMintKeyPair = Alchemy.KeyPair("CloudMintKeyPair");
 const ApnsDeliveryJobSigningSecret = Alchemy.makeRandom("ApnsDeliveryJobSigningSecret", {
   bytes: 32,
 });
+
+/**
+ * Hands a proxied upgrade back to the client.
+ *
+ * A 101 leaves a socket that outlives this handler, so the request scope has to
+ * be ejected: the worker bridge closes a scope that is not, and closing it takes
+ * the proxied socket with it. `scopeTransferToStream` only ejects for streaming
+ * bodies, and the upstream response rides through as a raw body so the runtime
+ * receives the same `Response` object and its `webSocket`.
+ */
+export const managedEndpointGatewayResponse = Effect.fn("relay.managedEndpointGateway.response")(
+  function* (response: Response) {
+    if (response.status !== 101) {
+      return HttpServerResponse.fromWeb(response);
+    }
+    HttpEffect.scopeDisableClose(yield* Effect.scope);
+    return HttpServerResponse.setBody(
+      HttpServerResponse.empty({ status: 101 }),
+      HttpBody.raw(response),
+    );
+  },
+);
 
 export class Api extends Cloudflare.Worker<Api, {}>()("Api") {}
 
@@ -334,12 +357,7 @@ export const ApiLive = Api.make(
           }).pipe(Effect.as(new Response(null, { status: 502 }))),
         ),
       );
-      return response.status === 101
-        ? HttpServerResponse.setBody(
-            HttpServerResponse.empty({ status: 101 }),
-            HttpBody.raw(response),
-          )
-        : HttpServerResponse.fromWeb(response);
+      return yield* managedEndpointGatewayResponse(response);
     }).pipe(withoutCapturedParentSpan, (httpEffect) =>
       traceRelayHttpRequestWith(httpEffect, relayTraceLayer),
     );
