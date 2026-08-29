@@ -11,6 +11,13 @@ const UPSTREAM_PACKAGE_SCOPES = ["@t3tools/", "@t3-code/"] as const;
 const UPSTREAM_PATH_MARKERS = ["oxlint-plugin-t3code", "apps/t3code", "packages/t3code"] as const;
 
 /**
+ * Effect service keys upstream namespaces under `t3/`. The compiler only complains once the
+ * package that owns the file is typechecked, so a pick lands and the error surfaces wherever
+ * someone next runs a full check.
+ */
+const UPSTREAM_SERVICE_KEY = /(?:>\(\)\(|Context\.Tag\()\s*"t3\//u;
+
+/**
  * Files whose contents are *supposed* to name upstream, so a hit there is correct rather than a
  * leftover. The rebrand map's own fixtures are the main one: rewriting them breaks the map.
  */
@@ -25,7 +32,7 @@ export interface UpstreamResidue {
   readonly path: string;
   readonly line: number;
   readonly marker: string;
-  readonly kind: "import" | "path";
+  readonly kind: "import" | "path" | "serviceKey";
 }
 
 export function isContentExempt(path: string): boolean {
@@ -42,6 +49,9 @@ export function findImportResidue(path: string, contents: string): ReadonlyArray
       if (line.includes(marker)) {
         found.push({ path, line: index + 1, marker, kind: "import" });
       }
+    }
+    if (UPSTREAM_SERVICE_KEY.test(line)) {
+      found.push({ path, line: index + 1, marker: "t3/", kind: "serviceKey" });
     }
   });
   return found;
@@ -69,11 +79,13 @@ export function formatResidue(residue: ReadonlyArray<UpstreamResidue>): string {
   if (residue.length === 0) {
     return "No upstream residue: package scopes and directory names are all ours.";
   }
-  const lines = residue.map((item) =>
-    item.kind === "path"
-      ? `  ${item.path} — upstream path name '${item.marker}'`
-      : `  ${item.path}:${item.line} — upstream package scope '${item.marker}'`,
-  );
+  const lines = residue.map((item) => {
+    if (item.kind === "path") return `  ${item.path} — upstream path name '${item.marker}'`;
+    if (item.kind === "serviceKey") {
+      return `  ${item.path}:${item.line} — Effect service key namespaced '${item.marker}'`;
+    }
+    return `  ${item.path}:${item.line} — upstream package scope '${item.marker}'`;
+  });
   return [
     `Found ${residue.length} upstream leftover${residue.length === 1 ? "" : "s"}:`,
     ...lines,

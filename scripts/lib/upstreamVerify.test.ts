@@ -37,6 +37,34 @@ describe("findImportResidue", () => {
   });
 });
 
+describe("findImportResidue, service keys", () => {
+  it("catches an Effect service key still namespaced under upstream", () => {
+    const found = findImportResidue(
+      "apps/server/src/provider/OpenCodeServerOwner.ts",
+      '>()("t3/provider/OpenCodeServerOwner") {}',
+    );
+    expect(found).toEqual([
+      {
+        path: "apps/server/src/provider/OpenCodeServerOwner.ts",
+        line: 1,
+        marker: "t3/",
+        kind: "serviceKey",
+      },
+    ]);
+  });
+
+  it("leaves our own namespace alone", () => {
+    expect(findImportResidue("a.ts", '>()("ras-code/provider/OpenCodeServerOwner") {}')).toEqual(
+      [],
+    );
+  });
+
+  it("does not fire on the do-not-rename wire paths that legitimately say t3", () => {
+    expect(findImportResidue("a.ts", 'const path = "/.well-known/t3/environment";')).toEqual([]);
+    expect(findImportResidue("a.ts", 'const ref = "refs/t3/checkpoints";')).toEqual([]);
+  });
+});
+
 describe("findPathResidue", () => {
   it("catches an upstream directory that arrived as a new path", () => {
     expect(findPathResidue(["oxlint-plugin-t3code/rules/no-escape-hatches.ts"])).toEqual([

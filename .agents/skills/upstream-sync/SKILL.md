@@ -102,6 +102,7 @@ A cherry-pick that reports no conflict still breaks the tree in ways git cannot 
 - An upstream directory (`oxlint-plugin-t3code/`) arrived as a new path, because adding a path is not a conflict.
 - A delete/modify conflict resolved to _keeping_ files upstream had deleted.
 - A rename landed in the tests but not the implementation, surfacing as a type error three changes later.
+- Effect service keys arrived still namespaced under `t3/`, which only the owning package's typecheck reports.
 
 So after each pick, before moving on:
 
