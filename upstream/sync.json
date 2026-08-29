@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "3e6ab36f6ed303f95f210971f56cc8642214c6fc",
+  "lastReviewed": "6a9d9f98826e1dac266c0d2aa324e71fe77fa3e7",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -363,6 +363,33 @@
       "ours": "02b1d0d9a267e6e6a74d12a9cb44c4d4f333e964",
       "reason": "Cherry-picked the SDK 57 manifests and patches; regenerated pnpm-lock.yaml rather than merging it, since our lockfile carries relay dependencies upstream lacks and its integrity hashes contain t3 substrings the rebrand map would corrupt.",
       "reviewedAt": "2026-08-29T16:27:01.601Z"
+    },
+    {
+      "upstream": "38dcd7a404d24c2fa514cc82c1a5c4fd6a9d4a7a",
+      "pr": 8611,
+      "title": "fix(mobile): harden native header toolbar items",
+      "decision": "adopted",
+      "ours": "67f7cdddd88baecace324e8c204f0d372a0e53ab",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-29T16:28:17.079Z"
+    },
+    {
+      "upstream": "c131f289268d407bb0d8540dc33ba6ddb88f46ed",
+      "pr": 8610,
+      "title": "fix(server): stop querying Claude context usage after turns",
+      "decision": "adopted",
+      "ours": "ea69e403e956a1c8e99e8bd5bd4a753f0bdd46b3",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-29T16:28:19.338Z"
+    },
+    {
+      "upstream": "6a9d9f98826e1dac266c0d2aa324e71fe77fa3e7",
+      "pr": 8613,
+      "title": "chore: vouch ryanrhughes",
+      "decision": "skipped",
+      "ours": null,
+      "reason": "Upstream's contributor trust list. The pick added 63 external contributors to .github/VOUCHED.td, which controls who the vouch workflow trusts on this repo; that is our security decision to make, not one to inherit.",
+      "reviewedAt": "2026-08-29T16:27:50.663Z"
     }
   ]
 }
