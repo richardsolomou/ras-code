@@ -7,6 +7,7 @@ import * as Config from "effect/Config";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
+import * as Path from "effect/Path";
 
 import { relayDatabaseName } from "./dbConfig.ts";
 import { applyRelayMigrations } from "./migrations.ts";
@@ -36,6 +37,9 @@ export class RelayTransactions extends Context.Service<
 }
 
 const DEFAULT_DATABASE_NAME = "ras-code-relay";
+
+/** Where `Drizzle.Schema` writes generated SQL, relative to the relay package. */
+const MIGRATIONS_DIR = "./migrations/postgres";
 
 /**
  * Connection details for the self-hosted Postgres behind the managed tunnel.
@@ -77,16 +81,22 @@ export const RelayDatabaseOrigin = Effect.gen(function* () {
  * deploy; locally it points wherever the developer's tunnel is bound.
  */
 export const RelayDatabase = Effect.gen(function* () {
-  const schema = yield* Drizzle.Schema("RelaySchema", {
+  // Yielded for its side effect: it regenerates migration SQL before the
+  // migrations below run. Its `out` output is deliberately not read — resolving
+  // an Output accessor requires RuntimeContext, which does not exist at plan
+  // time, so the directory is derived from the same constant instead.
+  yield* Drizzle.Schema("RelaySchema", {
     schema: "./src/persistence/schema.ts",
-    out: "./migrations/postgres",
+    out: MIGRATIONS_DIR,
     dialect: "postgres",
   });
   const origin = yield* RelayDatabaseOrigin;
   const migrationUrl = yield* Config.redacted("RELAY_MIGRATION_DATABASE_URL");
 
+  const path = yield* Path.Path;
+  const relayRoot = yield* path.fromFileUrl(new URL("..", import.meta.url)).pipe(Effect.orDie);
   const applied = yield* applyRelayMigrations({
-    migrationsDir: yield* yield* schema.out,
+    migrationsDir: path.resolve(relayRoot, MIGRATIONS_DIR),
     url: migrationUrl,
   }).pipe(Effect.orDie);
 
