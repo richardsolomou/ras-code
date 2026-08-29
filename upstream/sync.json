@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "b654911f8a1d07f8d74fb6dd58ab4f9884326ea2",
+  "lastReviewed": "4669eab8e0e01d07141a2cb49ca21a9e15ae1429",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -264,6 +264,96 @@
       "ours": "4ef4dddd583c3f5c94185c99ebb778eeecb962b4",
       "reason": "Clean cherry-pick.",
       "reviewedAt": "2026-08-29T16:18:22.489Z"
+    },
+    {
+      "upstream": "e898008959247befda6b5e6c40079cd6dee33cad",
+      "pr": 8587,
+      "title": "fix(mobile): show composer menus when starting a task",
+      "decision": "adapted",
+      "ours": "c5549debcc5cf80a3780d43d7cbffe43e3ec11fe",
+      "reason": "Cherry-picked; import conflicts were adjacent-context only, ours matched base so upstream's move into use-composer-command-menu applied.",
+      "reviewedAt": "2026-08-29T16:22:15.359Z"
+    },
+    {
+      "upstream": "ac3b2adf96e755580fc09e149b7c7eb057d0b282",
+      "pr": 8437,
+      "title": "fix(web): show the configured stash shortcut",
+      "decision": "adopted",
+      "ours": "fd1bb0fb46a8349e2d66ea3c8c1c36d40b1b3174",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-29T16:22:17.993Z"
+    },
+    {
+      "upstream": "22c311ddecfbab2e541a374a46f2df87d4fc6305",
+      "pr": 7313,
+      "title": "feat(web): add toggleable confirmation before unpinning a thread",
+      "decision": "adopted",
+      "ours": "d9cb812b0bf7f0343baa759915bf484bdf945255",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-29T16:22:20.744Z"
+    },
+    {
+      "upstream": "38154388d7b0274aefd3f29c38db3b2659c46c29",
+      "pr": 8596,
+      "title": "fix: restore automatic thread settling defaults",
+      "decision": "adapted",
+      "ours": "a629d302b1123c45c834679e1bb727ecdf6daa25",
+      "reason": "Cherry-picked; conflicts were rebrand-only.",
+      "reviewedAt": "2026-08-29T16:22:24.282Z"
+    },
+    {
+      "upstream": "8fc7f22941969d7a2c06929dc29aa86ae1b02f33",
+      "pr": 8597,
+      "title": "fix(mobile): restore composer glass and rounded shadows",
+      "decision": "deferred",
+      "ours": null,
+      "reason": "Follow-on to the deferred #7327: restores glass and shadows through Uniwind classnames and withUniwind mappings, while our GlassSurface and ThreadComposer resolve those colours through useThemeColor against the RAS Code palette. Lands with #7327.",
+      "reviewedAt": "2026-08-29T16:23:08.726Z"
+    },
+    {
+      "upstream": "ac3a331918b7b25271058ae7e12f1e15772fb3de",
+      "pr": 8599,
+      "title": "Remove Messages Glass Lab experiment",
+      "decision": "adapted",
+      "ours": "1fb585e8801791a8b99913286915bd3cdbca3a34",
+      "reason": "Cherry-picked; conflicts were rebrand-only.",
+      "reviewedAt": "2026-08-29T16:23:22.932Z"
+    },
+    {
+      "upstream": "3251b7548b4f32c3e47b0e081cd40fd76de13709",
+      "pr": null,
+      "title": "chore(release): prepare v0.0.36",
+      "decision": "skipped",
+      "ours": null,
+      "reason": "Upstream's own release version bump. Our package versions are set by release.yml's finalize job against our tags, so tracking theirs would couple our release cadence to upstream's.",
+      "reviewedAt": "2026-08-29T16:24:06.443Z"
+    },
+    {
+      "upstream": "2bc9e8ef6ad57a2513e4552e8a0b21d53db859e6",
+      "pr": 8603,
+      "title": "Require human review for pull requests changing product defaults",
+      "decision": "adopted",
+      "ours": "d7b482de52026edd886f73787a56c3f8fe1dcaed",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-29T16:24:19.620Z"
+    },
+    {
+      "upstream": "702a6ade3c69bf1c9ce06ad0451dbd8e0ecc7be9",
+      "pr": 8605,
+      "title": "fix(codex): avoid quadratic app-server input buffering",
+      "decision": "adopted",
+      "ours": "f55dfbe91ad9ffec57638765a1d2cfc7a01f4f04",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-29T16:24:22.242Z"
+    },
+    {
+      "upstream": "4669eab8e0e01d07141a2cb49ca21a9e15ae1429",
+      "pr": 8607,
+      "title": "fix(mobile): stabilize iOS header item transitions",
+      "decision": "adopted",
+      "ours": "a44b432366f61c8918c30ce418653a43a46d668c",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-29T16:24:24.982Z"
     }
   ]
 }

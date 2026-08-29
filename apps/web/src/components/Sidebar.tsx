@@ -32,8 +32,8 @@ import {
 } from "@ras-code/client-runtime/environment";
 import type { ScopedThreadRef, ThreadId } from "@ras-code/contracts";
 import type {} from "@ras-code/contracts/settings";
-import type { SidebarAutoSettleMode, TimestampFormat } from "@t3tools/contracts/settings";
-import type { TimestampFormat } from "@t3tools/contracts/settings";
+import type { SidebarAutoSettleMode, TimestampFormat } from "@ras-code/contracts/settings";
+import type { TimestampFormat } from "@ras-code/contracts/settings";
 import {
   AlarmClockIcon,
   AlarmClockOffIcon,
