@@ -19,7 +19,7 @@ const repositoryIdentity = {
   provider: "github",
   owner: "t3tools",
   name: "ras-code",
-  displayName: "RAS Code",
+  displayName: "t3tools/ras-code",
 };
 
 function makeProject(
@@ -82,14 +82,36 @@ describe("buildProjectGroups", () => {
     );
   });
 
-  it("keeps the repository label when shared titles match its repository name", () => {
+  it("keeps the repository name rather than qualifying it with the owner", () => {
+    // Qualifying reads as `owner/repo`, and truncation drops the repository
+    // name, leaving every project showing the same owner.
     const projects = [
       makeProject("first", "/work/t3code", { title: "ras-code" }),
       makeProject("second", "/work/t3code-2", { title: "ras-code" }),
     ];
 
     expect(buildProjectGroups({ projects, settings: settings("repository") })[0]?.label).toBe(
-      "RAS Code",
+      "ras-code",
+    );
+  });
+
+  it("does not rename a project when the same repository reaches a second environment", () => {
+    const alone = [makeProject("first", "/work/t3code", { title: "stl.quest" })];
+    const grouped = [...alone, makeProject("second", "/work/t3code-2", { title: "stl.quest" })];
+
+    expect(
+      buildProjectGroups({ projects: alone, settings: settings("repository") })[0]?.label,
+    ).toBe(buildProjectGroups({ projects: grouped, settings: settings("repository") })[0]?.label);
+  });
+
+  it("falls back to the repository name when members disagree on the title", () => {
+    const projects = [
+      makeProject("first", "/work/t3code", { title: "stl.quest" }),
+      makeProject("second", "/work/t3code-2", { title: "stl" }),
+    ];
+
+    expect(buildProjectGroups({ projects, settings: settings("repository") })[0]?.label).toBe(
+      "ras-code",
     );
   });
 

@@ -177,20 +177,20 @@ export function deriveProjectGroupLabel(input: {
     input.members.map((member) => member.repositoryIdentity?.name),
   );
   const sharedTitle = sharedTitles[0];
-  if (
-    sharedTitles.length === 1 &&
-    sharedTitle !== undefined &&
-    !sharedDisplayNames.includes(sharedTitle) &&
-    !sharedRepositoryNames.includes(sharedTitle)
-  ) {
+  // A title every member agrees on is what a lone project already shows, so
+  // grouping keeps it rather than renaming the project the moment the same
+  // repository turns up in a second environment.
+  if (sharedTitles.length === 1 && sharedTitle !== undefined) {
     return sharedTitle;
   }
-  if (sharedDisplayNames.length === 1) {
-    return sharedDisplayNames[0]!;
-  }
-
   if (sharedRepositoryNames.length === 1) {
     return sharedRepositoryNames[0]!;
+  }
+  // `owner/repo`, so only worth reaching for when members disagree on the
+  // repository itself. It reads badly where labels are truncated: the owner
+  // repeats across every project and crowds out the half that identifies one.
+  if (sharedDisplayNames.length === 1) {
+    return sharedDisplayNames[0]!;
   }
 
   return input.representative.title;
