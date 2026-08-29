@@ -157,3 +157,4 @@ These keep their upstream spelling wherever they appear:
 - Never hand-merge a lockfile. Take ours and regenerate it against the new manifests: upstream's integrity hashes contain `t3` substrings that the rebrand map will happily corrupt.
 - Never treat the report as a decision. A short file list does not mean the change belongs here.
 - Never commit the generated report. Write it to a path outside the worktree.
+- Never assume a release tag name is free. The `t3code` remote brings hundreds of upstream tags into the clone, so `git tag vX.Y.Z` fails with "already exists" and a separate `git push origin vX.Y.Z` then ships _upstream's_ tag, pointing at an upstream commit. Tag with `-f`, confirm `git rev-list -n1 <tag>` equals `origin/main`, and only then push.
