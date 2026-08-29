@@ -43,6 +43,11 @@ the task commands.
   environment discovery, cloud-side records, mobile notifications, and the shared managed-tunnel
   gateway. After connect, managed traffic passes through the gateway to the selected tunnel. See
   [ras-connect.md](./ras-connect.md).
+- `infra/web` (`ras-code-web-infra`): the hosted web app, deployed to Cloudflare Workers with
+  Alchemy. The stage names the release channel (`latest`, `nightly`) or a pull-request preview
+  (`pr-<number>`).
+- `infra/marketing` (`ras-code-marketing-infra`): the marketing site, deployed to Cloudflare Workers
+  with Alchemy.
 
 ## Other top-level directories
 

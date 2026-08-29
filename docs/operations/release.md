@@ -27,9 +27,9 @@ This document covers the unified release workflow for stable and nightly desktop
 - Publishes the CLI package (`apps/server`, npm package `ras-code`) with OIDC trusted publishing from the same workflow file:
   - stable releases publish npm dist-tag `latest`
   - nightly releases publish npm dist-tag `nightly`
-- Deploys the hosted web app to Vercel only after a release is published:
-  - stable releases are aliased to the `latest` hosted app channel
-  - nightly releases are aliased to the `nightly` hosted app channel
+- Deploys the hosted web app to Cloudflare Workers only after a release is published:
+  - stable releases deploy the `latest` hosted app channel
+  - nightly releases deploy the `nightly` hosted app channel
 - Signing is optional and auto-detected per platform from secrets.
 
 ## Required release credentials
@@ -106,63 +106,56 @@ Personal stages reference the production-owned zones.
 Developers deploy personal stages locally rather than through pull-request automation:
 
 ```sh
-vp run --filter ras-code-relay deploy -- --stage "$USER" --env-file .env.local
+vp run --filter ras-code-relay deploy --stage "$USER" --env-file .env.local
 ```
 
 ## Hosted web app release deployment
 
-The hosted app is intentionally not deployed by Vercel's Git integration. The
-web project disables automatic Git deployments in `apps/web/vercel.ts` via
-`git.deploymentEnabled: false`, and `.github/workflows/release.yml` deploys the
-web app with Vercel CLI after the GitHub Release succeeds.
+The hosted app is a Cloudflare Worker serving the built SPA as static assets,
+deployed by `.github/workflows/release.yml` after the GitHub Release succeeds.
+The Alchemy stack lives in `infra/web`, and the deployment stage names the
+release channel, so a stage typo cannot publish nightly assets onto the stable
+domain.
 
 Required GitHub Actions secrets:
 
-- `VERCEL_TOKEN`
-- `VERCEL_ORG_ID`
-- `VERCEL_PROJECT_ID`
+- `CLOUDFLARE_API_TOKEN`
 
 Required GitHub Actions variables:
 
+- `CLOUDFLARE_ACCOUNT_ID`
 - `RAS_CODE_WEB_ROUTER_URL`: set to `https://code.ras.sh` for the RAS-hosted deployment.
 - `RAS_CODE_WEB_LATEST_DOMAIN`: set to `code-latest.ras.sh` for the RAS-hosted deployment.
 - `RAS_CODE_WEB_NIGHTLY_DOMAIN`: set to `code-nightly.ras.sh` for the RAS-hosted deployment.
 
-Optional GitHub Actions variables:
+Worker custom domains, which Alchemy attaches:
 
-- `VERCEL_TEAM_SLUG`: overrides the Vercel CLI scope when the team slug is preferred over the `VERCEL_ORG_ID` secret.
+- `code.ras.sh`: the router domain users open, served by the `latest` stage.
+- `code-latest.ras.sh`: the stable channel, served by the `latest` stage.
+- `code-nightly.ras.sh`: the nightly channel, served by the `nightly` stage.
 
-Required Vercel domains:
+Both channels deploy the same Worker entry, `apps/web/worker.ts`. Only the
+`latest` stage receives `RAS_CODE_WEB_ROUTER_HOST` and
+`RAS_CODE_WEB_NIGHTLY_ORIGIN`, so only it routes; the nightly deployment serves
+its own assets unconditionally. Users opt into a channel by visiting
+`/__ras-code/channel?channel=latest` or `/__ras-code/channel?channel=nightly`,
+which sets the `ras_code_web_channel` cookie. On the router domain the Worker
+reads that cookie and proxies to the nightly origin when it says `nightly`;
+otherwise it serves its own assets. Requests to a channel domain are never
+proxied, so a stale cookie cannot cause a loop.
 
-- `code.ras.sh`: the router domain users open, updated by stable releases.
-- `code-latest.ras.sh`: channel alias updated by stable releases.
-- `code-nightly.ras.sh`: channel alias updated by nightly releases.
-
-The router domain uses `apps/web/vercel.ts` routes. Users opt into a channel by
-visiting `/__ras-code/channel?channel=latest` or
-`/__ras-code/channel?channel=nightly`; the router stores the
-`ras_code_web_channel` cookie and rewrites future requests on `code.ras.sh` to
-the matching channel alias.
-
-The release deploy job rewrites release package versions before upload so the
-hosted app's About panel renders the release version. Stable deploys alias the
-same deployment to both the `latest` channel and the router domain so the router
-rules stay current. Nightly deploys only alias the `nightly` channel. The job
-also passes `VITE_HOSTED_APP_CHANNEL=latest|nightly`, which renders the hosted
-update track selector in the About panel. Changing the selector navigates
-through `/__ras-code/channel` on the router domain so the user's channel cookie is
+The release deploy job rewrites release package versions before the build so the
+hosted app's About panel renders the release version. It also passes
+`VITE_HOSTED_APP_CHANNEL=latest|nightly`, which renders the hosted update track
+selector in the About panel. Changing the selector navigates through
+`/__ras-code/channel` on the router domain so the user's channel cookie is
 updated before redirecting to the hosted app root.
 
-One-time Vercel dashboard setup:
+Deploy a channel by hand with:
 
-1. Confirm the web project root directory remains `apps/web`.
-2. Add the three domains above to the web project.
-3. Disable automatic Git deployments in the dashboard if desired; the committed
-   `vercel.ts` setting is the source-of-truth, but disconnecting Git in the
-   dashboard is also safe.
-4. Run one stable release deployment, or manually alias the current stable
-   deployment, so `code.ras.sh` points at a deployment containing the router
-   rules in `apps/web/vercel.ts`. Future stable releases keep this alias current.
+```sh
+vp run --filter ras-code-web-infra deploy --stage latest --yes
+```
 
 ## Nightly builds
 

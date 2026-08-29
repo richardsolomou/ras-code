@@ -95,8 +95,8 @@ database named by `RELAY_DATABASE_NAME`. Every other stage gets its own
 `<RELAY_DATABASE_NAME>-<stage>` database on the same Postgres server, so stages never share tables:
 
 ```sh
-vp run --filter ras-code-relay deploy -- --stage prod
-vp run --filter ras-code-relay deploy -- --env-file .env.local
+vp run --filter ras-code-relay deploy --stage prod
+vp run --filter ras-code-relay deploy --env-file .env.local
 ```
 
 Alchemy defaults personal deployments to the `dev_$USER` stage. Relay custom domains apply the same
