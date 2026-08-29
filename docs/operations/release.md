@@ -404,6 +404,24 @@ Checklist:
 6. Add Azure secrets listed above in GitHub Actions secrets.
 7. Re-run a tag release and confirm Windows installer is signed.
 
+## Tagging a stable release
+
+```sh
+git fetch origin main
+git tag -f -a vX.Y.Z origin/main -m "RAS Code X.Y.Z"
+test "$(git rev-list -n1 vX.Y.Z)" = "$(git rev-parse origin/main)" || echo "refusing: tag is not origin/main"
+git push origin refs/tags/vX.Y.Z
+```
+
+The `-f` and the check are both load-bearing. Syncing with upstream adds the `t3code` remote, which brings hundreds of upstream tags into the clone, so most plausible version names already exist locally. A plain `git tag vX.Y.Z` then fails with "already exists" while a separate push still succeeds — shipping upstream's tag, pointing at an upstream commit, and starting a release build from code that is not ours.
+
+If that happens, delete the tag from the remote and cancel the run before it builds:
+
+```sh
+git push origin :refs/tags/vX.Y.Z
+gh run cancel <run-id>
+```
+
 ## 4) Ongoing release checklist
 
 1. Ensure `main` is green in CI.
