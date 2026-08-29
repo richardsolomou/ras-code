@@ -24,6 +24,7 @@ import * as Schema from "effect/Schema";
 import { Command, Flag } from "effect/unstable/cli";
 
 import { mapUpstreamPath } from "./lib/upstreamRebrandMap.ts";
+import { findImportResidue, findPathResidue, formatResidue } from "./lib/upstreamVerify.ts";
 import {
   UPSTREAM_SYNC_LEDGER_PATH,
   UpstreamSyncDecision,
@@ -314,6 +315,7 @@ export const runMark = Effect.fn("runMark")(function* (options: {
   readonly upstream: string;
   readonly decision: UpstreamSyncDecision;
   readonly ours: string | undefined;
+  readonly intent: string | undefined;
   readonly reason: string;
   readonly fetch: boolean;
 }) {
@@ -341,6 +343,7 @@ export const runMark = Effect.fn("runMark")(function* (options: {
       pr: change.pr,
       title: change.title,
       decision: options.decision,
+      ...(options.intent === undefined ? {} : { intent: options.intent }),
       ours,
       reason: options.reason,
       reviewedAt: new Date().toISOString(),
@@ -398,6 +401,12 @@ const markCommand = Command.make(
     upstream: Flag.string("upstream").pipe(
       Flag.withDescription("Upstream commit the decision applies to."),
     ),
+    intent: Flag.string("intent").pipe(
+      Flag.withDescription(
+        "What the change does, in our vocabulary. Required for deferred and reimplemented, which are only actionable later if someone wrote the behaviour down.",
+      ),
+      Flag.optional,
+    ),
     decision: Flag.choice("decision", UpstreamSyncDecision.literals).pipe(
       Flag.withDescription("What we did with the change."),
     ),
@@ -412,12 +421,13 @@ const markCommand = Command.make(
     repo: repoFlag,
     noFetch: noFetchFlag,
   },
-  ({ upstream, decision, ours, reason, ledger, repo, noFetch }) =>
+  ({ upstream, decision, ours, intent, reason, ledger, repo, noFetch }) =>
     runMark({
       repoRoot: repo,
       ledgerPath: ledger,
       upstream,
       decision,
+      intent: Option.getOrUndefined(intent),
       ours: Option.getOrUndefined(ours),
       reason,
       fetch: !noFetch,
@@ -433,6 +443,38 @@ const validateCommand = Command.make("validate", { ledger: ledgerFlag }, ({ ledg
   }),
 ).pipe(Command.withDescription("Check that the ledger matches its schema."));
 
+/**
+ * Checks the working tree for upstream leftovers a cherry-pick can introduce without conflicting.
+ * Run it after every pick, not just the ones that conflicted.
+ */
+export const runVerify = Effect.fn("runVerify")(function* (options: { readonly repoRoot: string }) {
+  const fs = yield* FileSystem.FileSystem;
+  const git = createGitRunner(options.repoRoot);
+  const tracked = (yield* gitOrFail(git, ["ls-files"]))
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+
+  const residue = [...findPathResidue(tracked)];
+  for (const path of tracked.filter((candidate) =>
+    /\.(?:ts|tsx|mts|cts|js|jsx)$/u.test(candidate),
+  )) {
+    const contents = yield* fs.readFileString(path).pipe(Effect.orElseSucceed(() => ""));
+    residue.push(...findImportResidue(path, contents));
+  }
+
+  yield* Console.log(formatResidue(residue));
+  if (residue.length > 0) {
+    return yield* new UpstreamSyncGitError({ args: ["verify"], status: 1, stderr: "" });
+  }
+});
+
+const verifyCommand = Command.make("verify", {}, () => runVerify({ repoRoot: "." })).pipe(
+  Command.withDescription(
+    "Fail if the tree still names upstream: package scopes in files no conflict touched, or upstream directory names added as new paths.",
+  ),
+);
+
 const upstreamSyncCommand = Command.make("upstream-sync", {}, () =>
   runReport({
     repoRoot: ".",
@@ -442,7 +484,7 @@ const upstreamSyncCommand = Command.make("upstream-sync", {}, () =>
   }),
 ).pipe(
   Command.withDescription("Track upstream changes and record what we did with them."),
-  Command.withSubcommands([reportCommand, markCommand, validateCommand]),
+  Command.withSubcommands([reportCommand, markCommand, validateCommand, verifyCommand]),
 );
 
 if (import.meta.main) {

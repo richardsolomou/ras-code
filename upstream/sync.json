@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "4c51b4c9b6a85d96a22e0df41d5cfd2d8fc9901d",
+  "lastReviewed": "660cddd3bc9801e089afcabba11c62f41aeac5c3",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -129,6 +129,362 @@
       "ours": "446f06295ee4dbd12aaa192eb271c1473c7e39a9",
       "reason": "Clean cherry-pick.",
       "reviewedAt": "2026-08-28T13:01:52.206Z"
+    },
+    {
+      "upstream": "9257bd860a44ce2a324c917ca66a1a81e73607bd",
+      "pr": 8168,
+      "title": "fix(web): add back button to project settings",
+      "decision": "adopted",
+      "ours": "42a1a40d3aa509f45c5073aa1b98c26235e06258",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-29T16:08:53.632Z"
+    },
+    {
+      "upstream": "f94a0d646ed78a4788e4af6417f74202a628a5e9",
+      "pr": 5769,
+      "title": "fix(desktop): Cache Runtime locally on WSL Filesystem, dramatically improving launch times",
+      "decision": "adapted",
+      "ours": "c9488764c5aaafdd58dfb2e4e0fa0b0937c1e32d",
+      "reason": "Cherry-picked; test conflict was rebrand-only on top of upstream's path.join change, kept our binary and fixture names.",
+      "reviewedAt": "2026-08-29T16:08:58.554Z"
+    },
+    {
+      "upstream": "acb599d2dc5b28d5bad82fa2a280ac2abe771ec9",
+      "pr": 8573,
+      "title": "fix(mobile): show OpenCode model sources in picker",
+      "decision": "adopted",
+      "ours": "019e0a63fcbd340704a1048833ab7d99f518d1dd",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-29T16:09:00.970Z"
+    },
+    {
+      "upstream": "84b9d9bc2d8a13a8b13d59b81f1012f5cb57ebd2",
+      "pr": 6011,
+      "title": "fix(clients): honor project default models in new threads",
+      "decision": "adapted",
+      "ours": "be3d46defe1e941658e3a79a60df81ee50f8996c",
+      "reason": "Cherry-picked; took upstream's sticky-selection resolver and kept our effectiveDefaultModelSelection naming.",
+      "reviewedAt": "2026-08-29T16:12:45.530Z"
+    },
+    {
+      "upstream": "45c0dff8ec33a023c79ccb4e06494309253d1c25",
+      "pr": 8215,
+      "title": "fix(mobile): show file actions on Android",
+      "decision": "adopted",
+      "ours": "68fef03a7e3cdbf329dbdd640fe658675123d265",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-29T16:12:55.741Z"
+    },
+    {
+      "upstream": "94f1948166620c804937f5548a68f5739d76c9fb",
+      "pr": 8351,
+      "title": "fix(connect): explain DPoP connection failures",
+      "decision": "adopted",
+      "ours": "83908e7017c6f17eefba11c45b7c475c235a64d7",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-29T16:12:58.864Z"
+    },
+    {
+      "upstream": "48c176b3cfda7a714c10f18a12d398528ff4c2f9",
+      "pr": 5931,
+      "title": "feat(web): make the sidebar project filter a searchable combobox",
+      "decision": "adopted",
+      "ours": "48f7ad44605271e99ef669df97fb36cc2660be80",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-29T16:13:01.713Z"
+    },
+    {
+      "upstream": "a40aef4ccbc10b7bcd7bc817151db8d5a9b1c257",
+      "pr": 8226,
+      "title": "fix(server): a draft can retry its first send after a failed bootstrap",
+      "decision": "adapted",
+      "ours": "1ce89cf9c08051bdbbf84936f306fffb620a2f36",
+      "reason": "Cherry-picked; conflict was our longer test-layer prefixes rewrapping upstream's new replay block. Renamed the prefix and reformatted.",
+      "reviewedAt": "2026-08-29T16:13:56.238Z"
+    },
+    {
+      "upstream": "ff1761012af46ceb5f1ecc9b2be00aae288a1691",
+      "pr": 8567,
+      "title": "fix(desktop): stop hidden previews draining battery",
+      "decision": "adopted",
+      "ours": "fc6b312c5368d7d79fbe9e85d73a0907d8c511f7",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-29T16:13:58.934Z"
+    },
+    {
+      "upstream": "0e2905eb783fd2385f358a95f0b25bbf07ff7122",
+      "pr": 8435,
+      "title": "fix(desktop): oauth popups open from the browser preview",
+      "decision": "adopted",
+      "ours": "2ce0482527a8fb0cbdaf5a7d2c00354b0841589d",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-29T16:14:01.573Z"
+    },
+    {
+      "upstream": "0009aacdf146e0532327fa3d9d0109d5adca68b9",
+      "pr": 8313,
+      "title": "fix(web): keep long task drawers usable on small screens",
+      "decision": "adopted",
+      "ours": "02fca6d36f38417442d4c726521dd999e11c4e9f",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-29T16:14:04.106Z"
+    },
+    {
+      "upstream": "cb49e5d7201ef6bcb288bf447785bbd374e8644d",
+      "pr": 8480,
+      "title": "fix(opencode): handle child approvals, stops, and model catalogs",
+      "decision": "adapted",
+      "ours": "bbcd714311511a739a2fc174d40985c8e4dcdd95",
+      "reason": "Cherry-picked; kept our fallback composer chrome alongside upstream's widened picker deps, listed OpenCode next to PostHog AI Gateway in the docs index, and rebranded @t3tools imports that earlier clean picks had carried in.",
+      "reviewedAt": "2026-08-29T16:17:36.370Z"
+    },
+    {
+      "upstream": "0bbecfabf189349b16ad2d7e6558a95a98a3b196",
+      "pr": 8321,
+      "title": "fix: make thread auto-settling opt-in",
+      "decision": "adapted",
+      "ours": "78e2edc8293c1d7eb0e13f15a21a091e42e9714a",
+      "reason": "Cherry-picked; took upstream's new settling tests without resurrecting the theme-transition test we had already removed.",
+      "reviewedAt": "2026-08-29T16:18:19.933Z"
+    },
+    {
+      "upstream": "b654911f8a1d07f8d74fb6dd58ab4f9884326ea2",
+      "pr": 8585,
+      "title": "fix(web): stop session activity timing test from blocking releases",
+      "decision": "adopted",
+      "ours": "4ef4dddd583c3f5c94185c99ebb778eeecb962b4",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-29T16:18:22.489Z"
+    },
+    {
+      "upstream": "e898008959247befda6b5e6c40079cd6dee33cad",
+      "pr": 8587,
+      "title": "fix(mobile): show composer menus when starting a task",
+      "decision": "adapted",
+      "ours": "c5549debcc5cf80a3780d43d7cbffe43e3ec11fe",
+      "reason": "Cherry-picked; import conflicts were adjacent-context only, ours matched base so upstream's move into use-composer-command-menu applied.",
+      "reviewedAt": "2026-08-29T16:22:15.359Z"
+    },
+    {
+      "upstream": "ac3b2adf96e755580fc09e149b7c7eb057d0b282",
+      "pr": 8437,
+      "title": "fix(web): show the configured stash shortcut",
+      "decision": "adopted",
+      "ours": "fd1bb0fb46a8349e2d66ea3c8c1c36d40b1b3174",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-29T16:22:17.993Z"
+    },
+    {
+      "upstream": "22c311ddecfbab2e541a374a46f2df87d4fc6305",
+      "pr": 7313,
+      "title": "feat(web): add toggleable confirmation before unpinning a thread",
+      "decision": "adopted",
+      "ours": "d9cb812b0bf7f0343baa759915bf484bdf945255",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-29T16:22:20.744Z"
+    },
+    {
+      "upstream": "3251b7548b4f32c3e47b0e081cd40fd76de13709",
+      "pr": null,
+      "title": "chore(release): prepare v0.0.36",
+      "decision": "skipped",
+      "ours": null,
+      "reason": "Upstream's own release version bump. Our package versions are set by release.yml's finalize job against our tags, so tracking theirs would couple our release cadence to upstream's.",
+      "reviewedAt": "2026-08-29T16:24:06.443Z"
+    },
+    {
+      "upstream": "2bc9e8ef6ad57a2513e4552e8a0b21d53db859e6",
+      "pr": 8603,
+      "title": "Require human review for pull requests changing product defaults",
+      "decision": "adopted",
+      "ours": "d7b482de52026edd886f73787a56c3f8fe1dcaed",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-29T16:24:19.620Z"
+    },
+    {
+      "upstream": "702a6ade3c69bf1c9ce06ad0451dbd8e0ecc7be9",
+      "pr": 8605,
+      "title": "fix(codex): avoid quadratic app-server input buffering",
+      "decision": "adopted",
+      "ours": "f55dfbe91ad9ffec57638765a1d2cfc7a01f4f04",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-29T16:24:22.242Z"
+    },
+    {
+      "upstream": "4669eab8e0e01d07141a2cb49ca21a9e15ae1429",
+      "pr": 8607,
+      "title": "fix(mobile): stabilize iOS header item transitions",
+      "decision": "adopted",
+      "ours": "a44b432366f61c8918c30ce418653a43a46d668c",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-29T16:24:24.982Z"
+    },
+    {
+      "upstream": "3e6ab36f6ed303f95f210971f56cc8642214c6fc",
+      "pr": 8609,
+      "title": "chore(mobile): upgrade to Expo SDK 57",
+      "decision": "adapted",
+      "ours": "02b1d0d9a267e6e6a74d12a9cb44c4d4f333e964",
+      "reason": "Cherry-picked the SDK 57 manifests and patches; regenerated pnpm-lock.yaml rather than merging it, since our lockfile carries relay dependencies upstream lacks and its integrity hashes contain t3 substrings the rebrand map would corrupt.",
+      "reviewedAt": "2026-08-29T16:27:01.601Z"
+    },
+    {
+      "upstream": "38dcd7a404d24c2fa514cc82c1a5c4fd6a9d4a7a",
+      "pr": 8611,
+      "title": "fix(mobile): harden native header toolbar items",
+      "decision": "adopted",
+      "ours": "67f7cdddd88baecace324e8c204f0d372a0e53ab",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-29T16:28:17.079Z"
+    },
+    {
+      "upstream": "c131f289268d407bb0d8540dc33ba6ddb88f46ed",
+      "pr": 8610,
+      "title": "fix(server): stop querying Claude context usage after turns",
+      "decision": "adopted",
+      "ours": "ea69e403e956a1c8e99e8bd5bd4a753f0bdd46b3",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-29T16:28:19.338Z"
+    },
+    {
+      "upstream": "6a9d9f98826e1dac266c0d2aa324e71fe77fa3e7",
+      "pr": 8613,
+      "title": "chore: vouch ryanrhughes",
+      "decision": "skipped",
+      "ours": null,
+      "reason": "Upstream's contributor trust list. The pick added 63 external contributors to .github/VOUCHED.td, which controls who the vouch workflow trusts on this repo; that is our security decision to make, not one to inherit.",
+      "reviewedAt": "2026-08-29T16:27:50.663Z"
+    },
+    {
+      "upstream": "bcb855a633566c2dc70239155ddcd28f0fa736c4",
+      "pr": 8236,
+      "title": "feat(web): attach PDFs, ZIPs, and other files to a turn",
+      "decision": "adapted",
+      "ours": "7a55756e3d7ef32d49137e087fb3ceac26c96b21",
+      "reason": "Cherry-picked; took upstream's move to client-runtime/state/attachments, rebranded imports it carried in, and finished #6011's defaultModelSelection to projectModelSelection rename that had only landed in the tests.",
+      "reviewedAt": "2026-08-29T16:32:05.235Z"
+    },
+    {
+      "upstream": "d22709f759ced90b0ae7b7cb73d7ad22c2ce962b",
+      "pr": null,
+      "title": "fix(web): pass stashShortcutLabel in the mixed-attachments stash test",
+      "decision": "adopted",
+      "ours": "d66a40b7b7c1f1015da3e33a280387382a84e329",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-29T16:32:07.863Z"
+    },
+    {
+      "upstream": "be218ac768d809087bfcea4d8f15c431f0d70e16",
+      "pr": 8532,
+      "title": "feat(web): keybinding settings as settings rows",
+      "decision": "adapted",
+      "ours": "0d0b3f833719323eb2268ef87e9671bdf23cf0a9",
+      "reason": "Cherry-picked; the conflict was our longer brand name rewrapping the notice upstream extracted into BrowserKeybindingNotice, which already carries our copy.",
+      "reviewedAt": "2026-08-29T16:36:27.211Z"
+    },
+    {
+      "upstream": "c1c2d5401de5a352cf6722959de076c3da63d233",
+      "pr": 8569,
+      "title": "feat: let an environment publish themes as a file",
+      "decision": "adapted",
+      "ours": "cc67ec55631c8fb991c8721693ad578c31095a06",
+      "reason": "Cherry-picked; kept our GRAPHITE_THEME rename while taking upstream's move of RESERVED_THEME_IDS into shared, which covers our ids through BUILT_IN_THEME_IDS, and kept both new glossary sections.",
+      "reviewedAt": "2026-08-29T16:38:02.969Z"
+    },
+    {
+      "upstream": "074bcd6dc897f9c28b1bbc04737daa6ee3d8e40f",
+      "pr": 8627,
+      "title": "fix(web): keep project picker popup inside the sidebar",
+      "decision": "adopted",
+      "ours": "de5d89993c1c8b894bf67a9dc1eff42970bc75fb",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-29T16:39:32.539Z"
+    },
+    {
+      "upstream": "053affbed2659f90cd1b1efaaa7a75865c4131c7",
+      "pr": 8624,
+      "title": "fix(mobile): prevent header overflow and back-button artifacts",
+      "decision": "adapted",
+      "ours": "7ef44dd939c5929295df424bad37a736c4378408",
+      "reason": "Cherry-picked; upstream dropped both imports, we still need useThemeColor for the RAS Code palette.",
+      "reviewedAt": "2026-08-29T16:40:21.661Z"
+    },
+    {
+      "upstream": "fc262f1a28d8305951c751f2486da6ca72e6c1d1",
+      "pr": 8087,
+      "title": "fix(server): retry automatic thread title generation",
+      "decision": "adopted",
+      "ours": "04e3d18ec01eeb283bf5f3b5f3e3371ccc3ff4ff",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-29T16:40:24.356Z"
+    },
+    {
+      "upstream": "ebb9b9fda03d33a81cad3ce7f4d1106adba3044b",
+      "pr": 8094,
+      "title": "fix(client-runtime): refresh edited pull request comments",
+      "decision": "adopted",
+      "ours": "e2953c8137ec4d8174100a804d0275bc93bf5e2d",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-29T16:40:26.909Z"
+    },
+    {
+      "upstream": "8fc7f22941969d7a2c06929dc29aa86ae1b02f33",
+      "pr": 8597,
+      "title": "fix(mobile): restore composer glass and rounded shadows",
+      "decision": "deferred",
+      "ours": null,
+      "intent": "The composer keeps its glass surface and rounded drop shadow, with the shadow outside the clipped content so it is not cut off on iOS.",
+      "reason": "Expressed in the Uniwind tokens and withUniwind mappings that #7327 introduces. Lands with it.",
+      "reviewedAt": "2026-08-29T16:57:15.691Z"
+    },
+    {
+      "upstream": "5e63aea2df03e8ccc5c8a56cee4c067ecbd3d703",
+      "pr": 8504,
+      "title": "fix(web): clean up provider settings list and editor",
+      "decision": "deferred",
+      "ours": null,
+      "intent": "Provider settings list and editor get a cleaner layout, with the editor body wrapped in a readOnly container that dims and disables it.",
+      "reason": "The rewrap covers the region where we added the fallback section and usage-limit pill. Wants the two designs reconciled deliberately rather than merged hunk by hunk.",
+      "reviewedAt": "2026-08-29T16:57:18.097Z"
+    },
+    {
+      "upstream": "660cddd3bc9801e089afcabba11c62f41aeac5c3",
+      "pr": 8090,
+      "title": "fix(web): four composer spacing defects",
+      "decision": "adopted",
+      "ours": "89df279352a6aa3802458caff0252ac4ec55f896",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-29T17:10:13.403Z"
+    },
+    {
+      "upstream": "ac3a331918b7b25271058ae7e12f1e15772fb3de",
+      "pr": 8599,
+      "title": "Remove Messages Glass Lab experiment",
+      "decision": "adapted",
+      "ours": "1fb585e8801791a8b99913286915bd3cdbca3a34",
+      "intent": "The Messages Glass Lab experiment is gone.",
+      "reason": "Not rebrand-only, despite what the helper reported: the two files our rebrand had touched came through as delete/modify conflicts and resolved to keeping them, so the pick deleted only the untouched Swift entry point. The rest was removed in a follow-up commit.",
+      "reviewedAt": "2026-08-29T17:11:46.448Z"
+    },
+    {
+      "upstream": "38154388d7b0274aefd3f29c38db3b2659c46c29",
+      "pr": 8596,
+      "title": "fix: restore automatic thread settling defaults",
+      "decision": "adapted",
+      "ours": "a629d302b1123c45c834679e1bb727ecdf6daa25",
+      "intent": "Thread auto-settling goes back to being on by default, reverting #8321.",
+      "reason": "Not rebrand-only, despite what the helper reported: reverting #8321 also restored the Uniwind escape-hatch lint rule under upstream's oxlint-plugin-t3code path. That rule belongs to the deferred #7327, so it was removed again in a follow-up commit.",
+      "reviewedAt": "2026-08-29T17:11:48.807Z"
+    },
+    {
+      "upstream": "018d7f2775daabd2ef07898af29586915a0b7f67",
+      "pr": 7327,
+      "title": "refactor(mobile): compile semantic themes for Uniwind",
+      "decision": "deferred",
+      "ours": null,
+      "intent": "Mobile themes compile to semantic adaptive tokens, so a registered theme drives colour everywhere instead of dark:/light: utilities guessing at it. Ships the generator (scripts/generate-uniwind-themes.mts), the mobileTheme runtime and variables modules, useUniwindTheme, and the no-mobile-uniwind-theme-escape-hatches lint rule; retires apps/mobile/src/lib/useThemeColor.ts.",
+      "reason": "We are adopting Uniwind rather than keeping our useThemeColor approach: the token system is the better structure and we should express the RAS Code palette through it. Deferred only because it wants its own change, generating our palette as adaptive tokens across 111 files.",
+      "reviewedAt": "2026-08-29T17:11:51.094Z"
     }
   ]
 }

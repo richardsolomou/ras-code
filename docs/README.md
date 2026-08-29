@@ -10,11 +10,12 @@
 - [Review usage](./user/usage.md)
 - [Project settings](./user/project-settings.md)
 - [Mobile appearance](./user/mobile-appearance.md)
+- [Environment themes](./user/environment-theme.md)
 - [Remote access](./user/remote-access.md)
 - [Keeping app and server in sync](./user/updating.md)
 - [Source control integrations](./user/source-control.md)
 - [Background service (Linux)](./user/background-service.md)
-- Providers: [Codex](./user/providers-codex.md) · [Claude](./user/providers-claude.md) · [PostHog AI Gateway](./user/providers-posthog-gateway.md)
+- Providers: [Codex](./user/providers-codex.md) · [Claude](./user/providers-claude.md) · [OpenCode](./user/providers-opencode.md) · [PostHog AI Gateway](./user/providers-posthog-gateway.md)
 
 Mobile app: [apps/mobile/README.md](../apps/mobile/README.md)
 

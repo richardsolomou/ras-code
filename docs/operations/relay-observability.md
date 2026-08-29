@@ -48,3 +48,9 @@ one of the emitted custom attributes.
 Agents should prefer PostHog queries for completed incidents instead of tailing the Cloudflare
 Worker. Reading traces needs a PostHog login or a personal API key; the project token is
 ingest-only and cannot query.
+
+DPoP proof failures include the stable `relay.dpop.failure_code` span attribute. A `time_window`
+failure means that a signed proof was too old or too far in the future for the relay's allowed
+window. It can point to a date or time problem on either device, but it can also result from a
+delayed request. The client uses this category, and the absence of a category from an older relay,
+to decide whether clock skew is confirmed or only one possible cause.
