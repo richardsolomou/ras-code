@@ -2,17 +2,21 @@
 
 > For maintainers. Using RAS Code? See [docs/user](../user/).
 
-The relay Alchemy stack owns a shared Axiom trace setup:
+The relay Worker, the mobile app, and first-party relay clients all export OpenTelemetry spans to one
+PostHog project over OTLP. PostHog is an OTLP receiver, so there is nothing to provision: the Alchemy
+stack owns no observability resources, and every producer authenticates with the same project token.
 
-- `ras-code-relay-traces-prod`, the OpenTelemetry trace dataset shared by the Worker, mobile app, and
-  first-party relay clients
-- `ras-code-relay-otel-ingest-prod`, the dataset-scoped Worker ingest token
-- `ras-code-mobile-otel-ingest-prod`, the dataset-scoped mobile ingest token
-- `ras-code-relay-client-otel-ingest-prod`, the dataset-scoped first-party relay-client ingest token
-- `ras-code-relay-recent-spans-prod`, a view of recent request and endpoint spans
+Configuration lives in two values:
 
-Alchemy stages append their sanitized stage name to isolate resources, for example
-`ras-code-relay-traces-dev-julius` for a personal stage.
+- `POSTHOG_PROJECT_TOKEN`, the `phc_` project token. It is a public client identifier, which is why
+  release builds embed it for the mobile app and hosted web client. CI still stores it as an
+  environment secret so it is masked in workflow logs; it grants ingest only and cannot read data.
+- `POSTHOG_OTLP_TRACES_URL`, defaulting to `https://us.i.posthog.com/i/v1/traces`. Set it for the EU
+  region or a self-hosted PostHog instance.
+
+Spans are authorized with `Authorization: Bearer <project token>`. Stages are distinguished by the
+`service.name` resource attribute rather than by separate datasets, so a personal stage and
+production land in the same project and are filtered apart at query time.
 
 Deploy from `infra/relay` with the normal Alchemy workflow:
 
@@ -20,34 +24,27 @@ Deploy from `infra/relay` with the normal Alchemy workflow:
 vp run deploy
 ```
 
-Alchemy resolves account-level Axiom deployment credentials through its provider. At runtime, the
-Worker receives only its scoped ingest token. Mobile and relay clients use their own separately
-provisioned scoped ingest tokens.
-
 The Worker emits Effect's built-in HTTP server spans plus endpoint and database child spans.
 Effect's OpenTelemetry exporter stores semantic HTTP attributes below the `attributes.` prefix.
-For example:
+Query them with HogQL against `posthog.trace_spans`:
 
-```apl
-['ras-code-relay-traces-prod']
-| where name startswith 'http.server'
-| extend endpoint = column_ifexists('attributes.http.route', ''),
-    customAttributes = column_ifexists('attributes.custom', dynamic({}))
-| project _time, name, trace_id, duration,
-    ['attributes.http.request.method'],
-    ['attributes.url.path'],
-    ['attributes.http.response.status_code'],
-    endpoint,
-    relayOperation = customAttributes['relay']['operation']
-| order by _time desc
-| limit 200
+```sql
+SELECT timestamp, name, trace_id, duration_nano, service_name,
+       attributes['http.request.method'] AS method,
+       attributes['url.path'] AS path,
+       attributes['http.response.status_code'] AS status,
+       attributes['http.route'] AS endpoint,
+       attributes['custom.relay.operation'] AS relay_operation
+FROM posthog.trace_spans
+WHERE service_name = 'ras-code-relay-worker'
+  AND name LIKE 'http.server%'
+ORDER BY timestamp DESC
+LIMIT 200
 ```
 
-The provisioned view also reads the endpoint from `attributes.http.route`. Relay-specific span
-annotations are stored under `attributes.custom`; `relay.operation` is one of the emitted custom
-attributes.
+Relay-specific span annotations are stored under the `custom.` attribute prefix; `relay.operation` is
+one of the emitted custom attributes.
 
-Agents should prefer the provisioned view or APL queries for completed incidents instead of
-tailing the Cloudflare Worker. The stack does not provision a separate query token. Responders who
-need scripted query access use the authorized account-level `AXIOM_TOKEN` together with
-`AXIOM_ORG_ID`; scoped ingest tokens remain write-only credentials for their producers.
+Agents should prefer PostHog queries for completed incidents instead of tailing the Cloudflare
+Worker. Reading traces needs a PostHog login or a personal API key; the project token is
+ingest-only and cannot query.

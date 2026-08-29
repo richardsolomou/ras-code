@@ -12,7 +12,7 @@ This document covers the unified release workflow for stable and nightly desktop
   - scheduled nightly check every three hours
   - manual `workflow_dispatch` for either channel
 - Runs lint, typecheck, and tests alongside artifact builds. Publishing waits for every check.
-- Reads the shared production T3 Connect relay URL and Clerk client configuration before packaging clients.
+- Reads the shared production RAS Connect relay URL and Clerk client configuration before packaging clients.
 - Builds four artifacts in parallel for both channels:
   - macOS `arm64` DMG
   - macOS `x64` DMG
@@ -27,9 +27,9 @@ This document covers the unified release workflow for stable and nightly desktop
 - Publishes the CLI package (`apps/server`, npm package `ras-code`) with OIDC trusted publishing from the same workflow file:
   - stable releases publish npm dist-tag `latest`
   - nightly releases publish npm dist-tag `nightly`
-- Deploys the hosted web app to Vercel only after a release is published:
-  - stable releases are aliased to the `latest` hosted app channel
-  - nightly releases are aliased to the `nightly` hosted app channel
+- Deploys the hosted web app to Cloudflare Workers only after a release is published:
+  - stable releases deploy the `latest` hosted app channel
+  - nightly releases deploy the `nightly` hosted app channel
 - Signing is optional and auto-detected per platform from secrets.
 
 ## Required release credentials
@@ -44,7 +44,7 @@ The finalize job uses them to commit and push aligned package versions to `main`
 GitHub Release publication uses the repository-scoped workflow token so it has a rate-limit quota
 independent from the shared Release App installation.
 
-## T3 Connect relay deployment
+## RAS Connect relay deployment
 
 The relay is a shared control plane versioned separately from client releases. Stable and nightly
 client builds must point at the same relay so users see the same linked environments when switching
@@ -57,20 +57,21 @@ GitHub Actions environment before building desktop, CLI, or hosted web artifacts
 Required repository variables shared by relay deployments:
 
 - `CLOUDFLARE_ACCOUNT_ID`
-- `PLANETSCALE_ORGANIZATION`
-- `AXIOM_ORG_ID`
 
 Required repository secrets shared by relay deployments:
 
 - `CLOUDFLARE_API_TOKEN`
-- `PLANETSCALE_API_TOKEN_ID`
-- `PLANETSCALE_API_TOKEN`
-- `AXIOM_TOKEN`
+- `ALCHEMY_STATE_STORE_CREDENTIALS` (see [Relay Database](./relay-database.md#deployment-credentials))
 
 Required `production` environment variables:
 
 - `RELAY_API_ZONE_NAME`
+- `RELAY_DATABASE_HOST`
+- `RELAY_DATABASE_NAME`
+- `RELAY_DATABASE_USER`
 - `RELAY_TUNNEL_ZONE_NAME`
+- `RELAY_TUNNEL_GATEWAY_DOMAIN`
+- `RELAY_TUNNEL_NAMESPACE`
 - `CLERK_PUBLISHABLE_KEY`
 - `CLERK_JWT_AUDIENCE`
 - `CLERK_JWT_TEMPLATE`
@@ -82,77 +83,105 @@ Required `production` environment variables:
 
 Optional `production` environment variables:
 
-- `RELAY_DOMAIN` when overriding the derived `relay.<RELAY_API_ZONE_NAME>` domain
+- `RELAY_DOMAIN` when overriding the derived `code-relay.<RELAY_API_ZONE_NAME>` domain
 
 Required `production` environment secrets:
 
 - `CLERK_SECRET_KEY`
 - `APNS_PRIVATE_KEY`
+- `POSTHOG_PROJECT_TOKEN`
+- `RELAY_DATABASE_PASSWORD`
+- `RELAY_DATABASE_ACCESS_CLIENT_ID`
+- `RELAY_DATABASE_ACCESS_CLIENT_SECRET`
 
 The account-scoped repository credentials are consumed by Alchemy while provisioning relay stages; they
-are not bound into the relay Worker. The production deployment uses an Axiom personal access token,
-so `AXIOM_ORG_ID` must accompany `AXIOM_TOKEN`. The `prod` stage owns the retained PlanetScale
-database. Local personal stages provision isolated branches from it and are never deployed by CI.
+are not bound into the relay Worker. Postgres is self-hosted and never exposed on a public port:
+cloudflared publishes it as `RELAY_DATABASE_HOST`, a Cloudflare Access application guards that
+hostname, and Hyperdrive authenticates with the Access service token. The `prod` stage owns
+`RELAY_DATABASE_NAME`; every other stage gets its own `<RELAY_DATABASE_NAME>-<stage>` database on the
+same server. Migrations run from the deploy host over `cloudflared access tcp`, which the deploy
+workflow opens before the stack runs and closes afterwards.
 Production adopts the configured relay API and tunnel DNS zones as retained Cloudflare resources.
 Personal stages reference the production-owned zones.
 
 Developers deploy personal stages locally rather than through pull-request automation:
 
 ```sh
-vp run --filter ras-code-relay deploy -- --stage "$USER" --env-file .env.local
+vp run --filter ras-code-relay deploy --stage "$USER" --env-file .env.local
 ```
 
 ## Hosted web app release deployment
 
-The hosted app is intentionally not deployed by Vercel's Git integration. The
-web project disables automatic Git deployments in `apps/web/vercel.ts` via
-`git.deploymentEnabled: false`, and `.github/workflows/release.yml` deploys the
-web app with Vercel CLI after the GitHub Release succeeds.
+The hosted app is a Cloudflare Worker serving the built SPA as static assets,
+deployed by `.github/workflows/release.yml` after the GitHub Release succeeds.
+The Alchemy stack lives in `infra/web`, and the deployment stage names the
+release channel, so a stage typo cannot publish nightly assets onto the stable
+domain.
 
 Required GitHub Actions secrets:
 
-- `VERCEL_TOKEN`
-- `VERCEL_ORG_ID`
-- `VERCEL_PROJECT_ID`
+- `CLOUDFLARE_API_TOKEN`
+- `ALCHEMY_STATE_STORE_CREDENTIALS` (see [Relay Database](./relay-database.md#deployment-credentials))
 
-Optional GitHub Actions variables:
+Required GitHub Actions variables:
 
-- `VERCEL_TEAM_SLUG`: overrides the Vercel CLI scope when the team slug is preferred over the `VERCEL_ORG_ID` secret.
-- `RAS_CODE_WEB_ROUTER_URL`: defaults to `https://app.t3.codes`.
-- `RAS_CODE_WEB_LATEST_DOMAIN`: defaults to `latest.app.t3.codes`.
-- `RAS_CODE_WEB_NIGHTLY_DOMAIN`: defaults to `nightly.app.t3.codes`.
+- `CLOUDFLARE_ACCOUNT_ID`
+- `RAS_CODE_WEB_ROUTER_URL`: set to `https://code.ras.sh` for the RAS-hosted deployment.
+- `RAS_CODE_WEB_LATEST_DOMAIN`: set to `code-latest.ras.sh` for the RAS-hosted deployment.
+- `RAS_CODE_WEB_NIGHTLY_DOMAIN`: set to `code-nightly.ras.sh` for the RAS-hosted deployment.
 
-Required Vercel domains:
+Worker custom domains, which Alchemy attaches:
 
-- `app.t3.codes`: the router domain users open, updated by stable releases.
-- `latest.app.t3.codes`: channel alias updated by stable releases.
-- `nightly.app.t3.codes`: channel alias updated by nightly releases.
+- `code.ras.sh`: the router domain users open, served by the `latest` stage.
+- `code-latest.ras.sh`: the stable channel, served by the `latest` stage.
+- `code-nightly.ras.sh`: the nightly channel, served by the `nightly` stage.
 
-The router domain uses `apps/web/vercel.ts` routes. Users opt into a channel by
-visiting `/__ras-code/channel?channel=latest` or
-`/__ras-code/channel?channel=nightly`; the router stores the
-`t3code_web_channel` cookie and rewrites future requests on `app.t3.codes` to
-the matching channel alias.
+Both channels deploy the same Worker entry, `apps/web/worker.ts`. Only the
+`latest` stage receives `RAS_CODE_WEB_ROUTER_HOST` and
+`RAS_CODE_WEB_NIGHTLY_ORIGIN`, so only it routes; the nightly deployment serves
+its own assets unconditionally. Users opt into a channel by visiting
+`/__ras-code/channel?channel=latest` or `/__ras-code/channel?channel=nightly`,
+which sets the `ras_code_web_channel` cookie. On the router domain the Worker
+reads that cookie and proxies to the nightly origin when it says `nightly`;
+otherwise it serves its own assets. Requests to a channel domain are never
+proxied, so a stale cookie cannot cause a loop.
 
-The release deploy job rewrites release package versions before upload so the
-hosted app's About panel renders the release version. Stable deploys alias the
-same deployment to both the `latest` channel and the router domain so the router
-rules stay current. Nightly deploys only alias the `nightly` channel. The job
-also passes `VITE_HOSTED_APP_CHANNEL=latest|nightly`, which renders the hosted
-update track selector in the About panel. Changing the selector navigates
-through `/__ras-code/channel` on the router domain so the user's channel cookie is
+Known limitation: Cloudflare serves static assets before invoking the Worker, so
+the router does not see requests whose path exactly matches a built file. Channel
+switching therefore takes effect on application routes but not on `/`, which
+resolves directly to `index.html`. The stack sets `runWorkerFirst` on the router
+deployment, but Alchemy does not currently forward it — a deployed version
+reports `raw_run_worker_first: false`.
+
+The release deploy job rewrites release package versions before the build so the
+hosted app's About panel renders the release version. It also passes
+`VITE_HOSTED_APP_CHANNEL=latest|nightly`, which renders the hosted update track
+selector in the About panel. Changing the selector navigates through
+`/__ras-code/channel` on the router domain so the user's channel cookie is
 updated before redirecting to the hosted app root.
 
-One-time Vercel dashboard setup:
+Deploy a channel by hand with:
 
-1. Confirm the web project root directory remains `apps/web`.
-2. Add the three domains above to the web project.
-3. Disable automatic Git deployments in the dashboard if desired; the committed
-   `vercel.ts` setting is the source-of-truth, but disconnecting Git in the
-   dashboard is also safe.
-4. Run one stable release deployment, or manually alias the current stable
-   deployment, so `app.t3.codes` points at a deployment containing the router
-   rules in `apps/web/vercel.ts`. Future stable releases keep this alias current.
+```sh
+vp run --filter ras-code-web-infra deploy --stage latest --yes
+```
+
+## Mobile app releases (EAS)
+
+- Workflows: `.github/workflows/mobile-eas-preview.yml` and `mobile-eas-production.yml`
+- Expo account: `richardsolomou`, project `@richardsolomou/ras-code`
+- Required secret: `EXPO_TOKEN`, an access token belonging to the `ras-code-ci` robot user
+
+`apps/mobile/app.config.ts` pins the EAS project ID and owner, and `apps/mobile/eas.json` pins
+`ascAppId` for App Store submission. All three identify one specific Expo project and one App Store
+Connect app record, so they change together or not at all.
+
+iOS builds sign against the same `com.richardsolomou.ras-code` App ID the desktop app uses. EAS
+enables missing capabilities on that App ID automatically, which invalidates the macOS provisioning
+profile; see the Apple signing notes below.
+
+Trader status must be recorded in App Store Connect before a new app can be submitted in the EU.
+Only an Admin or the Account Holder can provide it.
 
 ## Nightly builds
 
@@ -191,7 +220,7 @@ connect the new client to a server on the previous version and verify that the u
 reconnects to the matching server. When the release adds database migrations, verify that the
 remote update applies them and reconnects. A failed trial must restore the database snapshot and
 restart the previous server. If the installed launcher does not support the target protocol,
-verify that the update stops before restart and run `npx ras@<version> service update` once on the
+verify that the update stops before restart and run `npx ras-code@<version> service update` once on the
 server machine. Also test the manual or desktop-managed guidance when those environments are
 available.
 
@@ -272,8 +301,8 @@ Checklist:
 
 There is no dry-run tag path. Pushing any accepted non-nightly tag, including
 `v0.0.0-test.1`, classifies the run as the stable channel. It publishes `ras-code` with npm dist-tag
-`latest`, creates a real GitHub Release, aliases the hosted app to `latest.app.t3.codes` and
-`app.t3.codes`, and can commit a version bump to `main` in the finalize job. Do not push a test tag
+`latest`, creates a real GitHub Release, aliases the hosted app to `code-latest.ras.sh` and
+`code.ras.sh`, and can commit a version bump to `main` in the finalize job. Do not push a test tag
 to validate the workflow.
 
 The workflow has no non-publishing `workflow_dispatch` mode. Use normal CI or local quality gates to
@@ -309,7 +338,10 @@ Checklist:
 
 1. Apple Developer account access:
    - Team has rights to create Developer ID certificates.
-2. Create an explicit App ID for `com.richardsolomou.ras-code` and enable Associated Domains.
+2. Create an explicit App ID for `com.richardsolomou.ras-code` and enable every capability both the
+   desktop and the iOS app need: Associated Domains, Push Notifications, App Groups (assigned to
+   `group.com.richardsolomou.ras-code`), and Sign in with Apple. The iOS app shares this bundle ID,
+   so enabling them all up front avoids a later capability change.
 3. Create a `Developer ID Application` certificate and a compatible provisioning profile for that
    App ID with Associated Domains enabled.
 4. Export the certificate + private key as `.p12` from Keychain.
@@ -322,7 +354,7 @@ Checklist:
    - `APPLE_API_KEY`: contents of the downloaded `.p8`
    - `APPLE_API_KEY_ID`: Key ID
    - `APPLE_API_ISSUER`: Issuer ID
-10. Complete the Clerk Native API and AASA setup in [T3 Connect Clerk Setup](../internals/t3-connect.md#desktop-passkeys).
+10. Complete the Clerk Native API and AASA setup in [RAS Connect Clerk Setup](../internals/ras-connect.md#desktop-passkeys).
 11. Re-run a tag release and confirm macOS artifacts are signed/notarized and contain the expected
     `com.apple.developer.associated-domains` entitlement.
 
@@ -332,6 +364,12 @@ Notes:
 - The workflow writes it to a temporary `AuthKey_<id>.p8` file at runtime.
 - The workflow decodes `MACOS_PROVISIONING_PROFILE`, validates it with `security cms`, and passes it
   to the desktop packager.
+- Adding or removing an App ID capability marks every provisioning profile for that App ID
+  `Invalid`. Regenerate the profile and refresh `MACOS_PROVISIONING_PROFILE` whenever the App ID
+  changes, including when an EAS build changes it.
+- The App Store Connect key needs only the Developer role to notarize. Editing capabilities,
+  profiles, or certificates through the API needs Admin, so the portal is the simpler path for those
+  one-off changes.
 
 ## 3) Azure Trusted Signing setup (Windows)
 

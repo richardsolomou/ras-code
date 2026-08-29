@@ -274,10 +274,11 @@ function providerLayer(
   dnsClient = makeDnsClient(),
   allocations = makeAllocations(),
   tunnelLimits = makeTunnelLimits(),
+  relayConfig: RelayConfiguration.RelayConfiguration["Service"] = config,
 ) {
   return ManagedEndpointProvider.layer.pipe(
     Layer.provideMerge(NodeServices.layer),
-    Layer.provide(RelayConfiguration.layer(config)),
+    Layer.provide(RelayConfiguration.layer(relayConfig)),
     Layer.provide(ManagedEndpointProvider.layerTunnelClient(tunnelClient)),
     Layer.provide(ManagedEndpointProvider.layerDnsClient(dnsClient)),
     Layer.provide(
@@ -418,6 +419,51 @@ describe("ManagedEndpointProvider", () => {
           makeTunnelClient(tunnelCalls),
           makeDnsClient(dnsCalls),
           makeAllocations(allocationCalls),
+        ),
+      ),
+    );
+  });
+
+  it.effect("routes a provisioned tunnel through the shared gateway hostname", () => {
+    const tunnelCalls: TunnelCall[] = [];
+
+    return Effect.gen(function* () {
+      const hostname = expectedManagedHostname("env_ABC");
+      const endpointId = hostname.split(".")[0]!.slice(-16);
+      const provider = yield* ManagedEndpointProvider.ManagedEndpointProvider;
+      const result = yield* provider.provision({
+        userId: "user_ABC",
+        environmentId: "env_ABC",
+        origin: { localHttpHost: "127.0.0.1", localHttpPort: 3773 },
+      });
+
+      expect(result.endpoint).toEqual({
+        httpBaseUrl: `https://code-tunnels.ras-code.test/e/${endpointId}/`,
+        wsBaseUrl: `wss://code-tunnels.ras-code.test/e/${endpointId}/ws`,
+        providerKind: "cloudflare_tunnel",
+      });
+      expect(tunnelCalls[2]?.input).toMatchObject({
+        tunnelConfig: {
+          ingress: [
+            {
+              hostname: "code-tunnels.ras-code.test",
+              service: "http://127.0.0.1:3773",
+            },
+            { service: "http_status:404" },
+          ],
+        },
+      });
+    }).pipe(
+      Effect.provide(
+        providerLayer(
+          makeTunnelClient(tunnelCalls),
+          makeDnsClient(),
+          makeAllocations(),
+          makeTunnelLimits(),
+          {
+            ...config,
+            managedEndpointGatewayDomain: "code-tunnels.ras-code.test",
+          },
         ),
       ),
     );

@@ -33,7 +33,7 @@ export function normalizeHttpBaseUrl(rawValue: string): string {
     throw new Error(`Endpoint must use HTTP or HTTPS. Received ${url.protocol}`);
   }
 
-  url.pathname = "/";
+  url.pathname = `${url.pathname.replace(/\/+$/u, "")}/`;
   url.search = "";
   url.hash = "";
   return url.toString();
@@ -42,7 +42,42 @@ export function normalizeHttpBaseUrl(rawValue: string): string {
 export function deriveWsBaseUrl(httpBaseUrl: string): string {
   const url = new URL(normalizeHttpBaseUrl(httpBaseUrl));
   url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+  if (url.pathname !== "/") {
+    url.pathname += "ws";
+  }
   return url.toString();
+}
+
+export function appendPathnameToBaseUrl(baseUrl: string, pathname: string): string {
+  const url = new URL(normalizeHttpBaseUrl(baseUrl));
+  url.pathname += pathname.replace(/^\/+/, "");
+  return url.toString();
+}
+
+export interface ManagedEndpointGatewayPath {
+  readonly endpointId: string;
+  readonly downstreamPath: string;
+}
+
+export function parseManagedEndpointGatewayPath(
+  pathname: string,
+): ManagedEndpointGatewayPath | null {
+  const match = /^\/e\/([a-f0-9]{16})(\/.*)?$/u.exec(pathname);
+  return match
+    ? {
+        endpointId: match[1]!,
+        downstreamPath: match[2] || "/",
+      }
+    : null;
+}
+
+export function stripManagedEndpointGatewayPrefix(requestUrl: string): string | null {
+  const queryIndex = requestUrl.indexOf("?");
+  const pathname = queryIndex === -1 ? requestUrl : requestUrl.slice(0, queryIndex);
+  const route = parseManagedEndpointGatewayPath(pathname);
+  return route
+    ? `${route.downstreamPath}${queryIndex === -1 ? "" : requestUrl.slice(queryIndex)}`
+    : null;
 }
 
 export function classifyHostedHttpsCompatibility(

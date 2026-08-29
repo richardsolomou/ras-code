@@ -58,7 +58,7 @@ The helper is assistive. It turns mechanical brand differences into a clean appl
 
 ### Never renamed
 
-Wire protocol names crossing the WebSocket, `/.well-known/t3/environment`, `refs/t3/checkpoints`, `app.t3.codes` and `clerk.t3.codes`, the product name "T3 Connect", the legacy theme ids `t3-chat` and `t3-chat-dark`, and links to `pingdotgg/t3code`.
+Wire protocol names crossing the WebSocket, `/.well-known/t3/environment`, `refs/t3/checkpoints`, the legacy theme ids `t3-chat` and `t3-chat-dark`, and links to `pingdotgg/t3code`.
 
 ## Recording a decision
 

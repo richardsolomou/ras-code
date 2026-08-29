@@ -69,8 +69,8 @@ export function RelayClientInstallDialog() {
           </DialogTitle>
           <DialogDescription>
             {isInstalling
-              ? "RAS Code is preparing this environment for secure access through T3 Connect."
-              : "RAS Code needs the relay client to make this environment available through T3 Connect."}
+              ? "RAS Code is preparing this environment for secure access through RAS Connect."
+              : "RAS Code needs the relay client to make this environment available through RAS Connect."}
           </DialogDescription>
         </DialogHeader>
         <DialogPanel scrollFade={false}>

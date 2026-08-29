@@ -1,3 +1,4 @@
+// @effect-diagnostics globalFetchInEffect:off
 import * as Alchemy from "alchemy";
 import * as Cloudflare from "alchemy/Cloudflare";
 import * as Drizzle from "alchemy/Drizzle";
@@ -6,10 +7,14 @@ import * as DateTime from "effect/DateTime";
 import * as Crypto from "effect/Crypto";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
+import * as Schema from "effect/Schema";
 import * as Stream from "effect/Stream";
+import * as HttpBody from "effect/unstable/http/HttpBody";
 import * as Etag from "effect/unstable/http/Etag";
 import * as HttpPlatform from "effect/unstable/http/HttpPlatform";
 import * as HttpRouter from "effect/unstable/http/HttpRouter";
+import * as HttpServerRequest from "effect/unstable/http/HttpServerRequest";
+import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse";
 import * as HttpApiBuilder from "effect/unstable/httpapi/HttpApiBuilder";
 import * as HttpApiScalar from "effect/unstable/httpapi/HttpApiScalar";
 
@@ -33,7 +38,7 @@ import {
   withoutCapturedParentSpan,
 } from "./http/Api.ts";
 import { ManagedEndpointZone, RelayApiZone, RelayDeploymentConfig } from "./zone.ts";
-import { makeRelayTraceLayer, RelayObservability } from "./observability.ts";
+import { makeRelayTraceLayer, RelayTracingConfig } from "./observability.ts";
 import * as DeliveryAttempts from "./agentActivity/DeliveryAttempts.ts";
 import * as AgentActivityRows from "./agentActivity/AgentActivityRows.ts";
 import * as Devices from "./agentActivity/Devices.ts";
@@ -57,6 +62,12 @@ import * as EnvironmentPublishSignatures from "./environments/EnvironmentPublish
 import * as ManagedEndpointProvider from "./environments/ManagedEndpointProvider.ts";
 import * as ManagedTunnelLimits from "./environments/ManagedTunnelLimits.ts";
 import * as MobileRegistrations from "./agentActivity/MobileRegistrations.ts";
+import { managedEndpointGatewayTargetHostname } from "./deploymentConfig.ts";
+
+class ManagedEndpointGatewayFetchFailed extends Schema.TaggedErrorClass<ManagedEndpointGatewayFetchFailed>()(
+  "ManagedEndpointGatewayFetchFailed",
+  { cause: Schema.Defect() },
+) {}
 
 const webcryptoLayer = Layer.succeed(
   Crypto.Crypto,
@@ -100,13 +111,13 @@ export class Api extends Cloudflare.Worker<Api, {}>()("Api") {}
 
 export const ApiLive = Api.make(
   RelayDeploymentConfig.pipe(
-    Effect.map(({ relayPublicDomain }) => ({
+    Effect.map(({ managedEndpointGatewayDomain, relayPublicDomain }) => ({
       main: import.meta.filename,
       compatibility: {
         date: "2026-05-22",
-        flags: ["nodejs_compat"],
+        flags: ["nodejs_compat", "global_fetch_private_origin"],
       },
-      domain: relayPublicDomain,
+      domain: { name: relayPublicDomain, aliases: [managedEndpointGatewayDomain] },
     })),
     Effect.orDie,
   ),
@@ -114,14 +125,19 @@ export const ApiLive = Api.make(
     //
     // 1. Provision Infrastructure for the Worker to use
     //
-    const { relayPublicOrigin, stage } = yield* RelayDeploymentConfig;
+    const {
+      managedEndpointGatewayDomain,
+      managedEndpointNamespace,
+      managedEndpointZoneName,
+      relayPublicOrigin,
+    } = yield* RelayDeploymentConfig;
     const apnsDeliveryQueue = yield* RelayApnsDeliveryQueue;
     const apnsDeliveryDeadLetterQueue = yield* RelayApnsDeliveryDeadLetterQueue;
     const cloudMintKeyPair = yield* CloudMintKeyPair;
     const relayApiZone = yield* RelayApiZone;
     const managedEndpointZone = yield* ManagedEndpointZone;
     const randomApnsDeliveryJobSigningSecret = yield* ApnsDeliveryJobSigningSecret;
-    const observability = yield* RelayObservability;
+    const tracing = yield* RelayTracingConfig;
 
     //
     // 2. Create bindings
@@ -137,10 +153,6 @@ export const ApiLive = Api.make(
     const apnsDeliveryJobSigningSecret = yield* randomApnsDeliveryJobSigningSecret;
     const apnsDeliveryQueueSender = yield* Cloudflare.Queues.WriteQueue(apnsDeliveryQueue);
 
-    const axiomDatasetName = yield* observability.traces.name;
-    const axiomIngestToken = yield* observability.workerIngestToken.token;
-    const axiomTracesEndpoint = yield* observability.traces.otelTracesEndpoint;
-
     const clerkSecretKey = yield* Config.redacted("CLERK_SECRET_KEY");
     const clerkPublishableKey = yield* Config.string("CLERK_PUBLISHABLE_KEY");
     const clerkJwtAudience = yield* Config.string("CLERK_JWT_AUDIENCE");
@@ -154,7 +166,7 @@ export const ApiLive = Api.make(
     // Keep Worker custom-domain reconciliation ordered after API zone provisioning.
     yield* yield* relayApiZone.zoneId;
     const managedEndpointDnsBinding = yield* Cloudflare.DNS.ReadWriteDns(managedEndpointZone);
-    const managedEndpointZoneName = yield* managedEndpointZone.name;
+    const managedEndpointZoneNameOutput = yield* managedEndpointZone.name;
 
     //
     // 3. Runtime layers and app construction
@@ -177,18 +189,13 @@ export const ApiLive = Api.make(
         clerkJwtAudience,
         cloudMintPrivateKey: yield* cloudMintPrivateKey,
         cloudMintPublicKey: yield* cloudMintPublicKey,
-        managedEndpointBaseDomain: yield* managedEndpointZoneName,
-        managedEndpointNamespace: stage,
+        managedEndpointBaseDomain: yield* managedEndpointZoneNameOutput,
+        managedEndpointGatewayDomain,
+        managedEndpointNamespace,
       });
     });
 
-    const relayTraceLayer = Layer.unwrap(
-      Effect.all({
-        tracesDatasetName: axiomDatasetName,
-        tracesEndpoint: axiomTracesEndpoint,
-        ingestToken: axiomIngestToken,
-      }).pipe(Effect.map(makeRelayTraceLayer)),
-    );
+    const relayTraceLayer = makeRelayTraceLayer(tracing);
 
     const runtimeLayer = Layer.empty.pipe(
       Layer.provideMerge(MobileRegistrations.layer),
@@ -279,7 +286,7 @@ export const ApiLive = Api.make(
       ),
     );
 
-    const fetch = Layer.merge(
+    const relayApiFetch = yield* Layer.merge(
       Layer.mergeAll(
         HttpApiBuilder.layer(RelayApi, { openapiPath: "/openapi.json" }).pipe(
           Layer.provide(appLayer),
@@ -288,10 +295,53 @@ export const ApiLive = Api.make(
         relayDocsRedirectRoute,
       ).pipe(Layer.provide([Etag.layerWeak, httpPlatformNotSupportedLayer, relayCors])),
       relayNotFoundRoute,
-    ).pipe(
-      HttpRouter.toHttpEffect,
-      withoutCapturedParentSpan,
-      Effect.flatMap((httpEffect) => traceRelayHttpRequestWith(httpEffect, relayTraceLayer)),
+    ).pipe(HttpRouter.toHttpEffect);
+
+    const fetch = Effect.gen(function* () {
+      const request = yield* HttpServerRequest.HttpServerRequest;
+      const requestUrl = HttpServerRequest.toURL(request);
+      if (
+        requestUrl._tag === "None" ||
+        requestUrl.value.hostname !== managedEndpointGatewayDomain
+      ) {
+        return yield* relayApiFetch;
+      }
+
+      const targetHostname = managedEndpointGatewayTargetHostname({
+        requestUrl: requestUrl.value,
+        gatewayDomain: managedEndpointGatewayDomain,
+        baseDomain: managedEndpointZoneName,
+        namespace: managedEndpointNamespace,
+      });
+      if (targetHostname === null) {
+        return HttpServerResponse.empty({ status: 404 });
+      }
+
+      const source = yield* HttpServerRequest.toWeb(request);
+      const response = yield* Effect.tryPromise({
+        try: () =>
+          globalThis.fetch(
+            new Request(source, {
+              cf: { resolveOverride: targetHostname },
+            }),
+          ),
+        catch: (cause) => new ManagedEndpointGatewayFetchFailed({ cause }),
+      }).pipe(
+        Effect.catch((cause) =>
+          Effect.logError("Managed endpoint gateway request failed", {
+            cause,
+            targetHostname,
+          }).pipe(Effect.as(new Response(null, { status: 502 }))),
+        ),
+      );
+      return response.status === 101
+        ? HttpServerResponse.setBody(
+            HttpServerResponse.empty({ status: 101 }),
+            HttpBody.raw(response),
+          )
+        : HttpServerResponse.fromWeb(response);
+    }).pipe(withoutCapturedParentSpan, (httpEffect) =>
+      traceRelayHttpRequestWith(httpEffect, relayTraceLayer),
     );
 
     return { fetch };

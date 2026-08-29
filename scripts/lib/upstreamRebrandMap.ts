@@ -21,7 +21,6 @@ export interface RebrandRule {
 export const preservedPatterns: ReadonlyArray<RegExp> = [
   /\.well-known\/t3\/[\w-]+/g,
   /refs\/t3\/[\w-]+/g,
-  /\bT3 Connect\b/g,
   /\bt3-chat-dark\b/g,
   /\bt3-chat\b/g,
   /\b[\w-]*\.?t3\.codes\b/g,
@@ -75,6 +74,11 @@ const textRules: ReadonlyArray<RebrandRule> = [
     pattern: /\bT3_/g,
     replacement: "RAS_",
     description: "remaining screaming-snake identifiers",
+  },
+  {
+    pattern: /\bT3 Connect\b/g,
+    replacement: "RAS Connect",
+    description: "remote access product name",
   },
   {
     pattern: /\bT3 Code\b/g,
@@ -206,6 +210,7 @@ const directoryRenames: ReadonlyArray<readonly [string, string]> = [
 
 const pathRules: ReadonlyArray<readonly [RegExp, string]> = [
   [/^t3\.json$/, "ras.json"],
+  [/\bt3-connect\b/, "ras-connect"],
   [/\bt3-code-connect-auth-flow\b/, "ras-code-connect-auth-flow"],
   [/\bT3ProjectFile/g, "RasProjectFile"],
   [/\bt3ProjectFile/g, "rasProjectFile"],

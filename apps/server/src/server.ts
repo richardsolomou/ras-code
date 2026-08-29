@@ -1,10 +1,17 @@
 import { EnvironmentHttpApi } from "@ras-code/contracts";
+import { stripManagedEndpointGatewayPrefix } from "@ras-code/shared/advertisedEndpoint";
 import * as Duration from "effect/Duration";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Schedule from "effect/Schedule";
-import { FetchHttpClient, HttpRouter, HttpServer } from "effect/unstable/http";
+import {
+  FetchHttpClient,
+  HttpMiddleware,
+  HttpRouter,
+  HttpServer,
+  HttpServerRequest,
+} from "effect/unstable/http";
 import * as HttpApiBuilder from "effect/unstable/httpapi/HttpApiBuilder";
 
 import * as BackgroundPolicy from "./background/BackgroundPolicy.ts";
@@ -444,6 +451,22 @@ const commandReadinessLayer = HttpRouter.middleware(
   { global: true },
 );
 
+export const managedEndpointGatewayMiddleware = HttpMiddleware.make((httpEffect) =>
+  Effect.gen(function* () {
+    const request = yield* HttpServerRequest.HttpServerRequest;
+    const downstreamUrl = stripManagedEndpointGatewayPrefix(request.url);
+    if (downstreamUrl === null) {
+      return yield* httpEffect;
+    }
+    return yield* httpEffect.pipe(
+      Effect.provideService(
+        HttpServerRequest.HttpServerRequest,
+        request.modify({ url: downstreamUrl }),
+      ),
+    );
+  }),
+);
+
 const PullRequestServiceLive = PullRequestService.layer.pipe(
   // One registry entry per supported host; the service only knows the registry.
   Layer.provide(PullRequestProviderRegistry.layer),
@@ -643,9 +666,9 @@ export const makeServerLayer = Layer.unwrap(
                   Schedule.upTo({ duration: "10 minutes" }),
                 ),
               }),
-              Effect.tap(() => Effect.logInfo("T3 Connect desired link reconciled on startup")),
+              Effect.tap(() => Effect.logInfo("RAS Connect desired link reconciled on startup")),
               Effect.catch((cause) =>
-                Effect.logWarning("Failed to reconcile T3 Connect desired link on startup", {
+                Effect.logWarning("Failed to reconcile RAS Connect desired link on startup", {
                   cause,
                 }),
               ),
@@ -672,6 +695,7 @@ export const makeServerLayer = Layer.unwrap(
 
     const routesLayer = HttpRouter.serve(makeRoutesLayer.pipe(Layer.provide(launcherLayer)), {
       disableLogger: !config.logWebSocketEvents,
+      middleware: managedEndpointGatewayMiddleware,
     }).pipe(Layer.tap(() => Deferred.succeed(routesReady, undefined).pipe(Effect.orDie)));
     const serverApplicationLayer = Layer.mergeAll(
       routesLayer,

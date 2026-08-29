@@ -1,23 +1,22 @@
 name: Web Preview
 
-# Label a PR `preview:web` to get a hosted-web preview deployment on Vercel for
-# that push and every subsequent push. The deployment is a plain (non-prod,
-# non-aliased) deploy into the existing hosted-web Vercel project, so the
-# latest/nightly channel aliases are never touched.
+# Label a PR `preview:web` to get a hosted-web preview Worker for that push and
+# every subsequent push. The preview deploys to its own Alchemy stage (`pr-<n>`)
+# and carries no custom domain, so the latest/nightly channel domains are never
+# touched. Closing the PR, or removing the label, destroys the stage.
 #
-# The build intentionally omits the T3 Connect cloud config (Clerk keys, relay
+# The build intentionally omits the RAS Connect cloud config (Clerk keys, relay
 # URL): previews boot as the hosted-static app with manual pairing only. Pair a
 # server into a preview with `ras pair --tailscale` (or any reachable HTTPS
 # backend) and open the pairing URL against the preview origin.
 #
-# The preview must be opened at the exact deployment URL from the PR comment.
-# Vite bakes that URL in as the hosted origin (via VERCEL_URL), and
-# `isHostedStaticApp` matches on origin, so branch-alias URLs will not
-# self-identify as the hosted app.
+# The preview must be opened at the exact URL from the PR comment. Vite bakes
+# that URL in as the hosted origin and `isHostedStaticApp` matches on origin, so
+# any other hostname will not self-identify as the hosted app.
 
 on:
   pull_request:
-    types: [labeled, synchronize, reopened]
+    types: [labeled, unlabeled, synchronize, reopened, closed]
 
 permissions:
   contents: read
@@ -27,23 +26,28 @@ concurrency:
   group: web-preview-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
+env:
+  CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+  CLOUDFLARE_WORKERS_SUBDOMAIN: ${{ vars.CLOUDFLARE_WORKERS_SUBDOMAIN }}
+  RAS_CODE_WEB_ROUTER_URL: ${{ vars.RAS_CODE_WEB_ROUTER_URL }}
+  RAS_CODE_WEB_LATEST_DOMAIN: ${{ vars.RAS_CODE_WEB_LATEST_DOMAIN }}
+  RAS_CODE_WEB_NIGHTLY_DOMAIN: ${{ vars.RAS_CODE_WEB_NIGHTLY_DOMAIN }}
+  ALCHEMY_TELEMETRY_DISABLED: "1"
+
 jobs:
   deploy:
     name: Deploy web preview
-    # Same-repo PRs only: fork PRs do not receive the Vercel secrets, and this
-    # workflow should skip rather than fail for them. On `labeled` events, only
-    # the preview label itself triggers a deploy.
+    # Same-repo PRs only: fork PRs do not receive the Cloudflare credentials, and
+    # this workflow should skip rather than fail for them. On `labeled` events,
+    # only the preview label itself triggers a deploy.
     if: >-
+      github.event.action != 'closed' &&
+      github.event.action != 'unlabeled' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
       contains(github.event.pull_request.labels.*.name, 'preview:web') &&
       (github.event.action != 'labeled' || github.event.label.name == 'preview:web')
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    env:
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-      VERCEL_TEAM_SLUG: ${{ vars.VERCEL_TEAM_SLUG }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -63,35 +67,48 @@ jobs:
             args:
               - --filter=@ras-code/scripts...
               - --filter=@ras-code/web...
+              - --filter=ras-code-web-infra...
+
+      - name: Configure Alchemy credentials
+        uses: ./.github/actions/alchemy-credentials
+        with:
+          state-store-credentials: ${{ secrets.ALCHEMY_STATE_STORE_CREDENTIALS }}
 
       - id: deploy
         name: Deploy preview
         shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
 
-          if [[ -z "${VERCEL_TOKEN:-}" || -z "${VERCEL_ORG_ID:-}" || -z "${VERCEL_PROJECT_ID:-}" ]]; then
-            echo "Missing one or more required Vercel secrets: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID." >&2
+          if [[ -z "${CLOUDFLARE_API_TOKEN:-}" || -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]]; then
+            echo "Missing Cloudflare credentials: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID." >&2
             exit 1
           fi
 
-          vercel_scope="${VERCEL_TEAM_SLUG:-$VERCEL_ORG_ID}"
+          if [[ -z "${CLOUDFLARE_WORKERS_SUBDOMAIN:-}" ]]; then
+            echo "Missing CLOUDFLARE_WORKERS_SUBDOMAIN; a preview URL cannot be derived without it." >&2
+            exit 1
+          fi
 
-          deployment_url="$(
-            vp dlx vercel@53.1.1 deploy \
-              --archive=tgz \
-              --yes \
-              --token "$VERCEL_TOKEN" \
-              --scope "$vercel_scope"
-          )"
+          stage="pr-${PR_NUMBER}"
 
-          echo "Deployed $deployment_url"
-          echo "deployment_url=$deployment_url" >> "$GITHUB_OUTPUT"
+          # Mirrors previewUrl() in infra/web/src/deployment.ts. The URL has to be
+          # known before the build, because Vite bakes it in as the hosted origin.
+          preview_url="https://ras-code-web-${stage}.${CLOUDFLARE_WORKERS_SUBDOMAIN}.workers.dev"
 
-      - name: Comment deployment URL
+          echo "Deploying $stage to $preview_url"
+          VITE_HOSTED_APP_URL="$preview_url" \
+            vp run --filter ras-code-web-infra deploy --stage "$stage" --yes
+
+          echo "preview_url=$preview_url" >> "$GITHUB_OUTPUT"
+
+      - name: Comment preview URL
         uses: actions/github-script@v8
         env:
-          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment_url }}
+          PREVIEW_URL: ${{ steps.deploy.outputs.preview_url }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         with:
           script: |
@@ -100,7 +117,7 @@ jobs:
               marker,
               "### Web preview",
               "",
-              `${process.env.DEPLOYMENT_URL} (for ${process.env.HEAD_SHA.slice(0, 7)})`,
+              `${process.env.PREVIEW_URL} (for ${process.env.HEAD_SHA.slice(0, 7)})`,
               "",
               "Open this exact URL — the hosted-app origin is baked in at build time.",
               "Pair a server into it with `ras pair --tailscale`, or paste a host + pairing",
@@ -111,9 +128,8 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.payload.pull_request.number,
-              per_page: 100,
             });
-            const existing = comments.find((comment) => comment.body?.includes(marker));
+            const existing = comments.find((comment) => comment.body?.startsWith(marker));
 
             if (existing) {
               await github.rest.issues.updateComment({
@@ -130,3 +146,53 @@ jobs:
                 body,
               });
             }
+
+  teardown:
+    name: Destroy web preview
+    # A preview Worker outlives its pull request unless something removes it, so
+    # closing the PR or dropping the label tears the stage down.
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      (github.event.action == 'closed' ||
+       (github.event.action == 'unlabeled' && github.event.label.name == 'preview:web'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: |
+            /*
+            !/.repos/
+          sparse-checkout-cone-mode: false
+
+      - name: Setup Vite+
+        uses: voidzero-dev/setup-vp@v1
+        with:
+          node-version-file: package.json
+          cache: true
+          run-install: |
+            args:
+              - --filter=ras-code-web-infra...
+
+      - name: Configure Alchemy credentials
+        uses: ./.github/actions/alchemy-credentials
+        with:
+          state-store-credentials: ${{ secrets.ALCHEMY_STATE_STORE_CREDENTIALS }}
+
+      - name: Destroy preview stage
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${CLOUDFLARE_API_TOKEN:-}" || -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]]; then
+            echo "Missing Cloudflare credentials; nothing to destroy without them." >&2
+            exit 1
+          fi
+
+          stage="pr-${PR_NUMBER}"
+          echo "Destroying $stage"
+          vp run --filter ras-code-web-infra destroy --stage "$stage" --yes

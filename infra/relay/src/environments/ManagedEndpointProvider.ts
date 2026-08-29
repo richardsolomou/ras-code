@@ -742,7 +742,7 @@ export const make = Effect.gen(function* () {
         .putConfiguration(tunnel.id, {
           ingress: [
             {
-              hostname,
+              hostname: config.managedEndpointGatewayDomain ?? hostname,
               service: formatOriginService(input.origin),
             },
             { service: "http_status:404" },
@@ -845,7 +845,7 @@ export const make = Effect.gen(function* () {
         );
 
       return {
-        endpoint: managedEndpointForHostname(hostname),
+        endpoint: managedEndpointForHostname(hostname, config.managedEndpointGatewayDomain),
         runtime: {
           providerKind: "cloudflare_tunnel",
           connectorToken,

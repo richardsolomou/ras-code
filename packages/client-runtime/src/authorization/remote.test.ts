@@ -144,7 +144,7 @@ describe("remote environment authorization", () => {
       );
 
       const token = yield* exchangeRemoteDpopAccessToken({
-        httpBaseUrl: "https://remote.example.com/",
+        httpBaseUrl: "https://gateway.example.com/e/abcdef0123456789/",
         credential: "one-time-credential",
         dpopProof: "token-proof",
         clientMetadata: {
@@ -154,19 +154,19 @@ describe("remote environment authorization", () => {
         },
       }).pipe(provideRemoteHttp(fetch.fetchFn));
       yield* issueRemoteDpopWebSocketTicket({
-        httpBaseUrl: "https://remote.example.com/",
+        httpBaseUrl: "https://gateway.example.com/e/abcdef0123456789/",
         accessToken: token.access_token,
         dpopProof: "resource-proof",
       }).pipe(provideRemoteHttp(fetch.fetchFn));
 
       expectFetchCall(fetch.calls, 1, {
-        url: "https://remote.example.com/oauth/token",
+        url: "https://gateway.example.com/e/abcdef0123456789/oauth/token",
         method: "POST",
         headers: { dpop: "token-proof", "content-type": "application/x-www-form-urlencoded" },
         body: "grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Atoken-exchange&subject_token=one-time-credential&subject_token_type=urn%3At3%3Aparams%3Aoauth%3Atoken-type%3Aenvironment-bootstrap&requested_token_type=urn%3Aietf%3Aparams%3Aoauth%3Atoken-type%3Aaccess_token&client_label=RAS+Code+Mobile&client_device_type=mobile&client_os=iOS",
       });
       expectFetchCall(fetch.calls, 2, {
-        url: "https://remote.example.com/api/auth/websocket-ticket",
+        url: "https://gateway.example.com/e/abcdef0123456789/api/auth/websocket-ticket",
         method: "POST",
         headers: {
           authorization: "DPoP dpop-access-token",
@@ -506,8 +506,8 @@ describe("remote environment authorization", () => {
       );
 
       const url = yield* resolveRemoteWebSocketConnectionUrl({
-        wsBaseUrl: "wss://remote.example.com/",
-        httpBaseUrl: "https://remote.example.com/",
+        wsBaseUrl: "wss://gateway.example.com/e/abcdef0123456789/ws",
+        httpBaseUrl: "https://gateway.example.com/e/abcdef0123456789/",
         bearerToken: "bearer-token",
         clientMetadata: {
           surface: "mobile",
@@ -521,8 +521,13 @@ describe("remote environment authorization", () => {
       }).pipe(provideRemoteHttp(fetch.fetchFn));
 
       expect(url).toBe(
-        "wss://remote.example.com/ws?wsTicket=ws-ticket&clientSurface=mobile&clientAppVersion=1.2.3&clientDeviceType=phone&clientOs=Android&clientOsMajorVersion=15&clientDeviceModel=Pixel+9&connectionMethod=relay",
+        "wss://gateway.example.com/e/abcdef0123456789/ws?wsTicket=ws-ticket&clientSurface=mobile&clientAppVersion=1.2.3&clientDeviceType=phone&clientOs=Android&clientOsMajorVersion=15&clientDeviceModel=Pixel+9&connectionMethod=relay",
       );
+      expectFetchCall(fetch.calls, 1, {
+        url: "https://gateway.example.com/e/abcdef0123456789/api/auth/websocket-ticket",
+        method: "POST",
+        headers: { authorization: "Bearer bearer-token" },
+      });
     }),
   );
 });

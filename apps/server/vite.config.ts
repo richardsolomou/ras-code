@@ -63,11 +63,11 @@ export default mergeConfig(
         __RAS_CODE_BUILD_CLERK_CLI_OAUTH_CLIENT_ID__: JSON.stringify(
           repoEnv.RAS_CODE_CLERK_CLI_OAUTH_CLIENT_ID?.trim() ?? "",
         ),
+        __RAS_CODE_BUILD_HOSTED_APP_URL__: JSON.stringify(
+          repoEnv.RAS_CODE_HOSTED_APP_URL?.trim() ?? "",
+        ),
         __RAS_CODE_BUILD_RELAY_CLIENT_OTLP_TRACES_URL__: JSON.stringify(
           repoEnv.RAS_CODE_RELAY_CLIENT_OTLP_TRACES_URL?.trim() ?? "",
-        ),
-        __RAS_CODE_BUILD_RELAY_CLIENT_OTLP_TRACES_DATASET__: JSON.stringify(
-          repoEnv.RAS_CODE_RELAY_CLIENT_OTLP_TRACES_DATASET?.trim() ?? "",
         ),
         __RAS_CODE_BUILD_RELAY_CLIENT_OTLP_TRACES_TOKEN__: JSON.stringify(
           repoEnv.RAS_CODE_RELAY_CLIENT_OTLP_TRACES_TOKEN?.trim() ?? "",

@@ -65,6 +65,10 @@ it.effect("normalizes the hosted app URL to an absolute origin", () =>
   }),
 );
 
+it.effect("requires a hosted app URL when the server bundle has no injected value", () =>
+  hostedAppUrlConfig.pipe(provideEnv({}), Effect.flip),
+);
+
 it.effect("rejects malformed or insecure hosted app URLs", () =>
   Effect.gen(function* () {
     for (const value of [
@@ -147,7 +151,6 @@ it.effect("reports malformed Clerk publishable keys as typed configuration failu
 it("resolves relay client tracing from runtime config with build-time fallback", () => {
   const fallback = {
     tracesUrl: "https://embedded.example.test/v1/traces",
-    tracesDataset: "embedded-dataset",
     tracesToken: "embedded-token",
   };
 
@@ -156,14 +159,12 @@ it("resolves relay client tracing from runtime config with build-time fallback",
     resolveRelayClientTracingConfig(
       {
         RAS_CODE_RELAY_CLIENT_OTLP_TRACES_URL: "https://runtime.example.test/v1/traces",
-        RAS_CODE_RELAY_CLIENT_OTLP_TRACES_DATASET: "runtime-dataset",
         RAS_CODE_RELAY_CLIENT_OTLP_TRACES_TOKEN: "runtime-token",
       },
       fallback,
     ),
     {
       tracesUrl: "https://runtime.example.test/v1/traces",
-      tracesDataset: "runtime-dataset",
       tracesToken: "runtime-token",
     },
   );
@@ -171,7 +172,6 @@ it("resolves relay client tracing from runtime config with build-time fallback",
     resolveRelayClientTracingConfig(
       {
         RAS_CODE_RELAY_CLIENT_OTLP_TRACES_URL: "http://insecure.example.test/v1/traces",
-        RAS_CODE_RELAY_CLIENT_OTLP_TRACES_DATASET: "runtime-dataset",
         RAS_CODE_RELAY_CLIENT_OTLP_TRACES_TOKEN: "runtime-token",
       },
       fallback,

@@ -34,10 +34,8 @@ import RelayStack from "../alchemy.run.ts";
 const relayDeployOutputFields = [
   "url",
   "mobileTracingUrl",
-  "mobileTracingDataset",
   "mobileTracingToken",
   "clientTracingUrl",
-  "clientTracingDataset",
   "clientTracingToken",
 ] as const;
 
@@ -94,10 +92,8 @@ export interface RelayDeployOptions {
 export interface RelayPublicConfig {
   readonly relayUrl: string;
   readonly mobileTracingUrl: string;
-  readonly mobileTracingDataset: string;
   readonly mobileTracingToken: string;
   readonly clientTracingUrl: string;
-  readonly clientTracingDataset: string;
   readonly clientTracingToken: string;
 }
 
@@ -105,10 +101,8 @@ const publicConfigEnvEntries = (config: RelayPublicConfig) =>
   ({
     RAS_CODE_RELAY_URL: config.relayUrl,
     RAS_CODE_MOBILE_OTLP_TRACES_URL: config.mobileTracingUrl,
-    RAS_CODE_MOBILE_OTLP_TRACES_DATASET: config.mobileTracingDataset,
     RAS_CODE_MOBILE_OTLP_TRACES_TOKEN: config.mobileTracingToken,
     RAS_CODE_RELAY_CLIENT_OTLP_TRACES_URL: config.clientTracingUrl,
-    RAS_CODE_RELAY_CLIENT_OTLP_TRACES_DATASET: config.clientTracingDataset,
     RAS_CODE_RELAY_CLIENT_OTLP_TRACES_TOKEN: config.clientTracingToken,
   }) as const;
 
@@ -134,10 +128,8 @@ export function reconcileRootEnvRelayUrl(contents: string, relayUrl: string): st
   return reconcileRootEnvPublicConfig(contents, {
     relayUrl,
     mobileTracingUrl: "",
-    mobileTracingDataset: "",
     mobileTracingToken: "",
     clientTracingUrl: "",
-    clientTracingDataset: "",
     clientTracingToken: "",
   })
     .split("\n")
@@ -171,7 +163,6 @@ export function serializeGithubOutput(entries: Readonly<Record<string, string | 
 export function serializeRelayClientTracingEnvironment(config: RelayPublicConfig): string {
   return serializeGithubOutput({
     RAS_CODE_RELAY_CLIENT_OTLP_TRACES_URL: config.clientTracingUrl,
-    RAS_CODE_RELAY_CLIENT_OTLP_TRACES_DATASET: config.clientTracingDataset,
     RAS_CODE_RELAY_CLIENT_OTLP_TRACES_TOKEN: config.clientTracingToken,
   });
 }
@@ -277,10 +268,8 @@ function relayPublicConfigValues(
     return {
       url: undefined,
       mobileTracingUrl: undefined,
-      mobileTracingDataset: undefined,
       mobileTracingToken: undefined,
       clientTracingUrl: undefined,
-      clientTracingDataset: undefined,
       clientTracingToken: undefined,
     };
   }
@@ -300,10 +289,8 @@ function relayPublicConfigValues(
   return {
     url: text("url"),
     mobileTracingUrl: text("mobileTracingUrl"),
-    mobileTracingDataset: text("mobileTracingDataset"),
     mobileTracingToken: secret("mobileTracingToken"),
     clientTracingUrl: text("clientTracingUrl"),
-    clientTracingDataset: text("clientTracingDataset"),
     clientTracingToken: secret("clientTracingToken"),
   };
 }
@@ -329,10 +316,8 @@ export function publicConfigFromOutput(output: unknown): RelayPublicConfig | nul
   return {
     relayUrl: values.url,
     mobileTracingUrl: values.mobileTracingUrl,
-    mobileTracingDataset: values.mobileTracingDataset,
     mobileTracingToken: values.mobileTracingToken,
     clientTracingUrl: values.clientTracingUrl,
-    clientTracingDataset: values.clientTracingDataset,
     clientTracingToken: values.clientTracingToken,
   };
 }

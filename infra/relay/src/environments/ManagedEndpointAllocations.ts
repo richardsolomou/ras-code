@@ -28,6 +28,7 @@ export interface ManagedEndpointAllocation {
 export function resolveReadyManagedEndpoint(input: {
   readonly allocation: ManagedEndpointAllocation;
   readonly baseDomain: string | undefined;
+  readonly gatewayDomain?: string;
 }): RelayManagedEndpoint | null {
   if (
     !input.baseDomain ||
@@ -38,7 +39,7 @@ export function resolveReadyManagedEndpoint(input: {
   ) {
     return null;
   }
-  return managedEndpointForHostname(input.allocation.hostname);
+  return managedEndpointForHostname(input.allocation.hostname, input.gatewayDomain);
 }
 
 export class ManagedEndpointAllocationPersistenceError extends Schema.TaggedErrorClass<ManagedEndpointAllocationPersistenceError>()(

@@ -35,6 +35,11 @@ catalog:
   "@effect/platform-bun": 4.0.0-beta.103
   "@effect/platform-node": 4.0.0-beta.103
   "@effect/platform-node-shared": 4.0.0-beta.103
+  # alchemy's Drizzle barrel eagerly exports its MySQL module even though
+  # @effect/sql-mysql2 is declared an optional peer, so the relay must carry
+  # it to import alchemy/Drizzle at all. Drop it when upstream restores the
+  # lazy import (alchemy-run/alchemy).
+  "@effect/sql-mysql2": 4.0.0-beta.103
   "@effect/sql-pg": 4.0.0-beta.103
   "@effect/sql-sqlite-bun": 4.0.0-beta.103
   "@effect/tsgo": 0.13.2
@@ -70,10 +75,11 @@ minimumReleaseAgeExclude:
   - "@effect/platform-bun@4.0.0-beta.103"
   - "@effect/platform-node-shared@4.0.0-beta.103"
   - "@effect/platform-node@4.0.0-beta.103"
+  - "@effect/sql-mysql2@4.0.0-beta.103"
   - "@effect/sql-pg@4.0.0-beta.103"
   - "@effect/sql-sqlite-bun@4.0.0-beta.103"
   - "@effect/vitest@4.0.0-beta.103"
-  - alchemy@2.0.0-beta.65
+  - alchemy@2.0.0-beta.70
   - effect@4.0.0-beta.103
   - "@legendapp/list@3.3.5"
 

@@ -63,7 +63,6 @@ export function parsePairingUrl(url: string): { host: string; code: string } {
 
     parsed.hash = "";
     parsed.search = "";
-    parsed.pathname = "/";
     return { host: parsed.toString().replace(/\/$/, ""), code };
   } catch {
     return { host: trimmed, code: "" };

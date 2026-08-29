@@ -3,6 +3,7 @@ import * as Schema from "effect/Schema";
 import { Atom } from "effect/unstable/reactivity";
 
 import type { EnvironmentRegistry } from "../connection/registry.ts";
+import { environmentEndpointUrl } from "../environment/endpoint.ts";
 import { createEnvironmentRpcQueryAtomFamily } from "./runtime.ts";
 
 const ASSET_URL_REFRESH_INTERVAL_MS = 30 * 60_000;
@@ -37,9 +38,13 @@ export function parseAssetCollectionKey(
 
 export function resolveAssetUrl(httpBaseUrl: string, relativeUrl: string): string | null {
   try {
-    return new URL(relativeUrl, httpBaseUrl).toString();
+    return new URL(relativeUrl).toString();
   } catch {
-    return null;
+    try {
+      return environmentEndpointUrl(httpBaseUrl, relativeUrl);
+    } catch {
+      return null;
+    }
   }
 }
 

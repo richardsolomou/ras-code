@@ -24,7 +24,6 @@ export interface CloudPublicConfig {
   };
   readonly observability: {
     readonly tracesUrl: string | null;
-    readonly tracesDataset: string | null;
     readonly tracesToken: string | null;
   };
 }
@@ -67,7 +66,6 @@ export function resolveCloudPublicConfig(extra: ExpoExtra = Constants.expoConfig
     },
     observability: {
       tracesUrl: normalizeSecureUrl(extra?.observability?.tracesUrl),
-      tracesDataset: trimNonEmpty(extra?.observability?.tracesDataset),
       tracesToken: trimNonEmpty(extra?.observability?.tracesToken),
     },
   } satisfies CloudPublicConfig;
@@ -89,11 +87,7 @@ type TracingPublicConfig = Omit<CloudPublicConfig, "observability"> & {
 export function hasTracingPublicConfig(
   config: CloudPublicConfig = resolveCloudPublicConfig(),
 ): config is TracingPublicConfig {
-  return Boolean(
-    config.observability.tracesUrl &&
-    config.observability.tracesDataset &&
-    config.observability.tracesToken,
-  );
+  return Boolean(config.observability.tracesUrl && config.observability.tracesToken);
 }
 
 export function resolveRelayClerkTokenOptions() {

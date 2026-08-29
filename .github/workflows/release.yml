@@ -118,12 +118,11 @@ jobs:
         env:
           DISPATCH_CHANNEL: ${{ github.event.inputs.channel }}
           DISPATCH_VERSION: ${{ github.event.inputs.version }}
-          NIGHTLY_DATE: ${{ github.run_started_at }}
           NIGHTLY_SHA: ${{ github.sha }}
           NIGHTLY_RUN_NUMBER: ${{ github.run_number }}
         run: |
           if [[ "${GITHUB_EVENT_NAME}" == "schedule" || ( "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && "${DISPATCH_CHANNEL:-stable}" == "nightly" ) ]]; then
-            nightly_date="$(date -u -d "$NIGHTLY_DATE" +%Y%m%d)"
+            nightly_date="$(date -u +%Y%m%d)"
 
             node scripts/resolve-nightly-release.ts \
               --date "$nightly_date" \
@@ -210,7 +209,7 @@ jobs:
         run: vp run test
 
   relay_public_config:
-    name: Resolve T3 Connect public config
+    name: Resolve RAS Connect public config
     # Consumes only the commit SHA, not preflight's resolved version, so it runs
     # alongside preflight instead of after it. The condition mirrors preflight's:
     # check_changes is skipped on non-schedule events (skipped is neither failure
@@ -227,6 +226,7 @@ jobs:
       clerk_publishable_key: ${{ steps.public_config.outputs.clerk_publishable_key }}
       clerk_jwt_template: ${{ steps.public_config.outputs.clerk_jwt_template }}
       clerk_cli_oauth_client_id: ${{ steps.public_config.outputs.clerk_cli_oauth_client_id }}
+      hosted_app_url: ${{ steps.public_config.outputs.hosted_app_url }}
       relay_url: ${{ steps.public_config.outputs.relay_url }}
     env:
       CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
@@ -236,6 +236,7 @@ jobs:
       CLERK_PUBLISHABLE_KEY: ${{ vars.CLERK_PUBLISHABLE_KEY }}
       CLERK_JWT_TEMPLATE: ${{ vars.CLERK_JWT_TEMPLATE }}
       CLERK_CLI_OAUTH_CLIENT_ID: ${{ vars.CLERK_CLI_OAUTH_CLIENT_ID }}
+      RAS_CODE_WEB_ROUTER_URL: ${{ vars.RAS_CODE_WEB_ROUTER_URL }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -288,6 +289,7 @@ jobs:
             CLERK_PUBLISHABLE_KEY
             CLERK_JWT_TEMPLATE
             CLERK_CLI_OAUTH_CLIENT_ID
+            RAS_CODE_WEB_ROUTER_URL
           )
           missing=()
           for name in "${required[@]}"; do
@@ -303,6 +305,7 @@ jobs:
           echo "clerk_publishable_key=$CLERK_PUBLISHABLE_KEY" >> "$GITHUB_OUTPUT"
           echo "clerk_jwt_template=$CLERK_JWT_TEMPLATE" >> "$GITHUB_OUTPUT"
           echo "clerk_cli_oauth_client_id=$CLERK_CLI_OAUTH_CLIENT_ID" >> "$GITHUB_OUTPUT"
+          echo "hosted_app_url=$RAS_CODE_WEB_ROUTER_URL" >> "$GITHUB_OUTPUT"
           echo "relay_url=https://$relay_domain" >> "$GITHUB_OUTPUT"
 
   # node-pty publishes no Linux prebuilt and the WSL backend runs under the
@@ -378,6 +381,7 @@ jobs:
       RAS_CODE_CLERK_PUBLISHABLE_KEY: ${{ needs.relay_public_config.outputs.clerk_publishable_key }}
       RAS_CODE_CLERK_JWT_TEMPLATE: ${{ needs.relay_public_config.outputs.clerk_jwt_template }}
       RAS_CODE_CLERK_CLI_OAUTH_CLIENT_ID: ${{ needs.relay_public_config.outputs.clerk_cli_oauth_client_id }}
+      RAS_CODE_HOSTED_APP_URL: ${{ needs.relay_public_config.outputs.hosted_app_url }}
       RAS_CODE_RELAY_URL: ${{ needs.relay_public_config.outputs.relay_url }}
     strategy:
       fail-fast: false
@@ -741,6 +745,7 @@ jobs:
       RAS_CODE_CLERK_PUBLISHABLE_KEY: ${{ needs.relay_public_config.outputs.clerk_publishable_key }}
       RAS_CODE_CLERK_JWT_TEMPLATE: ${{ needs.relay_public_config.outputs.clerk_jwt_template }}
       RAS_CODE_CLERK_CLI_OAUTH_CLIENT_ID: ${{ needs.relay_public_config.outputs.clerk_cli_oauth_client_id }}
+      RAS_CODE_HOSTED_APP_URL: ${{ needs.relay_public_config.outputs.hosted_app_url }}
       RAS_CODE_RELAY_URL: ${{ needs.relay_public_config.outputs.relay_url }}
     steps:
       - name: Checkout
@@ -941,14 +946,13 @@ jobs:
       RAS_CODE_CLERK_PUBLISHABLE_KEY: ${{ needs.relay_public_config.outputs.clerk_publishable_key }}
       RAS_CODE_CLERK_JWT_TEMPLATE: ${{ needs.relay_public_config.outputs.clerk_jwt_template }}
       RAS_CODE_CLERK_CLI_OAUTH_CLIENT_ID: ${{ needs.relay_public_config.outputs.clerk_cli_oauth_client_id }}
+      RAS_CODE_HOSTED_APP_URL: ${{ needs.relay_public_config.outputs.hosted_app_url }}
       RAS_CODE_RELAY_URL: ${{ needs.relay_public_config.outputs.relay_url }}
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
       RAS_CODE_WEB_ROUTER_URL: ${{ vars.RAS_CODE_WEB_ROUTER_URL }}
       RAS_CODE_WEB_LATEST_DOMAIN: ${{ vars.RAS_CODE_WEB_LATEST_DOMAIN }}
       RAS_CODE_WEB_NIGHTLY_DOMAIN: ${{ vars.RAS_CODE_WEB_NIGHTLY_DOMAIN }}
-      VERCEL_TEAM_SLUG: ${{ vars.VERCEL_TEAM_SLUG }}
+      ALCHEMY_TELEMETRY_DISABLED: "1"
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -968,6 +972,7 @@ jobs:
             args:
               - --filter=@ras-code/scripts...
               - --filter=@ras-code/web...
+              - --filter=ras-code-web-infra...
 
       - name: Download relay client tracing config
         uses: actions/download-artifact@v8
@@ -989,66 +994,39 @@ jobs:
       - name: Refresh release lockfile
         run: vp install --lockfile-only --ignore-scripts
 
-      - name: Deploy and alias channel
+      - name: Configure Alchemy credentials
+        uses: ./.github/actions/alchemy-credentials
+        with:
+          state-store-credentials: ${{ secrets.ALCHEMY_STATE_STORE_CREDENTIALS }}
+
+      - name: Deploy channel
         shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           set -euo pipefail
 
-          if [[ -z "${VERCEL_TOKEN:-}" || -z "${VERCEL_ORG_ID:-}" || -z "${VERCEL_PROJECT_ID:-}" ]]; then
-            echo "Missing one or more required Vercel secrets: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID." >&2
+          if [[ -z "${CLOUDFLARE_API_TOKEN:-}" || -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]]; then
+            echo "Missing Cloudflare credentials: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID." >&2
             exit 1
           fi
 
-          router_url="${RAS_CODE_WEB_ROUTER_URL:-https://app.t3.codes}"
-          latest_domain="${RAS_CODE_WEB_LATEST_DOMAIN:-latest.app.t3.codes}"
-          nightly_domain="${RAS_CODE_WEB_NIGHTLY_DOMAIN:-nightly.app.t3.codes}"
-          router_domain="${router_url#http://}"
-          router_domain="${router_domain#https://}"
-          router_domain="${router_domain%%/*}"
+          if [[ -z "${RAS_CODE_WEB_ROUTER_URL:-}" || -z "${RAS_CODE_WEB_LATEST_DOMAIN:-}" || -z "${RAS_CODE_WEB_NIGHTLY_DOMAIN:-}" ]]; then
+            echo "Missing one or more required hosted web variables: RAS_CODE_WEB_ROUTER_URL, RAS_CODE_WEB_LATEST_DOMAIN, RAS_CODE_WEB_NIGHTLY_DOMAIN." >&2
+            exit 1
+          fi
 
           if [[ "${{ needs.preflight.outputs.release_channel }}" == "stable" ]]; then
-            channel_domain="$latest_domain"
-            channel_name="latest"
+            channel=latest
           else
-            channel_domain="$nightly_domain"
-            channel_name="nightly"
+            channel=nightly
           fi
 
-          vercel_scope="${VERCEL_TEAM_SLUG:-$VERCEL_ORG_ID}"
-          vercel_scope_args=(--scope "$vercel_scope")
-
-          echo "Deploying hosted web app for $channel_name channel."
-          deployment_url="$(
-            vp dlx vercel@53.1.1 deploy \
-              --archive=tgz \
-              --prod \
-              --skip-domain \
-              --yes \
-              --token "$VERCEL_TOKEN" \
-              "${vercel_scope_args[@]}" \
-              --build-env "APP_VERSION=${{ needs.preflight.outputs.version }}" \
-              --build-env "RAS_CODE_CLERK_PUBLISHABLE_KEY=${RAS_CODE_CLERK_PUBLISHABLE_KEY:-}" \
-              --build-env "RAS_CODE_CLERK_JWT_TEMPLATE=${RAS_CODE_CLERK_JWT_TEMPLATE:-}" \
-              --build-env "RAS_CODE_CLERK_CLI_OAUTH_CLIENT_ID=${RAS_CODE_CLERK_CLI_OAUTH_CLIENT_ID:-}" \
-              --build-env "RAS_CODE_RELAY_URL=${RAS_CODE_RELAY_URL:-}" \
-              --build-env "RAS_CODE_RELAY_CLIENT_OTLP_TRACES_URL=${RAS_CODE_RELAY_CLIENT_OTLP_TRACES_URL:-}" \
-              --build-env "RAS_CODE_RELAY_CLIENT_OTLP_TRACES_DATASET=${RAS_CODE_RELAY_CLIENT_OTLP_TRACES_DATASET:-}" \
-              --build-env "RAS_CODE_RELAY_CLIENT_OTLP_TRACES_TOKEN=${RAS_CODE_RELAY_CLIENT_OTLP_TRACES_TOKEN:-}" \
-              --build-env "VITE_HOSTED_APP_URL=$router_url" \
-              --build-env "VITE_HOSTED_APP_CHANNEL=$channel_name"
-          )"
-
-          echo "Aliasing $deployment_url to $channel_domain."
-          vp dlx vercel@53.1.1 alias set "$deployment_url" "$channel_domain" \
-            --token "$VERCEL_TOKEN" \
-            "${vercel_scope_args[@]}"
-
-          if [[ "$channel_name" == "latest" && -n "$router_domain" && "$router_domain" != "$channel_domain" ]]; then
-            echo "Aliasing $deployment_url to router domain $router_domain."
-            vp dlx vercel@53.1.1 alias set "$deployment_url" "$router_domain" \
-              --token "$VERCEL_TOKEN" \
-              "${vercel_scope_args[@]}"
-          fi
+          echo "Deploying hosted web app for the $channel channel."
+          APP_VERSION="${{ needs.preflight.outputs.version }}" \
+          VITE_HOSTED_APP_URL="$RAS_CODE_WEB_ROUTER_URL" \
+          VITE_HOSTED_APP_CHANNEL="$channel" \
+            vp run --filter ras-code-web-infra deploy --stage "$channel" --yes
 
   finalize:
     name: Finalize release

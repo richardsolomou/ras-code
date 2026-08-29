@@ -8,25 +8,25 @@ keeping a terminal open.
 Install it with the latest RAS Code release:
 
 ```sh
-npx ras@latest service install
+npx ras-code@latest service install
 ```
 
 Check whether it is installed:
 
 ```sh
-npx ras@latest service status
+npx ras-code@latest service status
 ```
 
 Update or repair it:
 
 ```sh
-npx ras@latest service update
+npx ras-code@latest service update
 ```
 
 Stop it and remove it from startup:
 
 ```sh
-npx ras@latest service uninstall
+npx ras-code@latest service uninstall
 ```
 
 Updating restarts RAS Code briefly. Let active agent work and terminal commands finish first.
@@ -64,10 +64,10 @@ A few more macOS notes:
 
 **Windows** is not supported yet.
 
-## Using It with T3 Connect
+## Using It with RAS Connect
 
-T3 Connect may offer to install the service during setup so the host stays reachable in the
-background. This is only an onboarding shortcut: the service and T3 Connect are managed separately.
+RAS Connect may offer to install the service during setup so the host stays reachable in the
+background. This is only an onboarding shortcut: the service and RAS Connect are managed separately.
 
-Signing out of T3 Connect does not remove the service. Use `ras service uninstall` when you no longer
+Signing out of RAS Connect does not remove the service. Use `ras service uninstall` when you no longer
 want RAS Code to start in the background.

@@ -9,6 +9,7 @@ import {
   type EnvironmentScopeRequiredError,
 } from "@ras-code/contracts";
 import { httpHeaderRedactionLayer } from "@ras-code/shared/httpObservability";
+import { normalizeHttpBaseUrl } from "@ras-code/shared/advertisedEndpoint";
 import * as Data from "effect/Data";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
@@ -87,11 +88,7 @@ export const remoteHttpClientLayer = (
   );
 
 const remoteApiBaseUrl = (httpBaseUrl: string): string => {
-  const url = new URL(httpBaseUrl);
-  url.pathname = "/";
-  url.search = "";
-  url.hash = "";
-  return url.toString();
+  return normalizeHttpBaseUrl(httpBaseUrl);
 };
 
 export const makeEnvironmentHttpApiClient = (httpBaseUrl: string) =>

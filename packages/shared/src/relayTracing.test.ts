@@ -69,8 +69,7 @@ describe("withRelayClientTracing", () => {
     );
     const tracingLayer = makeRelayClientTracingLayer(
       {
-        tracesUrl: "https://api.axiom.test/v1/traces",
-        tracesDataset: "relay-traces",
+        tracesUrl: "https://traces.test/i/v1/traces",
         tracesToken: "public-ingest-token",
       },
       {

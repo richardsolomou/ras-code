@@ -7,6 +7,7 @@ import * as Option from "effect/Option";
 
 import {
   MANAGED_ENDPOINT_ZONE_OWNER_STAGE,
+  managedEndpointNamespaceForStage,
   relayOwnsManagedEndpointZone,
   relayPublicDomainForStage,
 } from "./deploymentConfig.ts";
@@ -23,6 +24,11 @@ export const RelayDeploymentConfig = Effect.gen(function* () {
   const { stage } = yield* Alchemy.Stack;
   const relayApiZoneName = yield* Config.nonEmptyString("RELAY_API_ZONE_NAME");
   const managedEndpointZoneName = yield* Config.nonEmptyString("RELAY_TUNNEL_ZONE_NAME");
+  const managedEndpointGatewayDomain = yield* Config.nonEmptyString("RELAY_TUNNEL_GATEWAY_DOMAIN");
+  const managedEndpointNamespaceOverride = yield* Config.string("RELAY_TUNNEL_NAMESPACE").pipe(
+    Config.option,
+    Config.map(Option.getOrUndefined),
+  );
   const relayPublicDomainOverride = yield* Config.string("RELAY_DOMAIN").pipe(
     Config.option,
     Config.map(
@@ -42,6 +48,11 @@ export const RelayDeploymentConfig = Effect.gen(function* () {
     relayPublicOrigin: `https://${relayPublicDomain}`,
     relayApiZoneName,
     managedEndpointZoneName,
+    managedEndpointGatewayDomain,
+    managedEndpointNamespace: managedEndpointNamespaceForStage(
+      stage,
+      managedEndpointNamespaceOverride,
+    ),
   };
 });
 

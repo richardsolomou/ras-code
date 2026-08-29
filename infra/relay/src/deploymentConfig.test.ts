@@ -4,7 +4,9 @@ import * as Schema from "effect/Schema";
 import {
   managedEndpointDigestInput,
   managedEndpointForHostname,
+  managedEndpointGatewayTargetHostname,
   managedEndpointHostname,
+  managedEndpointNamespaceForStage,
   isManagedEndpointHostname,
   managedEndpointTunnelName,
   relayOwnsManagedEndpointZone,
@@ -24,12 +26,12 @@ describe("relayStageSlug", () => {
 
 describe("relayPublicDomainForStage", () => {
   it("uses the canonical relay hostname for production", () => {
-    expect(relayPublicDomainForStage("prod", ".example.com.")).toBe("relay.example.com");
+    expect(relayPublicDomainForStage("prod", ".example.com.")).toBe("code-relay.example.com");
   });
 
   it("isolates personal stages below the imported zone", () => {
     expect(relayPublicDomainForStage("dev_julius", "example.com")).toBe(
-      "relay-dev-julius.example.com",
+      "code-relay-dev-julius.example.com",
     );
   });
 
@@ -48,11 +50,11 @@ describe("relayPublicDomainForStage", () => {
     }
     expect(error).toMatchObject({
       stage,
-      label: `relay-dev-${"x".repeat(60)}`,
+      label: `code-relay-dev-${"x".repeat(60)}`,
       maxLength: 63,
     });
     expect(error.message).toBe(
-      `Relay stage '${stage}' produces custom domain label 'relay-dev-${"x".repeat(60)}' (70 characters), exceeding the DNS label limit of 63.`,
+      `Relay stage '${stage}' produces custom domain label 'code-relay-dev-${"x".repeat(60)}' (75 characters), exceeding the DNS label limit of 63.`,
     );
   });
 });
@@ -72,6 +74,16 @@ describe("relayResourceNameForStage", () => {
     expect(relayResourceNameForStage("ras-code-relay-traces", "dev_julius")).toBe(
       "ras-code-relay-traces-dev-julius",
     );
+  });
+});
+
+describe("managedEndpointNamespaceForStage", () => {
+  it("uses a branded production namespace when configured", () => {
+    expect(managedEndpointNamespaceForStage("prod", "code")).toBe("code");
+  });
+
+  it("falls back to the deployment stage", () => {
+    expect(managedEndpointNamespaceForStage("dev_julius")).toBe("dev-julius");
   });
 });
 
@@ -113,6 +125,48 @@ describe("managed endpoint names", () => {
       wsBaseUrl: "wss://dev-julius-abcdef0123456789.example.com/ws",
       providerKind: "cloudflare_tunnel",
     });
+  });
+
+  it("publishes managed endpoints through a shared path gateway", () => {
+    expect(
+      managedEndpointForHostname("code-abcdef0123456789.ras.sh", "code-tunnels.ras.sh"),
+    ).toEqual({
+      httpBaseUrl: "https://code-tunnels.ras.sh/e/abcdef0123456789/",
+      wsBaseUrl: "wss://code-tunnels.ras.sh/e/abcdef0123456789/ws",
+      providerKind: "cloudflare_tunnel",
+    });
+  });
+
+  it("resolves gateway paths to the matching internal tunnel hostname", () => {
+    const target = managedEndpointGatewayTargetHostname({
+      requestUrl: new URL("https://code-tunnels.ras.sh/e/abcdef0123456789/api/thread?cursor=next"),
+      gatewayDomain: "code-tunnels.ras.sh",
+      baseDomain: "ras.sh",
+      namespace: "code",
+    });
+
+    expect(target).toBe("code-abcdef0123456789.ras.sh");
+  });
+
+  it("rejects malformed and off-domain gateway requests", () => {
+    const config = {
+      gatewayDomain: "code-tunnels.ras.sh",
+      baseDomain: "ras.sh",
+      namespace: "code",
+    } as const;
+
+    expect(
+      managedEndpointGatewayTargetHostname({
+        ...config,
+        requestUrl: new URL("https://code-tunnels.ras.sh/e/not-an-id/ws"),
+      }),
+    ).toBeNull();
+    expect(
+      managedEndpointGatewayTargetHostname({
+        ...config,
+        requestUrl: new URL("https://attacker.example/e/abcdef0123456789/ws"),
+      }),
+    ).toBeNull();
   });
 
   it("rejects hostnames outside the relay zone", () => {

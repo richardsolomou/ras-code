@@ -1,9 +1,9 @@
-# T3 Connect
+# RAS Connect
 
 > For maintainers. Using RAS Code? See [docs/user](../user/).
 
-T3 Connect uses one Clerk application for web, desktop, and mobile authentication. The relay verifies
-two kinds of bearer credential: template JWTs generated from the `t3-relay` template with the shared
+RAS Connect uses one Clerk application for web, desktop, and mobile authentication. The relay verifies
+two kinds of bearer credential: template JWTs generated from the `ras-code-relay` template with the shared
 `ras-code-relay` audience, and Clerk OAuth tokens issued to the CLI. `verifyRelayClientBearerToken` in
 `infra/relay/src/http/Api.ts` tries the template/session path first and falls back to OAuth
 verification (`acceptsToken: "oauth_token"`), so the CLI's OAuth credential works without a JWT
@@ -14,7 +14,7 @@ For the wider system diagram, see
 
 ## Application Keys
 
-T3 Connect is disabled in a fresh clone. To enable it for source builds against the production
+RAS Connect is disabled in a fresh clone. To enable it for source builds against the production
 deployment, copy the repository-root example file:
 
 ```sh
@@ -29,7 +29,7 @@ repository-root `.env` or `.env.local` file:
 RAS_CODE_CLERK_PUBLISHABLE_KEY=<publishable key>
 RAS_CODE_CLERK_JWT_TEMPLATE=<JWT template name>
 RAS_CODE_CLERK_CLI_OAUTH_CLIENT_ID=<public OAuth application client ID>
-RAS_CODE_RELAY_URL=https://relay.example.com
+RAS_CODE_RELAY_URL=https://code-relay.example.com
 ```
 
 The shared client loader projects these canonical values into framework-specific `VITE_*` and
@@ -59,17 +59,18 @@ operator-managed deployments.
 
 For a hosted relay deployment, copy `infra/relay/.env.example` to `infra/relay/.env`. The relay
 deployment reads `RELAY_DOMAIN`, `RELAY_API_ZONE_NAME`, `RELAY_TUNNEL_ZONE_NAME`,
-`CLERK_PUBLISHABLE_KEY`, and `CLERK_JWT_AUDIENCE` through Effect `Config`. There are no checked-in
-deployment defaults.
+`RELAY_TUNNEL_GATEWAY_DOMAIN`, `CLERK_PUBLISHABLE_KEY`, and `CLERK_JWT_AUDIENCE` through Effect
+`Config`. `RELAY_TUNNEL_NAMESPACE` optionally controls the internal tunnel-record prefix. There are
+no checked-in deployment defaults.
 `vp run --filter ras-code-relay deploy` invokes Alchemy from the relay directory, so Alchemy loads
 `infra/relay/.env`. After a successful deployment, the wrapper updates the repository-root `.env`
 with the deployed HTTPS relay URL. The relay still requires
-`CLERK_SECRET_KEY` as an Alchemy secret. Never put `CLERK_SECRET_KEY` in a client application
+`CLERK_SECRET_KEY` and the `RELAY_DATABASE_*` values as Alchemy secrets. Never put `CLERK_SECRET_KEY` in a client application
 environment or commit it to the repository.
 
-The `prod` Alchemy stage owns the retained PlanetScale database. Non-production stages reference
-that database and provision isolated PlanetScale branches, so deploy `prod` before creating a
-personal developer stage.
+The `prod` Alchemy stage owns the database named by `RELAY_DATABASE_NAME`. Non-production stages get
+their own `<RELAY_DATABASE_NAME>-<stage>` database on the same self-hosted Postgres server, reached
+through a Cloudflare Tunnel guarded by an Access application.
 
 ## Headless CLI OAuth Application
 
@@ -82,10 +83,10 @@ In **Clerk Dashboard > OAuth applications**:
 2. Enable the **Public** option so authorization-code exchange uses PKCE.
 3. Add **both** allowed redirect URIs:
    - `http://127.0.0.1:34338/callback` for the loopback listener;
-   - `https://app.t3.codes/connect/callback` for the hosted out-of-band flow. This is
-     `connectCallbackUrl(DEFAULT_HOSTED_APP_URL)` from `packages/shared/src/connectAuth.ts`, so a
-     custom `RAS_CODE_HOSTED_APP_URL` means `$RAS_CODE_HOSTED_APP_URL/connect/callback` instead.
-     Omitting it breaks headless and SSH authorization.
+   - `https://code.ras.sh/connect/callback` for the hosted out-of-band flow. This is
+     `connectCallbackUrl(RAS_CODE_HOSTED_APP_URL)` from `packages/shared/src/connectAuth.ts`; a
+     custom hosted app URL changes the callback origin. Omitting the build-time hosted app URL
+     breaks headless and SSH authorization.
 4. Enable the `openid`, `profile`, and `email` scopes.
 5. Set `RAS_CODE_CLERK_CLI_OAUTH_CLIENT_ID` in the repository-root `.env` file and release build
    environment to the generated public client ID.
@@ -101,6 +102,23 @@ uses the hosted `/connect/callback` page instead. The CLI derives Clerk's fronte
 publishable key and calls only the `/oauth/token` endpoint directly. The relay is not involved in
 the OAuth handshake; it only validates the issued Clerk bearer token when the CLI manages an
 environment link.
+
+## Managed tunnel gateway
+
+Managed environments are published through one certificate-bearing hostname. For the RAS-hosted
+deployment, clients receive URLs such as `https://code-tunnels.ras.sh/e/<endpoint-id>/` and
+`wss://code-tunnels.ras.sh/e/<endpoint-id>/ws`.
+
+The relay Worker maps the endpoint ID to an internal first-level DNS record such as
+`code-<endpoint-id>.ras.sh` and uses Cloudflare's same-zone DNS resolve override. The public Host and
+full gateway path remain unchanged through the tunnel. The environment server removes the gateway
+prefix only for route matching and validates DPoP against the original public URL. Do not replace
+this with forwarded-host headers; those headers are client-controlled and deliberately ignored by
+environment authentication.
+
+Using `ras.sh` for both `RELAY_API_ZONE_NAME` and `RELAY_TUNNEL_ZONE_NAME`, with
+`code-tunnels.ras.sh` as `RELAY_TUNNEL_GATEWAY_DOMAIN`, keeps every Cloudflare edge hostname at the
+first subdomain level covered by Universal SSL. No Advanced Certificate Manager wildcard is needed.
 
 The connect command group is:
 
@@ -119,7 +137,7 @@ ras connect logout
 `ras connect login` opens the Clerk authorization flow and stores the CLI credential without enabling
 cloud exposure. `ras connect link` installs the pinned managed `cloudflared` binary when needed,
 authorizes when needed, and records durable intent to expose the environment. It works without a
-running T3 server. The next `ras serve` or `ras start` reconciles the relay link and launches the
+running RAS Code server. The next `ras serve` or `ras start` reconciles the relay link and launches the
 managed tunnel. `ras connect unlink` records disabled intent immediately, stops a reachable running
 connector, and attempts to revoke the relay-side environment record. It retains the stored CLI
 authorization so `ras connect link` can re-enable exposure without another browser flow. `ras connect
@@ -149,10 +167,10 @@ In **Clerk Dashboard > JWT templates**, create a template with:
 
 | Setting | Value                         |
 | ------- | ----------------------------- |
-| Name    | `t3-relay`                    |
+| Name    | `ras-code-relay`              |
 | Claims  | `{ "aud": "ras-code-relay" }` |
 
-Set `RAS_CODE_CLERK_JWT_TEMPLATE=t3-relay` in the repository-root `.env`, and set
+Set `RAS_CODE_CLERK_JWT_TEMPLATE=ras-code-relay` in the repository-root `.env`, and set
 `CLERK_JWT_AUDIENCE=ras-code-relay` in `infra/relay/.env`. Define `CLERK_JWT_TEMPLATE` and
 `CLERK_JWT_AUDIENCE` in the production relay deployment environment as well. The stable `aud` value
 is shared by production and non-production relay stages. The client-facing `RAS_CODE_RELAY_URL` still
@@ -207,7 +225,7 @@ desktop artifact command:
 
 ```dotenv
 RAS_CODE_APPLE_TEAM_ID=ABC1234567
-RAS_CODE_MACOS_PROVISIONING_PROFILE=/absolute/path/to/t3code.provisionprofile
+RAS_CODE_MACOS_PROVISIONING_PROFILE=/absolute/path/to/ras-code.provisionprofile
 # Optional: comma-separated override when Clerk's RP ID differs from the Frontend API hostname.
 RAS_CODE_CLERK_PASSKEY_RP_DOMAINS=example.clerk.accounts.dev,clerk.example.com
 ```
@@ -247,9 +265,9 @@ flow uses a custom redirect URI, add that exact URI to the same allowlist.
 
 ## Sign-in Surfaces
 
-Signed-in users manage T3 Connect under **Connections**. The settings sidebar also has dedicated
+Signed-in users manage RAS Connect under **Connections**. The settings sidebar also has dedicated
 controls, rendered by `SettingsSidebarNav.tsx`: `T3ConnectSidebarSignIn` in the footer shows a
-**Sign in to T3 Connect** button while signed out, and `T3ConnectSidebarAvatar` shows a Clerk
+**Sign in to RAS Connect** button while signed out, and `T3ConnectSidebarAvatar` shows a Clerk
 `UserButton` account control while signed in. Both are gated on cloud public configuration.
 Desktop renders the same web bundle, so it has them too. The waitlist enrollment flow from the
 private beta was removed when Connect went GA; sign-up is open unless a Clerk restriction below is

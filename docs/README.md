@@ -36,7 +36,7 @@ policy in [CONTRIBUTING.md](../CONTRIBUTING.md); agent rules in [AGENTS.md](../A
 - [Resource telemetry](./internals/resource-telemetry.md)
 - [Product analytics](./internals/product-analytics.md)
 - [Environment auth](./internals/environment-auth.md)
-- [T3 Connect](./internals/t3-connect.md)
+- [RAS Connect](./internals/ras-connect.md)
 - [CI gates](./internals/ci.md)
 - [Upstream sync](./internals/upstream-sync.md)
 - [Engineering work artifacts](./internals/work-artifacts.md)

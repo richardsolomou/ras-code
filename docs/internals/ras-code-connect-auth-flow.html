@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>T3 Connect Architecture</title>
+    <title>RAS Connect Architecture</title>
     <style>
       :root {
         color-scheme: light;
@@ -253,12 +253,12 @@
     <main class="shell">
       <header>
         <div class="eyebrow">Implemented architecture</div>
-        <h1>T3 Connect Control Plane and Managed Endpoint Flow</h1>
+        <h1>RAS Connect Control Plane and Managed Endpoint Flow</h1>
         <p class="lede">
-          T3 Connect links a locally authorized T3 environment to a signed-in cloud user, provisions
-          a managed HTTPS/WSS endpoint for that environment, and brokers proof-bound remote
-          connections. The local environment remains the authority that issues environment access
-          credentials. The hosted relay stores links, reconciles managed endpoint resources,
+          RAS Connect links a locally authorized RAS Code environment to a signed-in cloud user,
+          provisions a managed HTTPS/WSS endpoint for that environment, and brokers proof-bound
+          remote connections. The local environment remains the authority that issues environment
+          access credentials. The hosted relay stores links, reconciles managed endpoint resources,
           validates signed proofs, and delivers agent-activity notifications.
         </p>
         <div class="badge-row">
@@ -279,7 +279,7 @@
             following:
           </p>
           <ul>
-            <li>a Clerk-authenticated T3 Connect user;</li>
+            <li>a Clerk-authenticated RAS Connect user;</li>
             <li>an active relay link for that user and environment;</li>
             <li>a DPoP proof key held by the remote client;</li>
             <li>a relay-signed mint request accepted by the linked local environment; and</li>
@@ -292,8 +292,9 @@
           <p>During an honest connection flow, the relay cannot act as the remote client:</p>
           <ul>
             <li>
-              Normal environment API traffic goes directly from the remote client through the
-              managed endpoint. The relay does not receive the resulting environment access token.
+              Normal environment API traffic passes through the relay Worker's shared path gateway
+              and then the selected managed tunnel. The gateway can observe the DPoP-bound access
+              token but cannot use it without the client's private proof key.
             </li>
             <li>
               The one-time bootstrap credential and resulting environment access token are bound to
@@ -334,7 +335,7 @@
             </li>
             <li>The relay client exposes only the environment's loopback HTTP server.</li>
             <li>
-              Web and mobile clients connect directly to the managed environment endpoint after
+              Web and mobile clients connect through the shared managed-endpoint gateway after
               bootstrap.
             </li>
           </ul>
@@ -360,9 +361,9 @@ flowchart LR
     CF["Cloudflare tunnel + DNS APIs"]
   end
 
-  DB["PlanetScale Postgres<br/>prod database + stage branches"]
+  DB["Self-hosted Postgres<br/>one database per stage"]
   APNs["Apple Push Notification service"]
-  Traces["Axiom OTLP traces"]
+  Traces["PostHog OTLP traces"]
 
   subgraph Local["Linked RAS Code environment"]
     Env["Environment server<br/>local auth authority"]
@@ -370,7 +371,7 @@ flowchart LR
     Secrets["Server secret store<br/>keys + relay config"]
   end
 
-  Endpoint["Managed HTTPS/WSS endpoint"]
+  Endpoint["Shared HTTPS/WSS gateway<br/>plus selected managed tunnel"]
 
   Web -->|"Clerk bearer / relay DPoP"| Worker
   Mobile -->|"Clerk bearer / relay DPoP"| Worker
@@ -547,7 +548,7 @@ sequenceDiagram
   participant CF as Cloudflare APIs
   participant RC as Local relay client
 
-  U->>C: Enable T3 Connect for a locally paired environment
+  U->>C: Enable RAS Connect for a locally paired environment
   C->>E: Check relay client availability
   alt relay client is missing
     C->>U: Prompt before download and install
@@ -686,8 +687,8 @@ sequenceDiagram
             </div>
             <div class="step">
               <strong>2. Reuse or create tunnel</strong>
-              Existing named tunnels are reused. Tunnel ingress is rewritten to the validated
-              loopback origin.
+              Existing named tunnels are reused. Tunnel ingress accepts the shared gateway Host and
+              forwards only to the validated loopback origin.
             </div>
             <div class="step">
               <strong>3. Reconcile DNS</strong>
@@ -750,9 +751,9 @@ sequenceDiagram
             authenticated WebSocket RPC transport through the tunnel.
           </li>
           <li>
-            <strong>Relay-generated traffic:</strong> the hosted relay sends sparse HTTPS health
-            checks and credential-mint requests during status checks and remote connection
-            bootstrap. It does not proxy steady-state remote sessions.
+            <strong>Gateway traffic:</strong> the hosted relay sends sparse HTTPS health checks and
+            credential-mint requests during bootstrap, and its gateway proxies steady-state HTTPS
+            and WSS sessions to the selected managed tunnel.
           </li>
           <li>
             <strong>Traffic shape:</strong> expected load is interactive and user-driven. Active
@@ -829,9 +830,9 @@ sequenceDiagram
           </tbody>
         </table>
         <div class="callout warning">
-          Managed tunnel hostnames live under the configured tunnel DNS zone. Serving them from a
-          dedicated registrable domain with a Public Suffix List entry remains an operational
-          isolation requirement before broad untrusted use.
+          Managed tunnel IDs are routing identifiers, not credentials. The shared gateway preserves
+          the public Host and path for DPoP validation, and environment access still requires a
+          proof-bound credential issued by the linked environment.
         </div>
       </section>
 
@@ -953,7 +954,7 @@ sequenceDiagram
             <tr>
               <td><code>GET /api/connect/link-state</code></td>
               <td>Local environment token with <code>relay:read</code></td>
-              <td>Read the environment's current T3 Connect link state.</td>
+              <td>Read the environment's current RAS Connect link state.</td>
             </tr>
             <tr>
               <td><code>POST /api/connect/preferences</code></td>
@@ -963,7 +964,7 @@ sequenceDiagram
             <tr>
               <td><code>POST /api/connect/unlink</code></td>
               <td>Local environment token with <code>relay:write</code></td>
-              <td>Stop the relay client and clear local T3 Connect configuration.</td>
+              <td>Stop the relay client and clear local RAS Connect configuration.</td>
             </tr>
             <tr>
               <td><code>POST /api/t3-connect/health</code></td>
@@ -1010,9 +1011,11 @@ sequenceDiagram
           <h2>Relay Infrastructure</h2>
           <ul>
             <li>Cloudflare Worker for the hosted relay HTTP API.</li>
-            <li>PlanetScale Postgres database named <code>ras-code-relay</code>.</li>
+            <li>Self-hosted Postgres database named <code>ras-code-relay</code>.</li>
             <li>
-              Production uses the shared database; non-production stages use database branches.
+              Production owns that database; every other stage gets its own
+              <code>ras-code-relay-&lt;stage&gt;</code> database on the same server, reached through
+              a Cloudflare Tunnel guarded by a Cloudflare Access application.
             </li>
             <li>
               Cloudflare Hyperdrive with caching disabled and a constrained origin connection limit.
@@ -1020,7 +1023,7 @@ sequenceDiagram
             <li>Cloudflare tunnel and DNS bindings for managed endpoint reconciliation.</li>
             <li>Cloudflare APNs delivery queue plus dead-letter queue.</li>
             <li>A five-minute cron job that prunes expired DPoP replay rows.</li>
-            <li>Axiom OTLP trace dataset, scoped ingest token, and recent-spans view per stage.</li>
+            <li>PostHog OTLP traces endpoint and project token.</li>
           </ul>
         </article>
       </section>
@@ -1038,10 +1041,11 @@ sequenceDiagram
             <tr>
               <td>Relay infrastructure</td>
               <td>
-                <code>RELAY_API_ZONE_NAME</code>, <code>RELAY_TUNNEL_ZONE_NAME</code>, optional
-                <code>RELAY_DOMAIN</code>, <code>CLERK_PUBLISHABLE_KEY</code>,
-                <code>CLERK_SECRET_KEY</code>, <code>CLERK_JWT_AUDIENCE</code>, and APNs
-                credentials.
+                <code>RELAY_API_ZONE_NAME</code>, <code>RELAY_TUNNEL_ZONE_NAME</code>,
+                <code>RELAY_TUNNEL_GATEWAY_DOMAIN</code>, optional
+                <code>RELAY_TUNNEL_NAMESPACE</code>, optional <code>RELAY_DOMAIN</code>,
+                <code>CLERK_PUBLISHABLE_KEY</code>, <code>CLERK_SECRET_KEY</code>,
+                <code>CLERK_JWT_AUDIENCE</code>, and APNs credentials.
               </td>
             </tr>
             <tr>

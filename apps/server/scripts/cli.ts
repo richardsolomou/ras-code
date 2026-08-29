@@ -31,6 +31,8 @@ import {
 
 interface PackageJson {
   name: string;
+  description: string;
+  license: string;
   repository: {
     type: string;
     url: string;
@@ -243,6 +245,8 @@ const publishCmd = Command.make(
           const workspaceOverrides = workspaceConfig.overrides ?? {};
           const pkg: PackageJson = {
             name: serverPackageJson.name,
+            description: serverPackageJson.description,
+            license: serverPackageJson.license,
             repository: serverPackageJson.repository,
             bin: serverPackageJson.bin,
             type: serverPackageJson.type,
@@ -284,6 +288,7 @@ const publishCmd = Command.make(
             yield* runCommand(
               ChildProcess.make(spawnCommand.command, spawnCommand.args, {
                 cwd: repoRoot,
+                stdin: "inherit",
                 stdout: config.verbose ? "inherit" : "ignore",
                 stderr: "inherit",
                 shell: spawnCommand.shell,

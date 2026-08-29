@@ -23,7 +23,10 @@ import {
   type RelayManagedEndpointProviderKind,
 } from "@ras-code/contracts/relay";
 import { exchangeRemoteDpopAccessToken } from "@ras-code/client-runtime/authorization";
-import { fetchRemoteEnvironmentDescriptor } from "@ras-code/client-runtime/environment";
+import {
+  environmentEndpointUrl,
+  fetchRemoteEnvironmentDescriptor,
+} from "@ras-code/client-runtime/environment";
 import { findErrorTraceId } from "@ras-code/client-runtime/errors";
 import { ManagedRelay } from "@ras-code/client-runtime/relay";
 import { makeEnvironmentHttpApiClient } from "@ras-code/client-runtime/rpc";
@@ -550,7 +553,7 @@ const connectRelayManagedEnvironment = Effect.fn("mobile.cloud.connectRelayManag
     const bootstrapDpop = yield* signer
       .createProof({
         method: "POST",
-        url: new URL("/oauth/token", connect.endpoint.httpBaseUrl).toString(),
+        url: environmentEndpointUrl(connect.endpoint.httpBaseUrl, "/oauth/token"),
       })
       .pipe(Effect.mapError(cloudEnvironmentLinkError("Could not create bootstrap DPoP proof.")));
     const bootstrap = yield* exchangeRemoteDpopAccessToken({

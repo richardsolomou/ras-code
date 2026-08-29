@@ -7,9 +7,10 @@ The relay is the hosted control plane for RAS Connect. It helps clients discover
 remote environments, manages the cloud-side records needed for those connections, and delivers
 optional mobile notifications and Live Activities.
 
-The relay is intentionally not in the hot path for normal RAS Code traffic. After a client connects,
-regular API and WebSocket traffic goes directly between that client and the selected environment.
-See the [RAS Connect architecture overview](../../docs/internals/t3-code-connect-auth-flow.html) for the larger system
+The relay API is not in the hot path for normal RAS Code traffic. Managed tunnel traffic passes
+through the relay Worker's shared path gateway, then goes directly through the selected Cloudflare
+Tunnel to the environment.
+See the [RAS Connect architecture overview](../../docs/internals/ras-code-connect-auth-flow.html) for the larger system
 design.
 
 ## Responsibilities
@@ -89,24 +90,23 @@ file from the relay directory. Runtime secrets include Clerk and APNs credential
 the configured API and tunnel DNS zones as retained Cloudflare resources. Personal stages reference
 the production-owned zones.
 
-The `prod` Alchemy stage owns the retained PlanetScale database and is the shared hosted relay for
-stable and nightly clients. Every other stage references that database and provisions an isolated
-PlanetScale branch and runtime role for local development, so deploy `prod` before creating
-developer stages:
+The `prod` Alchemy stage is the shared hosted relay for stable and nightly clients and owns the
+database named by `RELAY_DATABASE_NAME`. Every other stage gets its own
+`<RELAY_DATABASE_NAME>-<stage>` database on the same Postgres server, so stages never share tables:
 
 ```sh
-vp run --filter ras-code-relay deploy -- --stage prod
-vp run --filter ras-code-relay deploy -- --env-file .env.local
+vp run --filter ras-code-relay deploy --stage prod
+vp run --filter ras-code-relay deploy --env-file .env.local
 ```
 
 Alchemy defaults personal deployments to the `dev_$USER` stage. Relay custom domains apply the same
 DNS-safe sanitization as Alchemy physical resource names, so `prod` uses
-`relay.<RELAY_API_ZONE_NAME>` and `dev_julius` uses
-`relay-dev-julius.<RELAY_API_ZONE_NAME>`. Managed environment endpoints are provisioned below
-`RELAY_TUNNEL_ZONE_NAME`, which may be a different Cloudflare zone. Production tunnel hostnames use
-`prod-<digest>.<RELAY_TUNNEL_ZONE_NAME>`; personal stages use
-`<stage>-<digest>.<RELAY_TUNNEL_ZONE_NAME>`. `RELAY_DOMAIN` remains available as an explicit API
-domain override.
+`code-relay.<RELAY_API_ZONE_NAME>` and `dev_julius` uses
+`code-relay-dev-julius.<RELAY_API_ZONE_NAME>`. Clients use
+`RELAY_TUNNEL_GATEWAY_DOMAIN/e/<digest>/`; the Worker resolves each request to an internal
+`<namespace>-<digest>.<RELAY_TUNNEL_ZONE_NAME>` record without changing the public Host. Keep the API
+and tunnel zone the same when Cloudflare's Universal SSL certificate must cover only first-level
+subdomains. `RELAY_DOMAIN` remains available as an explicit API domain override.
 
 After a successful deploy, the wrapper updates the repository-root `.env` file with the derived relay
 URL. That makes subsequent source builds point at the relay that was just deployed without copying
@@ -123,20 +123,20 @@ deploy personal non-production stages locally with any stage name other than `pr
 The repository must define these Actions variables shared by relay deployments:
 
 - `CLOUDFLARE_ACCOUNT_ID`
-- `PLANETSCALE_ORGANIZATION`
-- `AXIOM_ORG_ID`
 
 The repository must define these Actions secrets shared by relay deployments:
 
 - `CLOUDFLARE_API_TOKEN`
-- `PLANETSCALE_API_TOKEN_ID`
-- `PLANETSCALE_API_TOKEN`
-- `AXIOM_TOKEN`
 
 The `production` GitHub environment must define these Actions variables:
 
 - `RELAY_API_ZONE_NAME`
+- `RELAY_DATABASE_HOST`
+- `RELAY_DATABASE_NAME`
+- `RELAY_DATABASE_USER`
 - `RELAY_TUNNEL_ZONE_NAME`
+- `RELAY_TUNNEL_GATEWAY_DOMAIN`
+- `RELAY_TUNNEL_NAMESPACE`
 - `RELAY_DOMAIN` if overriding the derived production relay domain
 - `CLERK_PUBLISHABLE_KEY`
 - `CLERK_JWT_AUDIENCE`
@@ -150,17 +150,23 @@ The `production` GitHub environment must define these Actions secrets:
 
 - `CLERK_SECRET_KEY`
 - `APNS_PRIVATE_KEY`
+- `POSTHOG_PROJECT_TOKEN`
+- `RELAY_DATABASE_PASSWORD`
+- `RELAY_DATABASE_ACCESS_CLIENT_ID`
+- `RELAY_DATABASE_ACCESS_CLIENT_SECRET`
 
 The account-scoped repository credentials are consumed by Alchemy while provisioning relay stages; they
-are not bound into the relay Worker. The production deployment uses an Axiom personal access token,
-so `AXIOM_ORG_ID` must accompany `AXIOM_TOKEN`. The release workflow reads the production relay's
-derived public URL and Clerk publishable key from the same environment for downstream desktop, CLI,
-and hosted web builds.
+are not bound into the relay Worker. Postgres is reached through a Cloudflare Tunnel guarded by an
+Access application, so it needs no public port; Hyperdrive authenticates with the Access service
+token. Migrations run from the deploy host over `cloudflared access tcp` rather than through
+Hyperdrive. The release workflow reads the production relay's derived public URL and Clerk
+publishable key from the same environment for downstream desktop, CLI, and hosted web builds.
 
 See:
 
-- [RAS Connect Clerk Setup](../../docs/internals/t3-connect.md) for Clerk keys, JWT templates, and sign-up restrictions
+- [RAS Connect Clerk Setup](../../docs/internals/ras-connect.md) for Clerk keys, JWT templates, and sign-up restrictions
   setup.
+- [Relay Database](../../docs/operations/relay-database.md) for the tunnel, Access, and migration topology.
 - [Relay Observability](../../docs/operations/relay-observability.md) for deployment tracing and diagnostics.
-- [RAS Connect Architecture Overview](../../docs/internals/t3-code-connect-auth-flow.html) for the full link,
+- [RAS Connect Architecture Overview](../../docs/internals/ras-code-connect-auth-flow.html) for the full link,
   connect, endpoint, and notification flows.
