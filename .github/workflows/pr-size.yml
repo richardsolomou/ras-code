@@ -229,17 +229,20 @@ jobs:
               `${baseSha}...${resolvedHeadSha}`,
             ];
 
+            // A numstat line per changed file overruns the 1MB execFileSync
+            // default on sweeping PRs, and the throw reads as an unrelated
+            // ENOBUFS crash rather than "this diff is big".
+            const numstatBuffer = { encoding: "utf8", maxBuffer: 256 * 1024 * 1024 };
+
             const totalChangedLines = sumNumstat(
-              execFileSync(
-                "git",
-                diffArgs,
-                { encoding: "utf8" },
-              ),
+              execFileSync("git", diffArgs, numstatBuffer),
             );
             const nonTestChangedLines = sumNumstat(
-              execFileSync("git", [...diffArgs, "--", ".", ...testExcludePathspecs], {
-                encoding: "utf8",
-              }),
+              execFileSync(
+                "git",
+                [...diffArgs, "--", ".", ...testExcludePathspecs],
+                numstatBuffer,
+              ),
             );
             const testChangedLines = Math.max(0, totalChangedLines - nonTestChangedLines);
 
