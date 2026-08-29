@@ -1014,8 +1014,8 @@ sequenceDiagram
             <li>Self-hosted Postgres database named <code>ras-code-relay</code>.</li>
             <li>
               Production owns that database; every other stage gets its own
-              <code>ras-code-relay-&lt;stage&gt;</code> database on the same server, reached through a
-              Cloudflare Tunnel guarded by a Cloudflare Access application.
+              <code>ras-code-relay-&lt;stage&gt;</code> database on the same server, reached through
+              a Cloudflare Tunnel guarded by a Cloudflare Access application.
             </li>
             <li>
               Cloudflare Hyperdrive with caching disabled and a constrained origin connection limit.
