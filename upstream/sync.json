@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "074bcd6dc897f9c28b1bbc04737daa6ee3d8e40f",
+  "lastReviewed": "ebb9b9fda03d33a81cad3ce7f4d1106adba3044b",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -444,6 +444,33 @@
       "ours": "de5d89993c1c8b894bf67a9dc1eff42970bc75fb",
       "reason": "Clean cherry-pick.",
       "reviewedAt": "2026-08-29T16:39:32.539Z"
+    },
+    {
+      "upstream": "053affbed2659f90cd1b1efaaa7a75865c4131c7",
+      "pr": 8624,
+      "title": "fix(mobile): prevent header overflow and back-button artifacts",
+      "decision": "adapted",
+      "ours": "7ef44dd939c5929295df424bad37a736c4378408",
+      "reason": "Cherry-picked; upstream dropped both imports, we still need useThemeColor for the RAS Code palette.",
+      "reviewedAt": "2026-08-29T16:40:21.661Z"
+    },
+    {
+      "upstream": "fc262f1a28d8305951c751f2486da6ca72e6c1d1",
+      "pr": 8087,
+      "title": "fix(server): retry automatic thread title generation",
+      "decision": "adopted",
+      "ours": "04e3d18ec01eeb283bf5f3b5f3e3371ccc3ff4ff",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-29T16:40:24.356Z"
+    },
+    {
+      "upstream": "ebb9b9fda03d33a81cad3ce7f4d1106adba3044b",
+      "pr": 8094,
+      "title": "fix(client-runtime): refresh edited pull request comments",
+      "decision": "adopted",
+      "ours": "e2953c8137ec4d8174100a804d0275bc93bf5e2d",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-29T16:40:26.909Z"
     }
   ]
 }
