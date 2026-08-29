@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "6a9d9f98826e1dac266c0d2aa324e71fe77fa3e7",
+  "lastReviewed": "d22709f759ced90b0ae7b7cb73d7ad22c2ce962b",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -390,6 +390,24 @@
       "ours": null,
       "reason": "Upstream's contributor trust list. The pick added 63 external contributors to .github/VOUCHED.td, which controls who the vouch workflow trusts on this repo; that is our security decision to make, not one to inherit.",
       "reviewedAt": "2026-08-29T16:27:50.663Z"
+    },
+    {
+      "upstream": "bcb855a633566c2dc70239155ddcd28f0fa736c4",
+      "pr": 8236,
+      "title": "feat(web): attach PDFs, ZIPs, and other files to a turn",
+      "decision": "adapted",
+      "ours": "7a55756e3d7ef32d49137e087fb3ceac26c96b21",
+      "reason": "Cherry-picked; took upstream's move to client-runtime/state/attachments, rebranded imports it carried in, and finished #6011's defaultModelSelection to projectModelSelection rename that had only landed in the tests.",
+      "reviewedAt": "2026-08-29T16:32:05.235Z"
+    },
+    {
+      "upstream": "d22709f759ced90b0ae7b7cb73d7ad22c2ce962b",
+      "pr": null,
+      "title": "fix(web): pass stashShortcutLabel in the mixed-attachments stash test",
+      "decision": "adopted",
+      "ours": "d66a40b7b7c1f1015da3e33a280387382a84e329",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-29T16:32:07.863Z"
     }
   ]
 }
