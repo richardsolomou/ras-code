@@ -994,6 +994,11 @@ jobs:
       - name: Refresh release lockfile
         run: vp install --lockfile-only --ignore-scripts
 
+      - name: Configure Alchemy credentials
+        uses: ./.github/actions/alchemy-credentials
+        with:
+          state-store-credentials: ${{ secrets.ALCHEMY_STATE_STORE_CREDENTIALS }}
+
       - name: Deploy channel
         shell: bash
         env:

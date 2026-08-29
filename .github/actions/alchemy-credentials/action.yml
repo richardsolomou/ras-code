@@ -1,0 +1,44 @@
+name: Configure Alchemy credentials
+description: >-
+  Point Alchemy at environment credentials and restore the Cloudflare
+  state-store bearer token. Alchemy prefers a stored auth profile over
+  CLOUDFLARE_API_TOKEN, and its Cloudflare state store cannot derive its own
+  credentials from an API token — only from an interactive OAuth login — so CI
+  supplies both explicitly.
+
+inputs:
+  state-store-credentials:
+    description: >-
+      Contents of the Cloudflare state-store credential file, as produced by
+      `alchemy cloudflare bootstrap` on a machine logged in with `alchemy login`
+      (`~/.alchemy/credentials/default/cloudflare-state-store.json`).
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Write the Alchemy profile and state-store credentials
+      shell: bash
+      env:
+        STATE_STORE_CREDENTIALS: ${{ inputs.state-store-credentials }}
+      run: |
+        set -euo pipefail
+
+        if [[ -z "${STATE_STORE_CREDENTIALS:-}" ]]; then
+          echo "Missing state-store credentials. Set the ALCHEMY_STATE_STORE_CREDENTIALS secret; see docs/operations/relay-database.md." >&2
+          exit 1
+        fi
+
+        credentials_dir="$HOME/.alchemy/credentials/default"
+        mkdir -p "$credentials_dir"
+
+        printf '%s\n' '{"version":0,"profiles":{"default":{"Cloudflare":{"method":"env"}}}}' \
+          > "$HOME/.alchemy/profiles.json"
+
+        umask 077
+        printf '%s' "$STATE_STORE_CREDENTIALS" > "$credentials_dir/cloudflare-state-store.json"
+
+        if ! python3 -c "import json,sys; json.load(open(sys.argv[1]))" "$credentials_dir/cloudflare-state-store.json"; then
+          echo "ALCHEMY_STATE_STORE_CREDENTIALS is not valid JSON." >&2
+          exit 1
+        fi

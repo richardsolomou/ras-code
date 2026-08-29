@@ -61,6 +61,11 @@ jobs:
             args:
               - --filter=ras-code-relay...
 
+      - name: Configure Alchemy credentials
+        uses: ./.github/actions/alchemy-credentials
+        with:
+          state-store-credentials: ${{ secrets.ALCHEMY_STATE_STORE_CREDENTIALS }}
+
       - name: Open an Access tunnel to the relay database
         env:
           RELAY_DATABASE_HOST: ${{ vars.RELAY_DATABASE_HOST }}

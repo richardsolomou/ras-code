@@ -61,6 +61,7 @@ Required repository variables shared by relay deployments:
 Required repository secrets shared by relay deployments:
 
 - `CLOUDFLARE_API_TOKEN`
+- `ALCHEMY_STATE_STORE_CREDENTIALS` (see [Relay Database](./relay-database.md#deployment-credentials))
 
 Required `production` environment variables:
 
@@ -120,6 +121,7 @@ domain.
 Required GitHub Actions secrets:
 
 - `CLOUDFLARE_API_TOKEN`
+- `ALCHEMY_STATE_STORE_CREDENTIALS` (see [Relay Database](./relay-database.md#deployment-credentials))
 
 Required GitHub Actions variables:
 
