@@ -15,7 +15,20 @@ Read [`docs/internals/upstream-sync.md`](../../../docs/internals/upstream-sync.m
 node scripts/upstream-sync.ts report --out /tmp/upstream-report.md
 ```
 
-It fetches the upstream remote, lists the first-parent commits in `lastReviewed..upstream/main`, groups them by pull request, maps every upstream path onto ours, and flags the paths that land on surfaces we keep compatible or already replaced. Pass `--no-fetch` when the remote is already current.
+It fetches the `t3code` remote, lists the first-parent commits in `lastReviewed..t3code/main`, groups them by pull request, maps every upstream path onto ours, and flags the paths that land on surfaces we keep compatible or already replaced. Pass `--no-fetch` when the remote is already current.
+
+The remote is named `t3code`, not `upstream`, because RAS Code treats a remote named `upstream` as the canonical repository identity. In an existing checkout, verify that `upstream` points to `pingdotgg/t3code`, then rename it:
+
+```bash
+git remote get-url upstream
+git remote rename upstream t3code
+```
+
+In a fresh checkout, add it before running the report:
+
+```bash
+git remote add t3code git@github.com:pingdotgg/t3code.git
+```
 
 The report is an index, not a judgement. It tells you where to look. The decision comes from the diff.
 
@@ -89,7 +102,7 @@ These keep their upstream spelling wherever they appear:
 
 ## Never
 
-- Never run `git merge upstream/main` or `git rebase` onto upstream. The fork diverges on purpose; changes come across one at a time.
+- Never run `git merge t3code/main` or `git rebase` onto `t3code`. The fork diverges on purpose; changes come across one at a time.
 - Never advance `lastReviewed` past a change that has no ledger entry, and never edit `lastReviewed` by hand.
 - Never touch the do-not-rename identifiers, in code or in a rebranded patch.
 - Never treat the report as a decision. A short file list does not mean the change belongs here.
