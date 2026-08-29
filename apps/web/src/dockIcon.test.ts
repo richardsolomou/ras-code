@@ -114,6 +114,16 @@ describe("drawDockIcon", () => {
     expect((top + bottom) / 2).toBeCloseTo(DOCK_ICON_SIZE / 2, 6);
     expect(top).toBeGreaterThan(100);
   });
+
+  it("leaves the plate a top and bottom margin around the five-row mark", () => {
+    const cells = drawnRects().slice(1);
+    const plateSize = DOCK_ICON_SIZE - 200;
+    const top = Math.min(...cells.map((cell) => cell.y));
+
+    // The mark is taller than it is wide, so the vertical inset is the tight
+    // one. Anything under a sixth of the plate reads as a mark with no margin.
+    expect((top - 100) / plateSize).toBeGreaterThan(1 / 6);
+  });
 });
 
 describe("createDockIconSync", () => {

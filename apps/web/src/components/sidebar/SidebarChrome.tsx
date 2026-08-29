@@ -80,7 +80,7 @@ function RasCodeWordmark() {
   return (
     <svg
       aria-label="RAS"
-      className="h-4 w-auto shrink-0 fill-[var(--wordmark)]"
+      className="h-3.5 w-auto shrink-0 fill-[var(--wordmark)]"
       viewBox="0 0 234 114"
       xmlns="http://www.w3.org/2000/svg"
     >

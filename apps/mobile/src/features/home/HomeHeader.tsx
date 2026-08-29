@@ -180,7 +180,7 @@ function AndroidHomeHeader(props: HomeHeaderProps) {
               onPress={props.onOpenEnvironments}
               brand={
                 <View className="flex-row items-center gap-2">
-                  <RasCodeWordmark color={wordmarkColor} height={15} />
+                  <RasCodeWordmark color={wordmarkColor} height={13} />
                   <View className="rounded-full bg-subtle px-2 py-0.75">
                     <RNText className="text-[11px] font-ras-code-legend text-foreground-muted">
                       {stageLabel}
