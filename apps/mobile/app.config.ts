@@ -204,7 +204,7 @@ const config: ExpoConfig = {
     // Pin code signing to the Apple developer team so non-interactive `expo run:ios`
     // does not fall back to a personal team (which cannot sign app groups,
     // Sign in with Apple, or push notification entitlements).
-    appleTeamId: "TODO_RAS_CODE_APPLE_TEAM_ID",
+    appleTeamId: "A3X8464573",
     associatedDomains: configuredClerkRelyingParties.flatMap((domain) => [
       `applinks:${domain}`,
       `webcredentials:${domain}`,
