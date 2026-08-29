@@ -31,8 +31,6 @@ import {
   scopedThreadKey,
 } from "@ras-code/client-runtime/environment";
 import type { ScopedThreadRef, ThreadId } from "@ras-code/contracts";
-import type {} from "@ras-code/contracts/settings";
-import type { SidebarAutoSettleMode, TimestampFormat } from "@ras-code/contracts/settings";
 import type { TimestampFormat } from "@ras-code/contracts/settings";
 import {
   AlarmClockIcon,
@@ -500,6 +498,7 @@ const SidebarDraftRow = memo(function SidebarDraftRow(props: {
   // that only the persisted list is populated, hence max not sum.
   const attachmentCount =
     Math.max(composer.images.length, composer.persistedAttachments.length) +
+    composer.files.length +
     composer.terminalContexts.length +
     composer.elementContexts.length +
     composer.previewAnnotations.length +

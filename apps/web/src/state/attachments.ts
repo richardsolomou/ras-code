@@ -1,15 +1,5 @@
-import { WS_METHODS } from "@ras-code/contracts";
-import { createEnvironmentRpcCommand } from "@ras-code/client-runtime/state/runtime";
+import { createAttachmentEnvironmentAtoms } from "@ras-code/client-runtime/state/attachments";
 
 import { connectionAtomRuntime } from "../connection/runtime";
 
-export const attachmentEnvironment = {
-  createUploadUrl: createEnvironmentRpcCommand(connectionAtomRuntime, {
-    label: "environment-command:attachments:create-upload-url",
-    tag: WS_METHODS.attachmentsCreateUploadUrl,
-  }),
-  remove: createEnvironmentRpcCommand(connectionAtomRuntime, {
-    label: "environment-command:attachments:delete",
-    tag: WS_METHODS.attachmentsDelete,
-  }),
-};
+export const attachmentEnvironment = createAttachmentEnvironmentAtoms(connectionAtomRuntime);
