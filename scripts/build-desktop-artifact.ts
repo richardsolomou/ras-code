@@ -878,6 +878,9 @@ export const WSL_RUNTIME_ARCHIVE_CONTENT_ROOTS = ["apps/server/dist", "node_modu
 // The WSL runtime uses only the Linux half of the shared Windows/WSL sidecar.
 // Keep build/install metadata and target-native packages that cannot run in
 // WSL out of the compressed archive.
+/** Marks a staged WSL node-pty prebuild. Written by the stager, required by the validator. */
+const WSL_NODE_PTY_MARKER_FILENAME = "ras-code-wsl-node-pty.json";
+
 export const WSL_RUNTIME_ARCHIVE_EXCLUDED_PREFIXES = [
   "node_modules/@anthropic-ai/claude-agent-sdk-",
   "node_modules/.bin",
@@ -2352,7 +2355,7 @@ const stageWslNodePtyPrebuild = Effect.fn("stageWslNodePtyPrebuild")(function* (
   yield* fs.copyFile(input.prebuildPath, path.join(prebuildDir, "pty.node"));
   const markerJson = yield* encodeJsonString({ arch: linuxArch, nodePtyVersion });
   yield* fs.writeFileString(
-    path.join(prebuildDir, "ras-code-wsl-node-pty.json"),
+    path.join(prebuildDir, WSL_NODE_PTY_MARKER_FILENAME),
     `${markerJson}\n`,
   );
 
@@ -2854,7 +2857,7 @@ export const validateWindowsPackagedPayload = Effect.fn(
         ? []
         : [
             `node_modules/node-pty/prebuilds/linux-${wslArch}/pty.node`,
-            `node_modules/node-pty/prebuilds/linux-${wslArch}/t3code-wsl-node-pty.json`,
+            `node_modules/node-pty/prebuilds/linux-${wslArch}/${WSL_NODE_PTY_MARKER_FILENAME}`,
           ]),
     ];
     const missingMembers = requiredMembers.filter((member) => !members.includes(member));
