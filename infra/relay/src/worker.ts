@@ -117,7 +117,7 @@ export const ApiLive = Api.make(
         date: "2026-05-22",
         flags: ["nodejs_compat", "global_fetch_private_origin"],
       },
-      domain: [relayPublicDomain, managedEndpointGatewayDomain],
+      domain: { name: relayPublicDomain, aliases: [managedEndpointGatewayDomain] },
     })),
     Effect.orDie,
   ),

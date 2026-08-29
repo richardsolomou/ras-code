@@ -8,7 +8,8 @@ import {
   brandAssetChannel,
   deploymentForStage,
   routerHostname,
-  webWorkerDomains,
+  webWorkerDomain,
+  servesOnWorkersDev,
   webWorkerEnv,
   webWorkerName,
 } from "./src/deployment.ts";
@@ -29,7 +30,7 @@ export default Alchemy.Stack(
     const routerHost = yield* routerHostname(routerUrl).pipe(Effect.orDie);
 
     const domains = { routerHost, latestDomain, nightlyDomain };
-    const domain = webWorkerDomains(deployment, domains);
+    const domain = webWorkerDomain(deployment, domains);
 
     const site = yield* Cloudflare.Website.StaticSite("ras-code-web", {
       name: webWorkerName(stage),
@@ -37,9 +38,9 @@ export default Alchemy.Stack(
       command: `vp run --filter @ras-code/web build && node scripts/apply-web-brand-assets.ts --channel ${brandAssetChannel(deployment)}`,
       outdir: "apps/web/dist",
       main: "../../apps/web/worker.ts",
-      ...(domain.length > 0 ? { domain } : {}),
+      ...(domain ? { domain } : {}),
       // Previews are reachable only here, so the generated URL is their address.
-      url: deployment.kind === "preview",
+      workersDev: servesOnWorkersDev(deployment),
       assets: {
         notFoundHandling: "single-page-application",
       },
@@ -50,7 +51,7 @@ export default Alchemy.Stack(
       stage,
       workerName: site.workerName,
       url: site.url,
-      domains: domain,
+      domain,
     };
   }),
 );

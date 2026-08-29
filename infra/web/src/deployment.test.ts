@@ -5,7 +5,8 @@ import {
   brandAssetChannel,
   deploymentForStage,
   routerHostname,
-  webWorkerDomains,
+  webWorkerDomain,
+  servesOnWorkersDev,
   webWorkerEnv,
   webWorkerName,
   previewUrl,
@@ -51,17 +52,31 @@ describe("deploymentForStage", () => {
   );
 });
 
-describe("webWorkerDomains", () => {
-  it("gives latest both its channel domain and the router domain", () => {
-    expect(webWorkerDomains(LATEST, DOMAINS)).toEqual(["code-latest.ras.sh", "code.ras.sh"]);
+describe("webWorkerDomain", () => {
+  it("serves latest on its channel domain with the router domain aliased to it", () => {
+    expect(webWorkerDomain(LATEST, DOMAINS)).toEqual({
+      name: "code-latest.ras.sh",
+      aliases: ["code.ras.sh"],
+    });
   });
 
   it("gives nightly only its own channel domain", () => {
-    expect(webWorkerDomains(NIGHTLY, DOMAINS)).toEqual(["code-nightly.ras.sh"]);
+    expect(webWorkerDomain(NIGHTLY, DOMAINS)).toEqual({ name: "code-nightly.ras.sh" });
   });
 
   it("gives a preview no domain, so it cannot take one from a channel", () => {
-    expect(webWorkerDomains(PREVIEW, DOMAINS)).toEqual([]);
+    expect(webWorkerDomain(PREVIEW, DOMAINS)).toBeUndefined();
+  });
+});
+
+describe("servesOnWorkersDev", () => {
+  it("exposes previews on workers.dev, since they have no other address", () => {
+    expect(servesOnWorkersDev(PREVIEW)).toBe(true);
+  });
+
+  it("keeps release channels off workers.dev", () => {
+    expect(servesOnWorkersDev(LATEST)).toBe(false);
+    expect(servesOnWorkersDev(NIGHTLY)).toBe(false);
   });
 });
 

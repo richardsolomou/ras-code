@@ -73,18 +73,32 @@ export interface WebDomains {
   readonly nightlyDomain: string;
 }
 
+export interface WebWorkerDomain {
+  readonly name: string;
+  readonly aliases?: string[];
+}
+
 /**
  * Previews get no custom domain. Attaching one would take it from whichever
  * channel currently owns it, so previews are reachable only at their
- * `workers.dev` URL.
+ * `workers.dev` URL. The router domain is an alias of the latest channel's own
+ * domain, which is how the hosted app has always been addressed.
  */
-export function webWorkerDomains(deployment: WebDeployment, domains: WebDomains): string[] {
+export function webWorkerDomain(
+  deployment: WebDeployment,
+  domains: WebDomains,
+): WebWorkerDomain | undefined {
   if (deployment.kind === "preview") {
-    return [];
+    return undefined;
   }
   return deployment.channel === "latest"
-    ? [domains.latestDomain, domains.routerHost]
-    : [domains.nightlyDomain];
+    ? { name: domains.latestDomain, aliases: [domains.routerHost] }
+    : { name: domains.nightlyDomain };
+}
+
+/** Only previews are reached over workers.dev; channels use their own domains. */
+export function servesOnWorkersDev(deployment: WebDeployment): boolean {
+  return deployment.kind === "preview";
 }
 
 /**

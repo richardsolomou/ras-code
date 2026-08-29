@@ -24,7 +24,7 @@ export default Alchemy.Stack(
       outdir: "apps/marketing/dist",
       ...(Option.isSome(domain) ? { domain: domain.value } : {}),
       // Without a custom domain the generated URL is the only way in.
-      url: Option.isNone(domain),
+      workersDev: Option.isNone(domain),
       assets: {
         notFoundHandling: "404-page",
       },
