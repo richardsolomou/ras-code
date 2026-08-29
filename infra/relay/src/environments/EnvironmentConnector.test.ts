@@ -163,6 +163,7 @@ function connectorTestLayer(
   options?: {
     readonly links?: EnvironmentLinks.EnvironmentLinks["Service"];
     readonly allocations?: ManagedEndpointAllocations.ManagedEndpointAllocations["Service"];
+    readonly settings?: RelayConfiguration.RelayConfiguration["Service"];
   },
 ) {
   return EnvironmentConnector.layer.pipe(
@@ -174,7 +175,7 @@ function connectorTestLayer(
         options?.allocations ?? makeAllocations(),
       ),
     ),
-    Layer.provide(RelayConfiguration.layer(settings)),
+    Layer.provide(RelayConfiguration.layer(options?.settings ?? settings)),
     Layer.provide(Layer.succeed(HttpClient.HttpClient, HttpClient.make(execute))),
   );
 }
@@ -321,6 +322,58 @@ describe("EnvironmentConnector", () => {
         },
       });
     }).pipe(Effect.provide(connectorTestLayer(execute)));
+  });
+
+  it.effect("sends health requests to the environment hostname, not the gateway", () => {
+    // The gateway domain is served by the relay worker itself, and a same-zone
+    // fetch bypasses the worker, so minting through the advertised URL never
+    // reaches the tunnel.
+    const gatewayDomain = "code-tunnels.example.test";
+    const hostname = "code-abcdef0123456789.example.test";
+    const endpointId = "abcdef0123456789";
+    const seenUrls: Array<string> = [];
+    const execute = (request: HttpClientRequest.HttpClientRequest) =>
+      Effect.sync(() => {
+        const healthRequest = decodeHealthRequestBody(requestBodyText(request));
+        seenUrls.push(request.url);
+        return HttpClientResponse.fromWeb(
+          request,
+          Response.json(signHealthResponse(healthRequest), { status: 200 }),
+        );
+      });
+
+    return Effect.gen(function* () {
+      const connector = yield* EnvironmentConnector.EnvironmentConnector;
+      yield* connector.status({
+        userId: "user_123",
+        environmentId: "env-connector-test",
+      });
+
+      expect(seenUrls).toEqual([`https://${hostname}/api/t3-connect/health`]);
+    }).pipe(
+      Effect.provide(
+        connectorTestLayer(execute, {
+          links: makeLinks({
+            endpoint: {
+              httpBaseUrl: `https://${gatewayDomain}/e/${endpointId}/`,
+              wsBaseUrl: `wss://${gatewayDomain}/e/${endpointId}/ws`,
+              providerKind: "cloudflare_tunnel",
+            },
+          }),
+          allocations: makeAllocations({
+            userId: "user_123",
+            environmentId: "env-connector-test" as never,
+            hostname,
+            tunnelId: "tunnel-id",
+            tunnelName: "tunnel-name",
+            dnsRecordId: "dns-record-id",
+            readyAt: "2026-05-25T00:00:00.000Z",
+            updatedAt: "2026-05-25T00:00:00.000Z",
+          }),
+          settings: { ...settings, managedEndpointGatewayDomain: gatewayDomain },
+        }),
+      ),
+    );
   });
 
   it.effect("rejects manual endpoints before sending a health request", () => {

@@ -442,11 +442,17 @@ describe("ManagedEndpointProvider", () => {
         wsBaseUrl: `wss://code-tunnels.ras-code.test/e/${endpointId}/ws`,
         providerKind: "cloudflare_tunnel",
       });
+      // The relay reaches the environment on the per-environment hostname, not
+      // through the gateway it serves itself, so both hostnames need a rule.
       expect(tunnelCalls[2]?.input).toMatchObject({
         tunnelConfig: {
           ingress: [
             {
               hostname: "code-tunnels.ras-code.test",
+              service: "http://127.0.0.1:3773",
+            },
+            {
+              hostname,
               service: "http://127.0.0.1:3773",
             },
             { service: "http_status:404" },

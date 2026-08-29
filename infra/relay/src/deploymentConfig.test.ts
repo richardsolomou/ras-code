@@ -4,6 +4,7 @@ import * as Schema from "effect/Schema";
 import {
   managedEndpointDigestInput,
   managedEndpointForHostname,
+  managedEndpointRequestOrigin,
   managedEndpointGatewayTargetHostname,
   managedEndpointHostname,
   managedEndpointNamespaceForStage,
@@ -135,6 +136,12 @@ describe("managed endpoint names", () => {
       wsBaseUrl: "wss://code-tunnels.ras.sh/e/abcdef0123456789/ws",
       providerKind: "cloudflare_tunnel",
     });
+  });
+
+  it("keeps the relay's own requests off the gateway it serves", () => {
+    expect(managedEndpointRequestOrigin("code-abcdef0123456789.ras.sh")).toBe(
+      "https://code-abcdef0123456789.ras.sh/",
+    );
   });
 
   it("resolves gateway paths to the matching internal tunnel hostname", () => {

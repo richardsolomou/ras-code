@@ -149,6 +149,18 @@ export function managedEndpointForHostname(
   };
 }
 
+/**
+ * Origin the relay uses for its own requests to an environment. It is not the
+ * advertised endpoint: that one points at the gateway, which this worker
+ * serves, and `global_fetch_private_origin` routes a same-zone fetch to the
+ * zone's origin without running the worker, so a request through the gateway
+ * never reaches the tunnel. The per-environment hostname resolves to the
+ * tunnel, which is why the ingress carries a rule for it.
+ */
+export function managedEndpointRequestOrigin(hostname: string): string {
+  return `https://${normalizeZoneName(hostname)}/`;
+}
+
 export function managedEndpointGatewayTargetHostname(input: {
   readonly requestUrl: URL;
   readonly gatewayDomain: string;
