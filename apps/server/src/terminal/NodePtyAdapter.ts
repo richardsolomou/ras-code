@@ -1,4 +1,5 @@
 import * as NodeModule from "node:module";
+import * as NodeURL from "node:url";
 
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -29,6 +30,96 @@ export class NodePtyModuleLoadError extends Schema.TaggedErrorClass<NodePtyModul
 }
 
 type NodePtyModuleLoader = () => Promise<typeof import("node-pty")>;
+
+/**
+ * Binaries we publish for platforms node-pty has no prebuild for, resolved
+ * against the bundled output so `dist/prebuilds/<platform>-<arch>/pty.node`
+ * travels with the package. Absent when running from source, where the
+ * workspace install builds node-pty itself.
+ */
+const shippedNodePtyBinaryPath = (platform: string, architecture: string): string =>
+  NodeURL.fileURLToPath(
+    new URL(`./prebuilds/${platform}-${architecture}/pty.node`, import.meta.url),
+  );
+
+const nodePtyNativeModuleCandidates = (
+  path: Path.Path,
+  packageDir: string,
+  platform: string,
+  architecture: string,
+): ReadonlyArray<string> => [
+  path.join(packageDir, "build", "Release", "pty.node"),
+  path.join(packageDir, "build", "Debug", "pty.node"),
+  path.join(packageDir, "prebuilds", `${platform}-${architecture}`, "pty.node"),
+];
+
+/**
+ * Puts a usable `pty.node` where node-pty's loader looks for one.
+ *
+ * node-pty publishes prebuilds for macOS and Windows only, so on Linux its
+ * binary is compiled during install — which npm 12 skips unless the installing
+ * project opts in, leaving an install that looks complete and cannot start.
+ * Nothing inside the package can opt in on behalf of `npx` or a global install,
+ * so ship the binary and copy it into place instead.
+ *
+ * Best effort by design: a read-only install has nothing to stage into, and the
+ * load error that follows names the remedy.
+ */
+export const stageNodePtyNativeModule = Effect.fn("NodePtyAdapter.stageNativeModule")(
+  function* (input: {
+    readonly packageDir: string;
+    readonly shippedBinaryPath: string;
+    readonly platform: string;
+    readonly architecture: string;
+  }) {
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
+
+    const candidates = nodePtyNativeModuleCandidates(
+      path,
+      input.packageDir,
+      input.platform,
+      input.architecture,
+    );
+    for (const candidate of candidates) {
+      if (yield* fs.exists(candidate)) {
+        return "already-present" as const;
+      }
+    }
+    if (!(yield* fs.exists(input.shippedBinaryPath))) {
+      return "not-shipped" as const;
+    }
+
+    const targetDir = path.join(
+      input.packageDir,
+      "prebuilds",
+      `${input.platform}-${input.architecture}`,
+    );
+    yield* fs.makeDirectory(targetDir, { recursive: true });
+    // Rename so a second server starting concurrently never observes a partial
+    // binary through node-pty's loader.
+    const staging = path.join(targetDir, `.pty.node.${process.pid}`);
+    yield* fs.copyFile(input.shippedBinaryPath, staging);
+    yield* fs.rename(staging, path.join(targetDir, "pty.node"));
+    return "staged" as const;
+  },
+);
+
+const stageNodePtyNativeModuleForHost = Effect.fn("NodePtyAdapter.stageNativeModuleForHost")(
+  function* () {
+    const path = yield* Path.Path;
+    const platform = yield* HostProcessPlatform;
+    const architecture = yield* HostProcessArchitecture;
+    const requireForNodePty = NodeModule.createRequire(import.meta.url);
+    const packageDir = path.dirname(requireForNodePty.resolve("node-pty/package.json"));
+    return yield* stageNodePtyNativeModule({
+      packageDir,
+      shippedBinaryPath: shippedNodePtyBinaryPath(platform, architecture),
+      platform,
+      architecture,
+    });
+  },
+);
 
 let didEnsureSpawnHelperExecutable = false;
 
@@ -123,6 +214,8 @@ export const make = Effect.fn("NodePtyAdapter.make")(function* (
   const path = yield* Path.Path;
   const platform = yield* HostProcessPlatform;
   const architecture = yield* HostProcessArchitecture;
+
+  yield* stageNodePtyNativeModuleForHost().pipe(Effect.orElseSucceed(() => "unavailable" as const));
 
   const nodePty = yield* Effect.tryPromise({
     try: loadNodePtyModule,

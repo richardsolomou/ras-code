@@ -315,22 +315,32 @@ jobs:
           echo "hosted_app_url=$RAS_CODE_WEB_ROUTER_URL" >> "$GITHUB_OUTPUT"
           echo "relay_url=https://$relay_domain" >> "$GITHUB_OUTPUT"
 
-  # node-pty publishes no Linux prebuilt and the WSL backend runs under the
-  # distro's own (Linux) Node, which can't load the Windows/Electron binary. We
-  # build the Linux pty.node here, on Linux, and hand it to the Windows packaging
-  # job — the Windows artifact then ships a ready WSL backend binary with no
-  # cross-compiling and no first-launch compiler/node-gyp/network on the user's
-  # machine. node-pty is N-API, so one binary works across all WSL Node versions.
-  build_wsl_node_pty:
-    name: Build WSL node-pty (linux-x64)
+  # node-pty publishes no Linux prebuilt, so on Linux its binary is compiled
+  # during install — which npm 12 skips unless the installing project opts in,
+  # and neither `npx` nor a global install has a project to opt in with. We build
+  # it here, on Linux, and both consumers take it from this job: the npm package
+  # ships it so a Linux install needs no compiler, and the Windows artifact
+  # carries the x64 one for its WSL backend, whose distro Node cannot load the
+  # Windows/Electron binary. node-pty is N-API, so one binary per architecture
+  # works across Node versions.
+  build_linux_node_pty:
+    name: Build node-pty (linux-${{ matrix.arch }})
     # Same gating as relay_public_config: only the commit SHA is needed, so this
     # runs alongside preflight. See the condition comment there.
     needs: [check_changes]
     if: |
       !failure() && !cancelled() &&
       (github.event_name != 'schedule' || needs.check_changes.outputs.has_changes == 'true')
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -350,7 +360,7 @@ jobs:
             args:
               - --filter=ras-code...
 
-      - name: Build node-pty linux-x64 prebuild
+      - name: Build node-pty linux-${{ matrix.arch }} prebuild
         shell: bash
         run: |
           set -euo pipefail
@@ -360,27 +370,34 @@ jobs:
           pty_pkg="$(node -e "console.log(require.resolve('node-pty/package.json', { paths: ['$GITHUB_WORKSPACE/apps/server'] }))")"
           pty_dir="$(dirname "$pty_pkg")"
           ( cd "$pty_dir" && npx --yes node-gyp rebuild )
-          mkdir -p wsl-prebuild
-          cp "$pty_dir/build/Release/pty.node" wsl-prebuild/pty.node
-          file wsl-prebuild/pty.node
+          mkdir -p linux-prebuild
+          cp "$pty_dir/build/Release/pty.node" linux-prebuild/pty.node
+          file linux-prebuild/pty.node
+          # The runner architecture is what makes this binary loadable on the
+          # target, so a mismatched runner has to fail here rather than ship.
+          case "${{ matrix.arch }}" in
+            x64) expected="x86-64" ;;
+            arm64) expected="aarch64" ;;
+          esac
+          file linux-prebuild/pty.node | grep -q "$expected"
 
-      - name: Upload node-pty linux-x64 prebuild
+      - name: Upload node-pty linux-${{ matrix.arch }} prebuild
         uses: actions/upload-artifact@v7
         with:
-          name: wsl-node-pty-x64
-          path: wsl-prebuild/pty.node
+          name: node-pty-linux-${{ matrix.arch }}
+          path: linux-prebuild/pty.node
           if-no-files-found: error
 
   build:
     name: Build ${{ matrix.label }}
-    # build_wsl_node_pty stays in `needs` so it runs first and its artifact is
+    # build_linux_node_pty stays in `needs` so it runs first and its artifact is
     # available to download, but only the Windows matrix entry consumes it. We
     # therefore gate the job on preflight + relay (must succeed) WITHOUT requiring
-    # build_wsl_node_pty, so a failed Linux prebuild doesn't skip the macOS/Linux
+    # build_linux_node_pty, so a failed Linux prebuild doesn't skip the macOS/Linux
     # builds. `!cancelled()` (not `!failure()`) lets the job run even when
-    # build_wsl_node_pty failed; the Windows-only download step below then fails
+    # build_linux_node_pty failed; the Windows-only download step below then fails
     # that single platform if the prebuild is missing.
-    needs: [preflight, relay_public_config, build_wsl_node_pty]
+    needs: [preflight, relay_public_config, build_linux_node_pty]
     if: ${{ !cancelled() && needs.preflight.result == 'success' && needs.relay_public_config.result == 'success' }}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
@@ -494,7 +511,7 @@ jobs:
         if: matrix.platform == 'win'
         uses: actions/download-artifact@v7
         with:
-          name: wsl-node-pty-x64
+          name: node-pty-linux-x64
           path: wsl-prebuild
 
       - name: Install Spectre-mitigated MSVC libs
@@ -651,7 +668,7 @@ jobs:
               echo "macOS signing disabled (missing one or more Apple signing secrets)."
             fi
           elif [[ "${{ matrix.platform }}" == "win" ]]; then
-            # Bundle the Linux node-pty binary built by the build_wsl_node_pty job
+            # Bundle the Linux node-pty binary built by the build_linux_node_pty job
             # so the packaged WSL backend ships a ready binary (no first-launch
             # compile). Required for a working WSL backend on Windows.
             args+=(--wsl-prebuild "$GITHUB_WORKSPACE/wsl-prebuild/pty.node")
@@ -741,8 +758,8 @@ jobs:
 
   publish_cli:
     name: Publish CLI to npm
-    needs: [preflight, relay_public_config, quality, build]
-    if: ${{ !failure() && !cancelled() && needs.preflight.result == 'success' && needs.relay_public_config.result == 'success' && needs.quality.result == 'success' && needs.build.result == 'success' }}
+    needs: [preflight, relay_public_config, quality, build, build_linux_node_pty]
+    if: ${{ !failure() && !cancelled() && needs.preflight.result == 'success' && needs.relay_public_config.result == 'success' && needs.quality.result == 'success' && needs.build.result == 'success' && needs.build_linux_node_pty.result == 'success' }}
     runs-on: ubuntu-24.04 # ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -814,6 +831,29 @@ jobs:
             cp "$artifact_dir"/ras-resource-monitor* "$target_dir/"
             chmod +x "$target_dir"/ras-resource-monitor 2>/dev/null || true
           done
+
+      - name: Download node-pty Linux prebuilds
+        uses: actions/download-artifact@v8
+        with:
+          pattern: node-pty-linux-*
+          path: ${{ runner.temp }}/node-pty-prebuilds
+
+      # Linux is the only platform node-pty ships no prebuild for, so without
+      # these the package cannot start unless the installing machine both has a
+      # compiler and let npm run the build script.
+      - name: Bundle node-pty prebuilds into CLI package
+        shell: bash
+        run: |
+          set -euo pipefail
+          for artifact_dir in "$RUNNER_TEMP"/node-pty-prebuilds/node-pty-linux-*; do
+            arch="${artifact_dir##*/node-pty-linux-}"
+            target_dir="apps/server/dist/prebuilds/linux-${arch}"
+            mkdir -p "$target_dir"
+            cp "$artifact_dir/pty.node" "$target_dir/pty.node"
+          done
+          # Publishing without them is the failure this job exists to prevent.
+          test -f apps/server/dist/prebuilds/linux-x64/pty.node
+          test -f apps/server/dist/prebuilds/linux-arm64/pty.node
 
       - name: Publish CLI package
         run: node apps/server/scripts/cli.ts publish --tag "${{ needs.preflight.outputs.cli_dist_tag }}" --app-version "${{ needs.preflight.outputs.version }}" --verbose
