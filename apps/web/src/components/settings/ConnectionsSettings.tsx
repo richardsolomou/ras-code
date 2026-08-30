@@ -87,7 +87,7 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "..
 import { AnimatedHeight } from "../AnimatedHeight";
 import { Textarea } from "../ui/textarea";
 import { getPairingTokenFromUrl, setPairingTokenOnUrl } from "../../pairingUrl";
-import { readHostedPairingRequest } from "../../hostedPairing";
+import { hostedPairingPath, readHostedPairingRequest } from "../../hostedPairing";
 import {
   createServerPairingCredential,
   revokeOtherServerClientSessions,
@@ -485,14 +485,14 @@ function resolveAdvertisedEndpointPairingUrl(
 }
 
 function resolveCurrentOriginPairingUrl(credential: string): string {
-  const url = new URL("/pair", window.location.href);
+  const url = new URL(`${import.meta.env.BASE_URL}pair`, window.location.origin);
   return setPairingTokenOnUrl(url, credential).toString();
 }
 
 function isHostedAppPairingUrl(value: string): boolean {
   try {
     const url = new URL(value);
-    return url.pathname === "/pair" && url.searchParams.has("host");
+    return url.pathname === hostedPairingPath() && url.searchParams.has("host");
   } catch {
     return false;
   }

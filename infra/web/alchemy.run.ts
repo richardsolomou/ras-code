@@ -4,8 +4,10 @@ import * as Cloudflare from "alchemy/Cloudflare";
 import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
 
+import { HOSTED_APP_BASE_PATH } from "@ras-code/shared/connectAuth";
 import {
   deploymentForStage,
+  hostedAppRoutePatterns,
   routerHostname,
   runsChannelRouter,
   webWorkerDomain,
@@ -31,6 +33,10 @@ export default Alchemy.Stack(
     const domains = { routerHost, canaryDomain };
     const domain = webWorkerDomain(deployment, domains);
 
+    // StaticSite execs the build without a shell, so the prefix the hosted
+    // bundle is served under reaches Vite through the environment.
+    process.env.VITE_APP_BASE = HOSTED_APP_BASE_PATH;
+
     const site = yield* Cloudflare.Website.StaticSite("ras-code-web", {
       name: webWorkerName(stage),
       cwd: "../..",
@@ -45,16 +51,36 @@ export default Alchemy.Stack(
       // Previews are reachable only here, so the generated URL is their address.
       workersDev: servesOnWorkersDev(deployment),
       assets: {
-        notFoundHandling: "single-page-application",
+        // The build sits under the app's path prefix, so Cloudflare's own
+        // single-page fallback (which serves `/index.html`) would find
+        // nothing. `none` hands every miss to the Worker instead, which
+        // serves the shell for app routes and redirects the legacy root
+        // entry points.
+        notFoundHandling: "none",
         // Assets are served before the Worker, so the router never sees a
-        // request whose path exactly matches a built file — including `/`.
-        // Alchemy does not currently forward this to Cloudflare (deployed
-        // config reports `raw_run_worker_first: false`), so channel switching
-        // works on app routes but not on `/`. See docs/operations/release.md.
+        // request whose path exactly matches a built file. Alchemy does not
+        // currently forward this to Cloudflare (deployed config reports
+        // `raw_run_worker_first: false`), so channel switching works on app
+        // routes but not on the app's own index. See docs/operations/release.md.
         runWorkerFirst: runsChannelRouter(deployment),
       },
       env: webWorkerEnv(deployment, domains),
     });
+
+    // Only the stable channel shares a hostname with the marketing site, so
+    // only it needs routes; canary and previews answer on their own address.
+    if (runsChannelRouter(deployment)) {
+      const zoneId = yield* Config.nonEmptyString("RAS_CODE_WEB_ZONE_ID");
+      yield* Effect.forEach(
+        hostedAppRoutePatterns(routerHost),
+        (pattern) =>
+          Cloudflare.Workers.WorkerRoute(
+            `ras-code-web-route-${pattern.replaceAll(/[^a-z0-9]+/gi, "-")}`,
+            { zoneId, pattern, script: site.workerName },
+          ),
+        { discard: true },
+      );
+    }
 
     return {
       stage,

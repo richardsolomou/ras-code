@@ -83,7 +83,7 @@ In **Clerk Dashboard > OAuth applications**:
 2. Enable the **Public** option so authorization-code exchange uses PKCE.
 3. Add **both** allowed redirect URIs:
    - `http://127.0.0.1:34338/callback` for the loopback listener;
-   - `https://code.ras.sh/connect/callback` for the hosted out-of-band flow. This is
+   - `https://code.ras.sh/app/connect/callback` for the hosted out-of-band flow. This is
      `connectCallbackUrl(RAS_CODE_HOSTED_APP_URL)` from `packages/shared/src/connectAuth.ts`; a
      custom hosted app URL changes the callback origin. Omitting the build-time hosted app URL
      breaks headless and SSH authorization.

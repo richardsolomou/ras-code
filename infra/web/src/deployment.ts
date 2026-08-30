@@ -79,19 +79,36 @@ export interface WebWorkerDomain {
 /**
  * Previews get no custom domain. Attaching one would take it from whichever
  * channel currently owns it, so previews are reachable only at their
- * `workers.dev` URL. Stable answers on the router domain itself; canary has to
- * be separately addressable because the router proxies to it.
+ * `workers.dev` URL. Canary has to be separately addressable because the
+ * router proxies to it; stable shares the router domain with the marketing
+ * site, which owns it as a custom domain, so stable is reached through the
+ * path routes below instead.
  */
 export function webWorkerDomain(
   deployment: WebDeployment,
   domains: WebDomains,
 ): WebWorkerDomain | undefined {
-  if (deployment.kind === "preview") {
+  if (deployment.kind === "preview" || deployment.channel === "latest") {
     return undefined;
   }
-  return deployment.channel === "latest"
-    ? { name: domains.routerHost }
-    : { name: domains.canaryDomain };
+  return { name: domains.canaryDomain };
+}
+
+/**
+ * Path patterns the app answers on the shared router host. Cloudflare matches
+ * patterns literally, so the prefix needs both forms: `/app/*` alone would
+ * miss `/app` itself. The trailing three are entry points shipped clients
+ * still address at the root, which the Worker redirects under the prefix.
+ */
+export function hostedAppRoutePatterns(routerHost: string): ReadonlyArray<string> {
+  return [
+    `${routerHost}/app`,
+    `${routerHost}/app/*`,
+    `${routerHost}/pair`,
+    `${routerHost}/connect`,
+    `${routerHost}/connect/*`,
+    `${routerHost}/__ras-code/*`,
+  ];
 }
 
 /** Only previews are reached over workers.dev; channels use their own domains. */

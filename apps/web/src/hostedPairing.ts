@@ -1,4 +1,4 @@
-import { DEFAULT_HOSTED_APP_URL } from "@ras-code/shared/connectAuth";
+import { DEFAULT_HOSTED_APP_URL, hostedAppUrlFor } from "@ras-code/shared/connectAuth";
 
 import { getPairingTokenFromUrl, setPairingTokenOnUrl } from "./pairingUrl";
 
@@ -44,6 +44,11 @@ export function isHostedStaticApp(url: URL = new URL(window.location.href)): boo
   return hostedOrigin !== null && url.origin === hostedOrigin;
 }
 
+/** Path a hosted pairing link lands on, including the hosted app's prefix. */
+export function hostedPairingPath(): string {
+  return hostedAppUrlFor(configuredHostedAppUrl(), "pair").pathname;
+}
+
 export function readHostedPairingRequest(url: URL = new URL(window.location.href)) {
   const host = url.searchParams.get("host")?.trim() ?? "";
   const token = getPairingTokenFromUrl(url)?.trim() ?? "";
@@ -69,7 +74,7 @@ export function buildHostedPairingUrl(input: {
   readonly token: string;
   readonly label?: string | null;
 }): string {
-  const url = new URL("/pair", configuredHostedAppUrl());
+  const url = hostedAppUrlFor(configuredHostedAppUrl(), "pair");
   url.searchParams.set("host", input.host);
 
   const label = input.label?.trim();
@@ -83,7 +88,7 @@ export function buildHostedPairingUrl(input: {
 export function buildHostedChannelSelectionUrl(input: {
   readonly channel: HostedAppChannel;
 }): string {
-  const url = new URL("/__ras-code/channel", configuredHostedAppUrl());
+  const url = hostedAppUrlFor(configuredHostedAppUrl(), "__ras-code/channel");
   url.searchParams.set("channel", input.channel);
   return url.toString();
 }

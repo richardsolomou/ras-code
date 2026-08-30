@@ -41,6 +41,12 @@ const configuredRelayTracingToken = repoEnv.VITE_RELAY_OTLP_TRACES_TOKEN?.trim()
 const configuredHostedAppChannel = process.env.VITE_HOSTED_APP_CHANNEL?.trim() || "";
 const configuredAppVersion = process.env.APP_VERSION?.trim() || pkg.version;
 const configuredHostedAppUrl = process.env.VITE_HOSTED_APP_URL?.trim() || undefined;
+
+// Only the hosted deployment serves the app under a path prefix, because only
+// there does the marketing site own the origin root. Desktop loads the bundle
+// from its own scheme and a bundled server serves it from the root, so both
+// stay at "/" — `infra/web` sets this for the builds it publishes.
+const appBasePath = process.env.VITE_APP_BASE?.trim() || "/";
 const sourcemapEnv = process.env.RAS_CODE_WEB_SOURCEMAP?.trim().toLowerCase();
 
 // Vite 8.1's experimental bundled dev mode: serves rolldown-bundled chunks in
@@ -62,7 +68,9 @@ const unitTestProject = {
   extends: true,
   test: {
     name: "unit",
-    include: ["src/**/*.test.{ts,tsx}"],
+    // The Cloudflare entry point sits beside this config rather than under
+    // `src`, so it needs naming here to be covered at all.
+    include: ["src/**/*.test.{ts,tsx}", "worker.test.ts"],
     // The web runtime suite exercises auth bootstrap, saved environments,
     // and websocket subscription lifecycles. Under the full monorepo test
     // run, those async tests can exceed Vitest's default 5s budget.
@@ -155,6 +163,7 @@ const allowedHosts = [".ts.net", ...configuredAllowedHosts];
 
 export default defineConfig(() => {
   return {
+    base: appBasePath,
     assetsInclude: ["**/*.wasm"],
     plugins: [
       devCompressionPlugin(),
@@ -247,7 +256,10 @@ export default defineConfig(() => {
         : {}),
     },
     build: {
-      outDir: "dist",
+      // Cloudflare addresses assets by path, so the build has to sit at the
+      // prefix it is served under: `/app/assets/x` resolves only if the
+      // uploaded directory holds `app/assets/x`.
+      outDir: appBasePath === "/" ? "dist" : `dist${appBasePath}`,
       emptyOutDir: true,
       sourcemap: buildSourcemap,
     },

@@ -9,6 +9,7 @@
     "typecheck": "tsgo --noEmit"
   },
   "dependencies": {
+    "@ras-code/shared": "workspace:*",
     "alchemy": "2.0.0-beta.70",
     "effect": "catalog:"
   },
