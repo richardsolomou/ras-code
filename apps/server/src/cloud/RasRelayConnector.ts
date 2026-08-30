@@ -3,6 +3,7 @@ import type { RelayManagedEndpointRuntimeConfig } from "@ras-code/contracts/rela
 import {
   decodeRasRelayBatch,
   encodeRasRelayBatch,
+  RAS_RELAY_BATCH_HEADER_BYTES,
   RAS_RELAY_MAX_BATCH_BYTES,
   RAS_RELAY_MAX_BATCH_FRAMES,
   RAS_RELAY_MAX_FRAME_PAYLOAD_BYTES,
@@ -128,6 +129,17 @@ export function rasRelaySocketBufferHasCapacity(
   return bufferedAmount + nextBatchBytes <= RAS_RELAY_MAX_SOCKET_BUFFER_BYTES;
 }
 
+export function rasRelayWebSocketBufferHasCapacity(
+  socketBytes: number,
+  connectorBytes: number,
+  nextMessageBytes: number,
+): boolean {
+  return (
+    socketBytes + nextMessageBytes <= RAS_RELAY_MAX_STREAM_BYTES &&
+    connectorBytes + nextMessageBytes <= RAS_RELAY_MAX_SOCKET_BUFFER_BYTES
+  );
+}
+
 export const start = Effect.fn("RasRelayConnector.start")(function* (
   config: RelayManagedEndpointRuntimeConfig,
 ) {
@@ -143,7 +155,7 @@ export const start = Effect.fn("RasRelayConnector.start")(function* (
   const closed = yield* Deferred.make<void>();
   const runFork = Effect.runForkWith(yield* Effect.context<never>());
   const requests = new Map<string, PendingHttpRequest>();
-  const inFlightHttpRequests = new Map<string, AbortController>();
+  const inFlightHttpRequests = new Map<string, Deferred.Deferred<void>>();
   const localSockets = new Map<string, LocalWebSocket>();
   const connector = new NodeSocket.NodeWS.WebSocket(config.connectorUrl, {
     headers: { authorization: `Bearer ${config.connectorToken}` },
@@ -152,9 +164,10 @@ export const start = Effect.fn("RasRelayConnector.start")(function* (
   connector.binaryType = "arraybuffer";
 
   let outgoing: Array<RasRelayFrame> = [];
-  let outgoingBytes = 6;
+  let outgoingBytes = RAS_RELAY_BATCH_HEADER_BYTES;
   let flushScheduled = false;
   let bufferedHttpRequestBytes = 0;
+  let bufferedWebSocketBytes = 0;
 
   const releaseRequestBytes = (request: PendingHttpRequest) => {
     if (!request.accounted) return;
@@ -162,16 +175,21 @@ export const start = Effect.fn("RasRelayConnector.start")(function* (
     bufferedHttpRequestBytes -= request.byteLength;
   };
 
+  const releaseWebSocketBytes = (local: LocalWebSocket) => {
+    bufferedWebSocketBytes -= local.bufferedBytes;
+    local.bufferedBytes = 0;
+  };
+
   const flush = () => {
     flushScheduled = false;
     if (outgoing.length === 0 || connector.readyState !== NodeSocket.NodeWS.WebSocket.OPEN) {
       outgoing = [];
-      outgoingBytes = 6;
+      outgoingBytes = RAS_RELAY_BATCH_HEADER_BYTES;
       return;
     }
     const batch = outgoing;
     outgoing = [];
-    outgoingBytes = 6;
+    outgoingBytes = RAS_RELAY_BATCH_HEADER_BYTES;
     const encoded = encodeRasRelayBatch(batch);
     if (!rasRelaySocketBufferHasCapacity(connector.bufferedAmount, encoded.byteLength)) {
       connector.close(1_013, "Relay connection is too slow");
@@ -203,7 +221,7 @@ export const start = Effect.fn("RasRelayConnector.start")(function* (
   const sendHttpResponse = (
     id: string,
     request: PendingHttpRequest,
-    abortController: AbortController,
+    cancellation: Deferred.Deferred<void>,
   ) => {
     return Effect.gen(function* () {
       const url = localUrl(origin, request.path, "http:");
@@ -282,7 +300,6 @@ export const start = Effect.fn("RasRelayConnector.start")(function* (
     }).pipe(
       Effect.provideService(FetchHttpClient.RequestInit, {
         redirect: "manual",
-        signal: abortController.signal,
       }),
       Effect.provide(FetchHttpClient.layer),
       Effect.scoped,
@@ -297,6 +314,7 @@ export const start = Effect.fn("RasRelayConnector.start")(function* (
           }),
         ),
       ),
+      Effect.raceFirst(Deferred.await(cancellation).pipe(Effect.andThen(Effect.interrupt))),
       Effect.ensuring(
         Effect.sync(() => {
           inFlightHttpRequests.delete(id);
@@ -351,11 +369,18 @@ export const start = Effect.fn("RasRelayConnector.start")(function* (
         return;
       }
       if (!local.ready) {
-        local.bufferedBytes += bytes.byteLength;
-        if (local.bufferedBytes > RAS_RELAY_MAX_STREAM_BYTES) {
+        if (
+          !rasRelayWebSocketBufferHasCapacity(
+            local.bufferedBytes,
+            bufferedWebSocketBytes,
+            bytes.byteLength,
+          )
+        ) {
           socket.close(1009, "Buffered messages are too large");
           return;
         }
+        local.bufferedBytes += bytes.byteLength;
+        bufferedWebSocketBytes += bytes.byteLength;
         local.buffered.push({ data, binary });
         return;
       }
@@ -369,6 +394,7 @@ export const start = Effect.fn("RasRelayConnector.start")(function* (
     socket.once("close", (code, reason) => {
       if (localSockets.get(message.id) !== local) return;
       localSockets.delete(message.id);
+      releaseWebSocketBytes(local);
       runFork(
         send(
           frame({
@@ -385,7 +411,7 @@ export const start = Effect.fn("RasRelayConnector.start")(function* (
     const { message, payload } = incoming;
     switch (message.type) {
       case "http_request_start":
-        if (requests.has(message.id)) return;
+        if (requests.has(message.id) || inFlightHttpRequests.has(message.id)) return;
         if (requests.size + inFlightHttpRequests.size >= RAS_RELAY_MAX_HTTP_REQUESTS) {
           yield* send(
             frame({
@@ -429,16 +455,16 @@ export const start = Effect.fn("RasRelayConnector.start")(function* (
           );
           return;
         }
-        request.chunks.push(payload.slice());
+        request.chunks.push(payload);
         return;
       }
       case "http_request_end": {
         const request = requests.get(message.id);
         if (!request) return;
         requests.delete(message.id);
-        const abortController = new AbortController();
-        inFlightHttpRequests.set(message.id, abortController);
-        yield* Effect.forkDetach(sendHttpResponse(message.id, request, abortController));
+        const cancellation = yield* Deferred.make<void>();
+        inFlightHttpRequests.set(message.id, cancellation);
+        yield* Effect.forkDetach(sendHttpResponse(message.id, request, cancellation));
         return;
       }
       case "http_request_cancel": {
@@ -447,7 +473,8 @@ export const start = Effect.fn("RasRelayConnector.start")(function* (
           requests.delete(message.id);
           releaseRequestBytes(request);
         }
-        inFlightHttpRequests.get(message.id)?.abort();
+        const cancellation = inFlightHttpRequests.get(message.id);
+        if (cancellation) yield* Deferred.succeed(cancellation, undefined);
         return;
       }
       case "websocket_open":
@@ -467,7 +494,7 @@ export const start = Effect.fn("RasRelayConnector.start")(function* (
           );
         }
         local.buffered.length = 0;
-        local.bufferedBytes = 0;
+        releaseWebSocketBytes(local);
         return;
       }
       case "websocket_message": {
@@ -486,6 +513,7 @@ export const start = Effect.fn("RasRelayConnector.start")(function* (
         const local = localSockets.get(message.id);
         if (!local) return;
         localSockets.delete(message.id);
+        releaseWebSocketBytes(local);
         const close = rasRelayClose(message.code, message.reason);
         local.socket.close(close.code, close.reason);
         return;
@@ -522,9 +550,14 @@ export const start = Effect.fn("RasRelayConnector.start")(function* (
   connector.once("close", () => {
     for (const request of requests.values()) releaseRequestBytes(request);
     requests.clear();
-    for (const request of inFlightHttpRequests.values()) request.abort();
+    for (const cancellation of inFlightHttpRequests.values()) {
+      runFork(Deferred.succeed(cancellation, undefined));
+    }
     inFlightHttpRequests.clear();
-    for (const local of localSockets.values()) local.socket.close(1012, "Relay disconnected");
+    for (const local of localSockets.values()) {
+      releaseWebSocketBytes(local);
+      local.socket.close(1012, "Relay disconnected");
+    }
     localSockets.clear();
     runFork(Deferred.succeed(closed, undefined));
   });
@@ -544,7 +577,10 @@ export const start = Effect.fn("RasRelayConnector.start")(function* (
   const close = Effect.sync(() => {
     flushScheduled = false;
     connector.close(1000, "Connector stopped");
-    for (const local of localSockets.values()) local.socket.close(1012, "Relay disconnected");
+    for (const local of localSockets.values()) {
+      releaseWebSocketBytes(local);
+      local.socket.close(1012, "Relay disconnected");
+    }
   });
 
   return {

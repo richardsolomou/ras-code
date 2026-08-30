@@ -28,6 +28,7 @@ const runtimeContext = Alchemy.RuntimeContext.of({
 interface FakeSocket {
   readonly socket: Cloudflare.WebSocket;
   readonly sent: Array<RasRelayFrame>;
+  readonly messages: Array<string | Uint8Array>;
   readonly closes: Array<{ readonly code: number; readonly reason: string }>;
 }
 
@@ -37,13 +38,20 @@ function fakeSocket(
 ): FakeSocket {
   let storedAttachment = attachment;
   const sent: Array<RasRelayFrame> = [];
+  const messages: Array<string | Uint8Array> = [];
   const closes: Array<{ readonly code: number; readonly reason: string }> = [];
   const socket: Cloudflare.WebSocket = {
     ws: {} as never,
     send: (data) => {
-      if (typeof data === "string") return Effect.die("Expected a binary relay batch");
+      if (typeof data === "string") {
+        messages.push(data);
+        return Effect.void;
+      }
       const frames = decodeRasRelayBatch(data);
-      if (!frames) return Effect.die("Expected a valid relay batch");
+      if (!frames) {
+        messages.push(data);
+        return Effect.void;
+      }
       sent.push(...frames);
       return onFrames ? onFrames(frames) : Effect.void;
     },
@@ -56,7 +64,7 @@ function fakeSocket(
     },
     deserializeAttachment: () => storedAttachment as never,
   };
-  return { socket, sent, closes };
+  return { socket, sent, messages, closes };
 }
 
 function relayState(sockets: ReadonlyArray<Cloudflare.WebSocket>) {
@@ -110,6 +118,78 @@ function sendToSession(
 }
 
 describe("RasRelaySession", () => {
+  it.effect("streams a completed HTTP response from the connector", () =>
+    Effect.gen(function* () {
+      const requestSent = yield* Deferred.make<string>();
+      const connector = fakeSocket({ role: "connector" }, (frames) => {
+        const end = frames.find(({ message }) => message.type === "http_request_end");
+        return end
+          ? Deferred.succeed(requestSent, end.message.id).pipe(Effect.asVoid)
+          : Effect.void;
+      });
+      const state = relayState([connector.socket]);
+      const session = yield* makeSession(state);
+      const responseFiber = yield* fetchSession(
+        session,
+        state,
+        new Request("https://code-tunnels.ras.sh/e/abcdef0123456789/api/stream"),
+      ).pipe(Effect.forkChild);
+      const id = yield* Deferred.await(requestSent);
+
+      yield* sendToSession(session, state, connector.socket, [
+        {
+          message: {
+            type: "http_response_start",
+            id,
+            status: 200,
+            headers: [["content-type", "text/plain"]],
+          },
+          payload: new Uint8Array(),
+        },
+        {
+          message: { type: "http_response_body", id },
+          payload: new TextEncoder().encode("relayed response"),
+        },
+        {
+          message: { type: "http_response_end", id },
+          payload: new Uint8Array(),
+        },
+      ]);
+
+      const response = HttpServerResponse.toWeb(yield* Fiber.join(responseFiber));
+      expect(yield* Effect.promise(() => response.text())).toBe("relayed response");
+    }),
+  );
+
+  it.effect("relays messages in both directions for a restored WebSocket", () =>
+    Effect.gen(function* () {
+      const connector = fakeSocket({ role: "connector" });
+      const client = fakeSocket({ role: "client", id: "websocket-1" });
+      const state = relayState([connector.socket, client.socket]);
+      const session = yield* makeSession(state);
+
+      yield* session
+        .webSocketMessage(client.socket, "from client")
+        .pipe(
+          Effect.provideService(Cloudflare.DurableObjectState, state),
+          Effect.provideService(Alchemy.RuntimeContext, runtimeContext),
+        );
+      yield* sendToSession(session, state, connector.socket, [
+        {
+          message: { type: "websocket_message", id: "websocket-1", binary: false },
+          payload: new TextEncoder().encode("from connector"),
+        },
+      ]);
+
+      expect(connector.sent.at(-1)?.message).toEqual({
+        type: "websocket_message",
+        id: "websocket-1",
+        binary: false,
+      });
+      expect(client.messages).toEqual(["from connector"]);
+    }),
+  );
+
   it.effect("returns null-body responses without constructing a stream", () =>
     Effect.gen(function* () {
       const requestSent = yield* Deferred.make<string>();

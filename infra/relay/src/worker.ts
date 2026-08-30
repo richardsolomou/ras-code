@@ -20,7 +20,10 @@ import * as HttpApiBuilder from "effect/unstable/httpapi/HttpApiBuilder";
 import * as HttpApiScalar from "effect/unstable/httpapi/HttpApiScalar";
 
 import { RelayApi } from "@ras-code/contracts/relay";
-import { parseManagedEndpointGatewayPath } from "@ras-code/shared/advertisedEndpoint";
+import {
+  parseManagedEndpointGatewayPath,
+  parseRasRelayConnectorPath,
+} from "@ras-code/shared/advertisedEndpoint";
 
 import {
   clientApi,
@@ -65,26 +68,12 @@ import { RasRelaySession, RasRelaySessionDirectory } from "./environments/RasRel
 import * as MobileRegistrations from "./agentActivity/MobileRegistrations.ts";
 import { rasRelayEndpointDigestInput, rasRelayEndpointId } from "./deploymentConfig.ts";
 import { authorizeConnectorIngress } from "./connectorIngress.ts";
-
-const RAS_RELAY_CONNECT_PATH = /^\/v1\/ras-relay\/connect\/([a-f0-9]{16})$/u;
+import { layer as webcryptoLayer } from "./webcrypto.ts";
 
 function bearerToken(authorization: string | undefined): string | null {
   const match = /^Bearer\s+(.+)$/iu.exec(authorization ?? "");
   return match?.[1]?.trim() || null;
 }
-
-const webcryptoLayer = Layer.succeed(
-  Crypto.Crypto,
-  Crypto.make({
-    randomBytes: (size) => globalThis.crypto.getRandomValues(new Uint8Array(size)),
-    digest: (algorithm, data) =>
-      Effect.promise(async () => {
-        const input = new Uint8Array(data.length);
-        input.set(data);
-        return new Uint8Array(await globalThis.crypto.subtle.digest(algorithm, input.buffer));
-      }),
-  }),
-);
 
 const httpPlatformNotSupportedLayer = Layer.succeed(HttpPlatform.HttpPlatform, {
   platform: "web",
@@ -203,13 +192,17 @@ export const ApiLive = Api.make(
             Effect.gen(function* () {
               const crypto = yield* Crypto.Crypto;
               return RasRelaySessionDirectory.of({
-                disconnect: (environmentId) =>
+                disconnect: ({ environmentId, environmentPublicKey }) =>
                   Effect.gen(function* () {
                     if (!relayEndpointNamespace) return;
                     const hash = yield* crypto.digest(
                       "SHA-256",
                       new TextEncoder().encode(
-                        rasRelayEndpointDigestInput(relayEndpointNamespace, environmentId),
+                        rasRelayEndpointDigestInput(
+                          relayEndpointNamespace,
+                          environmentId,
+                          environmentPublicKey,
+                        ),
                       ),
                     );
                     yield* rasRelaySessions
@@ -311,30 +304,40 @@ export const ApiLive = Api.make(
     const fetch = Effect.gen(function* () {
       const request = yield* HttpServerRequest.HttpServerRequest;
       const requestUrl = HttpServerRequest.toURL(request);
-      const connectorMatch =
+      const connectorEndpointId =
         requestUrl._tag === "Some" && requestUrl.value.hostname === relayPublicDomain
-          ? RAS_RELAY_CONNECT_PATH.exec(requestUrl.value.pathname)
+          ? parseRasRelayConnectorPath(requestUrl.value.pathname)
           : null;
-      if (connectorMatch) {
+      if (connectorEndpointId) {
         const token = bearerToken(request.headers.authorization);
         if (!token || !relayEndpointNamespace) {
           return HttpServerResponse.empty({ status: 401 });
         }
-        const authorization = yield* Effect.gen(function* () {
+        const authenticateConnector = Effect.gen(function* () {
           const credentials = yield* EnvironmentCredentials.EnvironmentCredentials;
+          const links = yield* EnvironmentLinks.EnvironmentLinks;
           const crypto = yield* Crypto.Crypto;
           const principal = yield* credentials.authenticate(token);
           if (Option.isNone(principal)) return null;
+          const managedRelayPublicKeys = yield* links.listManagedRelayPublicKeysForEnvironment({
+            environmentId: principal.value.environmentId,
+          });
+          if (!managedRelayPublicKeys.includes(principal.value.environmentPublicKey)) return null;
           const hash = yield* crypto
             .digest(
               "SHA-256",
               new TextEncoder().encode(
-                rasRelayEndpointDigestInput(relayEndpointNamespace, principal.value.environmentId),
+                rasRelayEndpointDigestInput(
+                  relayEndpointNamespace,
+                  principal.value.environmentId,
+                  principal.value.environmentPublicKey,
+                ),
               ),
             )
             .pipe(Effect.map(Encoding.encodeHex));
           return rasRelayEndpointId(hash);
         }).pipe(Effect.provide(runtimeLayer), Effect.result);
+        const authorization = yield* authenticateConnector;
         if (Result.isFailure(authorization)) {
           yield* Effect.logError("RAS relay connector authorization failed", {
             cause: authorization.failure,
@@ -343,17 +346,28 @@ export const ApiLive = Api.make(
         }
         const route = authorizeConnectorIngress({
           authenticatedEndpointId: authorization.success,
-          requestedEndpointId: connectorMatch[1] ?? "",
+          requestedEndpointId: connectorEndpointId,
           headers: request.headers,
         });
         if (!route) {
           return HttpServerResponse.empty({ status: 403 });
         }
         const connectorRequest = request.modify({ headers: route.headers });
-        return yield* rasRelaySessions
-          .getByName(route.endpointId)
-          .fetch(connectorRequest)
-          .pipe(Effect.orDie);
+        const session = rasRelaySessions.getByName(route.endpointId);
+        const response = yield* session.fetch(connectorRequest).pipe(Effect.orDie);
+        const confirmed = yield* authenticateConnector;
+        if (Result.isFailure(confirmed)) {
+          yield* Effect.logError("RAS relay connector reauthorization failed", {
+            cause: confirmed.failure,
+          });
+          yield* session.disconnect().pipe(Effect.orDie);
+          return HttpServerResponse.empty({ status: 503 });
+        }
+        if (confirmed.success !== route.endpointId) {
+          yield* session.disconnect().pipe(Effect.orDie);
+          return HttpServerResponse.empty({ status: 403 });
+        }
+        return response;
       }
       if (requestUrl._tag === "None" || requestUrl.value.hostname !== relayGatewayDomain) {
         return yield* relayApiFetch;

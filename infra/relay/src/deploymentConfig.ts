@@ -1,4 +1,5 @@
 import type { RelayManagedEndpoint } from "@ras-code/contracts/relay";
+import { deriveWsBaseUrl } from "@ras-code/shared/advertisedEndpoint";
 import * as Schema from "effect/Schema";
 
 const DNS_LABEL_MAX_LENGTH = 63;
@@ -74,8 +75,12 @@ export function relayPublicDomainForStage(stage: string, zoneName: string): stri
   return `${relayLabel}.${normalizeZoneName(zoneName)}`;
 }
 
-export function rasRelayEndpointDigestInput(stage: string, environmentId: string): string {
-  return `${stage}:ras-relay:${environmentId}`;
+export function rasRelayEndpointDigestInput(
+  stage: string,
+  environmentId: string,
+  environmentPublicKey: string,
+): string {
+  return `${stage}:ras-relay:${environmentId}:${environmentPublicKey}`;
 }
 
 export function rasRelayEndpointId(hash: string): string {
@@ -87,9 +92,10 @@ export function rasRelayEndpointForId(
   endpointId: string,
 ): RelayManagedEndpoint {
   const gatewayOrigin = `https://${normalizeZoneName(gatewayDomain)}`;
+  const httpBaseUrl = `${gatewayOrigin}/e/${endpointId}/`;
   return {
-    httpBaseUrl: `${gatewayOrigin}/e/${endpointId}/`,
-    wsBaseUrl: `${gatewayOrigin.replace(/^http/u, "ws")}/e/${endpointId}/ws`,
+    httpBaseUrl,
+    wsBaseUrl: deriveWsBaseUrl(httpBaseUrl),
     providerKind: "ras_relay",
   };
 }

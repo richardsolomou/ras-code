@@ -86,7 +86,9 @@ describe("relayEndpointNamespaceForStage", () => {
 
 describe("managed endpoint names", () => {
   it("publishes environment-scoped RAS relay endpoints through the gateway", () => {
-    expect(rasRelayEndpointDigestInput("prod", "env_123")).toBe("prod:ras-relay:env_123");
+    expect(rasRelayEndpointDigestInput("prod", "env_123", "public-key")).toBe(
+      "prod:ras-relay:env_123:public-key",
+    );
     expect(rasRelayEndpointId("ABCDEF0123456789ABCDEF0123456789")).toBe("abcdef0123456789");
     expect(rasRelayEndpointForId("code-tunnels.ras.sh", "abcdef0123456789")).toEqual({
       httpBaseUrl: "https://code-tunnels.ras.sh/e/abcdef0123456789/",

@@ -104,6 +104,7 @@ export interface RasRelayFrame {
 
 export const RAS_RELAY_MAX_BATCH_BYTES = 8_388_608;
 export const RAS_RELAY_MAX_BATCH_FRAMES = 128;
+export const RAS_RELAY_BATCH_HEADER_BYTES = 6;
 export const RAS_RELAY_MAX_FRAME_METADATA_BYTES = 262_144;
 export const RAS_RELAY_MAX_FRAME_PAYLOAD_BYTES = 8_000_000;
 export const RAS_RELAY_MAX_HTTP_REQUESTS = 8;
@@ -127,7 +128,6 @@ export function parseRasRelayPublicOrigin(origin: string): string | null {
   }
 }
 
-const BATCH_HEADER_BYTES = 6;
 const FRAME_HEADER_BYTES = 8;
 const MAGIC = new Uint8Array([0x52, 0x41, 0x53, 0x01]);
 const decodeMessage = Schema.decodeUnknownOption(RasRelayMessage);
@@ -187,7 +187,7 @@ export function encodeRasRelayBatch(frames: ReadonlyArray<RasRelayFrame>): Uint8
   const byteLength = encoded.reduce(
     (total, entry) =>
       total + FRAME_HEADER_BYTES + entry.metadata.byteLength + entry.frame.payload.byteLength,
-    BATCH_HEADER_BYTES,
+    RAS_RELAY_BATCH_HEADER_BYTES,
   );
   if (byteLength > RAS_RELAY_MAX_BATCH_BYTES) {
     throw new RangeError("RAS relay batch exceeds its size limit");
@@ -197,7 +197,7 @@ export function encodeRasRelayBatch(frames: ReadonlyArray<RasRelayFrame>): Uint8
   output.set(MAGIC, 0);
   const view = new DataView(output.buffer);
   view.setUint16(4, encoded.length);
-  let offset = BATCH_HEADER_BYTES;
+  let offset = RAS_RELAY_BATCH_HEADER_BYTES;
   for (const { frame, metadata } of encoded) {
     view.setUint32(offset, metadata.byteLength);
     view.setUint32(offset + 4, frame.payload.byteLength);
@@ -214,7 +214,10 @@ export function decodeRasRelayBatch(
   input: ArrayBuffer | Uint8Array,
 ): ReadonlyArray<RasRelayFrame> | null {
   const bytes = input instanceof Uint8Array ? input : new Uint8Array(input);
-  if (bytes.byteLength < BATCH_HEADER_BYTES || bytes.byteLength > RAS_RELAY_MAX_BATCH_BYTES) {
+  if (
+    bytes.byteLength < RAS_RELAY_BATCH_HEADER_BYTES ||
+    bytes.byteLength > RAS_RELAY_MAX_BATCH_BYTES
+  ) {
     return null;
   }
   if (MAGIC.some((value, index) => bytes[index] !== value)) {
@@ -227,7 +230,7 @@ export function decodeRasRelayBatch(
   }
 
   const frames: Array<RasRelayFrame> = [];
-  let offset = BATCH_HEADER_BYTES;
+  let offset = RAS_RELAY_BATCH_HEADER_BYTES;
   for (let index = 0; index < frameCount; index += 1) {
     if (offset + FRAME_HEADER_BYTES > bytes.byteLength) {
       return null;

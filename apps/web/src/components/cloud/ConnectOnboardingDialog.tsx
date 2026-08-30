@@ -164,7 +164,7 @@ function ConfiguredConnectOnboardingDialog() {
     }
     prefilledFromLinkStateRef.current = true;
     if (linkStateData.linked && linkStateData.cloudUserId === openForAccount) {
-      setExposeEnvironment(linkStateData.managedRelayActive ?? false);
+      setExposeEnvironment(linkStateData.managedRelayActive);
       setPublishAgentActivity(linkStateData.publishAgentActivity);
     }
   }, [linkStateData, openForAccount]);

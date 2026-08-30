@@ -5,6 +5,7 @@ import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Ref from "effect/Ref";
+import * as Random from "effect/Random";
 import * as Result from "effect/Result";
 import * as Semaphore from "effect/Semaphore";
 
@@ -153,23 +154,28 @@ export const make = Effect.gen(function* () {
   });
 
   retryConnector = Effect.fnUntraced(function* (configKey, generation, attempt) {
-    const delaySeconds = Math.min(300, 2 ** Math.min(attempt, 8));
-    yield* Effect.sleep(Duration.seconds(delaySeconds));
-    const outcome = yield* reconcileSemaphore.withPermits(1)(
-      Effect.gen(function* () {
-        if ((yield* Ref.get(retryGenerationRef)) !== generation) return "stop" as const;
-        const desiredConfig = yield* Ref.get(desiredConfigRef);
-        if (!desiredConfig || runtimeConfigKey(desiredConfig) !== configKey) return "stop" as const;
-        const active = yield* Ref.get(activeRef);
-        if (active?.configKey === configKey && (yield* active.handle.isRunning)) {
-          return "stop" as const;
-        }
-        const status = yield* reconcileConfig(desiredConfig);
-        return status.status === "failed" ? ("retry" as const) : ("stop" as const);
-      }),
-    );
-    if (outcome === "retry") {
-      yield* retryConnector(configKey, generation, attempt + 1);
+    for (let currentAttempt = attempt; ; currentAttempt += 1) {
+      const delaySeconds = Math.min(300, 2 ** Math.min(currentAttempt, 8));
+      const jitterMillis = yield* Random.nextIntBetween(0, Math.min(1_000, delaySeconds * 250), {
+        halfOpen: true,
+      });
+      yield* Effect.sleep(Duration.millis(delaySeconds * 1_000 + jitterMillis));
+      const outcome = yield* reconcileSemaphore.withPermits(1)(
+        Effect.gen(function* () {
+          if ((yield* Ref.get(retryGenerationRef)) !== generation) return "stop" as const;
+          const desiredConfig = yield* Ref.get(desiredConfigRef);
+          if (!desiredConfig || runtimeConfigKey(desiredConfig) !== configKey) {
+            return "stop" as const;
+          }
+          const active = yield* Ref.get(activeRef);
+          if (active?.configKey === configKey && (yield* active.handle.isRunning)) {
+            return "stop" as const;
+          }
+          const status = yield* reconcileConfig(desiredConfig);
+          return status.status === "failed" ? ("retry" as const) : ("stop" as const);
+        }),
+      );
+      if (outcome === "stop") return;
     }
   });
 

@@ -352,9 +352,82 @@ describe("RasRelayConnector", () => {
     }).pipe(Effect.scoped),
   );
 
+  it.live("aborts a local HTTP request when the relay cancels it", () =>
+    Effect.gen(function* () {
+      const localRequestStarted = promiseLatch<void>();
+      const localRequestClosed = promiseLatch<void>();
+      const localServer = yield* listenHttp(
+        NodeHttp.createServer((request, response) => {
+          localRequestStarted.resolve(undefined);
+          request.once("close", () => localRequestClosed.resolve(undefined));
+          response.once("close", () => localRequestClosed.resolve(undefined));
+        }),
+      );
+      yield* Effect.addFinalizer(() => closeHttp(localServer));
+      const relayServer = yield* listenWebSocketServer();
+      yield* Effect.addFinalizer(() => closeWebSocketServer(relayServer));
+      const connected = promiseLatch<NodeSocket.NodeWS.WebSocket>();
+      relayServer.once("connection", (socket) => connected.resolve(socket));
+
+      const connector = yield* RasRelayConnector.start({
+        providerKind: "ras_relay",
+        connectorToken: "connector-token",
+        connectorUrl: `ws://127.0.0.1:${portOf(relayServer)}/v1/ras-relay/connect/endpoint`,
+        localHttpHost: "127.0.0.1",
+        localHttpPort: portOf(localServer),
+      });
+      yield* Effect.addFinalizer(() => connector.close);
+      const relay = yield* awaitTest(connected, "the connector WebSocket");
+      const received: Array<RasRelayFrame> = [];
+      relay.on("message", (data) => {
+        const frames = decodeRasRelayBatch(bytes(data));
+        if (frames) received.push(...frames);
+      });
+      relay.send(
+        encodeRasRelayBatch([
+          {
+            message: {
+              type: "http_request_start",
+              id: "canceled-request",
+              method: "GET",
+              origin: "https://code-tunnels.ras.sh",
+              path: "/e/abcdef0123456789/slow",
+              headers: [],
+            },
+            payload: new Uint8Array(),
+          },
+          {
+            message: { type: "http_request_end", id: "canceled-request" },
+            payload: new Uint8Array(),
+          },
+        ]),
+      );
+      yield* awaitTest(localRequestStarted, "the local HTTP request");
+
+      relay.send(
+        encodeRasRelayBatch([
+          {
+            message: { type: "http_request_cancel", id: "canceled-request" },
+            payload: new Uint8Array(),
+          },
+        ]),
+      );
+      yield* awaitTest(localRequestClosed, "the canceled local HTTP request");
+      yield* Effect.yieldNow;
+
+      expect(received).toEqual([]);
+    }).pipe(Effect.scoped),
+  );
+
   it("rejects a batch that would exceed the connector socket buffer", () => {
     expect(
       RasRelayConnector.rasRelaySocketBufferHasCapacity(RAS_RELAY_MAX_SOCKET_BUFFER_BYTES, 1),
+    ).toBe(false);
+  });
+
+  it("bounds pre-ready WebSocket data across the connector", () => {
+    expect(
+      RasRelayConnector.rasRelayWebSocketBufferHasCapacity(0, RAS_RELAY_MAX_SOCKET_BUFFER_BYTES, 1),
     ).toBe(false);
   });
 

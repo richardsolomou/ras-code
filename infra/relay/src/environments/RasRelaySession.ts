@@ -2,12 +2,16 @@ import * as Cloudflare from "alchemy/Cloudflare";
 import {
   decodeRasRelayBatch,
   encodeRasRelayBatch,
+  RAS_RELAY_BATCH_HEADER_BYTES,
+  RAS_RELAY_MAX_BATCH_BYTES,
+  RAS_RELAY_MAX_BATCH_FRAMES,
   RAS_RELAY_MAX_FRAME_PAYLOAD_BYTES,
   RAS_RELAY_MAX_HTTP_REQUESTS,
   RAS_RELAY_MAX_HTTP_RESPONSE_BUFFER_BYTES,
   RAS_RELAY_MAX_STREAM_BYTES,
   RAS_RELAY_MAX_WEBSOCKETS,
   rasRelayClose,
+  rasRelayFrameByteLength,
   rasRelayPayloadFrames,
   type RasRelayFrame,
   type RasRelayMessage,
@@ -19,6 +23,8 @@ import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
 import * as HttpServerRequest from "effect/unstable/http/HttpServerRequest";
 import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse";
+
+import { cloudflareCrypto } from "../webcrypto.ts";
 
 type SocketAttachment =
   | { readonly role: "connector" }
@@ -50,16 +56,6 @@ function pendingWebSocketClose(pending: PendingWebSocket): PendingWebSocket["clo
 }
 
 const emptyPayload = new Uint8Array();
-const cloudflareCrypto = Crypto.make({
-  randomBytes: (size) => globalThis.crypto.getRandomValues(new Uint8Array(size)),
-  digest: (algorithm, data) =>
-    Effect.promise(async () => {
-      const input = new Uint8Array(data.length);
-      input.set(data);
-      return new Uint8Array(await globalThis.crypto.subtle.digest(algorithm, input.buffer));
-    }),
-});
-
 function frame(message: RasRelayMessage, payload = emptyPayload): RasRelayFrame {
   return { message, payload };
 }
@@ -94,7 +90,10 @@ function hasResponseBody(status: number): boolean {
 export class RasRelaySessionDirectory extends Context.Service<
   RasRelaySessionDirectory,
   {
-    readonly disconnect: (environmentId: string) => Effect.Effect<void>;
+    readonly disconnect: (input: {
+      readonly environmentId: string;
+      readonly environmentPublicKey: string;
+    }) => Effect.Effect<void>;
   }
 >()("ras-code-relay/environments/RasRelaySession/RasRelaySessionDirectory") {}
 
@@ -366,6 +365,18 @@ export const makeRasRelaySession = Effect.all({
             return HttpServerResponse.text("Environment is offline.", { status: 503 });
           }
           const reader = request.body?.getReader();
+          let requestBodyFrames: Array<RasRelayFrame> = [];
+          let requestBodyBytes = RAS_RELAY_BATCH_HEADER_BYTES;
+          const flushRequestBodyFrames = () => {
+            if (requestBodyFrames.length === 0) return Effect.succeed(true);
+            const frames = requestBodyFrames;
+            requestBodyFrames = [];
+            requestBodyBytes = RAS_RELAY_BATCH_HEADER_BYTES;
+            return send(targetConnector, frames).pipe(
+              Effect.result,
+              Effect.map((result) => result._tag === "Success"),
+            );
+          };
           let requestBytes = 0;
           if (reader) {
             while (true) {
@@ -391,13 +402,31 @@ export const makeRasRelaySession = Effect.all({
                 { type: "http_request_body", id },
                 chunk.success.value,
               )) {
-                const sent = yield* send(targetConnector, [bodyFrame]).pipe(Effect.result);
-                if (sent._tag === "Failure") {
-                  pendingHttp.delete(id);
-                  return HttpServerResponse.text("Environment is offline.", { status: 503 });
+                const frameBytes = rasRelayFrameByteLength(bodyFrame);
+                if (
+                  requestBodyFrames.length > 0 &&
+                  (requestBodyFrames.length >= RAS_RELAY_MAX_BATCH_FRAMES ||
+                    requestBodyBytes + frameBytes > RAS_RELAY_MAX_BATCH_BYTES)
+                ) {
+                  if (!(yield* flushRequestBodyFrames())) {
+                    pendingHttp.delete(id);
+                    return HttpServerResponse.text("Environment is offline.", { status: 503 });
+                  }
+                }
+                requestBodyFrames.push(bodyFrame);
+                requestBodyBytes += frameBytes;
+                if (requestBodyFrames.length >= RAS_RELAY_MAX_BATCH_FRAMES) {
+                  if (!(yield* flushRequestBodyFrames())) {
+                    pendingHttp.delete(id);
+                    return HttpServerResponse.text("Environment is offline.", { status: 503 });
+                  }
                 }
               }
             }
+          }
+          if (!(yield* flushRequestBodyFrames())) {
+            pendingHttp.delete(id);
+            return HttpServerResponse.text("Environment is offline.", { status: 503 });
           }
           const ended = yield* send(targetConnector, [
             frame({ type: "http_request_end", id }),

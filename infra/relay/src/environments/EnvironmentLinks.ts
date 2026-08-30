@@ -120,7 +120,7 @@ export class EnvironmentLinks extends Context.Service<
       ReadonlyArray<AgentAwarenessDeliveryUserRecord>,
       EnvironmentLinkUserListPersistenceError
     >;
-    readonly listPublicKeysForEnvironment: (input: {
+    readonly listManagedRelayPublicKeysForEnvironment: (input: {
       readonly environmentId: string;
     }) => Effect.Effect<ReadonlyArray<string>, EnvironmentPublicKeyListPersistenceError>;
     readonly listForUser: (input: {
@@ -132,6 +132,7 @@ export class EnvironmentLinks extends Context.Service<
     readonly getForUser: (input: {
       readonly userId: string;
       readonly environmentId: string;
+      readonly includeRevoked?: boolean;
     }) => Effect.Effect<RelayLinkedEnvironmentRecord | null, EnvironmentLinkLookupPersistenceError>;
     readonly revokeForUser: (input: {
       readonly userId: string;
@@ -272,8 +273,8 @@ const make = Effect.gen(function* () {
         );
     }),
 
-    listPublicKeysForEnvironment: Effect.fn(
-      "relay.environment_links.list_public_keys_for_environment",
+    listManagedRelayPublicKeysForEnvironment: Effect.fn(
+      "relay.environment_links.list_managed_relay_public_keys_for_environment",
     )(function* (input) {
       yield* Effect.annotateCurrentSpan({ "relay.environment_id": input.environmentId });
       return yield* db
@@ -282,6 +283,7 @@ const make = Effect.gen(function* () {
         .where(
           and(
             eq(relayEnvironmentLinks.environmentId, input.environmentId),
+            eq(relayEnvironmentLinks.managedRelayEnabled, true),
             isNull(relayEnvironmentLinks.revokedAt),
           ),
         )
@@ -360,7 +362,7 @@ const make = Effect.gen(function* () {
           and(
             eq(relayEnvironmentLinks.userId, input.userId),
             eq(relayEnvironmentLinks.environmentId, input.environmentId),
-            isNull(relayEnvironmentLinks.revokedAt),
+            ...(input.includeRevoked ? [] : [isNull(relayEnvironmentLinks.revokedAt)]),
           ),
         )
         .limit(1)

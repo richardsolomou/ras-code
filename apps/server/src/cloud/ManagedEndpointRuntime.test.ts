@@ -88,7 +88,7 @@ describe("CloudManagedEndpointRuntime", () => {
       yield* runtime.applyConfig(rasConfig("token"));
       yield* Deferred.succeed(firstClosed, undefined);
       yield* Effect.yieldNow;
-      yield* TestClock.adjust("1 second");
+      yield* TestClock.adjust("2 seconds");
       yield* Deferred.await(restarted);
       expect(starts).toBe(2);
     }),
@@ -133,9 +133,30 @@ describe("CloudManagedEndpointRuntime", () => {
 
       expect(yield* runtime.applyConfig(rasConfig("token"))).toMatchObject({ status: "failed" });
       yield* Effect.yieldNow;
-      yield* TestClock.adjust("1 second");
+      yield* TestClock.adjust("2 seconds");
       yield* Deferred.await(restarted);
       expect(starts).toBe(2);
+    }),
+  );
+
+  it.effect("does not retry a connector after its desired config changes", () =>
+    Effect.gen(function* () {
+      const starts: Array<string> = [];
+      const runtime = yield* buildRuntime((config) =>
+        Effect.gen(function* () {
+          starts.push(config.connectorToken);
+          return yield* new RasRelayConnector.RasRelayConnectorStartError({
+            stage: "open-connector",
+            cause: "offline",
+          });
+        }),
+      );
+
+      yield* runtime.applyConfig(rasConfig("token-1"));
+      yield* runtime.applyConfig(null);
+      yield* TestClock.adjust("2 seconds");
+
+      expect(starts).toEqual(["token-1"]);
     }),
   );
 });

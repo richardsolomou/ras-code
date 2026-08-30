@@ -65,6 +65,7 @@ export class ManagedEndpointProvider extends Context.Service<
     readonly provision: (input: {
       readonly userId: string;
       readonly environmentId: string;
+      readonly environmentPublicKey: string;
       readonly origin: RelayManagedEndpointOrigin;
     }) => Effect.Effect<ManagedEndpointProvisioningResult, ManagedEndpointProviderError>;
   }
@@ -116,7 +117,11 @@ export const make = Effect.gen(function* () {
         .digest(
           "SHA-256",
           new TextEncoder().encode(
-            rasRelayEndpointDigestInput(config.relayEndpointNamespace, input.environmentId),
+            rasRelayEndpointDigestInput(
+              config.relayEndpointNamespace,
+              input.environmentId,
+              input.environmentPublicKey,
+            ),
           ),
         )
         .pipe(

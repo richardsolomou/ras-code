@@ -381,7 +381,7 @@ export const EnvironmentCloudLinkStateResult = Schema.Struct({
   relayIssuer: Schema.NullOr(Schema.String),
   // False for a publish-only link, so clients can present remote access and
   // activity publishing as independent settings.
-  managedRelayActive: Schema.optional(Schema.Boolean),
+  managedRelayActive: Schema.Boolean,
   publishAgentActivity: Schema.Boolean,
 });
 export type EnvironmentCloudLinkStateResult = typeof EnvironmentCloudLinkStateResult.Type;

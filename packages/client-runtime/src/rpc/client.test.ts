@@ -1,4 +1,9 @@
-import { EnvironmentId, WS_METHODS } from "@ras-code/contracts";
+import {
+  EnvironmentId,
+  type ServerSelfUpdateInput,
+  type ServerSelfUpdateProgressEvent,
+  WS_METHODS,
+} from "@ras-code/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as Cause from "effect/Cause";
 import * as Effect from "effect/Effect";
@@ -32,12 +37,13 @@ const TARGET = new PrimaryConnectionTarget({
 
 const FIRST_UPDATE_EVENT = {
   type: "progress",
-  stage: "checking",
-} as never;
+  stage: "downloading",
+} satisfies ServerSelfUpdateProgressEvent;
 const SECOND_UPDATE_EVENT = {
   type: "progress",
-  stage: "downloading",
-} as never;
+  stage: "installing",
+} satisfies ServerSelfUpdateProgressEvent;
+const UPDATE_INPUT = { targetVersion: "1.2.3" } satisfies ServerSelfUpdateInput;
 
 function session(client: WsRpcProtocolClient): RpcSession.RpcSession {
   return {
@@ -108,8 +114,8 @@ describe("environment RPC", () => {
 
   it.effect("binds finite streaming commands to one active session", () =>
     Effect.gen(function* () {
-      const firstEvents = yield* Queue.unbounded<never>();
-      const secondEvents = yield* Queue.unbounded<never>();
+      const firstEvents = yield* Queue.unbounded<ServerSelfUpdateProgressEvent>();
+      const secondEvents = yield* Queue.unbounded<ServerSelfUpdateProgressEvent>();
       const firstClient = {
         [WS_METHODS.serverUpdateServerWithProgress]: () => Stream.fromQueue(firstEvents),
       } as unknown as WsRpcProtocolClient;
@@ -121,7 +127,7 @@ describe("environment RPC", () => {
       yield* SubscriptionRef.set(activeSession, Option.some(session(firstClient)));
       const resultFiber = yield* runStream(
         WS_METHODS.serverUpdateServerWithProgress,
-        {} as never,
+        UPDATE_INPUT,
       ).pipe(
         Stream.take(2),
         Stream.runCollect,

@@ -288,6 +288,7 @@ const make = Effect.gen(function* () {
         ? yield* managedEndpointProvider.provision({
             userId: input.userId,
             environmentId: verified.environmentId,
+            environmentPublicKey: verified.environmentPublicKey,
             origin: verified.origin,
           })
         : null;

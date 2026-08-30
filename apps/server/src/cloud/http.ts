@@ -66,6 +66,7 @@ import {
   CLOUD_ENDPOINT_RUNTIME_CONFIG,
   CLOUD_LINKED_USER_ID,
   CLOUD_MINT_PUBLIC_KEY,
+  decodeRuntimeConfig,
   encodeEndpointRuntimeConfigJson,
   PUBLISH_AGENT_ACTIVITY_SECRET,
   RELAY_ENVIRONMENT_CREDENTIAL_SECRET,
@@ -637,7 +638,9 @@ const readCloudLinkState = Effect.fn("environment.cloud.readLinkState")(function
     relayIssuer: Option.isSome(relayIssuer) ? bytesToString(relayIssuer.value) : null,
     // The managed relay runtime config is only stored for managed links; a
     // publish-only link leaves it absent.
-    managedRelayActive: Option.isSome(endpointRuntimeConfig),
+    managedRelayActive:
+      Option.isSome(endpointRuntimeConfig) &&
+      Option.isSome(decodeRuntimeConfig(bytesToString(endpointRuntimeConfig.value))),
     publishAgentActivity: Option.isSome(publishAgentActivity)
       ? bytesToString(publishAgentActivity.value) === "true"
       : false,

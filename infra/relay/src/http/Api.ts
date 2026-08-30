@@ -433,24 +433,35 @@ export const unlinkEnvironmentRecord = Effect.fn("relay.api.client.unlinkEnviron
   function* (input: { readonly userId: string; readonly environmentId: string }) {
     const links = yield* EnvironmentLinks.EnvironmentLinks;
     const rasRelaySessions = yield* RasRelaySession.RasRelaySessionDirectory;
-    const link = yield* links.getForUser({
+    const activeLink = yield* links.getForUser({
       userId: input.userId,
       environmentId: input.environmentId,
     });
+    const link =
+      activeLink ??
+      (yield* links.getForUser({
+        userId: input.userId,
+        environmentId: input.environmentId,
+        includeRevoked: true,
+      }));
     if (link === null) return false;
-    const unlinked = yield* revokeEnvironmentLinkRecord({
-      userId: input.userId,
-      environmentId: link.environmentId,
-      environmentPublicKey: link.environmentPublicKey,
-    });
-    if (!unlinked) return false;
-    const remainingPublicKeys = yield* links.listPublicKeysForEnvironment({
+    const unlinked = activeLink
+      ? yield* revokeEnvironmentLinkRecord({
+          userId: input.userId,
+          environmentId: link.environmentId,
+          environmentPublicKey: link.environmentPublicKey,
+        })
+      : false;
+    const remainingPublicKeys = yield* links.listManagedRelayPublicKeysForEnvironment({
       environmentId: input.environmentId,
     });
-    if (remainingPublicKeys.length === 0) {
-      yield* rasRelaySessions.disconnect(input.environmentId);
+    if (!remainingPublicKeys.includes(link.environmentPublicKey)) {
+      yield* rasRelaySessions.disconnect({
+        environmentId: input.environmentId,
+        environmentPublicKey: link.environmentPublicKey,
+      });
     }
-    return true;
+    return unlinked;
   },
 );
 

@@ -51,6 +51,19 @@ describe("ManagedEndpointProvider", () => {
       const result = yield* provider.provision({
         userId: "user-1",
         environmentId: "environment-1",
+        environmentPublicKey: "public-key-1",
+        origin: { localHttpHost: "127.0.0.1", localHttpPort: 3000 },
+      });
+      const repeated = yield* provider.provision({
+        userId: "user-2",
+        environmentId: "environment-1",
+        environmentPublicKey: "public-key-1",
+        origin: { localHttpHost: "127.0.0.1", localHttpPort: 3000 },
+      });
+      const otherKey = yield* provider.provision({
+        userId: "user-1",
+        environmentId: "environment-1",
+        environmentPublicKey: "public-key-2",
         origin: { localHttpHost: "127.0.0.1", localHttpPort: 3000 },
       });
 
@@ -66,6 +79,8 @@ describe("ManagedEndpointProvider", () => {
         localHttpHost: "127.0.0.1",
         localHttpPort: 3000,
       });
+      expect(repeated.endpoint).toEqual(result.endpoint);
+      expect(otherKey.endpoint).not.toEqual(result.endpoint);
     }).pipe(Effect.provide(providerLayer)),
   );
 
@@ -76,6 +91,7 @@ describe("ManagedEndpointProvider", () => {
         provider.provision({
           userId: "user-1",
           environmentId: "environment-1",
+          environmentPublicKey: "public-key-1",
           origin: { localHttpHost: "192.0.2.1", localHttpPort: 3000 },
         }),
       );

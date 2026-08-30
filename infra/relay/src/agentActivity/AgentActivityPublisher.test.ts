@@ -83,7 +83,7 @@ function makeEnvironmentLinks(
           liveActivitiesEnabled: true,
         },
       ]),
-    listPublicKeysForEnvironment: () => Effect.succeed([]),
+    listManagedRelayPublicKeysForEnvironment: () => Effect.succeed([]),
     listForUser: () => Effect.succeed([]),
     getForUser: () => Effect.succeed(null),
     revokeForUser: () => Effect.succeed(false),

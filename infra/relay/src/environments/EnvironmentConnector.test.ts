@@ -175,7 +175,7 @@ function makeLinks(
     upsert: () => Effect.void,
     listUsersForEnvironment: () => Effect.succeed([]),
     listDeliveryUsersForEnvironment: () => Effect.succeed([]),
-    listPublicKeysForEnvironment: () => Effect.succeed([environmentKeyPair.publicKey]),
+    listManagedRelayPublicKeysForEnvironment: () => Effect.succeed([environmentKeyPair.publicKey]),
     listForUser: () => Effect.succeed([]),
     getForUser: () =>
       Effect.succeed({
