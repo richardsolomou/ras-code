@@ -214,9 +214,12 @@ mistaken for a push to main.
   - push to `main`, so a merge ships as a canary release immediately
   - manual `workflow_dispatch` with `channel=canary`
 - Runs the same desktop quality gates and artifact matrix as the stable flow.
-- Collapses to the newest commit: a merge landing while a canary release is in
-  flight supersedes it, so a burst of merges ships once rather than once per
-  commit. Stable runs are never canceled.
+- Collapses through the queue rather than by canceling: at most one run stays
+  pending, and a newer merge replaces the one waiting. A burst ships the release
+  in flight plus the newest commit, not one release per commit. Nothing is
+  canceled mid-release, because npm and the GitHub release publish before the
+  hosted web deploy and the AUR package, so a cancel between them would leave a
+  version installable that never shipped to those two.
 - Skips the release the finalize job pushes back to `main`, so a stable version
   bump does not immediately cut a canary of itself.
 - Publishes a GitHub prerelease only:

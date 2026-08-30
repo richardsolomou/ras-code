@@ -29,19 +29,24 @@ on:
         required: false
         type: string
 
-# Canary collapses to the newest commit: a merge landing mid-release supersedes
-# the run in flight, so main ships once rather than once per commit in a burst.
-# Stable is never canceled.
+# A burst of merges collapses through the queue, not by canceling: the default
+# `queue: single` keeps at most one run pending, and a newer merge replaces the
+# one waiting. So a burst ships the release in flight plus the newest commit,
+# rather than one release per commit.
 #
-# No `queue: max` here: GitHub rejects that combined with cancel-in-progress,
-# and the whole file fails validation rather than the one channel. Stable
-# therefore keeps the default single pending slot, so a stable run queued while
-# another is in flight replaces the one already waiting instead of stacking
-# behind it. Stable only fires once a day or on a deliberate tag, so two runs
-# have to queue within one release for that to lose anything.
+# Deliberately not `cancel-in-progress` on canary. Canceling tears a release
+# apart at whatever job boundary it lands on: npm and the GitHub release publish
+# early, so a cancel after them leaves a version installable while the hosted
+# web deploy and the AUR package never ship for it.
+#
+# Not `queue: max` either. GitHub rejects it combined with cancel-in-progress
+# and fails the whole file, and the default single pending slot is what gives
+# canary its collapsing behavior. The cost is that a run queued behind another
+# replaces the one already waiting; stable only fires daily or on a deliberate
+# tag, so two would have to queue within one release to lose anything.
 concurrency:
   group: release-${{ ((github.event_name == 'push' && github.ref_type == 'branch') || inputs.channel == 'canary') && 'canary' || 'stable' }}
-  cancel-in-progress: ${{ (github.event_name == 'push' && github.ref_type == 'branch') || inputs.channel == 'canary' }}
+  cancel-in-progress: false
 
 permissions:
   contents: read
