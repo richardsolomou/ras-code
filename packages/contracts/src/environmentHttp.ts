@@ -593,7 +593,7 @@ export class EnvironmentConnectHttpApi extends HttpApiGroup.make("connect")
     }).middleware(EnvironmentAuthenticatedAuth),
   )
   .add(
-    HttpApiEndpoint.post("health", "/api/ras-connect/health", {
+    HttpApiEndpoint.post("health", "/api/connect/health", {
       payload: RelayCloudEnvironmentHealthRequest,
       success: RelayEnvironmentHealthResponse,
       error: EnvironmentHttpCloudErrors,
@@ -601,13 +601,6 @@ export class EnvironmentConnectHttpApi extends HttpApiGroup.make("connect")
   )
   .add(
     HttpApiEndpoint.post("mintCredential", "/api/connect/mint-credential", {
-      payload: RelayCloudMintCredentialRequest,
-      success: RelayEnvironmentMintResponse,
-      error: EnvironmentHttpCloudErrors,
-    }),
-  )
-  .add(
-    HttpApiEndpoint.post("mintCredential", "/api/ras-connect/mint-credential", {
       payload: RelayCloudMintCredentialRequest,
       success: RelayEnvironmentMintResponse,
       error: EnvironmentHttpCloudErrors,

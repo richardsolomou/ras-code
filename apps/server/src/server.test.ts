@@ -2806,7 +2806,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
         issuedAt: DateTime.formatIso(now),
         expiresAt: DateTime.formatIso(DateTime.add(now, { minutes: 5 })),
       });
-      const mintUrl = yield* getHttpServerUrl("/api/ras-connect/mint-credential");
+      const mintUrl = yield* getHttpServerUrl("/api/connect/mint-credential");
       const response = yield* fetchEffect(mintUrl, {
         method: "POST",
         headers: {
@@ -2864,7 +2864,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
         issuedAt: DateTime.formatIso(now),
         expiresAt: DateTime.formatIso(DateTime.add(now, { minutes: 5 })),
       });
-      const healthUrl = yield* getHttpServerUrl("/api/ras-connect/health");
+      const healthUrl = yield* getHttpServerUrl("/api/connect/health");
       const response = yield* fetchEffect(healthUrl, {
         method: "POST",
         headers: {
@@ -2924,7 +2924,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
         issuedAt: DateTime.formatIso(now),
         expiresAt: DateTime.formatIso(DateTime.add(now, { minutes: 5 })),
       });
-      const healthUrl = yield* getHttpServerUrl("/api/ras-connect/health");
+      const healthUrl = yield* getHttpServerUrl("/api/connect/health");
       const postHealth = () =>
         fetchEffect(healthUrl, {
           method: "POST",
@@ -2978,7 +2978,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
         assert.equal(relayConfigResponse.status, 200);
 
         const now = yield* DateTime.now;
-        const mintUrl = yield* getHttpServerUrl("/api/ras-connect/mint-credential");
+        const mintUrl = yield* getHttpServerUrl("/api/connect/mint-credential");
         const postMint = (request: ReturnType<typeof makeCloudMintCredentialRequest>) =>
           fetchEffect(mintUrl, {
             method: "POST",
@@ -3078,7 +3078,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
         issuedAt: DateTime.formatIso(now),
         expiresAt: DateTime.formatIso(DateTime.add(now, { minutes: 5 })),
       });
-      const healthUrl = yield* getHttpServerUrl("/api/ras-connect/health");
+      const healthUrl = yield* getHttpServerUrl("/api/connect/health");
       const healthResponse = yield* fetchEffect(healthUrl, {
         method: "POST",
         headers: {
@@ -3193,7 +3193,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
       assert.equal(relayConfigResponse.status, 200);
 
       const now = yield* DateTime.now;
-      const mintUrl = yield* getHttpServerUrl("/api/ras-connect/mint-credential");
+      const mintUrl = yield* getHttpServerUrl("/api/connect/mint-credential");
       const response = yield* fetchEffect(mintUrl, {
         method: "POST",
         headers: {
@@ -3244,7 +3244,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
       assert.equal(relayConfigResponse.status, 200);
 
       const now = yield* DateTime.now;
-      const mintUrl = yield* getHttpServerUrl("/api/ras-connect/mint-credential");
+      const mintUrl = yield* getHttpServerUrl("/api/connect/mint-credential");
       const response = yield* fetchEffect(mintUrl, {
         method: "POST",
         headers: {
@@ -3295,7 +3295,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
       assert.equal(relayConfigResponse.status, 200);
 
       const now = yield* DateTime.now;
-      const healthUrl = yield* getHttpServerUrl("/api/ras-connect/health");
+      const healthUrl = yield* getHttpServerUrl("/api/connect/health");
       const postHealth = (request: ReturnType<typeof makeCloudEnvironmentHealthRequest>) =>
         fetchEffect(healthUrl, {
           method: "POST",
@@ -3360,7 +3360,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
       assert.equal(relayConfigResponse.status, 200);
 
       const now = yield* DateTime.now;
-      const healthUrl = yield* getHttpServerUrl("/api/ras-connect/health");
+      const healthUrl = yield* getHttpServerUrl("/api/connect/health");
       const response = yield* fetchEffect(healthUrl, {
         method: "POST",
         headers: {
@@ -3410,7 +3410,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
       assert.equal(relayConfigResponse.status, 200);
 
       const now = yield* DateTime.now;
-      const healthUrl = yield* getHttpServerUrl("/api/ras-connect/health");
+      const healthUrl = yield* getHttpServerUrl("/api/connect/health");
       const response = yield* fetchEffect(healthUrl, {
         method: "POST",
         headers: {

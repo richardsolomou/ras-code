@@ -305,7 +305,7 @@ describe("EnvironmentConnector", () => {
         environmentId: "env-connector-test",
       });
 
-      expect(seenUrls).toEqual(["https://env.example.test/api/ras-connect/health"]);
+      expect(seenUrls).toEqual(["https://env.example.test/api/connect/health"]);
       expect(seenProofs[0]).toMatchObject({
         iss: "https://relay.example.test",
         aud: "ras-env:env-connector-test",
@@ -349,7 +349,7 @@ describe("EnvironmentConnector", () => {
         environmentId: "env-connector-test",
       });
 
-      expect(seenUrls).toEqual([`https://${hostname}/api/ras-connect/health`]);
+      expect(seenUrls).toEqual([`https://${hostname}/api/connect/health`]);
     }).pipe(
       Effect.provide(
         connectorTestLayer(execute, {
@@ -722,7 +722,7 @@ describe("EnvironmentConnector", () => {
         deviceId: "device-123",
       });
 
-      expect(seenUrls).toEqual(["https://env.example.test/api/ras-connect/mint-credential"]);
+      expect(seenUrls).toEqual(["https://env.example.test/api/connect/mint-credential"]);
       expect(seenProofs[0]).toMatchObject({
         iss: "https://relay.example.test",
         aud: "ras-env:env-connector-test",
