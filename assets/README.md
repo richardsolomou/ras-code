@@ -6,8 +6,7 @@ The three Icon Composer projects are the source of truth for full application ic
 - `canary/app-icon.icon`
 - `prod/app-icon.icon`
 
-Each project uses `text.svg` for the lamp-R mark. Additional layers use semantic names that
-describe their role and placement.
+Each project uses `text.svg` for the activity-field R mark. Additional layers use semantic names that describe their role and placement.
 
 Run `vp run icons:export` from the repository root to regenerate the tracked iOS, macOS, Linux,
 Windows, and web assets. The development web exports are also copied to `apps/web/public` for the
@@ -38,7 +37,12 @@ the normal Android adaptive launcher icon. Export its paired PNG after changing 
 rsvg-convert -w 432 -h 432 \
   -o apps/mobile/assets/android-icon-foreground.png \
   apps/mobile/assets/android-icon-foreground.svg
+rsvg-convert -w 432 -h 432 \
+  -o apps/mobile/assets/android-icon-mark.png \
+  apps/mobile/assets/android-icon-mark.svg
+rsvg-convert -w 96 -h 96 \
+  -o apps/mobile/assets/android-notification-icon.png \
+  apps/mobile/assets/android-icon-mark.svg
 ```
 
-The foreground must remain transparent and keep the lamp-R mark inside Android's adaptive-icon safe
-zone. `android-icon-mark.png` remains a flat silhouette for Android's monochrome themed icon.
+The foreground must remain transparent and keep the activity field inside Android's adaptive-icon safe zone. `android-icon-mark.svg` is the source for Android's monochrome themed icon and notification mark.

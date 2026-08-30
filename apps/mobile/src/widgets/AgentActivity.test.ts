@@ -153,7 +153,7 @@ describe("AgentActivity widget layout", () => {
       },
       environment as never,
     );
-    expect(JSON.stringify(layout.compactLeading)).toContain("#a5b4fc"); // indigo-300
+    expect(JSON.stringify(layout.compactLeading)).toContain("RasCodeMark");
     expect(JSON.stringify(layout.compactTrailing)).toContain("Input");
     expect(JSON.stringify(layout.minimal)).toContain("#a5b4fc");
   });

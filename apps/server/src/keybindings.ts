@@ -170,6 +170,7 @@ function encodeWhenAst(node: KeybindingWhenNode): string {
 
 const RawKeybindingsEntries = fromLenientJson(Schema.Array(Schema.Unknown));
 const KeybindingsConfigPrettyJson = fromJsonStringPretty(KeybindingsConfig);
+const RETIRED_KEYBINDING_COMMANDS = new Set<KeybindingRule["command"]>(["themeEditor.toggle"]);
 const decodeKeybindingRuleExit = Schema.decodeUnknownExit(KeybindingRule);
 const decodeResolvedKeybindingFromConfigExit = Schema.decodeExit(ResolvedKeybindingFromConfig);
 const decodeRawKeybindingsEntriesExit = Schema.decodeUnknownExit(RawKeybindingsEntries);
@@ -492,7 +493,10 @@ const make = Effect.gen(function* () {
         yield* Cache.invalidate(resolvedConfigCache, resolvedConfigCacheKey);
         return;
       }
-      const customConfig = runtimeConfig.keybindings;
+      const customConfig = runtimeConfig.keybindings.filter(
+        (entry) => !RETIRED_KEYBINDING_COMMANDS.has(entry.command),
+      );
+      const removedRetiredBindings = customConfig.length !== runtimeConfig.keybindings.length;
       const existingCommands = new Set(customConfig.map((entry) => entry.command));
       const missingDefaults: KeybindingRule[] = [];
       const shortcutConflictWarnings: Array<{
@@ -529,7 +533,7 @@ const make = Effect.gen(function* () {
           reason: "shortcut context already used by existing rule",
         });
       }
-      if (missingDefaults.length === 0) {
+      if (missingDefaults.length === 0 && !removedRetiredBindings) {
         yield* Cache.invalidate(resolvedConfigCache, resolvedConfigCacheKey);
         return;
       }
@@ -558,7 +562,7 @@ const make = Effect.gen(function* () {
           commands: skippedDefaults.map((rule) => rule.command),
         });
       }
-      if (defaultsToAppend.length === 0) {
+      if (defaultsToAppend.length === 0 && !removedRetiredBindings) {
         yield* Cache.invalidate(resolvedConfigCache, resolvedConfigCacheKey);
         return;
       }

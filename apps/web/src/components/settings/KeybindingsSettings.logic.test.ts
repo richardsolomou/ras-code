@@ -155,6 +155,25 @@ describe("KeybindingsSettings.logic", () => {
     );
   });
 
+  it("omits retired theme editor bindings from rows and command options", () => {
+    const keybindings = [
+      {
+        command: "themeEditor.toggle",
+        shortcut: {
+          key: "t",
+          modKey: true,
+          metaKey: false,
+          ctrlKey: false,
+          altKey: true,
+          shiftKey: true,
+        },
+      },
+    ] satisfies ResolvedKeybindingsConfig;
+
+    expect(buildKeybindingRows(keybindings, "")).toEqual([]);
+    expect(buildKeybindingCommandOptions(keybindings)).not.toContain("themeEditor.toggle");
+  });
+
   it("reports unknown when variables without rejecting parseable expressions", () => {
     const parsed = parseWhenExpressionDraft("!terminalFocus && terminalFoc");
 

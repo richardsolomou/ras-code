@@ -1267,7 +1267,10 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: {
     return (
       <li
         data-thread-item
-        className="list-none [content-visibility:auto] [contain-intrinsic-size:auto_34px]"
+        className={cn(
+          "list-none [content-visibility:auto] [contain-intrinsic-size:auto_34px]",
+          variantAction === "unsettle" && "-mt-1.5",
+        )}
       >
         <Tooltip>
           <TooltipTrigger

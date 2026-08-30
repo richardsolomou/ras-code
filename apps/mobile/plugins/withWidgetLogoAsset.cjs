@@ -24,16 +24,23 @@ const TARGET_NAME = "ExpoWidgetsTarget";
 const CATALOG_NAME = "Assets.xcassets";
 const IMAGE_SET = "RasCodeMark.imageset";
 const SVG_NAME = "RasCodeMark.svg";
+const DARK_SVG_NAME = "RasCodeMarkDark.svg";
 
 const CATALOG_CONTENTS = JSON.stringify({ info: { author: "expo", version: 1 } }, null, 2) + "\n";
 const IMAGE_SET_CONTENTS =
   JSON.stringify(
     {
-      images: [{ idiom: "universal", filename: SVG_NAME }],
+      images: [
+        { idiom: "universal", filename: SVG_NAME },
+        {
+          appearances: [{ appearance: "luminosity", value: "dark" }],
+          idiom: "universal",
+          filename: DARK_SVG_NAME,
+        },
+      ],
       info: { author: "expo", version: 1 },
       properties: {
         "preserves-vector-representation": true,
-        "template-rendering-intent": "template",
       },
     },
     null,
@@ -51,6 +58,10 @@ function withAssetFiles(config) {
       fs.writeFileSync(path.join(catalogDir, "Contents.json"), CATALOG_CONTENTS);
       fs.writeFileSync(path.join(imageSetDir, "Contents.json"), IMAGE_SET_CONTENTS);
       fs.copyFileSync(source, path.join(imageSetDir, SVG_NAME));
+      fs.copyFileSync(
+        path.join(cfg.modRequest.projectRoot, "assets", "widget", DARK_SVG_NAME),
+        path.join(imageSetDir, DARK_SVG_NAME),
+      );
       return cfg;
     },
   ]);
