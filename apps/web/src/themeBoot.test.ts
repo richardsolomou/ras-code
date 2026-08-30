@@ -78,7 +78,7 @@ describe("index.html boot script", () => {
     });
 
     expect(result.isDark).toBe(expectedDark);
-    expect(result.backgroundColor).toBe(expectedDark ? "#16141C" : "#ffffff");
+    expect(result.backgroundColor).toBe(expectedDark ? "#151515" : "#ffffff");
     expect(result.metaContent).toBe(result.backgroundColor);
   });
 

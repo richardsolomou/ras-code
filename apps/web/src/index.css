@@ -119,8 +119,8 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(ras-code
 
   @variant dark {
     --appearance-contrast-target: white;
-    --app-scrollbar-thumb: #3a3646;
-    --app-scrollbar-thumb-hover: #4a4658;
+    --app-scrollbar-thumb: #393939;
+    --app-scrollbar-thumb-hover: #494949;
     --glass-blur: 16px;
     --glass-saturation: 1.08;
   }
@@ -1167,20 +1167,20 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(ras-code
     color-scheme: dark;
     /* Keep the workspace in the same neutral-black family as sidebar v2.
        Surfaces lift from this base instead of starting from a milky gray. */
-    --background: #16141c;
+    --background: #151515;
     --wordmark: #f0c24b;
     --surface-raised: var(--secondary);
-    --foreground: #e6e2ee;
-    --card: #1f1c26;
-    --card-foreground: #e6e2ee;
-    --popover: #1c1a24;
-    --popover-foreground: #e6e2ee;
+    --foreground: #e4e4e4;
+    --card: #1e1e1e;
+    --card-foreground: #e4e4e4;
+    --popover: #1c1c1c;
+    --popover-foreground: #e4e4e4;
     --primary: #f0c24b;
-    --primary-foreground: #100f15;
+    --primary-foreground: #101010;
     --secondary: --alpha(var(--color-white) / 4%);
     --secondary-foreground: var(--color-neutral-100);
     --muted: --alpha(var(--color-white) / 4%);
-    --muted-foreground: #9b96a9;
+    --muted-foreground: #999999;
     --accent: --alpha(var(--color-white) / 4%);
     --accent-foreground: var(--color-neutral-100);
     --error: #e5645a;
@@ -1228,14 +1228,14 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(ras-code
   --sidebar-border: var(--color-zinc-200);
 
   @variant dark {
-    --background: #100f15;
-    --foreground: #e6e2ee;
-    --card: #100f15;
+    --background: #101010;
+    --foreground: #e4e4e4;
+    --card: #101010;
     --card-foreground: var(--foreground);
-    --accent: #1f1c26;
-    --accent-foreground: #e6eae4;
-    --muted: #1c1a24;
-    --muted-foreground: #9b96a9;
+    --accent: #1e1e1e;
+    --accent-foreground: #e8e8e8;
+    --muted: #1c1c1c;
+    --muted-foreground: #999999;
     --border: rgb(255 255 255 / 8%);
     --input: rgb(255 255 255 / 18%);
     --sidebar: var(--card);
@@ -1689,6 +1689,13 @@ body {
 :root {
   --surface-grain: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
   --surface-grain-size: 256px 256px;
+
+  /* Dark surfaces sit near black, where the noise reads as mottling rather
+     than texture. Every consumer resolves the same token, so clearing it here
+     removes the grain from the body, the sidebar and the main card at once. */
+  @variant dark {
+    --surface-grain: none;
+  }
 }
 
 body {
@@ -2188,9 +2195,9 @@ code {
   --console-rule: var(--border);
 
   @variant dark {
-    --console-cap: #1f1c26;
-    --console-cap-rim: #2a2733;
-    --console-rule: #2a2733;
+    --console-cap: #1e1e1e;
+    --console-cap-rim: #292929;
+    --console-rule: #292929;
   }
 }
 

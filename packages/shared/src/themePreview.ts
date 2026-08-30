@@ -15,8 +15,8 @@ export const STANDARD_THEME_PREVIEW_COLORS: Readonly<Record<ThemeAppearance, The
       messageAction: "#2a2733",
     },
     dark: {
-      canvas: "#16141c",
-      accent: "#1f1d25",
+      canvas: "#151515",
+      accent: "#1e1e1e",
       messageAction: "#f0c24b",
     },
   };

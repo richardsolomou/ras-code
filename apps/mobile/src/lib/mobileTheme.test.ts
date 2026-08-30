@@ -73,7 +73,7 @@ describe("mobile themes", () => {
       "#fafafa",
     );
     expect(getMobileThemeVariables(DEFAULT_MOBILE_THEME_ID, "dark")["--color-screen"]).toBe(
-      "#16141c",
+      "#151515",
     );
     expect(getMobileThemeVariables(DEFAULT_MOBILE_THEME_ID, "dark")["--color-primary"]).toBe(
       "#f0c24b",
