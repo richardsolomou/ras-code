@@ -41,6 +41,9 @@ const EMPTY_PROJECT_REFS_ATOM = Atom.make(EMPTY_PROJECT_REFS).pipe(
 const EMPTY_THREAD_REFS_ATOM = Atom.make(EMPTY_THREAD_REFS).pipe(
   Atom.withLabel("web-thread-refs:empty"),
 );
+const EMPTY_FORK_SUMMARIES_ATOM = Atom.make<ReadonlyArray<{ threadId: ThreadId; title: string }>>(
+  Object.freeze([]),
+).pipe(Atom.withLabel("web-thread-forks:empty"));
 const EMPTY_THREAD_SHELL_ATOM = Atom.make<EnvironmentThreadShell | null>(null).pipe(
   Atom.withLabel("web-thread-shell:empty"),
 );
@@ -118,6 +121,56 @@ export function useServerConfigs(): ReadonlyMap<EnvironmentId, ServerConfig> {
 
 export function useThreadShells(): ReadonlyArray<EnvironmentThreadShell> {
   return useAtomValue(environmentThreadShells.threadShellsAtom);
+}
+
+export interface ThreadForkSummary {
+  readonly threadId: ThreadId;
+  readonly title: string;
+}
+
+const EMPTY_FORK_SUMMARIES: ReadonlyArray<ThreadForkSummary> = Object.freeze([]);
+
+/**
+ * Threads forked out of `key`, as the minimum a header needs to link to them.
+ *
+ * Derived rather than filtered in the component: the shell list churns on
+ * every turn update across every environment, and the chat header must not
+ * re-render for a thread it is not showing. This settles to a stable value
+ * unless the fork set or one of its titles actually changes.
+ */
+const threadForkSummariesAtomFamily = Atom.family((key: string) => {
+  const separatorIndex = key.indexOf("\u0000");
+  const environmentId = key.slice(0, separatorIndex) as EnvironmentId;
+  const threadId = key.slice(separatorIndex + 1) as ThreadId;
+  let previous: ReadonlyArray<ThreadForkSummary> = EMPTY_FORK_SUMMARIES;
+  return Atom.make((get) => {
+    const next: Array<ThreadForkSummary> = [];
+    for (const shell of get(environmentThreadShells.threadShellsAtom)) {
+      if (shell.environmentId !== environmentId || shell.forkedFrom?.threadId !== threadId) {
+        continue;
+      }
+      next.push({ threadId: shell.id, title: shell.title });
+    }
+    if (
+      previous.length === next.length &&
+      previous.every(
+        (entry, index) =>
+          entry.threadId === next[index]?.threadId && entry.title === next[index]?.title,
+      )
+    ) {
+      return previous;
+    }
+    previous = next.length === 0 ? EMPTY_FORK_SUMMARIES : next;
+    return previous;
+  }).pipe(Atom.withLabel(`web-thread-forks:${key}`));
+});
+
+export function useThreadForks(ref: ScopedThreadRef | null): ReadonlyArray<ThreadForkSummary> {
+  return useAtomValue(
+    ref === null
+      ? EMPTY_FORK_SUMMARIES_ATOM
+      : threadForkSummariesAtomFamily(`${ref.environmentId}\u0000${ref.threadId}`),
+  );
 }
 
 export function useAllEnvironmentShellsBootstrapped(): boolean {

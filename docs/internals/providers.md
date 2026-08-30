@@ -200,6 +200,32 @@ Provider output comes back as internal commands such as `thread.message.assistan
 `thread.session.set`, which clients observe through `orchestration.subscribeThread`. See
 [overview.md](./overview.md) for the command/event loop.
 
+## Forking a provider conversation
+
+A [fork](./glossary.md#fork) needs the provider to continue a conversation from a point in its
+past, and drivers differ in whether they can. Each adapter answers by whether it emits a
+[resume anchor](./glossary.md#resume-anchor) on `turn.completed` and whether it understands
+`forkAtAnchor` in a resume cursor.
+
+- **Claude** does both. `ClaudeAdapter` reports the last assistant message uuid as the anchor, and a
+  cursor carrying `forkAtAnchor` starts the session with `resume` + `resumeSessionAt` +
+  `forkSession`, so the fork replays the parent up to that message into a session id RAS Code mints.
+  The parent's session is never touched.
+- **Codex, Cursor, Grok, and OpenCode** emit no anchor. ACP's `session/fork` forks a whole session
+  with no fork point and is unstable, and `thread/rollback` mutates the session it is called on —
+  neither is a branch.
+
+`ProviderCommandReactor` decides per fork, from persisted state only, so it answers the same way
+across a restart: it needs the parent's persisted resume cursor, a matching continuation key (the
+same compatibility test a mid-thread instance switch uses), and an anchor on the parent turn at the
+fork point. When any of those is missing — including every cross-provider fork — the fork's first
+turn is prefixed with a rendered transcript of the inherited prefix instead
+([`forkTranscript.ts`][forktranscript]). The workspace carries the real state either way: the fork
+point's checkpoint is restored into the fork's worktree.
+
+An adapter that gains a fork primitive only has to emit an anchor and read `forkAtAnchor`; nothing
+above it changes.
+
 ## Server-side workers
 
 Provider work flows through three queue-backed workers. All three are built with
@@ -235,6 +261,7 @@ when a request opens (approval) or user input is requested, via
 [registry]: ../../apps/server/src/provider/Services/ProviderAdapterRegistry.ts
 [service]: ../../apps/server/src/provider/Layers/ProviderService.ts
 [contracts]: ../../packages/contracts/src/orchestration.ts
+[forktranscript]: ../../apps/server/src/orchestration/forkTranscript.ts
 [worker]: ../../packages/shared/src/DrainableWorker.ts
 [ingest]: ../../apps/server/src/orchestration/Layers/ProviderRuntimeIngestion.ts
 [cmd]: ../../apps/server/src/orchestration/Layers/ProviderCommandReactor.ts

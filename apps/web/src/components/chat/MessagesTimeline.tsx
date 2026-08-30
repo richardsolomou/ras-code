@@ -5,6 +5,7 @@ import {
   type ProviderInstanceId,
   type ScopedThreadRef,
   type ServerProviderSkill,
+  type ThreadForkWorkspaceMode,
   PROVIDER_DISPLAY_NAMES,
   type TurnId,
 } from "@ras-code/contracts";
@@ -104,6 +105,7 @@ import {
   type TimelineLatestTurn,
 } from "./MessagesTimeline.logic";
 import { TerminalContextInlineChip } from "./TerminalContextInlineChip";
+import { Menu, MenuItem, MenuPopup, MenuTrigger } from "../ui/menu";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import {
   deriveDisplayedUserMessageState,
@@ -162,6 +164,7 @@ interface TimelineRowSharedState {
   skills: ReadonlyArray<Pick<ServerProviderSkill, "name" | "displayName">>;
   activeThreadEnvironmentId: EnvironmentId;
   onRevertUserMessage: (messageId: MessageId) => void;
+  onForkFromUserMessage: (messageId: MessageId, workspaceMode: ThreadForkWorkspaceMode) => void;
   onImageExpand: (preview: ExpandedImagePreview) => void;
   onFileDownload: (attachment: ChatFileAttachment) => void;
   onOpenTurnDiff: (turnId: TurnId, filePath?: string) => void;
@@ -240,6 +243,7 @@ interface MessagesTimelineProps {
   onOpenTurnDiff: (turnId: TurnId, filePath?: string) => void;
   revertTurnCountByUserMessageId: Map<MessageId, number>;
   onRevertUserMessage: (messageId: MessageId) => void;
+  onForkFromUserMessage: (messageId: MessageId, workspaceMode: ThreadForkWorkspaceMode) => void;
   isRevertingCheckpoint: boolean;
   onImageExpand: (preview: ExpandedImagePreview) => void;
   onFileDownload?: (attachment: ChatFileAttachment) => void;
@@ -286,6 +290,7 @@ export const MessagesTimeline = memo(function MessagesTimeline({
   onOpenTurnDiff,
   revertTurnCountByUserMessageId,
   onRevertUserMessage,
+  onForkFromUserMessage,
   isRevertingCheckpoint,
   onImageExpand,
   onFileDownload = NOOP_DOWNLOAD_ATTACHMENT,
@@ -546,6 +551,7 @@ export const MessagesTimeline = memo(function MessagesTimeline({
       skills,
       activeThreadEnvironmentId,
       onRevertUserMessage,
+      onForkFromUserMessage,
       onImageExpand,
       onFileDownload,
       onOpenTurnDiff,
@@ -563,6 +569,7 @@ export const MessagesTimeline = memo(function MessagesTimeline({
       skills,
       activeThreadEnvironmentId,
       onRevertUserMessage,
+      onForkFromUserMessage,
       onImageExpand,
       onFileDownload,
       onOpenTurnDiff,
@@ -1038,7 +1045,15 @@ function UserTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" 
   const canRevertAgentWork = typeof row.revertTurnCount === "number";
 
   return (
-    <div className="group flex flex-col items-end gap-1">
+    // Inherited messages are the parent thread's history, carried in by a
+    // fork. Dimming them keeps the fork readable as a conversation without
+    // pretending this thread did that work.
+    <div
+      className={cn(
+        "group flex flex-col items-end gap-1",
+        row.message.inherited === true && "opacity-60",
+      )}
+    >
       <div className="relative max-w-[80%] rounded-2xl bg-message p-3 text-message-foreground">
         {regularImages.length > 0 && (
           <div className="mb-2 grid max-w-[420px] grid-cols-2 gap-2">
@@ -1153,7 +1168,7 @@ function UserTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" 
             </TooltipPopup>
           </Tooltip>
           <div className="flex items-center gap-0.5">
-            {canRevertAgentWork && <RevertUserMessageButton messageId={row.message.id} />}
+            {canRevertAgentWork && <UserMessageActionsMenu messageId={row.message.id} />}
             {displayedUserMessage.copyText && (
               <MessageCopyButton text={displayedUserMessage.copyText} variant="ghost" />
             )}
@@ -1164,28 +1179,46 @@ function UserTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" 
   );
 }
 
-function RevertUserMessageButton({ messageId }: { messageId: MessageId }) {
+/**
+ * The two ways back to a point in the conversation: revert, which throws the
+ * later turns away, and fork, which keeps them and continues elsewhere.
+ */
+function UserMessageActionsMenu({ messageId }: { messageId: MessageId }) {
   const ctx = use(TimelineRowCtx);
   const activity = use(TimelineRowActivityCtx);
 
   return (
-    <Tooltip>
-      <TooltipTrigger
-        render={
-          <Button
-            type="button"
-            size="xs"
-            variant="ghost"
-            disabled={activity.isRevertingCheckpoint || activity.isWorking}
-            onClick={() => ctx.onRevertUserMessage(messageId)}
-            aria-label="Revert to this message"
-          />
-        }
-      >
-        <Undo2Icon className="size-3" />
-      </TooltipTrigger>
-      <TooltipPopup side="top">Revert to this message</TooltipPopup>
-    </Tooltip>
+    <Menu>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <MenuTrigger
+              render={
+                <Button
+                  type="button"
+                  size="xs"
+                  variant="ghost"
+                  disabled={activity.isRevertingCheckpoint || activity.isWorking}
+                  aria-label="Rewind or fork from this message"
+                />
+              }
+            />
+          }
+        >
+          <Undo2Icon className="size-3" />
+        </TooltipTrigger>
+        <TooltipPopup side="top">Rewind or fork from here</TooltipPopup>
+      </Tooltip>
+      <MenuPopup align="end">
+        <MenuItem onClick={() => ctx.onForkFromUserMessage(messageId, "worktree")}>
+          Fork from here
+        </MenuItem>
+        <MenuItem onClick={() => ctx.onForkFromUserMessage(messageId, "in-place")}>
+          Fork here in place
+        </MenuItem>
+        <MenuItem onClick={() => ctx.onRevertUserMessage(messageId)}>Revert to here</MenuItem>
+      </MenuPopup>
+    </Menu>
   );
 }
 
@@ -1215,7 +1248,12 @@ function AssistantTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "mess
 
   return (
     <>
-      <div className="relative min-w-0 px-1 py-0.5">
+      <div
+        className={cn(
+          "relative min-w-0 px-1 py-0.5",
+          row.message.inherited === true && "opacity-60",
+        )}
+      >
         <ChatMarkdown
           text={messageText}
           cwd={ctx.markdownCwd}

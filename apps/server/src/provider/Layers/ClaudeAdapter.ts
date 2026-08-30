@@ -127,6 +127,12 @@ interface ClaudeResumeState {
   readonly resume?: string;
   readonly resumeSessionAt?: string;
   readonly turnCount?: number;
+  /**
+   * Set only by a fork: the message uuid to cut the parent's conversation at.
+   * Paired with `resume`, it makes Claude replay the parent up to that message
+   * into a brand new session id, leaving the parent's transcript untouched.
+   */
+  readonly forkAtAnchor?: string;
 }
 
 interface ClaudeTurnState {
@@ -690,6 +696,7 @@ function readClaudeResumeState(resumeCursor: unknown): ClaudeResumeState | undef
     sessionId?: unknown;
     resumeSessionAt?: unknown;
     turnCount?: unknown;
+    forkAtAnchor?: unknown;
   };
 
   const threadIdCandidate = typeof cursor.threadId === "string" ? cursor.threadId : undefined;
@@ -707,11 +714,16 @@ function readClaudeResumeState(resumeCursor: unknown): ClaudeResumeState | undef
   const resumeSessionAt =
     typeof cursor.resumeSessionAt === "string" ? cursor.resumeSessionAt : undefined;
   const turnCountValue = typeof cursor.turnCount === "number" ? cursor.turnCount : undefined;
+  const forkAtAnchorCandidate =
+    typeof cursor.forkAtAnchor === "string" ? cursor.forkAtAnchor : undefined;
+  const forkAtAnchor =
+    forkAtAnchorCandidate && isUuid(forkAtAnchorCandidate) ? forkAtAnchorCandidate : undefined;
 
   return {
     ...(threadId ? { threadId } : {}),
     ...(resume ? { resume } : {}),
     ...(resumeSessionAt ? { resumeSessionAt } : {}),
+    ...(forkAtAnchor ? { forkAtAnchor } : {}),
     ...(turnCountValue !== undefined && Number.isInteger(turnCountValue) && turnCountValue >= 0
       ? { turnCount: turnCountValue }
       : {}),
@@ -2372,6 +2384,10 @@ export const makeClaudeAdapter = Effect.fn("makeClaudeAdapter")(function* (
       turnId: turnState.turnId,
       payload: {
         state: status,
+        // The last assistant message uuid Claude emitted this turn. Claude
+        // resumes a session "up to and including" a uuid, so this addresses
+        // the end of this turn precisely.
+        ...(context.lastAssistantUuid ? { resumeAnchor: context.lastAssistantUuid } : {}),
         ...(result?.stop_reason !== undefined ? { stopReason: result.stop_reason } : {}),
         ...(result?.usage ? { usage: result.usage } : {}),
         ...(result?.modelUsage ? { modelUsage: result.modelUsage } : {}),
@@ -3828,7 +3844,14 @@ export const makeClaudeAdapter = Effect.fn("makeClaudeAdapter")(function* (
       const startedAt = yield* nowIso;
       const resumeState = readClaudeResumeState(input.resumeCursor);
       const threadId = input.threadId;
-      const existingResumeSessionId = resumeState?.resume;
+      // A fork replays the parent's session up to the anchor into a session id
+      // we mint here, so it never continues (or mutates) the parent's own
+      // session the way a plain resume does.
+      const forkParentSessionId =
+        resumeState?.forkAtAnchor !== undefined ? resumeState.resume : undefined;
+      const forkAtAnchor =
+        forkParentSessionId !== undefined ? resumeState?.forkAtAnchor : undefined;
+      const existingResumeSessionId = forkAtAnchor !== undefined ? undefined : resumeState?.resume;
       const newSessionId = existingResumeSessionId === undefined ? yield* randomUUIDv4 : undefined;
       const sessionId = existingResumeSessionId ?? newSessionId;
 
@@ -4306,7 +4329,15 @@ export const makeClaudeAdapter = Effect.fn("makeClaudeAdapter")(function* (
           ? { allowDangerouslySkipPermissions: true }
           : {}),
         ...(Object.keys(settings).length > 0 ? { settings } : {}),
-        ...(existingResumeSessionId ? { resume: existingResumeSessionId } : {}),
+        ...(forkAtAnchor !== undefined && forkParentSessionId !== undefined
+          ? {
+              resume: forkParentSessionId,
+              resumeSessionAt: forkAtAnchor,
+              forkSession: true,
+            }
+          : existingResumeSessionId
+            ? { resume: existingResumeSessionId }
+            : {}),
         ...(newSessionId ? { sessionId: newSessionId } : {}),
         includePartialMessages: true,
         canUseTool,
@@ -4335,7 +4366,13 @@ export const makeClaudeAdapter = Effect.fn("makeClaudeAdapter")(function* (
         "provider.thread_id": threadId,
         "provider.runtime_mode": input.runtimeMode,
         "claude.resume.source":
-          existingResumeSessionId !== undefined ? "resume-session" : "generated-session",
+          forkAtAnchor !== undefined
+            ? "fork-session"
+            : existingResumeSessionId !== undefined
+              ? "resume-session"
+              : "generated-session",
+        "claude.resume.fork_anchor": forkAtAnchor ?? "",
+        "claude.resume.fork_parent_session_id": forkParentSessionId ?? "",
         "claude.resume.thread_id": resumeState?.threadId ?? "",
         "claude.resume.session_id": existingResumeSessionId ?? "",
         "claude.resume.session_at": resumeState?.resumeSessionAt ?? "",

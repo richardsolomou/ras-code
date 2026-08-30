@@ -1063,11 +1063,16 @@ function renderFeedEntry(
       !assistantTurnStillInProgress &&
       !message.streaming;
 
+    // History carried in by a fork. Dimming it keeps a fork readable as one
+    // conversation without implying this thread did that work.
+    const isInherited = message.inherited === true;
+
     if (isUser) {
       const enterAnimated = isFreshTimestamp(message.createdAt);
       return (
         <Animated.View
           className="mb-5 items-end"
+          style={isInherited ? { opacity: 0.6 } : undefined}
           {...(enterAnimated ? { entering: FadeInUp.duration(220) } : {})}
         >
           <View
@@ -1132,6 +1137,7 @@ function renderFeedEntry(
     return (
       <Animated.View
         className={cn(showAssistantMeta ? "mb-5 px-1" : "mb-2 px-1")}
+        style={isInherited ? { opacity: 0.6 } : undefined}
         {...(enterAnimated ? { entering: FadeIn.duration(220) } : {})}
       >
         {message.text.trim().length > 0 ? (

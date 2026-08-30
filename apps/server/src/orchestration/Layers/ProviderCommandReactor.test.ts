@@ -455,6 +455,9 @@ describe("ProviderCommandReactor", () => {
         ),
       ),
       Layer.provideMerge(ServerConfig.layerTest(process.cwd(), baseDir)),
+      // Shared with the orchestration layers above: the same Layer value is
+      // memoised, so the reactor's repositories read what the engine wrote.
+      Layer.provideMerge(SqlitePersistenceMemory),
       Layer.provideMerge(NodeServices.layer),
     );
     runtime = ManagedRuntime.make(layer);

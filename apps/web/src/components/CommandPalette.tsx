@@ -40,6 +40,7 @@ import {
   FileSearchIcon,
   FolderIcon,
   FolderPlusIcon,
+  GitForkIcon,
   LinkIcon,
   MessageSquareIcon,
   PaletteIcon,
@@ -64,7 +65,10 @@ import { useAtomValue } from "@effect/atom-react";
 
 import { isDesktopLocalConnectionTarget } from "../connection/desktopLocal";
 import { useDesktopLocalBootstraps } from "../connection/useDesktopLocalBootstraps";
+import { useForkThreadHandler } from "../hooks/useForkThread";
 import { useHandleNewThread } from "../hooks/useHandleNewThread";
+import { useTurnDiffSummaries } from "../hooks/useTurnDiffSummaries";
+import { deriveForkTurnCountByUserMessageId } from "./ChatView.logic";
 import { useClientSettings } from "../hooks/useSettings";
 import { useTheme } from "../hooks/useTheme";
 import { readLocalApi } from "../localApi";
@@ -721,6 +725,45 @@ function OpenCommandPaletteDialog(props: {
       }),
     [activeDraftThread, activeThread, defaultProjectRef, handleNewThread],
   );
+  // "Try my last message again, differently" — the fork the palette can offer
+  // without a message to point at. Absent when the thread has no completed
+  // turn to fork from.
+  const forkThread = useForkThreadHandler();
+  const { turnDiffSummaries, inferredCheckpointTurnCountByTurnId } =
+    useTurnDiffSummaries(activeThread);
+  const forkFromLastUserMessage = useMemo(() => {
+    if (!activeThread) return null;
+    const turnDiffSummaryByAssistantMessageId = new Map(
+      turnDiffSummaries.flatMap((summary) =>
+        summary.assistantMessageId ? [[summary.assistantMessageId, summary] as const] : [],
+      ),
+    );
+    const forkTurnCountByUserMessageId = deriveForkTurnCountByUserMessageId({
+      messages: activeThread.messages,
+      turnDiffSummaryByAssistantMessageId,
+      inferredCheckpointTurnCountByTurnId,
+    });
+    const lastUserMessage = activeThread.messages.findLast(
+      (message) =>
+        message.role === "user" &&
+        message.inherited !== true &&
+        forkTurnCountByUserMessageId.has(message.id),
+    );
+    if (!lastUserMessage) return null;
+    const turnCount = forkTurnCountByUserMessageId.get(lastUserMessage.id);
+    if (typeof turnCount !== "number") return null;
+    return async () => {
+      await forkThread({
+        sourceThread: activeThread,
+        messageId: lastUserMessage.id,
+        turnCount,
+        promptSeed: lastUserMessage.text,
+        // The palette has no room to ask; parallel takes are the point of a
+        // fork, so it gets its own worktree.
+        workspaceMode: "worktree",
+      });
+    };
+  }, [activeThread, forkThread, inferredCheckpointTurnCountByTurnId, turnDiffSummaries]);
   const projectPickerEntries = useMemo(
     () =>
       buildSidebarProjectPickerEntries({
@@ -1525,6 +1568,19 @@ function OpenCommandPaletteDialog(props: {
       icon: <SquarePenIcon className={ITEM_ICON_CLASS} />,
       addonIcon: <SquarePenIcon className={ADDON_ICON_CLASS} />,
       groups: [{ value: "projects", label: "Projects", items: projectThreadItems }],
+    });
+  }
+
+  if (forkFromLastUserMessage !== null) {
+    actionItems.push({
+      kind: "action",
+      value: "action:fork-thread",
+      searchTerms: ["fork", "branch", "alternative", "retry", "different model", "try again"],
+      title: "Fork thread from my last message",
+      icon: <GitForkIcon className={ITEM_ICON_CLASS} />,
+      run: async () => {
+        await forkFromLastUserMessage();
+      },
     });
   }
 

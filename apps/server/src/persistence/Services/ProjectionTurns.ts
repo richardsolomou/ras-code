@@ -44,6 +44,10 @@ export const ProjectionTurn = Schema.Struct({
   requestedAt: IsoDateTime,
   startedAt: Schema.NullOr(IsoDateTime),
   completedAt: Schema.NullOr(IsoDateTime),
+  // Provider-opaque token for resuming this thread's conversation at this
+  // turn. Only the adapter that wrote it can read it; a fork uses it to cut a
+  // provider-native branch at exactly this point.
+  resumeAnchor: Schema.NullOr(Schema.String),
   checkpointTurnCount: Schema.NullOr(NonNegativeInt),
   checkpointRef: Schema.NullOr(CheckpointRef),
   checkpointStatus: Schema.NullOr(OrchestrationCheckpointStatus),
@@ -62,6 +66,10 @@ export const ProjectionTurnById = Schema.Struct({
   requestedAt: IsoDateTime,
   startedAt: Schema.NullOr(IsoDateTime),
   completedAt: Schema.NullOr(IsoDateTime),
+  // Provider-opaque token for resuming this thread's conversation at this
+  // turn. Only the adapter that wrote it can read it; a fork uses it to cut a
+  // provider-native branch at exactly this point.
+  resumeAnchor: Schema.NullOr(Schema.String),
   checkpointTurnCount: Schema.NullOr(NonNegativeInt),
   checkpointRef: Schema.NullOr(CheckpointRef),
   checkpointStatus: Schema.NullOr(OrchestrationCheckpointStatus),

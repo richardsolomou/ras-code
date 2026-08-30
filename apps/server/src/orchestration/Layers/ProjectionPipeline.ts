@@ -690,6 +690,45 @@ const makeOrchestrationProjectionPipeline = Effect.fn("makeOrchestrationProjecti
       "applyThreadsProjection",
     )(function* (event, attachmentSideEffects) {
       switch (event.type) {
+        case "thread.forked":
+          yield* projectionThreadRepository.upsert({
+            threadId: event.payload.threadId,
+            projectId: event.payload.projectId,
+            title: event.payload.title,
+            modelSelection: event.payload.modelSelection,
+            runtimeMode: event.payload.runtimeMode,
+            interactionMode: event.payload.interactionMode,
+            branch: event.payload.branch,
+            worktreePath: event.payload.worktreePath,
+            linkedPullRequest: null,
+            forkedFrom: {
+              threadId: event.payload.sourceThreadId,
+              messageId: event.payload.sourceMessageId,
+              turnCount: event.payload.turnCount,
+            },
+            latestTurnId: null,
+            createdAt: event.payload.createdAt,
+            updatedAt: event.payload.updatedAt,
+            archivedAt: null,
+            settledOverride: null,
+            settledAt: null,
+            unsettledAt: null,
+            snoozedUntil: null,
+            snoozedAt: null,
+            pinnedAt: null,
+            pinOrderKey: null,
+            titleRegenerationRequestId: null,
+            titleRegenerationStartedAt: null,
+            latestUserMessageAt: null,
+            pendingApprovalCount: 0,
+            pendingUserInputCount: 0,
+            hasActionableProposedPlan: 0,
+            lastFallbackEngagedAt: null,
+            latestAssistantSummary: null,
+            deletedAt: null,
+          });
+          return;
+
         case "thread.created":
           yield* projectionThreadRepository.upsert({
             threadId: event.payload.threadId,
@@ -939,15 +978,23 @@ const makeOrchestrationProjectionPipeline = Effect.fn("makeOrchestrationProjecti
         }
 
         case "thread.deleted": {
-          // A draft retry can re-create this id later in the log. During
-          // replay the attachment files on disk already belong to that later
+          // A draft retry can re-create this id later in the log, and a fork
+          // can claim a soft-deleted id the same way. During replay the
+          // attachment files on disk already belong to that later
           // incarnation, so only an unsuperseded deletion removes them.
-          const recreatedLater = yield* eventStore.hasEventAfter({
-            aggregateKind: "thread",
-            aggregateId: event.payload.threadId,
-            type: "thread.created",
-            sequenceExclusive: event.sequence,
-          });
+          const recreatedLater =
+            (yield* eventStore.hasEventAfter({
+              aggregateKind: "thread",
+              aggregateId: event.payload.threadId,
+              type: "thread.created",
+              sequenceExclusive: event.sequence,
+            })) ||
+            (yield* eventStore.hasEventAfter({
+              aggregateKind: "thread",
+              aggregateId: event.payload.threadId,
+              type: "thread.forked",
+              sequenceExclusive: event.sequence,
+            }));
           if (!recreatedLater) {
             attachmentSideEffects.deletedThreadIds.add(event.payload.threadId);
           }
@@ -1076,6 +1123,29 @@ const makeOrchestrationProjectionPipeline = Effect.fn("makeOrchestrationProjecti
           });
           return;
 
+        case "thread.forked": {
+          yield* projectionThreadMessageRepository.deleteByThreadId({
+            threadId: event.payload.threadId,
+          });
+          yield* Effect.forEach(
+            event.payload.inheritedMessages,
+            (message) =>
+              projectionThreadMessageRepository.upsert({
+                messageId: message.messageId,
+                threadId: event.payload.threadId,
+                turnId: null,
+                role: message.role,
+                text: message.text,
+                isStreaming: false,
+                inherited: true,
+                createdAt: message.createdAt,
+                updatedAt: message.createdAt,
+              }),
+            { concurrency: 1 },
+          ).pipe(Effect.asVoid);
+          return;
+        }
+
         case "thread.message-sent": {
           const existingMessage = yield* projectionThreadMessageRepository.getByMessageId({
             messageId: event.payload.messageId,
@@ -1156,6 +1226,7 @@ const makeOrchestrationProjectionPipeline = Effect.fn("makeOrchestrationProjecti
     )(function* (event, _attachmentSideEffects) {
       switch (event.type) {
         case "thread.created":
+        case "thread.forked":
           yield* projectionThreadProposedPlanRepository.deleteByThreadId({
             threadId: event.payload.threadId,
           });
@@ -1213,6 +1284,7 @@ const makeOrchestrationProjectionPipeline = Effect.fn("makeOrchestrationProjecti
     )(function* (event, _attachmentSideEffects) {
       switch (event.type) {
         case "thread.created":
+        case "thread.forked":
           yield* projectionThreadActivityRepository.deleteByThreadId({
             threadId: event.payload.threadId,
           });
@@ -1269,7 +1341,7 @@ const makeOrchestrationProjectionPipeline = Effect.fn("makeOrchestrationProjecti
     const applyThreadSessionsProjection: ProjectorDefinition["apply"] = Effect.fn(
       "applyThreadSessionsProjection",
     )(function* (event, _attachmentSideEffects) {
-      if (event.type === "thread.created") {
+      if (event.type === "thread.created" || event.type === "thread.forked") {
         yield* projectionThreadSessionRepository.deleteByThreadId({
           threadId: event.payload.threadId,
         });
@@ -1295,10 +1367,26 @@ const makeOrchestrationProjectionPipeline = Effect.fn("makeOrchestrationProjecti
     )(function* (event, _attachmentSideEffects) {
       switch (event.type) {
         case "thread.created":
+        case "thread.forked":
           yield* projectionTurnRepository.deleteByThreadId({
             threadId: event.payload.threadId,
           });
           return;
+
+        case "thread.turn-resume-anchor-set": {
+          const existingTurn = yield* projectionTurnRepository.getByTurnId({
+            threadId: event.payload.threadId,
+            turnId: event.payload.turnId,
+          });
+          if (Option.isNone(existingTurn)) {
+            return;
+          }
+          yield* projectionTurnRepository.upsertByTurnId({
+            ...existingTurn.value,
+            resumeAnchor: event.payload.resumeAnchor,
+          });
+          return;
+        }
 
         case "thread.turn-start-requested": {
           yield* projectionTurnRepository.replacePendingTurnStart({
@@ -1435,6 +1523,7 @@ const makeOrchestrationProjectionPipeline = Effect.fn("makeOrchestrationProjecti
                 ? pendingTurnStart.value.requestedAt
                 : event.occurredAt,
               completedAt: null,
+              resumeAnchor: null,
               checkpointTurnCount: null,
               checkpointRef: null,
               checkpointStatus: null,
@@ -1499,6 +1588,7 @@ const makeOrchestrationProjectionPipeline = Effect.fn("makeOrchestrationProjecti
             requestedAt: event.payload.createdAt,
             startedAt: event.payload.createdAt,
             completedAt: settlesTurn ? event.payload.updatedAt : null,
+            resumeAnchor: null,
             checkpointTurnCount: null,
             checkpointRef: null,
             checkpointStatus: null,
@@ -1536,6 +1626,7 @@ const makeOrchestrationProjectionPipeline = Effect.fn("makeOrchestrationProjecti
             requestedAt: event.payload.createdAt,
             startedAt: event.payload.createdAt,
             completedAt: event.payload.createdAt,
+            resumeAnchor: null,
             checkpointTurnCount: null,
             checkpointRef: null,
             checkpointStatus: null,
@@ -1591,6 +1682,7 @@ const makeOrchestrationProjectionPipeline = Effect.fn("makeOrchestrationProjecti
             requestedAt: event.payload.completedAt,
             startedAt: event.payload.completedAt,
             completedAt: event.payload.completedAt,
+            resumeAnchor: null,
             checkpointTurnCount: event.payload.checkpointTurnCount,
             checkpointRef: event.payload.checkpointRef,
             checkpointStatus: event.payload.status,
@@ -1638,6 +1730,7 @@ const makeOrchestrationProjectionPipeline = Effect.fn("makeOrchestrationProjecti
     )(function* (event, _attachmentSideEffects) {
       switch (event.type) {
         case "thread.created":
+        case "thread.forked":
           yield* projectionPendingApprovalRepository.deleteByThreadId({
             threadId: event.payload.threadId,
           });
