@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
-import { dismissContextMenu, showContextMenuFallback } from "./contextMenuFallback";
+import { dismissContextMenu, showContextMenu } from "./contextMenu";
 
 type FakeListener = (event: FakeDomEvent) => void;
 
@@ -218,9 +218,9 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("showContextMenuFallback", () => {
+describe("showContextMenu", () => {
   it("renders one separator between menu sections", async () => {
-    const selectionPromise = showContextMenuFallback([
+    const selectionPromise = showContextMenu([
       { id: "rename", label: "Rename" },
       { id: "archive", label: "Archive", separatorBefore: true },
     ]);
@@ -235,7 +235,7 @@ describe("showContextMenuFallback", () => {
   });
 
   it("resolves a clicked flat menu item", async () => {
-    const selectionPromise = showContextMenuFallback([
+    const selectionPromise = showContextMenu([
       { id: "rename", label: "Rename" },
       { id: "delete", label: "Delete", destructive: true },
     ]);
@@ -254,7 +254,7 @@ describe("showContextMenuFallback", () => {
       return 0;
     });
 
-    const selectionPromise = showContextMenuFallback([{ id: "rename", label: "Rename" }]);
+    const selectionPromise = showContextMenu([{ id: "rename", label: "Rename" }]);
     const renameButton = findButton("Rename");
 
     renameButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -265,7 +265,7 @@ describe("showContextMenuFallback", () => {
   });
 
   it("opens nested submenus and resolves the clicked leaf id", async () => {
-    const selectionPromise = showContextMenuFallback([
+    const selectionPromise = showContextMenu([
       {
         id: "rename:submenu",
         label: "Rename project",
@@ -291,7 +291,7 @@ describe("showContextMenuFallback", () => {
     const invoker = (document as unknown as FakeDocument).createElement("button");
     (document as unknown as FakeDocument).body.appendChild(invoker);
     invoker.focus();
-    const selectionPromise = showContextMenuFallback([
+    const selectionPromise = showContextMenu([
       {
         id: "copy:submenu",
         label: "Copy",
@@ -330,7 +330,7 @@ describe("showContextMenuFallback", () => {
 
 describe("dismissContextMenu", () => {
   it("resolves an open menu with null", async () => {
-    const selectionPromise = showContextMenuFallback([
+    const selectionPromise = showContextMenu([
       { id: "rename", label: "Rename" },
       { id: "delete", label: "Delete" },
     ]);
@@ -348,10 +348,10 @@ describe("dismissContextMenu", () => {
   });
 
   it("dismisses the prior menu when a new one opens", async () => {
-    const firstPromise = showContextMenuFallback([{ id: "first", label: "First" }]);
+    const firstPromise = showContextMenu([{ id: "first", label: "First" }]);
     expect(findButton("First")).toBeTruthy();
 
-    const secondPromise = showContextMenuFallback([{ id: "second", label: "Second" }]);
+    const secondPromise = showContextMenu([{ id: "second", label: "Second" }]);
 
     await expect(firstPromise).resolves.toBeNull();
     expect(findButton("First")).toBeUndefined();

@@ -107,40 +107,14 @@ export interface ContextMenuItem<T extends string = string> {
   label: string;
   destructive?: boolean;
   disabled?: boolean;
-  /** Renders as a non-interactive section header label. Web fallback only — stripped on desktop native menus. */
+  /** Renders as a non-interactive section header label. */
   header?: boolean;
-  /** Icon keyword resolved by the web fallback. Stripped on desktop native menus. */
+  /** Icon keyword resolved by the menu renderer. */
   icon?: string;
   /** Inserts a visual section divider immediately before this item. */
   separatorBefore?: boolean;
   children?: readonly ContextMenuItem<T>[];
 }
-
-export interface ContextMenuItemSchemaType {
-  readonly id: string;
-  readonly label: string;
-  readonly destructive?: boolean;
-  readonly disabled?: boolean;
-  readonly header?: boolean;
-  readonly icon?: string;
-  readonly separatorBefore?: boolean;
-  readonly children?: readonly ContextMenuItemSchemaType[];
-}
-
-export const ContextMenuItemSchema: Schema.Codec<ContextMenuItemSchemaType> = Schema.Struct({
-  id: Schema.String,
-  label: Schema.String,
-  destructive: Schema.optionalKey(Schema.Boolean),
-  disabled: Schema.optionalKey(Schema.Boolean),
-  header: Schema.optionalKey(Schema.Boolean),
-  icon: Schema.optionalKey(Schema.String),
-  separatorBefore: Schema.optionalKey(Schema.Boolean),
-  children: Schema.optionalKey(
-    Schema.Array(
-      Schema.suspend((): Schema.Codec<ContextMenuItemSchemaType> => ContextMenuItemSchema),
-    ),
-  ),
-});
 
 export type DesktopUpdateStatus =
   | "disabled"
@@ -1137,10 +1111,6 @@ export interface DesktopBridge {
    */
   pickThemeFiles?: () => Promise<readonly PickedThemeFile[] | null>;
   setTheme: (theme: DesktopTheme) => Promise<void>;
-  showContextMenu: <T extends string>(
-    items: readonly ContextMenuItem<T>[],
-    position?: { x: number; y: number },
-  ) => Promise<T | null>;
   openExternal: (url: string) => Promise<boolean>;
   /**
    * Probe this desktop machine for installed remote-capable editor CLIs

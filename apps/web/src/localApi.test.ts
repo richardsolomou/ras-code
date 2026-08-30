@@ -6,7 +6,7 @@ import {
 } from "@ras-code/contracts";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
-const showContextMenuFallbackMock =
+const showContextMenuMock =
   vi.fn<
     <T extends string>(
       items: readonly ContextMenuItem<T>[],
@@ -18,8 +18,8 @@ const dismissContextMenuMock = vi.fn<() => void>();
 const requestConfirmDialogMock =
   vi.fn<(message: string, options?: ConfirmDialogOptions) => Promise<boolean> | undefined>();
 
-vi.mock("./contextMenuFallback", () => ({
-  showContextMenuFallback: showContextMenuFallbackMock,
+vi.mock("./contextMenu", () => ({
+  showContextMenu: showContextMenuMock,
   dismissContextMenu: dismissContextMenuMock,
 }));
 
@@ -78,16 +78,16 @@ describe("LocalApi", () => {
     expect(api.shell).not.toHaveProperty("openInEditor");
   });
 
-  it("uses the browser context-menu fallback without a desktop bridge", async () => {
-    showContextMenuFallbackMock.mockResolvedValue("rename");
+  it("renders context menus with the app's own menu", async () => {
+    showContextMenuMock.mockResolvedValue("rename");
     const { createLocalApi } = await import("./localApi");
     const items = [{ id: "rename", label: "Rename" }] as const;
 
     await expect(createLocalApi().contextMenu.show(items, { x: 4, y: 5 })).resolves.toBe("rename");
-    expect(showContextMenuFallbackMock).toHaveBeenCalledWith(items, { x: 4, y: 5 });
+    expect(showContextMenuMock).toHaveBeenCalledWith(items, { x: 4, y: 5 });
   });
 
-  it("dismisses an open browser context menu without a desktop bridge", async () => {
+  it("dismisses an open context menu", async () => {
     const { createLocalApi } = await import("./localApi");
 
     await createLocalApi().contextMenu.close();
@@ -114,12 +114,10 @@ describe("LocalApi", () => {
   });
 
   it("delegates host capabilities and persistence to the desktop bridge", async () => {
-    const showContextMenu = vi.fn().mockResolvedValue("delete");
     const pickFolder = vi.fn().mockResolvedValue("/tmp/project");
     const getClientSettings = vi.fn().mockResolvedValue(DEFAULT_CLIENT_SETTINGS);
     const setClientSettings = vi.fn().mockResolvedValue(undefined);
     testWindow().desktopBridge = {
-      showContextMenu,
       pickFolder,
       getClientSettings,
       setClientSettings,
@@ -127,19 +125,29 @@ describe("LocalApi", () => {
 
     const { createLocalApi } = await import("./localApi");
     const api = createLocalApi();
-    const items = [{ id: "delete", label: "Delete" }] as const;
 
-    await expect(api.contextMenu.show(items)).resolves.toBe("delete");
     requestConfirmDialogMock.mockReturnValue(undefined);
     await expect(api.dialogs.confirm("Install update?")).resolves.toBe(false);
     await expect(api.dialogs.pickFolder({ initialPath: "/tmp" })).resolves.toBe("/tmp/project");
     await expect(api.persistence.getClientSettings()).resolves.toEqual(DEFAULT_CLIENT_SETTINGS);
     await api.persistence.setClientSettings(DEFAULT_CLIENT_SETTINGS);
 
-    expect(showContextMenu).toHaveBeenCalledWith(items, undefined);
     expect(pickFolder).toHaveBeenCalledWith({ initialPath: "/tmp" });
     expect(getClientSettings).toHaveBeenCalledTimes(1);
     expect(setClientSettings).toHaveBeenCalledWith(DEFAULT_CLIENT_SETTINGS);
+  });
+
+  it("keeps context menus in the DOM even when a desktop bridge is present", async () => {
+    const showContextMenu = vi.fn().mockResolvedValue("delete");
+    testWindow().desktopBridge = { showContextMenu } as unknown as DesktopBridge;
+    showContextMenuMock.mockResolvedValue("delete");
+    const { createLocalApi } = await import("./localApi");
+    const items = [{ id: "delete", label: "Delete" }] as const;
+
+    await expect(createLocalApi().contextMenu.show(items)).resolves.toBe("delete");
+
+    expect(showContextMenuMock).toHaveBeenCalledWith(items, undefined);
+    expect(showContextMenu).not.toHaveBeenCalled();
   });
 
   it("persists client settings in browser storage", async () => {

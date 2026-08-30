@@ -182,15 +182,15 @@ function isNodeWithinMenuStack(target: EventTarget | null, menuStack: readonly H
   return false;
 }
 
-// Only one fallback menu exists at a time in the renderer; the active one is
-// tracked so a state change (for example a terminal selection clearing) can
-// dismiss it with the same result as an outside click or Escape.
+// Only one menu exists at a time in the renderer; the active one is tracked so
+// a state change (for example a terminal selection clearing) can dismiss it
+// with the same result as an outside click or Escape.
 let activeContextMenuDismiss: (() => void) | null = null;
 
 /**
- * Closes the currently open fallback context menu, resolving its show() with
- * null (the same result as dismissing by outside click or Escape). No-op when
- * no fallback menu is open.
+ * Closes the currently open context menu, resolving its show() with null (the
+ * same result as dismissing by outside click or Escape). No-op when no menu is
+ * open.
  */
 export function dismissContextMenu(): void {
   activeContextMenuDismiss?.();
@@ -198,10 +198,11 @@ export function dismissContextMenu(): void {
 }
 
 /**
- * Imperative DOM-based context menu for non-Electron environments.
+ * Imperative DOM context menu used by every client surface, desktop included,
+ * so right-click menus carry the app's own styling, icons, and section headers.
  * Supports nested submenus and resolves with the clicked leaf item id.
  */
-export function showContextMenuFallback<T extends string>(
+export function showContextMenu<T extends string>(
   items: readonly ContextMenuItem<T>[],
   position?: { x: number; y: number },
 ): Promise<T | null> {
@@ -458,9 +459,9 @@ export function showContextMenuFallback<T extends string>(
     document.addEventListener("pointerdown", onPointerDown, true);
     document.addEventListener("contextmenu", onContextMenu, true);
     openMenu(items, position?.x ?? 0, position?.y ?? 0, 0);
-    // Only one fallback menu can be open at a time: a new show must dismiss
-    // any prior one, or its DOM and listeners leak and close() can only ever
-    // reach the newest menu.
+    // Only one menu can be open at a time: a new show must dismiss any prior
+    // one, or its DOM and listeners leak and close() can only ever reach the
+    // newest menu.
     if (activeContextMenuDismiss) {
       activeContextMenuDismiss();
     }

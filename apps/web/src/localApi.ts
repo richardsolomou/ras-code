@@ -1,7 +1,7 @@
 import type { ConfirmDialogOptions, ContextMenuItem, LocalApi } from "@ras-code/contracts";
 
 import { requestConfirmDialog } from "./confirmDialog";
-import { dismissContextMenu, showContextMenuFallback } from "./contextMenuFallback";
+import { dismissContextMenu, showContextMenu } from "./contextMenu";
 import { readBrowserClientSettings, writeBrowserClientSettings } from "./clientPersistenceStorage";
 import { resetRequestLatencyStateForTests } from "./rpc/requestLatencyState";
 
@@ -31,23 +31,20 @@ function createBrowserLocalApi(): LocalApi {
         window.open(url, "_blank", "noopener,noreferrer");
       },
     },
+    // Every surface renders the same DOM menu. Desktop used to hand these to
+    // Electron's native menu, which dropped our icons and section headers and
+    // looked nothing like the rest of the app.
     contextMenu: {
       show: async <T extends string>(
         items: readonly ContextMenuItem<T>[],
         position?: { x: number; y: number },
       ): Promise<T | null> => {
-        if (window.desktopBridge) {
-          return window.desktopBridge.showContextMenu(items, position) as Promise<T | null>;
-        }
-        return showContextMenuFallback(items, position);
+        return showContextMenu(items, position);
       },
-      // A native desktop menu blocks keyboard input and closes on outside
-      // interaction, so nothing to do there; the DOM fallback needs an explicit
-      // dismiss when the state behind it goes away.
+      // The menu outlives the state behind it (a cleared terminal selection, a
+      // deleted thread), so callers need an explicit dismiss.
       close: async () => {
-        if (!window.desktopBridge) {
-          dismissContextMenu();
-        }
+        dismissContextMenu();
       },
     },
     persistence: {
