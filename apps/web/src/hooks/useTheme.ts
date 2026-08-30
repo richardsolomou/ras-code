@@ -8,8 +8,6 @@ import {
   applyThemePalette,
   CUSTOM_THEMES_STORAGE_KEY,
   invalidateCustomThemes,
-  canonicalThemePreference,
-  isKnownThemePreference,
   getThemePreferenceMode,
   parseThemeHalves,
   resolveDesktopTheme,
@@ -181,6 +179,7 @@ export function readAppearanceModePreference(theme: Theme): ThemePreferenceMode 
     }
   }
 
+  if (theme === "system") return "system";
   if (readStoredFollowSystem(theme)) return "system";
   return getThemePreferenceMode(theme) ?? "light";
 }
@@ -212,9 +211,7 @@ export function readThemePreference(): Theme {
       cause,
     });
   }
-  if (raw !== null && isKnownThemePreference(raw)) {
-    return canonicalThemePreference(raw);
-  }
+  if (isThemePreferenceMode(raw)) return raw;
   return DEFAULT_THEME_SNAPSHOT.theme;
 }
 
@@ -517,6 +514,7 @@ export function useTheme() {
 
   const setTheme = useCallback((next: Theme): boolean => {
     if (typeof window === "undefined") return false;
+    const supportedTheme = isThemePreferenceMode(next) ? next : "system";
     try {
       // Preserve the current mode before replacing a legacy or inferred theme
       // preference. Otherwise a fresh System preference is re-inferred from
@@ -528,7 +526,7 @@ export function useTheme() {
       const previousHalvesRaw = window.localStorage.getItem(THEME_HALVES_STORAGE_KEY);
       window.localStorage.removeItem(THEME_HALVES_STORAGE_KEY);
       try {
-        writeThemePreference(next);
+        writeThemePreference(supportedTheme);
       } catch (cause) {
         if (previousHalvesRaw !== null) {
           try {
@@ -545,27 +543,45 @@ export function useTheme() {
         : new ThemeStorageError({
             operation: "write",
             storageKey: STORAGE_KEY,
-            theme: next,
+            theme: supportedTheme,
             cause,
           });
       console.error(error.message, {
         operation: error.operation,
         storageKey: error.storageKey,
-        theme: next,
+        theme: supportedTheme,
         ...safeErrorLogAttributes(error),
       });
       return false;
     }
-    applyTheme(next, { suppressTransitions: true });
+    applyTheme(supportedTheme, { suppressTransitions: true });
     emitChange();
     return true;
   }, []);
 
   const setAppearanceMode = useCallback((nextAppearanceMode: ThemePreferenceMode): boolean => {
     if (typeof window === "undefined") return false;
+    const previousValues = new Map<string, string | null>();
     try {
+      for (const key of [
+        STORAGE_KEY,
+        THEME_APPEARANCE_MODE_STORAGE_KEY,
+        THEME_HALVES_STORAGE_KEY,
+      ]) {
+        previousValues.set(key, window.localStorage.getItem(key));
+      }
+      writeThemePreference("system");
+      window.localStorage.removeItem(THEME_HALVES_STORAGE_KEY);
       writeAppearanceModePreference(nextAppearanceMode);
     } catch (cause) {
+      for (const [key, value] of previousValues) {
+        try {
+          if (value === null) window.localStorage.removeItem(key);
+          else window.localStorage.setItem(key, value);
+        } catch {
+          break;
+        }
+      }
       const error = isThemeStorageError(cause)
         ? cause
         : new ThemeStorageError({
@@ -581,7 +597,7 @@ export function useTheme() {
       return false;
     }
     themeStorageReadFailure = null;
-    applyTheme(getStored(), { suppressTransitions: true });
+    applyTheme("system", { suppressTransitions: true });
     emitChange();
     return true;
   }, []);

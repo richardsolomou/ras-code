@@ -1,29 +1,18 @@
 <svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <g transform="translate(64 64) scale(0.72) translate(-64 -64)">
-    <rect x="31" y="7" width="18" height="18" rx="3" fill="#F0C24B" />
-    <rect x="34" y="10" width="12" height="12" rx="2" fill="#FFE08A" fill-opacity="0.5" />
-    <rect x="55" y="7" width="18" height="18" rx="3" fill="#F0C24B" />
-    <rect x="58" y="10" width="12" height="12" rx="2" fill="#FFE08A" fill-opacity="0.5" />
-    <rect x="79" y="7" width="18" height="18" rx="3" fill="#2A2733" fill-opacity="0.28" />
-    <rect x="31" y="31" width="18" height="18" rx="3" fill="#F0C24B" />
-    <rect x="34" y="34" width="12" height="12" rx="2" fill="#FFE08A" fill-opacity="0.5" />
-    <rect x="55" y="31" width="18" height="18" rx="3" fill="#2A2733" fill-opacity="0.28" />
-    <rect x="79" y="31" width="18" height="18" rx="3" fill="#F0C24B" />
-    <rect x="82" y="34" width="12" height="12" rx="2" fill="#FFE08A" fill-opacity="0.5" />
-    <rect x="31" y="55" width="18" height="18" rx="3" fill="#F0C24B" />
-    <rect x="34" y="58" width="12" height="12" rx="2" fill="#FFE08A" fill-opacity="0.5" />
-    <rect x="55" y="55" width="18" height="18" rx="3" fill="#F0C24B" />
-    <rect x="58" y="58" width="12" height="12" rx="2" fill="#FFE08A" fill-opacity="0.5" />
-    <rect x="79" y="55" width="18" height="18" rx="3" fill="#2A2733" fill-opacity="0.28" />
-    <rect x="31" y="79" width="18" height="18" rx="3" fill="#F0C24B" />
-    <rect x="34" y="82" width="12" height="12" rx="2" fill="#FFE08A" fill-opacity="0.5" />
-    <rect x="55" y="79" width="18" height="18" rx="3" fill="#2A2733" fill-opacity="0.28" />
-    <rect x="79" y="79" width="18" height="18" rx="3" fill="#F0C24B" />
-    <rect x="82" y="82" width="12" height="12" rx="2" fill="#FFE08A" fill-opacity="0.5" />
-    <rect x="31" y="103" width="18" height="18" rx="3" fill="#F0C24B" />
-    <rect x="34" y="106" width="12" height="12" rx="2" fill="#FFE08A" fill-opacity="0.5" />
-    <rect x="55" y="103" width="18" height="18" rx="3" fill="#2A2733" fill-opacity="0.28" />
-    <rect x="79" y="103" width="18" height="18" rx="3" fill="#F0C24B" />
-    <rect x="82" y="106" width="12" height="12" rx="2" fill="#FFE08A" fill-opacity="0.5" />
-  </g>
+  <defs>
+    <pattern id="empty-cells" x="10" y="10" width="16" height="16" patternUnits="userSpaceOnUse">
+      <rect width="12" height="12" rx="2" fill="#EBEDF0" />
+    </pattern>
+  </defs>
+  <rect x="10" y="10" width="108" height="108" fill="url(#empty-cells)" />
+  <rect x="42" y="26" width="12" height="12" rx="2" fill="#40C463" />
+  <rect x="58" y="26" width="12" height="12" rx="2" fill="#30A14E" />
+  <rect x="42" y="42" width="12" height="12" rx="2" fill="#30A14E" />
+  <rect x="74" y="42" width="12" height="12" rx="2" fill="#40C463" />
+  <rect x="42" y="58" width="12" height="12" rx="2" fill="#40C463" />
+  <rect x="58" y="58" width="12" height="12" rx="2" fill="#30A14E" />
+  <rect x="42" y="74" width="12" height="12" rx="2" fill="#216E39" />
+  <rect x="74" y="74" width="12" height="12" rx="2" fill="#40C463" />
+  <rect x="42" y="90" width="12" height="12" rx="2" fill="#30A14E" />
+  <rect x="74" y="90" width="12" height="12" rx="2" fill="#216E39" />
 </svg>

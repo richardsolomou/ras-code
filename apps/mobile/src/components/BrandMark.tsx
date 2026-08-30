@@ -1,34 +1,67 @@
 import Constants from "expo-constants";
-import { Image } from "expo-image";
 import { View } from "react-native";
+import Svg, { Rect } from "react-native-svg";
 
-import { AppText as Text } from "./AppText";
+import { useAppearancePreferences } from "../features/settings/appearance/AppearancePreferencesProvider";
 import { resolveMobileStageLabel } from "../lib/mobileBranding";
+import { AppText as Text } from "./AppText";
+import { BRAND_PALETTES } from "./brandPalette";
+
+const ACTIVE_CELLS = new Map(
+  [
+    [2, 1, 3],
+    [3, 1, 2],
+    [2, 2, 2],
+    [4, 2, 3],
+    [2, 3, 3],
+    [3, 3, 2],
+    [2, 4, 1],
+    [4, 4, 3],
+    [2, 5, 2],
+    [4, 5, 1],
+  ].map(([column, row, level]) => [`${column},${row}`, level]),
+);
+
+const CELLS = Array.from({ length: 7 }, (_, row) =>
+  Array.from({ length: 7 }, (_, column) => ({ column, row })),
+).flat();
 
 const appVariant = Constants.expoConfig?.extra?.appVariant;
-const BRAND_MARK_SOURCE =
-  appVariant === "development"
-    ? require("../../../../assets/dev/blueprint-ios-1024.png")
-    : appVariant === "preview"
-      ? require("../../../../assets/canary/canary-ios-1024.png")
-      : require("../../../../assets/prod/black-ios-1024.png");
 
 export function BrandMark(props: { readonly compact?: boolean }) {
+  const { themeAppearance } = useAppearancePreferences();
   const compact = props.compact ?? false;
   const iconSize = compact ? 32 : 44;
+  const palette = BRAND_PALETTES[themeAppearance];
   const stageLabel = resolveMobileStageLabel(appVariant);
 
   return (
     <View className="flex-row items-center gap-3">
-      <Image
-        source={BRAND_MARK_SOURCE}
-        accessibilityIgnoresInvertColors
-        style={{
-          width: iconSize,
-          height: iconSize,
-          borderRadius: compact ? 10 : 14,
-        }}
-      />
+      <Svg accessibilityLabel="RAS Code" height={iconSize} viewBox="0 0 128 128" width={iconSize}>
+        <Rect
+          fill={palette.background}
+          height={127}
+          rx={12}
+          stroke={palette.border}
+          width={127}
+          x={0.5}
+          y={0.5}
+        />
+        {CELLS.map(({ column, row }) => {
+          const level = ACTIVE_CELLS.get(`${column},${row}`);
+          return (
+            <Rect
+              fill={level === undefined ? palette.empty : palette.levels[level - 1]}
+              height={12}
+              key={`${column},${row}`}
+              rx={2}
+              width={12}
+              x={10 + column * 16}
+              y={10 + row * 16}
+            />
+          );
+        })}
+      </Svg>
       <View className="gap-1">
         <View className="flex-row items-center gap-2">
           <Text className="text-lg font-ras-code-bold tracking-[-0.4px] text-foreground">

@@ -1,4 +1,12 @@
-import { createContext, use, useCallback, useLayoutEffect, useMemo, type ReactNode } from "react";
+import {
+  createContext,
+  use,
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import { useColorScheme } from "react-native";
 
 import { useAtomSet, useAtomValue } from "@effect/atom-react";
@@ -15,8 +23,6 @@ import {
 import { mobilePreferencesAtom, updateMobilePreferencesAtom } from "../../../state/preferences";
 import type { Preferences } from "../../../persistence/mobile-preferences";
 import {
-  createMobileThemePairPatch,
-  createMobileThemeSelectionPatch,
   getMobileThemeVariables,
   normalizeMobileThemeMode,
   resolveMobileThemeIds,
@@ -35,10 +41,6 @@ interface AppearancePreferencesContextValue {
   readonly themeMode: MobileThemeMode;
   readonly themeAppearance: MobileThemeAppearance;
   readonly isReady: boolean;
-  readonly setThemeIdForAppearance: (
-    appearance: MobileThemeAppearance,
-    value: MobileThemeId,
-  ) => void;
   readonly setThemeIdForBothAppearances: (value: MobileThemeId) => void;
   readonly setThemeMode: (value: MobileThemeMode) => void;
   readonly setBaseFontSize: (value: number) => void;
@@ -78,6 +80,7 @@ function applyAppearanceVariables(baseFontSize: number, themeIds: MobileThemeIds
 export function AppearancePreferencesProvider(props: { readonly children: ReactNode }) {
   const preferencesResult = useAtomValue(mobilePreferencesAtom);
   const savePreferences = useAtomSet(updateMobilePreferencesAtom);
+  const [showcaseThemeId, setShowcaseThemeId] = useState<MobileThemeId | null>(null);
   const systemColorScheme = useColorScheme() === "dark" ? "dark" : "light";
   const storedPreferences = AsyncResult.isSuccess(preferencesResult)
     ? preferencesResult.value
@@ -89,8 +92,11 @@ export function AppearancePreferencesProvider(props: { readonly children: ReactN
   const themeMode = normalizeMobileThemeMode(storedPreferences?.themeMode);
   const themeAppearance = themeMode === "system" ? systemColorScheme : themeMode;
   const themeIds = useMemo(
-    () => resolveMobileThemeIds(storedPreferences ?? {}),
-    [storedPreferences],
+    () =>
+      showcaseThemeId === null
+        ? resolveMobileThemeIds(storedPreferences ?? {})
+        : { light: showcaseThemeId, dark: showcaseThemeId },
+    [showcaseThemeId, storedPreferences],
   );
   const themeId = themeIds[themeAppearance];
   const isReady = AsyncResult.isSuccess(preferencesResult) && !preferencesResult.waiting;
@@ -108,21 +114,9 @@ export function AppearancePreferencesProvider(props: { readonly children: ReactN
     [savePreferences],
   );
 
-  const setThemeIdForAppearance = useCallback(
-    (appearance: MobileThemeAppearance, value: MobileThemeId) => {
-      updatePreferences(
-        createMobileThemeSelectionPatch(themeIds, themeAppearance, appearance, value),
-      );
-    },
-    [themeAppearance, themeIds, updatePreferences],
-  );
-
-  const setThemeIdForBothAppearances = useCallback(
-    (value: MobileThemeId) => {
-      updatePreferences(createMobileThemePairPatch(value));
-    },
-    [updatePreferences],
-  );
+  const setThemeIdForBothAppearances = useCallback((value: MobileThemeId) => {
+    setShowcaseThemeId(value);
+  }, []);
 
   const setThemeMode = useCallback(
     (value: MobileThemeMode) => {
@@ -167,7 +161,6 @@ export function AppearancePreferencesProvider(props: { readonly children: ReactN
       themeMode,
       themeAppearance,
       isReady,
-      setThemeIdForAppearance,
       setThemeIdForBothAppearances,
       setThemeMode,
       setBaseFontSize,
@@ -182,7 +175,6 @@ export function AppearancePreferencesProvider(props: { readonly children: ReactN
       themeMode,
       themeAppearance,
       isReady,
-      setThemeIdForAppearance,
       setThemeIdForBothAppearances,
       setThemeMode,
       setBaseFontSize,

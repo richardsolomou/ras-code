@@ -11,6 +11,7 @@ import { Link, useCanGoBack, useLocation, useNavigate } from "@tanstack/react-ro
 import { useEnvironmentIdentificationMode } from "../../hooks/useSettings";
 import { cn } from "../../lib/utils";
 import { useEnvironments } from "../../state/environments";
+import { RasCodeWordmark } from "../RasCodeWordmark";
 import {
   resolveEnvironmentIdentificationPillLabel,
   useEnvironmentStageLabel,
@@ -73,49 +74,6 @@ function SidebarBrand() {
     >
       <RasCodeWordmark />
     </Link>
-  );
-}
-
-function RasCodeWordmark() {
-  return (
-    <svg
-      aria-label="RAS"
-      className="h-3.5 w-auto shrink-0 fill-[var(--wordmark)]"
-      viewBox="0 0 234 114"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <rect x="0" y="0" width="18" height="18" rx="3" />
-      <rect x="24" y="0" width="18" height="18" rx="3" />
-      <rect x="0" y="24" width="18" height="18" rx="3" />
-      <rect x="48" y="24" width="18" height="18" rx="3" />
-      <rect x="0" y="48" width="18" height="18" rx="3" />
-      <rect x="24" y="48" width="18" height="18" rx="3" />
-      <rect x="0" y="72" width="18" height="18" rx="3" />
-      <rect x="48" y="72" width="18" height="18" rx="3" />
-      <rect x="0" y="96" width="18" height="18" rx="3" />
-      <rect x="48" y="96" width="18" height="18" rx="3" />
-      <rect x="108" y="0" width="18" height="18" rx="3" />
-      <rect x="84" y="24" width="18" height="18" rx="3" />
-      <rect x="132" y="24" width="18" height="18" rx="3" />
-      <rect x="84" y="48" width="18" height="18" rx="3" />
-      <rect x="108" y="48" width="18" height="18" rx="3" />
-      <rect x="132" y="48" width="18" height="18" rx="3" />
-      <rect x="84" y="72" width="18" height="18" rx="3" />
-      <rect x="132" y="72" width="18" height="18" rx="3" />
-      <rect x="84" y="96" width="18" height="18" rx="3" />
-      <rect x="132" y="96" width="18" height="18" rx="3" />
-      <rect x="168" y="0" width="18" height="18" rx="3" />
-      <rect x="192" y="0" width="18" height="18" rx="3" />
-      <rect x="216" y="0" width="18" height="18" rx="3" />
-      <rect x="168" y="24" width="18" height="18" rx="3" />
-      <rect x="168" y="48" width="18" height="18" rx="3" />
-      <rect x="192" y="48" width="18" height="18" rx="3" />
-      <rect x="216" y="48" width="18" height="18" rx="3" />
-      <rect x="216" y="72" width="18" height="18" rx="3" />
-      <rect x="168" y="96" width="18" height="18" rx="3" />
-      <rect x="192" y="96" width="18" height="18" rx="3" />
-      <rect x="216" y="96" width="18" height="18" rx="3" />
-    </svg>
   );
 }
 

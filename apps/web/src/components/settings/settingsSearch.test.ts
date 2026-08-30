@@ -45,7 +45,6 @@ describe("searchSettings", () => {
 
   it("matches normalized title substrings", () => {
     expect(searchSettings("  WORD   WRAP  ", ITEMS).map((item) => item.id)).toEqual(["word-wrap"]);
-    expect(searchSettings("glass").map((item) => item.id)).toEqual(["setting-glass-opacity"]);
     expect(searchSettings("xyzzy")).toEqual([]);
   });
 
@@ -84,8 +83,8 @@ describe("searchSettings", () => {
   });
 
   it("routes appearance settings to their current section", () => {
-    expect(searchSettings("theme")[0]).toMatchObject({
-      id: "theme",
+    expect(searchSettings("color scheme")[0]).toMatchObject({
+      id: "color-scheme",
       to: "/settings/appearance",
     });
     expect(searchSettings("word wrap")[0]).toMatchObject({

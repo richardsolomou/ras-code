@@ -12,7 +12,6 @@ This is a living glossary for RAS Code. It explains what common terms mean in th
 - [Provider runtime](#provider-runtime)
 - [Checkpointing](#checkpointing)
 - [Upstream sync](#upstream-sync)
-- [Appearance](#appearance)
 
 ## Concepts
 
@@ -192,21 +191,6 @@ What we did with one upstream change: `adopted`, `adapted`, `skipped`, or `defer
 
 The single source of truth for this fork's vocabulary and its do-not-rename list, in [upstreamRebrandMap.ts][28].
 
-### Appearance
-
-#### Environment theme
-
-A theme an environment's machine publishes for clients to follow, one file per theme under `themes/` in that environment's state directory; the filename is the theme id. [environmentTheme.ts][25] watches the directory and streams the set over `subscribeServerConfig`; clients render each as a library card, generating a full palette when the file carries seed colors and using the palette directly when it is a standard exported theme file. A desktop that retints its apps when the system theme changes rewrites its file, so RAS Code follows along without a restart. See [environment-theme.md][26].
-
-#### Default theme
-
-The environment's theme, held in its `settings.json` as `defaultTheme` (with `defaultThemeSetAt`
-as the set-generation) and set with `t3 theme set <id>`. Web and desktop clients apply each set
-once — live when connected, on the next connect otherwise — so setting it switches them, while a
-theme a user picks in Settings afterwards sticks until the next set; mobile keeps its own
-appearance settings. Naming a published [environment theme](#environment-theme) is how a desktop
-ships RAS Code already matching it.
-
 ## Practical Shortcuts
 
 - If you see `requested`, think "intent recorded".
@@ -254,5 +238,3 @@ ships RAS Code already matching it.
 [29]: ../../apps/server/src/ws.ts
 [30]: ../user/forking-threads.md
 [31]: ../../apps/server/src/orchestration/forkTranscript.ts
-[25]: ../../apps/server/src/environmentTheme.ts
-[26]: ../user/environment-theme.md

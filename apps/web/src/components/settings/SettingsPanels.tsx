@@ -51,13 +51,7 @@ import {
 } from "../environmentStage";
 import { isElectron } from "../../env";
 import { buildHostedChannelSelectionUrl, type HostedAppChannel } from "../../hostedPairing";
-import { useCustomThemes } from "../../hooks/useCustomThemes";
-import {
-  readAppearanceModePreference,
-  readThemeHalves,
-  readThemePreference,
-  useTheme,
-} from "../../hooks/useTheme";
+import { readAppearanceModePreference, useTheme } from "../../hooks/useTheme";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
 import {
   useDeviceSettings,
@@ -121,7 +115,6 @@ import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "../
 import { Switch } from "../ui/switch";
 import { stackedThreadToast, toastManager } from "../ui/toast";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
-import { ThemeLibrary } from "./ThemeSettings";
 import {
   backgroundActivityOverrideSettings,
   backgroundActivitySharedPolicySettings,
@@ -460,15 +453,7 @@ function AboutVersionSection() {
 }
 
 export function useSettingsRestore(onRestored?: () => void) {
-  const {
-    theme,
-    setTheme,
-    followSystem,
-    setFollowSystem,
-    setThemeHalf,
-    clearThemeHalves,
-    themeHalves,
-  } = useTheme();
+  const { appearanceMode, setAppearanceMode } = useTheme();
   const settings = useDeviceSettings();
   const updateSettings = useUpdateDeviceSettings();
 
@@ -480,9 +465,7 @@ export function useSettingsRestore(onRestored?: () => void) {
 
   const changedSettingLabels = useMemo(
     () => [
-      ...(theme !== "system" ? ["Theme"] : []),
-      ...(!followSystem ? ["Follow system"] : []),
-      ...(themeHalves !== null ? ["Theme mix"] : []),
+      ...(appearanceMode !== "system" ? ["Color scheme"] : []),
       ...(settings.environmentIdentificationMode !==
       DEFAULT_UNIFIED_SETTINGS.environmentIdentificationMode
         ? ["Environment identification"]
@@ -560,9 +543,7 @@ export function useSettingsRestore(onRestored?: () => void) {
       settings.showSkillsInSlashMenu,
       settings.timestampFormat,
       settings.wordWrap,
-      followSystem,
-      theme,
-      themeHalves,
+      appearanceMode,
     ],
   );
 
@@ -577,55 +558,15 @@ export function useSettingsRestore(onRestored?: () => void) {
     );
     if (!confirmed) return;
 
-    // Only touch the theme keys that are actually dirty, so a theme-storage
-    // failure cannot block restoring unrelated settings. Preferences are
-    // re-read after the confirmation dialog: they may have changed (another
-    // tab, an OS flip) while it was open, and rollback must restore the live
-    // values rather than the ones captured at render time.
-    let previousTheme = theme;
-    try {
-      previousTheme = readThemePreference();
-    } catch {
-      // Storage is unreadable; the render-time value is the best rollback.
-    }
-    // The mix may have changed while the confirmation dialog was open; both
-    // the dirty check and the rollback must see the live value.
-    const liveHalves = readThemeHalves();
-    const needsThemeReset = previousTheme !== "system";
-    const needsMixReset = liveHalves !== null;
-    // Same for the appearance mode: trusting the render-time value would skip
-    // the reset and report success while a non-system mode stayed in storage.
-    const needsFollowSystemReset = readAppearanceModePreference(previousTheme) !== "system";
-    const notifyThemeRestoreFailure = () => {
+    const needsAppearanceReset = readAppearanceModePreference("system") !== "system";
+    if (needsAppearanceReset && !setAppearanceMode("system")) {
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: "Couldn’t restore theme settings",
+          title: "Couldn’t restore appearance settings",
           description: "Try again.",
         }),
       );
-    };
-    // Rollback restores the base preference first (which clears any mix) and
-    // then re-applies the captured mix on top, so no failure path can leave
-    // the pair of keys half-restored.
-    const previousHalves = liveHalves;
-    const rollbackThemeState = () => {
-      if (needsThemeReset) setTheme(previousTheme);
-      if (previousHalves?.light) setThemeHalf("light", previousHalves.light);
-      if (previousHalves?.dark) setThemeHalf("dark", previousHalves.dark);
-    };
-    if (needsThemeReset && !setTheme("system")) {
-      notifyThemeRestoreFailure();
-      return;
-    }
-    if (needsMixReset && !clearThemeHalves()) {
-      rollbackThemeState();
-      notifyThemeRestoreFailure();
-      return;
-    }
-    if (needsFollowSystemReset && !setFollowSystem(true)) {
-      rollbackThemeState();
-      notifyThemeRestoreFailure();
       return;
     }
     updateSettings({
@@ -663,17 +604,7 @@ export function useSettingsRestore(onRestored?: () => void) {
       enableAgentBrowserAccess: DEFAULT_UNIFIED_SETTINGS.enableAgentBrowserAccess,
     });
     onRestored?.();
-  }, [
-    changedSettingLabels,
-    clearThemeHalves,
-    onRestored,
-    setFollowSystem,
-    setTheme,
-    setThemeHalf,
-    theme,
-    themeHalves,
-    updateSettings,
-  ]);
+  }, [changedSettingLabels, onRestored, setAppearanceMode, updateSettings]);
 
   return {
     changedSettingLabels,
@@ -948,18 +879,7 @@ function BackgroundActivityAdvancedDialog({
 }
 
 export function AppearanceSettingsPanel() {
-  const {
-    appearanceMode,
-    refreshTheme,
-    resolvedTheme,
-    setAppearanceMode,
-    setTheme,
-    setThemeHalf,
-    theme,
-    themeHalves,
-  } = useTheme();
-  const customThemes = useCustomThemes();
-  const [isImportThemeOpen, setIsImportThemeOpen] = useState(false);
+  const { appearanceMode, setAppearanceMode } = useTheme();
   const settings = usePrimarySettings();
   const updateSettings = useUpdatePrimarySettings();
   const environmentStageLabel = useEnvironmentStageLabel();
@@ -973,21 +893,49 @@ export function AppearanceSettingsPanel() {
   return (
     <SettingsPageContainer>
       <SettingsSection id="appearance" title="Appearance">
-        <div id={searchableSetting("theme").id}>
-          <ThemeLibrary
-            appearanceMode={appearanceMode}
-            customThemes={customThemes}
-            initialAppearance={resolvedTheme}
-            refreshTheme={refreshTheme}
-            isImportOpen={isImportThemeOpen}
-            setAppearanceMode={setAppearanceMode}
-            setTheme={setTheme}
-            setThemeHalf={setThemeHalf}
-            theme={theme}
-            themeHalves={themeHalves}
-            onImportOpenChange={setIsImportThemeOpen}
-          />
-        </div>
+        <SettingsRow
+          {...searchableSetting("color-scheme")}
+          description="System follows your device appearance."
+          resetAction={
+            appearanceMode !== "system" ? (
+              <SettingResetButton
+                label="color scheme"
+                onClick={() => setAppearanceMode("system")}
+              />
+            ) : null
+          }
+          control={
+            <Select
+              value={appearanceMode}
+              onValueChange={(value) => {
+                if (value === "system" || value === "light" || value === "dark") {
+                  setAppearanceMode(value);
+                }
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-40" aria-label="Color scheme">
+                <SelectValue>
+                  {appearanceMode === "system"
+                    ? "System"
+                    : appearanceMode === "light"
+                      ? "Light"
+                      : "Dark"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectPopup align="end" alignItemWithTrigger={false}>
+                <SelectItem hideIndicator value="system">
+                  System
+                </SelectItem>
+                <SelectItem hideIndicator value="light">
+                  Light
+                </SelectItem>
+                <SelectItem hideIndicator value="dark">
+                  Dark
+                </SelectItem>
+              </SelectPopup>
+            </Select>
+          }
+        />
 
         {showEnvironmentIdentification ? (
           <SettingsRow

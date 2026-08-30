@@ -43,7 +43,13 @@ function recordingContext(): { context: DockIconContext; rects: Array<RecordedRe
   return { context, rects };
 }
 
-const COLORS: DockIconColors = { plate: "rgb(22, 20, 28)", lamp: "rgb(240, 194, 75)" };
+const COLORS: DockIconColors = {
+  plate: "#0d1117",
+  empty: "#21262d",
+  low: "#006d32",
+  medium: "#26a641",
+  high: "#39d353",
+};
 
 function drawnRects() {
   const { context, rects } = recordingContext();
@@ -66,41 +72,38 @@ describe("drawDockIcon", () => {
     });
   });
 
-  it("draws every cell of the 3x5 grid in the lamp color", () => {
+  it("draws every cell of the 7x7 activity field", () => {
     const cells = drawnRects().slice(1);
 
-    expect(cells).toHaveLength(15);
-    expect(cells.every((cell) => cell.fillStyle === COLORS.lamp)).toBe(true);
+    expect(cells).toHaveLength(49);
   });
 
-  it("lights the cells of the lamp-R and dims the rest", () => {
+  it("spells R in the three activity levels", () => {
     const cells = drawnRects().slice(1);
-    const columns = 3;
+    const columns = 7;
     const lit = cells
       .map((cell, index) => ({ column: index % columns, row: Math.floor(index / columns), cell }))
-      .filter(({ cell }) => cell.alpha === 1)
+      .filter(({ cell }) => cell.fillStyle !== COLORS.empty)
       .map(({ column, row }) => [column, row]);
 
     expect(lit).toEqual([
-      [0, 0],
-      [1, 0],
-      [0, 1],
       [2, 1],
-      [0, 2],
-      [1, 2],
-      [0, 3],
+      [3, 1],
+      [2, 2],
+      [4, 2],
       [2, 3],
-      [0, 4],
+      [3, 3],
       [2, 4],
+      [4, 4],
+      [2, 5],
+      [4, 5],
     ]);
   });
 
-  it("dims the unlit cells instead of hiding them", () => {
+  it("uses the empty activity color for the background field", () => {
     const cells = drawnRects().slice(1);
 
-    expect(cells.filter((cell) => cell.alpha !== 1).map((cell) => cell.alpha)).toEqual([
-      0.18, 0.18, 0.18, 0.18, 0.18,
-    ]);
+    expect(cells.filter((cell) => cell.fillStyle === COLORS.empty)).toHaveLength(39);
   });
 
   it("centers the mark on the plate", () => {
@@ -115,14 +118,12 @@ describe("drawDockIcon", () => {
     expect(top).toBeGreaterThan(100);
   });
 
-  it("leaves the plate a top and bottom margin around the five-row mark", () => {
+  it("leaves the plate a narrow margin around the activity field", () => {
     const cells = drawnRects().slice(1);
     const plateSize = DOCK_ICON_SIZE - 200;
     const top = Math.min(...cells.map((cell) => cell.y));
 
-    // The mark is taller than it is wide, so the vertical inset is the tight
-    // one. Anything under a sixth of the plate reads as a mark with no margin.
-    expect((top - 100) / plateSize).toBeGreaterThan(1 / 6);
+    expect((top - 100) / plateSize).toBeCloseTo(5 / 64, 6);
   });
 });
 
@@ -156,7 +157,7 @@ describe("createDockIconSync", () => {
     const { sync } = syncWith(() => colors);
 
     sync();
-    colors = { plate: "rgb(252, 252, 252)", lamp: "rgb(42, 39, 51)" };
+    colors = { ...COLORS, plate: "#ffffff", empty: "#ebedf0" };
     sync();
 
     expect(bridge.setDockIcon).toHaveBeenCalledTimes(2);

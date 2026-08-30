@@ -5,8 +5,6 @@ import { BUILT_IN_THEME_IDS, BUILT_IN_THEMES } from "@ras-code/shared/themePalet
 import { DEFAULT_MOBILE_THEME_VARIABLES } from "./mobileDefaultTheme";
 
 import {
-  createMobileThemePairPatch,
-  createMobileThemeSelectionPatch,
   createMobileThemeVariables,
   DEFAULT_MOBILE_THEME_ID,
   getMobileThemePreviewColors,
@@ -115,39 +113,17 @@ describe("mobile themes", () => {
     expect(normalizeMobileThemeMode("sepia")).toBe("system");
   });
 
-  it("migrates one theme choice to both appearances and preserves independent choices", () => {
+  it("migrates old theme choices to the consolidated palette", () => {
     expect(resolveMobileThemeIds({ themeId: "grove" })).toEqual({
-      light: "grove",
-      dark: "grove",
+      light: DEFAULT_MOBILE_THEME_ID,
+      dark: DEFAULT_MOBILE_THEME_ID,
     });
     expect(
       resolveMobileThemeIds({ themeId: "grove", lightThemeId: "iris", darkThemeId: "ocean" }),
-    ).toEqual({ light: "iris", dark: "ocean" });
+    ).toEqual({ light: DEFAULT_MOBILE_THEME_ID, dark: DEFAULT_MOBILE_THEME_ID });
     expect(resolveMobileThemeIds({ themeId: "grove", lightThemeId: "missing" })).toEqual({
       light: DEFAULT_MOBILE_THEME_ID,
-      dark: "grove",
-    });
-  });
-
-  it("changes either theme without switching the active appearance", () => {
-    const themeIds = { light: "graphite", dark: "grove" } as const;
-    expect(createMobileThemeSelectionPatch(themeIds, "light", "dark", "ocean")).toEqual({
-      lightThemeId: "graphite",
-      darkThemeId: "ocean",
-      themeId: "graphite",
-    });
-    expect(createMobileThemeSelectionPatch(themeIds, "light", "light", "iris")).toEqual({
-      lightThemeId: "iris",
-      darkThemeId: "grove",
-      themeId: "iris",
-    });
-  });
-
-  it("changes both appearance themes from the card action", () => {
-    expect(createMobileThemePairPatch("ember")).toEqual({
-      lightThemeId: "ember",
-      darkThemeId: "ember",
-      themeId: "ember",
+      dark: DEFAULT_MOBILE_THEME_ID,
     });
   });
 

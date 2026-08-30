@@ -70,7 +70,7 @@ describe("theme failure handling", () => {
     }
   });
 
-  it("reads a persisted built-in theme preference", async () => {
+  it("migrates a persisted named theme preference to system", async () => {
     vi.stubGlobal("window", {
       localStorage: createStorage({
         getItem: () => "graphite",
@@ -79,7 +79,7 @@ describe("theme failure handling", () => {
 
     const { readThemePreference } = await import("./useTheme");
 
-    expect(readThemePreference()).toBe("graphite");
+    expect(readThemePreference()).toBe("system");
   });
 
   it("falls back during initial theme application and logs only safe attributes", async () => {

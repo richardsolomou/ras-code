@@ -129,10 +129,6 @@ const DEFAULT_BINDINGS = compile([
     whenAst: whenNot(whenIdentifier("terminalFocus")),
   },
   {
-    shortcut: modShortcut("t", { altKey: true, shiftKey: true }),
-    command: "themeEditor.toggle",
-  },
-  {
     shortcut: modShortcut("m", { shiftKey: true }),
     command: "modelPicker.toggle",
     whenAst: whenNot(whenIdentifier("terminalFocus")),
@@ -608,25 +604,6 @@ describe("chat/editor shortcuts", () => {
         context: { terminalFocus: true },
       }),
       "projectSearch.toggle",
-    );
-  });
-
-  it("matches themeEditor.toggle on macOS and Windows", () => {
-    assert.strictEqual(
-      resolveShortcutCommand(
-        event({ key: "t", metaKey: true, altKey: true, shiftKey: true }),
-        DEFAULT_BINDINGS,
-        { platform: "MacIntel" },
-      ),
-      "themeEditor.toggle",
-    );
-    assert.strictEqual(
-      resolveShortcutCommand(
-        event({ key: "t", ctrlKey: true, altKey: true, shiftKey: true }),
-        DEFAULT_BINDINGS,
-        { platform: "Win32" },
-      ),
-      "themeEditor.toggle",
     );
   });
 

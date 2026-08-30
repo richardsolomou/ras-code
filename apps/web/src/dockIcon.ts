@@ -2,10 +2,11 @@ import type { DesktopBridge } from "@ras-code/contracts";
 import { safeErrorLogAttributes } from "@ras-code/client-runtime/errors";
 
 export interface DockIconColors {
-  /** The rounded plate behind the mark: the app's chrome colour. */
   readonly plate: string;
-  /** The lit lamps: the app's wordmark colour. */
-  readonly lamp: string;
+  readonly empty: string;
+  readonly low: string;
+  readonly medium: string;
+  readonly high: string;
 }
 
 export type DockIconContext = Pick<
@@ -20,33 +21,27 @@ export const DOCK_ICON_SIZE = 1024;
 const PLATE_INSET = 100;
 const PLATE_RADIUS = 185;
 
-// The lamp-R mark, in the units of the shipped icon art (a 128 canvas holding
-// a 3x5 grid of 18px cells on a 24px pitch, scaled to 0.72 of the plate). The
-// mark is three cells wide and five tall, so the fill is set by the vertical
-// run: it leaves the plate a top and bottom margin at this height.
 const MARK_CANVAS = 128;
-const MARK_FILL = 0.72;
-const CELL = 18;
-const CELL_RADIUS = 3;
-const CELL_PITCH = 24;
-const COLUMNS = 3;
-const ROWS = 5;
-const UNLIT_ALPHA = 0.18;
-const LIT_CELLS: ReadonlyArray<readonly [column: number, row: number]> = [
-  [0, 0],
-  [1, 0],
-  [0, 1],
-  [2, 1],
-  [0, 2],
-  [1, 2],
-  [0, 3],
-  [2, 3],
-  [0, 4],
-  [2, 4],
-];
+const CELL = 12;
+const CELL_RADIUS = 2;
+const CELL_PITCH = 16;
+const GRID_INSET = 10;
+const COLUMNS = 7;
+const ROWS = 7;
+const ACTIVE_CELLS = new Map<string, keyof Pick<DockIconColors, "low" | "medium" | "high">>([
+  ["2,1", "high"],
+  ["3,1", "medium"],
+  ["2,2", "medium"],
+  ["4,2", "high"],
+  ["2,3", "high"],
+  ["3,3", "medium"],
+  ["2,4", "low"],
+  ["4,4", "high"],
+  ["2,5", "medium"],
+  ["4,5", "low"],
+]);
 
-const MARK_SCALE = ((DOCK_ICON_SIZE - PLATE_INSET * 2) * MARK_FILL) / MARK_CANVAS;
-const LIT_CELL_KEYS = new Set(LIT_CELLS.map(([column, row]) => `${column},${row}`));
+const MARK_SCALE = (DOCK_ICON_SIZE - PLATE_INSET * 2) / MARK_CANVAS;
 
 export function drawDockIcon(context: DockIconContext, colors: DockIconColors): void {
   const plateSize = DOCK_ICON_SIZE - PLATE_INSET * 2;
@@ -59,16 +54,15 @@ export function drawDockIcon(context: DockIconContext, colors: DockIconColors): 
 
   const cell = CELL * MARK_SCALE;
   const pitch = CELL_PITCH * MARK_SCALE;
-  const originX = (DOCK_ICON_SIZE - ((COLUMNS - 1) * pitch + cell)) / 2;
-  const originY = (DOCK_ICON_SIZE - ((ROWS - 1) * pitch + cell)) / 2;
-  context.fillStyle = colors.lamp;
+  const origin = PLATE_INSET + GRID_INSET * MARK_SCALE;
   for (let row = 0; row < ROWS; row += 1) {
     for (let column = 0; column < COLUMNS; column += 1) {
-      context.globalAlpha = LIT_CELL_KEYS.has(`${column},${row}`) ? 1 : UNLIT_ALPHA;
+      const level = ACTIVE_CELLS.get(`${column},${row}`);
+      context.fillStyle = level === undefined ? colors.empty : colors[level];
       context.beginPath();
       context.roundRect(
-        originX + column * pitch,
-        originY + row * pitch,
+        origin + column * pitch,
+        origin + row * pitch,
         cell,
         cell,
         CELL_RADIUS * MARK_SCALE,
@@ -79,34 +73,23 @@ export function drawDockIcon(context: DockIconContext, colors: DockIconColors): 
   context.globalAlpha = 1;
 }
 
-const TRANSPARENT_COLORS = new Set(["transparent", "rgba(0, 0, 0, 0)", "rgba(0 0 0 / 0)"]);
-
-/**
- * Reads the live values of the theme tokens the icon uses. A probe element is
- * cheaper and more reliable than parsing the custom properties ourselves: the
- * browser resolves whatever the token holds (var chains, oklch, color-mix) to
- * an opaque colour the canvas can paint.
- */
 export function resolveDockIconColors(): DockIconColors | null {
-  if (typeof document === "undefined" || typeof getComputedStyle !== "function") return null;
-  const host = document.body ?? document.documentElement;
-  if (!host) return null;
-
-  const probe = document.createElement("div");
-  probe.style.display = "none";
-  host.append(probe);
-  try {
-    const read = (token: string): string | null => {
-      probe.style.backgroundColor = `var(${token})`;
-      const value = getComputedStyle(probe).backgroundColor.trim();
-      return value && !TRANSPARENT_COLORS.has(value) ? value : null;
-    };
-    const plate = read("--app-chrome-background");
-    const lamp = read("--wordmark");
-    return plate && lamp ? { plate, lamp } : null;
-  } finally {
-    probe.remove();
-  }
+  if (typeof document === "undefined") return null;
+  return document.documentElement.classList.contains("dark")
+    ? {
+        plate: "#0d1117",
+        empty: "#21262d",
+        low: "#006d32",
+        medium: "#26a641",
+        high: "#39d353",
+      }
+    : {
+        plate: "#ffffff",
+        empty: "#ebedf0",
+        low: "#216e39",
+        medium: "#30a14e",
+        high: "#40c463",
+      };
 }
 
 /**
@@ -160,7 +143,7 @@ export function createDockIconSync({
     if (bridge === null) return;
     const colors = resolveColors();
     if (colors === null) return;
-    const signature = `${colors.plate}|${colors.lamp}`;
+    const signature = Object.values(colors).join("|");
     if (signature === painted) return;
     const pngDataUrl = render(colors);
     if (pngDataUrl === null) return;

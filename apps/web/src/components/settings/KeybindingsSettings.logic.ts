@@ -29,6 +29,7 @@ export interface KeybindingRow {
 
 export type WhenVariableOption = string;
 export type KeybindingCommandOption = KeybindingCommand;
+const HIDDEN_KEYBINDING_COMMANDS = new Set<KeybindingCommand>(["themeEditor.toggle"]);
 
 const CORE_WHEN_VARIABLES = ["terminalFocus", "terminalOpen", "true", "false"] as const;
 
@@ -159,22 +160,24 @@ export function buildKeybindingRows(
   query: string,
 ): ReadonlyArray<KeybindingRow> {
   const normalizedQuery = query.trim().toLowerCase();
-  const rows = keybindings.map((binding, index) => {
-    const defaultBinding = defaultBindingForBinding(binding);
-    const key = shortcutToKeybindingInput(binding.shortcut);
-    const when = whenAstToExpression(binding.whenAst);
-    return {
-      id: `${keybindingRowId(binding.command, key, when)}\u0000${index}`,
-      command: binding.command,
-      key,
-      when,
-      source: sourceForBinding(binding),
-      defaultKey: defaultBinding ? shortcutToKeybindingInput(defaultBinding.shortcut) : null,
-      defaultWhen: whenAstToExpression(defaultBinding?.whenAst),
-      binding,
-      conflicts: [],
-    } satisfies KeybindingRow;
-  });
+  const rows = keybindings
+    .filter((binding) => !HIDDEN_KEYBINDING_COMMANDS.has(binding.command))
+    .map((binding, index) => {
+      const defaultBinding = defaultBindingForBinding(binding);
+      const key = shortcutToKeybindingInput(binding.shortcut);
+      const when = whenAstToExpression(binding.whenAst);
+      return {
+        id: `${keybindingRowId(binding.command, key, when)}\u0000${index}`,
+        command: binding.command,
+        key,
+        when,
+        source: sourceForBinding(binding),
+        defaultKey: defaultBinding ? shortcutToKeybindingInput(defaultBinding.shortcut) : null,
+        defaultWhen: whenAstToExpression(defaultBinding?.whenAst),
+        binding,
+        conflicts: [],
+      } satisfies KeybindingRow;
+    });
 
   const rowsWithConflicts = rows.map((row) => {
     const conflicts = keybindingConflictLabels(rows, {
@@ -256,9 +259,11 @@ export function buildWhenVariableOptions(): ReadonlyArray<WhenVariableOption> {
 export function buildKeybindingCommandOptions(
   keybindings: ResolvedKeybindingsConfig,
 ): ReadonlyArray<KeybindingCommandOption> {
-  const commands = new Set<KeybindingCommand>(STATIC_KEYBINDING_COMMANDS);
+  const commands = new Set<KeybindingCommand>(
+    STATIC_KEYBINDING_COMMANDS.filter((command) => !HIDDEN_KEYBINDING_COMMANDS.has(command)),
+  );
   for (const binding of keybindings) {
-    commands.add(binding.command);
+    if (!HIDDEN_KEYBINDING_COMMANDS.has(binding.command)) commands.add(binding.command);
   }
   return [...commands].toSorted((left, right) =>
     commandLabel(left).localeCompare(commandLabel(right)),

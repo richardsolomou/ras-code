@@ -63,7 +63,6 @@ function checkedMenuState(checked: boolean) {
 function AndroidHomeHeader(props: HomeHeaderProps) {
   const insets = useSafeAreaInsets();
   const iconColor = useThemeColor("--color-icon");
-  const wordmarkColor = useThemeColor("--color-wordmark");
   const mutedColor = useThemeColor("--color-foreground-muted");
   const stageLabel = resolveMobileStageLabel(Constants.expoConfig?.extra?.appVariant);
   // The list lays out in fixed creation order, so sort/group controls would be
@@ -180,7 +179,7 @@ function AndroidHomeHeader(props: HomeHeaderProps) {
               onPress={props.onOpenEnvironments}
               brand={
                 <View className="flex-row items-center gap-2">
-                  <RasCodeWordmark color={wordmarkColor} height={13} />
+                  <RasCodeWordmark height={13} />
                   {stageLabel ? (
                     <View className="rounded-full bg-subtle px-2 py-0.75">
                       <RNText className="text-[11px] font-ras-code-legend text-foreground-muted">

@@ -25,7 +25,6 @@ export function CompactBrandTitle(
     readonly allowFontScaling?: boolean;
   } = {},
 ) {
-  const wordmarkColor = useThemeColor("--color-wordmark");
   const mutedColor = useThemeColor("--color-foreground-muted");
   const subtleColor = useThemeColor("--color-subtle");
   const stageLabel = resolveMobileStageLabel(Constants.expoConfig?.extra?.appVariant);
@@ -44,7 +43,7 @@ export function CompactBrandTitle(
         marginLeft: titleOffset,
       }}
     >
-      <RasCodeWordmark color={wordmarkColor} height={13} />
+      <RasCodeWordmark height={13} />
       {stageLabel ? (
         <View
           style={{

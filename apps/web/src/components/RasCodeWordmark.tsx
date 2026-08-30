@@ -1,8 +1,3 @@
-import Svg, { Rect } from "react-native-svg";
-
-import { useAppearancePreferences } from "../features/settings/appearance/AppearancePreferencesProvider";
-import { BRAND_PALETTES } from "./brandPalette";
-
 const ACTIVE_CELLS = new Map(
   [
     [1, 1, 3],
@@ -39,44 +34,48 @@ const ACTIVE_CELLS = new Map(
   ].map(([column, row, level]) => [`${column},${row}`, level]),
 );
 
+const CELL_CLASSES = {
+  1: "fill-[#216e39] dark:fill-[#006d32]",
+  2: "fill-[#30a14e] dark:fill-[#26a641]",
+  3: "fill-[#40c463] dark:fill-[#39d353]",
+} as const;
+
 const CELLS = Array.from({ length: 7 }, (_, row) =>
   Array.from({ length: 13 }, (_, column) => ({ column, row })),
 ).flat();
 
-export function RasCodeWordmark(props: { readonly height: number }) {
-  const { themeAppearance } = useAppearancePreferences();
-  const palette = BRAND_PALETTES[themeAppearance];
-
+export function RasCodeWordmark() {
   return (
-    <Svg
-      accessibilityLabel="RAS"
-      height={props.height}
+    <svg
+      aria-label="RAS"
+      className="h-3.5 w-auto shrink-0"
       viewBox="0 0 138 78"
-      width={(props.height * 138) / 78}
+      xmlns="http://www.w3.org/2000/svg"
     >
-      <Rect
-        fill={palette.background}
-        height={77}
-        rx={8}
-        stroke={palette.border}
-        width={137}
-        x={0.5}
-        y={0.5}
+      <rect
+        className="fill-white stroke-[#d0d7de] dark:fill-[#0d1117] dark:stroke-[#30363d]"
+        height="77"
+        rx="8"
+        width="137"
+        x="0.5"
+        y="0.5"
       />
       {CELLS.map(({ column, row }) => {
-        const level = ACTIVE_CELLS.get(`${column},${row}`);
+        const level = ACTIVE_CELLS.get(`${column},${row}`) as 1 | 2 | 3 | undefined;
         return (
-          <Rect
-            fill={level === undefined ? palette.empty : palette.levels[level - 1]}
-            height={8}
+          <rect
+            className={
+              level === undefined ? "fill-[#ebedf0] dark:fill-[#21262d]" : CELL_CLASSES[level]
+            }
+            height="8"
             key={`${column},${row}`}
-            rx={1.5}
-            width={8}
+            rx="1.5"
+            width="8"
             x={5 + column * 10}
             y={5 + row * 10}
           />
         );
       })}
-    </Svg>
+    </svg>
   );
 }
