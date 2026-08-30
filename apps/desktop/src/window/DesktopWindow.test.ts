@@ -167,7 +167,6 @@ const desktopServerExposureLayer = Layer.succeed(DesktopServerExposure.DesktopSe
 const electronMenuLayer = Layer.succeed(ElectronMenu.ElectronMenu, {
   setApplicationMenu: () => Effect.void,
   popupTemplate: () => Effect.void,
-  showContextMenu: () => Effect.succeed(Option.none()),
 } satisfies ElectronMenu.ElectronMenu["Service"]);
 
 const electronThemeLayer = Layer.succeed(ElectronTheme.ElectronTheme, {
