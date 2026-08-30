@@ -15,19 +15,18 @@ import {
 
 const DOMAINS = {
   routerHost: "code.ras.sh",
-  latestDomain: "code-latest.ras.sh",
-  nightlyDomain: "code-nightly.ras.sh",
+  canaryDomain: "code-canary.ras.sh",
 };
 
 const LATEST: WebDeployment = { kind: "channel", channel: "latest" };
-const NIGHTLY: WebDeployment = { kind: "channel", channel: "nightly" };
+const CANARY: WebDeployment = { kind: "channel", channel: "canary" };
 const PREVIEW: WebDeployment = { kind: "preview", pullRequest: 329 };
 
 describe("deploymentForStage", () => {
   it.effect("maps the two release channels", () =>
     Effect.gen(function* () {
       expect(yield* deploymentForStage("latest")).toEqual(LATEST);
-      expect(yield* deploymentForStage("nightly")).toEqual(NIGHTLY);
+      expect(yield* deploymentForStage("canary")).toEqual(CANARY);
     }),
   );
 
@@ -53,15 +52,12 @@ describe("deploymentForStage", () => {
 });
 
 describe("webWorkerDomain", () => {
-  it("serves latest on its channel domain with the router domain aliased to it", () => {
-    expect(webWorkerDomain(LATEST, DOMAINS)).toEqual({
-      name: "code-latest.ras.sh",
-      aliases: ["code.ras.sh"],
-    });
+  it("serves latest on the router domain itself", () => {
+    expect(webWorkerDomain(LATEST, DOMAINS)).toEqual({ name: "code.ras.sh" });
   });
 
-  it("gives nightly only its own channel domain", () => {
-    expect(webWorkerDomain(NIGHTLY, DOMAINS)).toEqual({ name: "code-nightly.ras.sh" });
+  it("gives canary only its own channel domain", () => {
+    expect(webWorkerDomain(CANARY, DOMAINS)).toEqual({ name: "code-canary.ras.sh" });
   });
 
   it("gives a preview no domain, so it cannot take one from a channel", () => {
@@ -76,7 +72,7 @@ describe("servesOnWorkersDev", () => {
 
   it("keeps release channels off workers.dev", () => {
     expect(servesOnWorkersDev(LATEST)).toBe(false);
-    expect(servesOnWorkersDev(NIGHTLY)).toBe(false);
+    expect(servesOnWorkersDev(CANARY)).toBe(false);
   });
 });
 
@@ -84,12 +80,12 @@ describe("webWorkerEnv", () => {
   it("gives the latest channel the router configuration", () => {
     expect(webWorkerEnv(LATEST, DOMAINS)).toEqual({
       RAS_CODE_WEB_ROUTER_HOST: "code.ras.sh",
-      RAS_CODE_WEB_NIGHTLY_ORIGIN: "https://code-nightly.ras.sh",
+      RAS_CODE_WEB_CANARY_ORIGIN: "https://code-canary.ras.sh",
     });
   });
 
-  it("leaves the nightly channel unable to route", () => {
-    expect(webWorkerEnv(NIGHTLY, DOMAINS)).toEqual({});
+  it("leaves the canary channel unable to route", () => {
+    expect(webWorkerEnv(CANARY, DOMAINS)).toEqual({});
   });
 
   it("leaves a preview unable to route", () => {
@@ -130,8 +126,8 @@ describe("runsChannelRouter", () => {
     expect(runsChannelRouter(LATEST)).toBe(true);
   });
 
-  it("does not route on nightly or a preview, which serve their own assets", () => {
-    expect(runsChannelRouter(NIGHTLY)).toBe(false);
+  it("does not route on canary or a preview, which serve their own assets", () => {
+    expect(runsChannelRouter(CANARY)).toBe(false);
     expect(runsChannelRouter(PREVIEW)).toBe(false);
   });
 });

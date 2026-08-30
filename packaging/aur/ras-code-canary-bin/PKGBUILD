@@ -1,9 +1,9 @@
 # Maintainer: Richard Solomou <richard at solomou dot io>
 
-pkgname=ras-code-nightly-bin
-pkgver=0.0.34_nightly.20260814.1095
+pkgname=ras-code-canary-bin
+pkgver=0.0.34_canary.20260814.1095
 pkgrel=1
-pkgdesc='Nightly desktop control surface for local coding agents'
+pkgdesc='Canary desktop control surface for local coding agents'
 arch=('x86_64')
 url='https://github.com/richardsolomou/ras-code'
 license=('MIT')
@@ -39,11 +39,13 @@ depends=(
   'zlib'
 )
 optdepends=('openai-codex: use the system-installed Codex CLI')
-provides=("ras-code-nightly=$pkgver")
-conflicts=('ras-code-nightly' 'ras-code')
+provides=("ras-code-canary=$pkgver")
+# This package was published as ras-code-nightly-bin before the canary rename.
+conflicts=('ras-code-canary' 'ras-code' 'ras-code-nightly-bin')
+replaces=('ras-code-nightly-bin')
 options=('!debug' '!strip')
 
-_upstream_version="${pkgver/_nightly./-nightly.}"
+_upstream_version="${pkgver/_canary./-canary.}"
 _appimage="RAS-Code-${_upstream_version}-x86_64.AppImage"
 source=(
   "$_appimage::https://github.com/richardsolomou/ras-code/releases/download/v${_upstream_version}/$_appimage"
@@ -72,29 +74,29 @@ package() {
   chmod -R u=rwX,go=rX "$pkgdir/opt/$pkgname"
   chmod 4755 "$pkgdir/opt/$pkgname/chrome-sandbox"
 
-  install -Dm755 /dev/stdin "$pkgdir/usr/bin/ras-code-nightly" <<'EOF'
+  install -Dm755 /dev/stdin "$pkgdir/usr/bin/ras-code-canary" <<'EOF'
 #!/bin/sh
-exec /opt/ras-code-nightly-bin/AppRun "$@"
+exec /opt/ras-code-canary-bin/AppRun "$@"
 EOF
-  ln -s ras-code-nightly "$pkgdir/usr/bin/ras-code-nightly-desktop"
+  ln -s ras-code-canary "$pkgdir/usr/bin/ras-code-canary-desktop"
 
   # Icon lookup only sees sizes registered in hicolor's index.theme (max 512x512).
   local icon size_dir
   for icon in "$srcdir"/squashfs-root/usr/share/icons/hicolor/*/apps/ras-code.png; do
     size_dir="${icon%/apps/ras-code.png}"
     install -Dm644 "$icon" \
-      "$pkgdir/usr/share/icons/hicolor/${size_dir##*/}/apps/ras-code-nightly.png"
+      "$pkgdir/usr/share/icons/hicolor/${size_dir##*/}/apps/ras-code-canary.png"
   done
 
-  install -Dm644 /dev/stdin "$pkgdir/usr/share/applications/ras-code-nightly.desktop" <<'EOF'
+  install -Dm644 /dev/stdin "$pkgdir/usr/share/applications/ras-code-canary.desktop" <<'EOF'
 [Desktop Entry]
-Name=RAS Code Nightly
-Comment=Nightly desktop control surface for local coding agents
-Exec=ras-code-nightly %U
-TryExec=ras-code-nightly
+Name=RAS Code Canary
+Comment=Canary desktop control surface for local coding agents
+Exec=ras-code-canary %U
+TryExec=ras-code-canary
 Terminal=false
 Type=Application
-Icon=ras-code-nightly
+Icon=ras-code-canary
 StartupWMClass=ras-code
 Categories=Development;
 MimeType=x-scheme-handler/ras-code;

@@ -138,19 +138,19 @@ describe("ssh tunnel scripts", () => {
 
   it("shell-quotes package specs in the remote ras runner", () => {
     const script = buildRemoteRasCodeRunnerScript({
-      packageSpec: "ras-code@nightly; touch /tmp/ras-code-owned",
+      packageSpec: "ras-code@canary; touch /tmp/ras-code-owned",
     });
 
-    assert.include(script, "exec npx --yes 'ras-code@nightly; touch /tmp/ras-code-owned' \"$@\"");
+    assert.include(script, "exec npx --yes 'ras-code@canary; touch /tmp/ras-code-owned' \"$@\"");
     assert.include(
       script,
-      "exec npm exec --yes 'ras-code@nightly; touch /tmp/ras-code-owned' -- \"$@\"",
+      "exec npm exec --yes 'ras-code@canary; touch /tmp/ras-code-owned' -- \"$@\"",
     );
     assert.include(
       script,
-      "require_installed_ras_cli npx --yes --package 'ras-code@nightly; touch /tmp/ras-code-owned'",
+      "require_installed_ras_cli npx --yes --package 'ras-code@canary; touch /tmp/ras-code-owned'",
     );
-    assert.notInclude(script, "exec npx --yes ras-code@nightly; touch /tmp/ras-code-owned");
+    assert.notInclude(script, "exec npx --yes ras-code@canary; touch /tmp/ras-code-owned");
   });
 
   it("builds the remote ras runner with a node script override", () => {
@@ -197,10 +197,7 @@ describe("ssh tunnel scripts", () => {
     assert.include(buildRemoteLaunchScript(), 'wait_ready "60000"');
     assert.include(buildRemoteLaunchScript(), 'if [ -s "$LOG_FILE" ]; then');
     assert.include(buildRemoteLaunchScript(), "It wrote nothing to %s");
-    assert.include(
-      buildRemoteLaunchScript({ packageSpec: "ras-code@nightly" }),
-      "ras-code@nightly",
-    );
+    assert.include(buildRemoteLaunchScript({ packageSpec: "ras-code@canary" }), "ras-code@canary");
     assert.include(
       buildRemotePairingScript(target),
       '"$RUNNER_FILE" auth pairing create --base-dir "$PAIRING_BASE_DIR" --json',
@@ -208,8 +205,8 @@ describe("ssh tunnel scripts", () => {
     assert.include(buildRemotePairingScript(target), 'PAIRING_BASE_DIR="$DEFAULT_SERVER_HOME"');
     assert.notInclude(buildRemotePairingScript(target), "server-home");
     assert.include(
-      buildRemotePairingScript(target, { packageSpec: "ras-code@nightly" }),
-      "ras-code@nightly",
+      buildRemotePairingScript(target, { packageSpec: "ras-code@canary" }),
+      "ras-code@canary",
     );
     assert.include(
       buildRemoteStopScript(target),

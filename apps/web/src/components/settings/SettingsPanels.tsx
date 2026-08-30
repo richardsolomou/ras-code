@@ -398,7 +398,7 @@ function AboutVersionSection() {
       {hasDesktopBridge ? (
         <SettingsRow
           title="Update track"
-          description="Stable follows full releases. Nightly follows the nightly desktop channel and can switch back to stable immediately."
+          description="Stable follows the daily release. Canary follows every change merged to main, and can switch back to stable immediately."
           control={
             <Select
               value={selectedUpdateChannel}
@@ -412,15 +412,15 @@ function AboutVersionSection() {
                 disabled={isChangingUpdateChannel}
               >
                 <SelectValue>
-                  {selectedUpdateChannel === "nightly" ? "Nightly" : "Stable"}
+                  {selectedUpdateChannel === "canary" ? "Canary" : "Stable"}
                 </SelectValue>
               </SelectTrigger>
               <SelectPopup align="end" alignItemWithTrigger={false}>
                 <SelectItem hideIndicator value="latest">
                   Stable
                 </SelectItem>
-                <SelectItem hideIndicator value="nightly">
-                  Nightly
+                <SelectItem hideIndicator value="canary">
+                  Canary
                 </SelectItem>
               </SelectPopup>
             </Select>
@@ -447,8 +447,8 @@ function AboutVersionSection() {
                 <SelectItem hideIndicator value="latest">
                   Latest
                 </SelectItem>
-                <SelectItem hideIndicator value="nightly">
-                  Nightly
+                <SelectItem hideIndicator value="canary">
+                  Canary
                 </SelectItem>
               </SelectPopup>
             </Select>
@@ -992,7 +992,7 @@ export function AppearanceSettingsPanel() {
         {showEnvironmentIdentification ? (
           <SettingsRow
             {...searchableSetting("environment-identification")}
-            description="Choose how Dev and Nightly environments are identified."
+            description="Choose how Dev and Canary environments are identified."
             resetAction={
               settings.environmentIdentificationMode !== DEFAULT_ENVIRONMENT_IDENTIFICATION_MODE ? (
                 <SettingResetButton

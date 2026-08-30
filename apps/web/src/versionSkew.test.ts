@@ -43,41 +43,41 @@ describe("versionSkew", () => {
     expect(resolveVersionMismatch("9.9.9")).toBeNull();
   });
 
-  it("does not warn when a nightly and a stable build share a core version", () => {
-    expect(resolveVersionMismatch("0.0.34-nightly.20260818.1124")).toBeNull();
+  it("does not warn when a canary and a stable build share a core version", () => {
+    expect(resolveVersionMismatch("0.0.34-canary.20260818.1124")).toBeNull();
 
-    branding.APP_VERSION = "0.0.34-nightly.20260818.1124";
+    branding.APP_VERSION = "0.0.34-canary.20260818.1124";
     expect(resolveVersionMismatch("0.0.34")).toBeNull();
   });
 
-  it.each(["0.0.34-nightly.20260823.1124", "0.0.34-nightly.20260824.1124"])(
-    "warns when nightly server %s is behind a nightly client on the same release",
+  it.each(["0.0.34-canary.20260823.1124", "0.0.34-canary.20260824.1124"])(
+    "warns when canary server %s is behind a canary client on the same release",
     (serverVersion) => {
-      branding.APP_VERSION = "0.0.34-nightly.20260824.1125";
+      branding.APP_VERSION = "0.0.34-canary.20260824.1125";
 
       expect(resolveVersionMismatch(serverVersion)).toEqual({
-        clientVersion: "0.0.34-nightly.20260824.1125",
+        clientVersion: "0.0.34-canary.20260824.1125",
         serverVersion,
         hint: MISMATCH_HINT,
       });
     },
   );
 
-  it("does not warn when a nightly server is ahead on the same release", () => {
-    branding.APP_VERSION = "0.0.34-nightly.20260824.1125";
+  it("does not warn when a canary server is ahead on the same release", () => {
+    branding.APP_VERSION = "0.0.34-canary.20260824.1125";
 
-    expect(resolveVersionMismatch("0.0.34-nightly.20260824.1126")).toBeNull();
+    expect(resolveVersionMismatch("0.0.34-canary.20260824.1126")).toBeNull();
   });
 
-  it("treats a nightly server built past the client as ahead, not skew", () => {
-    expect(resolveVersionMismatch("0.0.35-nightly.20260818.1124")).toBeNull();
+  it("treats a canary server built past the client as ahead, not skew", () => {
+    expect(resolveVersionMismatch("0.0.35-canary.20260818.1124")).toBeNull();
   });
 
-  it("still warns when a nightly client outruns the server by a release", () => {
-    branding.APP_VERSION = "0.0.35-nightly.20260818.1124";
+  it("still warns when a canary client outruns the server by a release", () => {
+    branding.APP_VERSION = "0.0.35-canary.20260818.1124";
 
     expect(resolveVersionMismatch("0.0.34")).toEqual({
-      clientVersion: "0.0.35-nightly.20260818.1124",
+      clientVersion: "0.0.35-canary.20260818.1124",
       serverVersion: "0.0.34",
       hint: MISMATCH_HINT,
     });

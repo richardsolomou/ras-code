@@ -3,7 +3,7 @@
 The three Icon Composer projects are the source of truth for full application icons:
 
 - `dev/app-icon.icon`
-- `nightly/app-icon.icon`
+- `canary/app-icon.icon`
 - `prod/app-icon.icon`
 
 Each project uses `text.svg` for the lamp-R mark. Additional layers use semantic names that

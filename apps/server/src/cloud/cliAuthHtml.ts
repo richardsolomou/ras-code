@@ -1,6 +1,6 @@
-export type LoopbackAuthorizationStage = "dev" | "nightly" | "latest";
+export type LoopbackAuthorizationStage = "dev" | "canary" | "latest";
 
-declare const __RAS_CODE_BUILD_CHANNEL__: "nightly" | "latest" | undefined;
+declare const __RAS_CODE_BUILD_CHANNEL__: "canary" | "latest" | undefined;
 
 export function resolveLoopbackAuthorizationStage(): LoopbackAuthorizationStage {
   return typeof __RAS_CODE_BUILD_CHANNEL__ === "undefined" ? "dev" : __RAS_CODE_BUILD_CHANNEL__;
@@ -8,7 +8,7 @@ export function resolveLoopbackAuthorizationStage(): LoopbackAuthorizationStage 
 
 const stageBrands = {
   dev: "RAS Code (Dev)",
-  nightly: "RAS Code (Nightly)",
+  canary: "RAS Code (Canary)",
   latest: "RAS Code",
 } as const satisfies Record<LoopbackAuthorizationStage, string>;
 
@@ -77,12 +77,12 @@ export function renderLoopbackAuthorizationCompleteHtml(
           linear-gradient(90deg, rgba(234, 246, 255, 0.12) 1px, transparent 1px);
         background-size: 32px 32px, 32px 32px, 8px 8px, 8px 8px;
       }
-      .stage-nightly {
+      .stage-canary {
         background:
           radial-gradient(22rem 8rem at 78% 18%, rgba(81, 101, 216, 0.42), transparent 58%),
           linear-gradient(145deg, #07152f 0%, #151443 52%, #32155b 100%);
       }
-      .stage-nightly::before {
+      .stage-canary::before {
         content: "";
         position: absolute;
         inset: 0;

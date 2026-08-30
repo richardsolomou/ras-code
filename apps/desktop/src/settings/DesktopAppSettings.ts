@@ -1,6 +1,5 @@
 import {
   DesktopServerExposureModeSchema,
-  DesktopUpdateChannelSchema,
   type DesktopServerExposureMode,
   type DesktopUpdateChannel,
 } from "@ras-code/contracts";
@@ -93,6 +92,21 @@ const DesktopWindowBoundsDocument = Schema.Struct({
   height: Schema.Number,
 });
 
+// Settings written before the canary rename still name the track `nightly`.
+// Accepting it here keeps that one stale value from failing the whole document
+// and resetting every unrelated desktop setting to its default.
+const LEGACY_CANARY_UPDATE_CHANNEL = "nightly";
+const DesktopUpdateChannelDocument = Schema.Literals([
+  "latest",
+  "canary",
+  LEGACY_CANARY_UPDATE_CHANNEL,
+]);
+
+const migrateUpdateChannel = (
+  channel: typeof DesktopUpdateChannelDocument.Type,
+): DesktopUpdateChannel =>
+  channel === LEGACY_CANARY_UPDATE_CHANNEL ? "canary" : (channel as DesktopUpdateChannel);
+
 const DesktopSettingsDocument = Schema.Struct({
   linuxPasswordStore: Schema.optionalKey(Schema.Unknown),
   mainWindowBounds: Schema.optionalKey(Schema.NullOr(DesktopWindowBoundsDocument)),
@@ -100,7 +114,7 @@ const DesktopSettingsDocument = Schema.Struct({
   serverExposureMode: Schema.optionalKey(DesktopServerExposureModeSchema),
   tailscaleServeEnabled: Schema.optionalKey(Schema.Boolean),
   tailscaleServePort: Schema.optionalKey(Schema.Number),
-  updateChannel: Schema.optionalKey(DesktopUpdateChannelSchema),
+  updateChannel: Schema.optionalKey(DesktopUpdateChannelDocument),
   updateChannelConfiguredByUser: Schema.optionalKey(Schema.Boolean),
   // Newer form of the WSL toggle. `wslMode` is still accepted on load so
   // existing on-disk settings keep working; on the next persist we write the
@@ -210,11 +224,14 @@ function normalizeDesktopSettingsDocument(
 ): DesktopSettings {
   const defaultSettings = resolveDefaultDesktopSettings(appVersion);
   const mainWindowBounds = normalizeMainWindowBounds(parsed.mainWindowBounds);
-  const parsedUpdateChannel = Option.fromNullishOr(parsed.updateChannel);
+  const parsedUpdateChannel = Option.map(
+    Option.fromNullishOr(parsed.updateChannel),
+    migrateUpdateChannel,
+  );
   const isLegacySettings = parsed.updateChannelConfiguredByUser === undefined;
   const updateChannelConfiguredByUser =
     parsed.updateChannelConfiguredByUser === true ||
-    (isLegacySettings && Option.contains(parsedUpdateChannel, "nightly"));
+    (isLegacySettings && Option.contains(parsedUpdateChannel, "canary"));
 
   // Newer form wins when both are present; otherwise fall back to the legacy
   // `wslMode === "wsl"` signal so users coming off the swap-mode build keep

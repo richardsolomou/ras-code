@@ -110,18 +110,18 @@ describe("ssh command", () => {
       );
       assert.equal(
         resolveRemoteRasCodeCliPackageSpec({
-          appVersion: "0.0.17-nightly.20260415.44",
-          updateChannel: "nightly",
+          appVersion: "0.0.17-canary.20260415.44",
+          updateChannel: "canary",
         }),
-        "ras-code@0.0.17-nightly.20260415.44",
+        "ras-code@0.0.17-canary.20260415.44",
       );
       assert.equal(
         resolveRemoteRasCodeCliPackageSpec({
           appVersion: "0.0.0-dev",
-          updateChannel: "nightly",
+          updateChannel: "canary",
           isDevelopment: true,
         }),
-        "ras-code@nightly",
+        "ras-code@canary",
       );
       assert.equal(
         resolveRemoteRasCodeCliPackageSpec({
@@ -129,7 +129,7 @@ describe("ssh command", () => {
           updateChannel: "latest",
           isDevelopment: true,
         }),
-        "ras-code@nightly",
+        "ras-code@canary",
       );
     }),
   );

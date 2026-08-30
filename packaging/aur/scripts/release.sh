@@ -8,8 +8,8 @@ pkgrel="${PKGREL:-1}"
 
 if [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
   pkgname='ras-code-bin'
-elif [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-nightly\.[0-9]{8}\.[0-9]+$ ]]; then
-  pkgname='ras-code-nightly-bin'
+elif [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-canary\.[0-9]{8}\.[0-9]+$ ]]; then
+  pkgname='ras-code-canary-bin'
 else
   echo "Release $tag does not publish an AUR package."
   exit 0

@@ -52,9 +52,9 @@ it.effect("normalizes the hosted app URL to an absolute origin", () =>
   Effect.gen(function* () {
     assert.equal(
       yield* hostedAppUrlConfig.pipe(
-        provideEnv({ RAS_CODE_HOSTED_APP_URL: "https://nightly.app.t3.codes" }),
+        provideEnv({ RAS_CODE_HOSTED_APP_URL: "https://canary.app.t3.codes" }),
       ),
-      "https://nightly.app.t3.codes",
+      "https://canary.app.t3.codes",
     );
     assert.equal(
       yield* hostedAppUrlConfig.pipe(

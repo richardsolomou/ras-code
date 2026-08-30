@@ -314,7 +314,7 @@ describe("DesktopUpdates", () => {
     ).pipe(Effect.provide(Layer.merge(TestClock.layer(), harness.layer)));
   });
 
-  it.effect("enables nightly full changelog release notes and broadcasts summaries", () => {
+  it.effect("enables canary full changelog release notes and broadcasts summaries", () => {
     const harness = makeHarness();
 
     return Effect.scoped(
@@ -322,18 +322,18 @@ describe("DesktopUpdates", () => {
         const updates = yield* DesktopUpdates.DesktopUpdates;
         yield* updates.configure;
 
-        yield* updates.setChannel("nightly");
+        yield* updates.setChannel("canary");
         assert.equal(harness.fullChangelog(), true);
 
         harness.emit("update-available", {
-          version: "1.2.4-nightly.20260709.766",
+          version: "1.2.4-canary.20260709.766",
           releaseNotes: [
             {
-              version: "1.2.4-nightly.20260709.766",
+              version: "1.2.4-canary.20260709.766",
               note: `<h2>What's Changed</h2><ul><li>feat(client): persist offline environment data by <a>@juliusmarminge</a> in <a>#3795</a></li></ul><h2>Full Changelog</h2>`,
             },
             {
-              version: "1.2.4-nightly.20260709.765",
+              version: "1.2.4-canary.20260709.765",
               note: "- [codex] Upgrade Clerk stack by @juliusmarminge in #3821",
             },
           ],
@@ -344,11 +344,11 @@ describe("DesktopUpdates", () => {
         assert.equal(state.status, "available");
         assert.deepEqual(state.releaseNotes, [
           {
-            version: "1.2.4-nightly.20260709.766",
+            version: "1.2.4-canary.20260709.766",
             items: ["feat(client): persist offline environment data by @juliusmarminge in #3795"],
           },
           {
-            version: "1.2.4-nightly.20260709.765",
+            version: "1.2.4-canary.20260709.765",
             items: ["[codex] Upgrade Clerk stack by @juliusmarminge in #3821"],
           },
         ]);
@@ -447,7 +447,7 @@ describe("DesktopUpdates", () => {
         yield* flushCallbacks;
 
         yield* updates.check("poll");
-        harness.emit("update-available", { version: "1.2.5-nightly.20260710.1" });
+        harness.emit("update-available", { version: "1.2.5-canary.20260710.1" });
         yield* flushCallbacks;
 
         const state = yield* updates.getState;
@@ -650,8 +650,8 @@ describe("DesktopUpdates", () => {
         assert.equal(failedState.errorContext, "download");
         assert.equal(failedState.message, "Desktop update download action failed unexpectedly.");
 
-        const changedState = yield* updates.setChannel("nightly");
-        assert.equal(changedState.channel, "nightly");
+        const changedState = yield* updates.setChannel("canary");
+        assert.equal(changedState.channel, "canary");
       }),
     ).pipe(Effect.provide(Layer.merge(TestClock.layer(), harness.layer)));
   });
@@ -719,8 +719,8 @@ describe("DesktopUpdates", () => {
         assert.equal(failedState.errorContext, "install");
         assert.equal(failedState.message, "Desktop update install action failed unexpectedly.");
 
-        const changedState = yield* updates.setChannel("nightly");
-        assert.equal(changedState.channel, "nightly");
+        const changedState = yield* updates.setChannel("canary");
+        assert.equal(changedState.channel, "canary");
       }),
     ).pipe(Effect.provide(Layer.merge(TestClock.layer(), harness.layer)));
   });
@@ -734,11 +734,11 @@ describe("DesktopUpdates", () => {
         const updates = yield* DesktopUpdates.DesktopUpdates;
         yield* updates.configure;
 
-        const state = yield* updates.setChannel("nightly");
+        const state = yield* updates.setChannel("canary");
         const persistedSettings = yield* settings.get;
 
-        assert.equal(state.channel, "nightly");
-        assert.equal(persistedSettings.updateChannel, "nightly");
+        assert.equal(state.channel, "canary");
+        assert.equal(persistedSettings.updateChannel, "canary");
         assert.equal(persistedSettings.updateChannelConfiguredByUser, true);
       }),
     ).pipe(Effect.provide(Layer.merge(TestClock.layer(), harness.layer)));
@@ -781,13 +781,13 @@ describe("DesktopUpdates", () => {
           const checkFiber = yield* updates.check("manual").pipe(Effect.forkScoped);
           yield* Deferred.await(checkStarted);
 
-          const exit = yield* Effect.exit(updates.setChannel("nightly"));
+          const exit = yield* Effect.exit(updates.setChannel("canary"));
           assert.equal(exit._tag, "Failure");
           if (exit._tag === "Failure") {
             const error = Cause.squash(exit.cause);
             assert.instanceOf(error, DesktopUpdates.DesktopUpdateActionInProgressError);
             assert.equal(error.action, "check");
-            assert.equal(error.requestedChannel, "nightly");
+            assert.equal(error.requestedChannel, "canary");
           }
 
           yield* Deferred.succeed(releaseCheck, undefined);
@@ -812,7 +812,7 @@ describe("DesktopUpdates", () => {
           const updates = yield* DesktopUpdates.DesktopUpdates;
           yield* updates.configure;
 
-          const channelFiber = yield* updates.setChannel("nightly").pipe(Effect.forkScoped);
+          const channelFiber = yield* updates.setChannel("canary").pipe(Effect.forkScoped);
           yield* Deferred.await(channelChangeStarted);
 
           const checkResult = yield* updates.check("manual");
@@ -822,7 +822,7 @@ describe("DesktopUpdates", () => {
           yield* Deferred.succeed(releaseChannelChange, undefined);
           const state = yield* Fiber.join(channelFiber);
 
-          assert.equal(state.channel, "nightly");
+          assert.equal(state.channel, "canary");
           assert.equal(harness.checkCount(), 1);
         }),
       ).pipe(Effect.provide(Layer.merge(TestClock.layer(), harness.layer)));
@@ -843,14 +843,14 @@ describe("DesktopUpdates", () => {
         const updates = yield* DesktopUpdates.DesktopUpdates;
         yield* updates.configure;
 
-        const error = yield* updates.setChannel("nightly").pipe(Effect.flip);
+        const error = yield* updates.setChannel("canary").pipe(Effect.flip);
 
         assert.instanceOf(error, DesktopUpdates.DesktopUpdateChannelPersistenceError);
         assert.isTrue(DesktopUpdates.isDesktopUpdateSetChannelError(error));
-        assert.equal(error.channel, "nightly");
+        assert.equal(error.channel, "canary");
         assert.strictEqual(error.cause, settingsFailure);
         assert.strictEqual(error.cause.cause, diskFailure);
-        assert.equal(error.message, "Failed to persist the nightly desktop update channel.");
+        assert.equal(error.message, "Failed to persist the canary desktop update channel.");
         assert.notInclude(error.message, diskFailure.message);
 
         const checkResult = yield* updates.check("manual");

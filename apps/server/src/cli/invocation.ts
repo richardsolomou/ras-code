@@ -38,19 +38,19 @@ export function detectCliRunner(entryPath: string): CliRunner | null {
 
 /**
  * The `ras-code` package spec to suggest. The literal spec the user typed (e.g.
- * `ras-code@nightly`) is resolved away before our process starts, so re-derive it
- * from the running version: nightly builds re-suggest the nightly channel,
+ * `ras-code@canary`) is resolved away before our process starts, so re-derive it
+ * from the running version: canary builds re-suggest the canary channel,
  * anything else suggests the bare package.
  */
 export function suggestedPackageSpec(version: string): string {
-  return version.includes("-nightly.") ? "ras-code@nightly" : "ras-code";
+  return version.includes("-canary.") ? "ras-code@canary" : "ras-code";
 }
 
 /**
  * Render a `ras <subcommand>` suggestion that matches how this process was
  * launched, so copy/pasting it actually works: `npx ras-code connect` suggests
- * `npx ras-code serve`, a global install suggests `ras serve`, and a nightly build
- * keeps the `@nightly` tag.
+ * `npx ras-code serve`, a global install suggests `ras serve`, and a canary build
+ * keeps the `@canary` tag.
  */
 export function formatCliCommand(input: {
   readonly subcommand: string;

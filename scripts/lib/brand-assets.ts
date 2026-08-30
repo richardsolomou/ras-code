@@ -13,15 +13,15 @@ export const BRAND_ASSET_PATHS = {
   productionWebFavicon32Png: "assets/prod/ras-code-black-web-favicon-32x32.png",
   productionWebAppleTouchIconPng: "assets/prod/ras-code-black-web-apple-touch-180.png",
 
-  nightlyIconComposerProject: "assets/nightly/app-icon.icon",
-  nightlyIosIconPng: "assets/nightly/nightly-ios-1024.png",
-  nightlyMacIconPng: "assets/nightly/nightly-macos-1024.png",
-  nightlyLinuxIconPng: "assets/nightly/nightly-universal-1024.png",
-  nightlyWindowsIconIco: "assets/nightly/nightly-windows.ico",
-  nightlyWebFaviconIco: "assets/nightly/nightly-web-favicon.ico",
-  nightlyWebFavicon16Png: "assets/nightly/nightly-web-favicon-16x16.png",
-  nightlyWebFavicon32Png: "assets/nightly/nightly-web-favicon-32x32.png",
-  nightlyWebAppleTouchIconPng: "assets/nightly/nightly-web-apple-touch-180.png",
+  canaryIconComposerProject: "assets/canary/app-icon.icon",
+  canaryIosIconPng: "assets/canary/canary-ios-1024.png",
+  canaryMacIconPng: "assets/canary/canary-macos-1024.png",
+  canaryLinuxIconPng: "assets/canary/canary-universal-1024.png",
+  canaryWindowsIconIco: "assets/canary/canary-windows.ico",
+  canaryWebFaviconIco: "assets/canary/canary-web-favicon.ico",
+  canaryWebFavicon16Png: "assets/canary/canary-web-favicon-16x16.png",
+  canaryWebFavicon32Png: "assets/canary/canary-web-favicon-32x32.png",
+  canaryWebAppleTouchIconPng: "assets/canary/canary-web-apple-touch-180.png",
 
   developmentDesktopIconPng: "assets/dev/blueprint-macos-1024.png",
   developmentWindowsIconIco: "assets/dev/blueprint-windows.ico",
@@ -31,18 +31,18 @@ export const BRAND_ASSET_PATHS = {
   developmentWebAppleTouchIconPng: "assets/dev/blueprint-web-apple-touch-180.png",
 } as const;
 
-export type WebAssetBrand = "development" | "nightly" | "production";
+export type WebAssetBrand = "development" | "canary" | "production";
 
-export const WEB_ASSET_CHANNELS = ["latest", "nightly"] as const;
+export const WEB_ASSET_CHANNELS = ["latest", "canary"] as const;
 
 export type WebAssetChannel = (typeof WEB_ASSET_CHANNELS)[number];
 
 export function resolveWebAssetBrandForChannel(channel: WebAssetChannel): WebAssetBrand {
-  return channel === "nightly" ? "nightly" : "production";
+  return channel === "canary" ? "canary" : "production";
 }
 
 export function resolveWebAssetBrandForPackageVersion(version: string): WebAssetBrand {
-  return version.includes("-nightly.") ? "nightly" : "production";
+  return version.includes("-canary.") ? "canary" : "production";
 }
 
 export interface IconOverride {
@@ -64,11 +64,11 @@ const WEB_ICON_SOURCE_PATHS_BY_BRAND = {
     favicon32Png: BRAND_ASSET_PATHS.developmentWebFavicon32Png,
     appleTouchIconPng: BRAND_ASSET_PATHS.developmentWebAppleTouchIconPng,
   },
-  nightly: {
-    faviconIco: BRAND_ASSET_PATHS.nightlyWebFaviconIco,
-    favicon16Png: BRAND_ASSET_PATHS.nightlyWebFavicon16Png,
-    favicon32Png: BRAND_ASSET_PATHS.nightlyWebFavicon32Png,
-    appleTouchIconPng: BRAND_ASSET_PATHS.nightlyWebAppleTouchIconPng,
+  canary: {
+    faviconIco: BRAND_ASSET_PATHS.canaryWebFaviconIco,
+    favicon16Png: BRAND_ASSET_PATHS.canaryWebFavicon16Png,
+    favicon32Png: BRAND_ASSET_PATHS.canaryWebFavicon32Png,
+    appleTouchIconPng: BRAND_ASSET_PATHS.canaryWebAppleTouchIconPng,
   },
   production: {
     faviconIco: BRAND_ASSET_PATHS.productionWebFaviconIco,

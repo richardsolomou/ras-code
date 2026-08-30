@@ -322,7 +322,7 @@ export class DesktopIconSourceMissingError extends Schema.TaggedErrorClass<Deskt
 export class DesktopDmgBackgroundSourceMissingError extends Schema.TaggedErrorClass<DesktopDmgBackgroundSourceMissingError>()(
   "DesktopDmgBackgroundSourceMissingError",
   {
-    channel: Schema.Literals(["latest", "nightly"]),
+    channel: Schema.Literals(["latest", "canary"]),
     sourcePath: Schema.String,
   },
 ) {
@@ -1888,7 +1888,7 @@ function stageMacIcons(stageResourcesDir: string, sourcePng: string, verbose: bo
 
 export const stageDesktopDmgBackground = Effect.fn("stageDesktopDmgBackground")(function* (
   stageResourcesDir: string,
-  channel: "latest" | "nightly",
+  channel: "latest" | "canary",
   verbose: boolean,
 ) {
   const fs = yield* FileSystem.FileSystem;
@@ -2051,7 +2051,7 @@ export function resolveDesktopRuntimeDependencies(
 }
 
 export const resolveGitHubPublishConfig = Effect.fn("resolveGitHubPublishConfig")(function* (
-  updateChannel: "latest" | "nightly",
+  updateChannel: "latest" | "canary",
 ) {
   const env = yield* Config.all({
     updateRepository: Config.string("RAS_CODE_DESKTOP_UPDATE_REPOSITORY").pipe(Config.option),
@@ -2071,13 +2071,13 @@ export const resolveGitHubPublishConfig = Effect.fn("resolveGitHubPublishConfig"
     provider: "github",
     owner,
     repo,
-    releaseType: updateChannel === "nightly" ? "prerelease" : "release",
-    ...(updateChannel === "nightly" ? { channel: "nightly" as const } : {}),
+    releaseType: updateChannel === "canary" ? "prerelease" : "release",
+    ...(updateChannel === "canary" ? { channel: "canary" as const } : {}),
   };
 });
 
-export function resolveDesktopUpdateChannel(version: string): "latest" | "nightly" {
-  return /-nightly\.\d{8}\.\d+$/.test(version) ? "nightly" : "latest";
+export function resolveDesktopUpdateChannel(version: string): "latest" | "canary" {
+  return /-canary\.\d{8}\.\d+$/.test(version) ? "canary" : "latest";
 }
 
 function isDesktopPreviewVersion(version: string): boolean {
@@ -2089,11 +2089,11 @@ export function resolveDesktopWebAssetBrand(version: string): WebAssetBrand {
 }
 
 export function resolveDesktopBuildIconAssets(version: string): DesktopBuildIconAssets {
-  if (resolveDesktopUpdateChannel(version) === "nightly") {
+  if (resolveDesktopUpdateChannel(version) === "canary") {
     return {
-      macIconPng: BRAND_ASSET_PATHS.nightlyMacIconPng,
-      linuxIconPng: BRAND_ASSET_PATHS.nightlyLinuxIconPng,
-      windowsIconIco: BRAND_ASSET_PATHS.nightlyWindowsIconIco,
+      macIconPng: BRAND_ASSET_PATHS.canaryMacIconPng,
+      linuxIconPng: BRAND_ASSET_PATHS.canaryLinuxIconPng,
+      windowsIconIco: BRAND_ASSET_PATHS.canaryWindowsIconIco,
     };
   }
 
@@ -2122,8 +2122,8 @@ export function resolvePackageManagerUserAgent(packageManager: string): string {
 }
 
 export function resolveDesktopProductName(version: string): string {
-  return resolveDesktopUpdateChannel(version) === "nightly"
-    ? "RAS Code (Nightly)"
+  return resolveDesktopUpdateChannel(version) === "canary"
+    ? "RAS Code (Canary)"
     : (desktopPackageJson.productName ?? "RAS Code");
 }
 

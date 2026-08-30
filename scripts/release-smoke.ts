@@ -223,10 +223,12 @@ try {
     assertPackageVersion(NodePath.resolve(tempRoot, relativePath), "9.9.9-smoke.0");
   }
 
-  const nightlyReleaseMetadata = NodeChildProcess.execFileSync(
+  const canaryReleaseMetadata = NodeChildProcess.execFileSync(
     process.execPath,
     [
-      NodePath.resolve(repoRoot, "scripts/resolve-nightly-release.ts"),
+      NodePath.resolve(repoRoot, "scripts/resolve-release-version.ts"),
+      "--channel",
+      "canary",
       "--date",
       "20260413",
       "--run-number",
@@ -242,19 +244,19 @@ try {
     },
   );
   assertContains(
-    nightlyReleaseMetadata,
-    "version=9.9.10-nightly.20260413.321",
-    "Expected nightly metadata to contain the derived nightly version.",
+    canaryReleaseMetadata,
+    "version=9.9.10-canary.20260413.321",
+    "Expected canary metadata to contain the derived canary version.",
   );
   assertContains(
-    nightlyReleaseMetadata,
-    "tag=v9.9.10-nightly.20260413.321",
-    "Expected nightly metadata to contain the derived nightly tag.",
+    canaryReleaseMetadata,
+    "tag=v9.9.10-canary.20260413.321",
+    "Expected canary metadata to contain the derived canary tag.",
   );
   assertContains(
-    nightlyReleaseMetadata,
-    "name=RAS Code Nightly 9.9.10-nightly.20260413.321 (abcdef123456)",
-    "Expected nightly metadata to include the short commit SHA in the release name.",
+    canaryReleaseMetadata,
+    "name=RAS Code Canary 9.9.10-canary.20260413.321 (abcdef123456)",
+    "Expected canary metadata to include the short commit SHA in the release name.",
   );
 
   const { arm64Path, x64Path } = writeMacManifestFixtures(tempRoot);
@@ -290,9 +292,11 @@ try {
     "latest",
   );
   const mergedWindowsManifestPath = NodePath.resolve(tempRoot, "release-assets/latest.yml");
-  const { arm64Path: nightlyWinArm64Path, x64Path: nightlyWinX64Path } =
-    writeWindowsManifestFixtures(tempRoot, "nightly");
-  const mergedNightlyWindowsManifestPath = NodePath.resolve(tempRoot, "release-assets/nightly.yml");
+  const { arm64Path: canaryWinArm64Path, x64Path: canaryWinX64Path } = writeWindowsManifestFixtures(
+    tempRoot,
+    "canary",
+  );
+  const mergedCanaryWindowsManifestPath = NodePath.resolve(tempRoot, "release-assets/canary.yml");
   const { arm64Path: previewWinArm64Path, x64Path: previewWinX64Path } =
     writeWindowsManifestFixtures(tempRoot, "preview");
   const mergedPreviewWindowsManifestPath = NodePath.resolve(tempRoot, "release-assets/preview.yml");
@@ -349,19 +353,16 @@ try {
     "RAS-Code-9.9.9-smoke.0-x64.exe",
     "Merged Windows manifest is missing the x64 asset.",
   );
-  const mergedNightlyWindowsManifest = NodeFS.readFileSync(
-    mergedNightlyWindowsManifestPath,
-    "utf8",
-  );
+  const mergedCanaryWindowsManifest = NodeFS.readFileSync(mergedCanaryWindowsManifestPath, "utf8");
   assertContains(
-    mergedNightlyWindowsManifest,
+    mergedCanaryWindowsManifest,
     "RAS-Code-9.9.9-smoke.0-arm64.exe",
-    "Merged nightly Windows manifest is missing the arm64 asset.",
+    "Merged canary Windows manifest is missing the arm64 asset.",
   );
   assertContains(
-    mergedNightlyWindowsManifest,
+    mergedCanaryWindowsManifest,
     "RAS-Code-9.9.9-smoke.0-x64.exe",
-    "Merged nightly Windows manifest is missing the x64 asset.",
+    "Merged canary Windows manifest is missing the x64 asset.",
   );
   const mergedPreviewWindowsManifest = NodeFS.readFileSync(
     mergedPreviewWindowsManifestPath,
@@ -383,12 +384,12 @@ try {
   );
   assertMissing(winX64Path, "Windows release smoke unexpectedly kept the x64 updater manifest.");
   assertMissing(
-    nightlyWinArm64Path,
-    "Windows release smoke unexpectedly kept the nightly arm64 updater manifest.",
+    canaryWinArm64Path,
+    "Windows release smoke unexpectedly kept the canary arm64 updater manifest.",
   );
   assertMissing(
-    nightlyWinX64Path,
-    "Windows release smoke unexpectedly kept the nightly x64 updater manifest.",
+    canaryWinX64Path,
+    "Windows release smoke unexpectedly kept the canary x64 updater manifest.",
   );
   assertMissing(
     previewWinArm64Path,

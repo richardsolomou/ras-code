@@ -84,17 +84,17 @@ describe("ElectronUpdater", () => {
       const cause = new Error("download unavailable");
       autoUpdaterMock.downloadUpdate.mockImplementationOnce(() => Promise.reject(cause));
       const updater = yield* ElectronUpdater.ElectronUpdater;
-      autoUpdaterMock.channel = "nightly";
+      autoUpdaterMock.channel = "canary";
 
       const error = yield* updater.downloadUpdate.pipe(Effect.flip);
 
       assert.instanceOf(error, ElectronUpdater.ElectronUpdaterDownloadUpdateError);
       assert.isTrue(ElectronUpdater.isElectronUpdaterError(error));
-      assert.equal(error.channel, "nightly");
+      assert.equal(error.channel, "canary");
       assert.strictEqual(error.cause, cause);
       assert.equal(
         error.message,
-        "Electron updater failed to download the update on channel nightly.",
+        "Electron updater failed to download the update on channel canary.",
       );
       assert.notInclude(error.message, cause.message);
     }).pipe(Effect.provide(ElectronUpdater.layer)),

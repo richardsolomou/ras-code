@@ -20,11 +20,11 @@ it("renders the branded loopback authorization completion page", () => {
 });
 
 it("renders the matching header treatment for each release channel", () => {
-  const nightly = renderLoopbackAuthorizationCompleteHtml("nightly");
+  const canary = renderLoopbackAuthorizationCompleteHtml("canary");
   const latest = renderLoopbackAuthorizationCompleteHtml("latest");
 
-  expect(nightly).toContain("RAS Code (Nightly)");
-  expect(nightly).toContain('class="stage stage-nightly"');
+  expect(canary).toContain("RAS Code (Canary)");
+  expect(canary).toContain('class="stage stage-canary"');
   expect(latest).toContain('<p class="brand">RAS Code</p>');
   expect(latest).not.toContain("(Latest)");
   expect(latest).toContain('class="stage stage-latest"');
