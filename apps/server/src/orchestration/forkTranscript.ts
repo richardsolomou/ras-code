@@ -37,23 +37,24 @@ function renderMessage(message: ForkTranscriptMessage): string {
 function renderTranscriptBody(
   messages: ReadonlyArray<ForkTranscriptMessage>,
 ): { readonly body: string; readonly truncated: boolean } | undefined {
-  const rendered = messages.filter((message) => message.text.trim().length > 0).map(renderMessage);
-  if (rendered.length === 0) {
-    return undefined;
-  }
-
-  // Keep the newest messages: they are the ones the fork point depends on.
   const kept: Array<string> = [];
   let budget = MAX_TRANSCRIPT_CHARACTERS;
-  for (let index = rendered.length - 1; index >= 0; index -= 1) {
-    const entry = rendered[index];
-    if (entry === undefined) continue;
-    if (entry.length > budget) break;
+  let foundMessage = false;
+  let truncated = false;
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (message === undefined || message.text.trim().length === 0) continue;
+    foundMessage = true;
+    const entry = renderMessage(message);
+    if (entry.length > budget) {
+      truncated = true;
+      break;
+    }
     kept.unshift(entry);
     budget -= entry.length;
   }
+  if (!foundMessage) return undefined;
 
-  const truncated = kept.length < rendered.length;
   const body = kept.length > 0 ? kept.join("\n\n") : "(transcript omitted: too long)";
   return { body, truncated };
 }

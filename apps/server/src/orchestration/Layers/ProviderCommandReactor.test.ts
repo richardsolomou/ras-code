@@ -3855,6 +3855,7 @@ describe("ProviderCommandReactor", () => {
       if (typeof returnInput !== "string") throw new Error("Return prompt was not text.");
       expect(returnInput).toContain("hello reactor");
       expect(returnInput).toMatch(/<\/provider-switch-conversation>\n\nsecond turn$/);
+      expect(returnInput.split("second turn")).toHaveLength(2);
 
       await harness.publishRuntimeEvent({
         eventId: EventId.make("runtime-event-codex-return-still-exhausted"),
