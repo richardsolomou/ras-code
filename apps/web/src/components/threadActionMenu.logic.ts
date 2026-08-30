@@ -7,6 +7,7 @@ import type { SnoozePreset } from "@ras-code/client-runtime/state/thread-settled
  * remains data-driven.
  */
 export type ThreadActionMenuId =
+  | "open-in-split"
   | "new-thread-on-branch"
   | "pin"
   | "unpin"
@@ -27,6 +28,12 @@ export type ThreadActionMenuId =
 
 export interface ThreadActionMenuState {
   readonly branch: string | null;
+  /**
+   * Whether this thread can be opened beside the current one. False for the
+   * thread already on screen and for a window with no room for two panes, so the
+   * menu never offers a split that would do nothing.
+   */
+  readonly canOpenInSplit: boolean;
   readonly isPinned: boolean;
   readonly isSettled: boolean;
   readonly isSnoozed: boolean;
@@ -52,6 +59,15 @@ export function buildThreadActionMenuItems(
   state: ThreadActionMenuState,
 ): ReadonlyArray<ContextMenuItem<ThreadActionMenuId>> {
   return [
+    ...(state.canOpenInSplit
+      ? [
+          {
+            id: "open-in-split" as const,
+            label: "Open in split",
+            icon: "columns-2",
+          },
+        ]
+      : []),
     ...(state.branch
       ? [
           {

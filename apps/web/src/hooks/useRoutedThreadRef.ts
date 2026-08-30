@@ -1,0 +1,49 @@
+import { scopedThreadKey } from "@ras-code/client-runtime/environment";
+import type { ScopedThreadRef } from "@ras-code/contracts";
+import { useParams } from "@tanstack/react-router";
+import { useMemo } from "react";
+
+import { useComposerDraftStore } from "../composerDraftStore";
+import { resolveActiveThreadRouteRef, resolveThreadRouteTarget } from "../threadRoutes";
+
+/**
+ * The server thread on screen in the routed pane — the one that owns the URL and
+ * the global shortcuts — or null while the route shows an unpromoted draft or no
+ * thread at all.
+ *
+ * A draft route counts once its draft has been promoted, since by then it is
+ * showing a real thread.
+ */
+export function useRoutedThreadRef(): ScopedThreadRef | null {
+  const routeTarget = useParams({
+    strict: false,
+    select: (params) => resolveThreadRouteTarget(params),
+  });
+  const routeDraftThread = useComposerDraftStore((store) =>
+    routeTarget?.kind === "draft" ? store.getDraftSession(routeTarget.draftId) : null,
+  );
+  return useMemo(
+    () => resolveActiveThreadRouteRef(routeTarget, routeDraftThread),
+    [routeDraftThread, routeTarget],
+  );
+}
+
+/**
+ * A stable identity for whatever the route points at, draft or thread.
+ *
+ * Distinct from the thread ref: a draft keeps the same identity across the
+ * promotion that gives it one, which is what tells an in-place promotion apart
+ * from a real navigation.
+ */
+export function useRouteTargetId(): string | null {
+  return useParams({
+    strict: false,
+    select: (params) => {
+      const target = resolveThreadRouteTarget(params);
+      if (!target) return null;
+      return target.kind === "draft"
+        ? `draft:${target.draftId}`
+        : `thread:${scopedThreadKey(target.threadRef)}`;
+    },
+  });
+}

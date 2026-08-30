@@ -124,6 +124,9 @@ export function useThreadActionMenu(input: {
         const snoozePresets = resolveSnoozePresets(now, timestampFormat);
         const items = buildThreadActionMenuItems({
           branch: thread.branch ?? null,
+          // This menu belongs to a pane's own header, so its thread is already
+          // on screen and has nowhere to be split into.
+          canOpenInSplit: false,
           isPinned: thread.pinnedAt != null,
           isSettled:
             supports.settlement &&
