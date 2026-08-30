@@ -325,7 +325,13 @@ export function effectiveSettled(
       Date.parse(shell.settledAt) >= Date.parse(shell.latestUserMessageAt);
     if (!serverAdjudicated) return false;
   }
-  if (shell.settledOverride === "settled") return true;
+  if (shell.settledOverride === "settled") {
+    // A merge settle is another client's auto-settle-on-merge decision, and
+    // that toggle is per-client. A client with it off disregards the override
+    // and falls through to the ordinary rules, rather than being forced either
+    // way by whichever device saw the merge first.
+    if (shell.settledReason !== "merge" || options.autoSettleOnMerge !== false) return true;
+  }
   // "active" is the explicit keep-active pin: it suppresses auto-settle
   // until real activity clears it server-side.
   if (shell.settledOverride === "active") return false;
@@ -354,6 +360,35 @@ export function effectiveSettled(
   return (
     Date.parse(lastActivityAt) < Date.parse(options.now) - options.autoSettleAfterDays * DAY_MS
   );
+}
+
+/**
+ * Whether this client should record its auto-settle-on-merge decision on the
+ * server. Auto-settle is otherwise re-derived from change-request state on
+ * every load, on every device, which leaves a merged thread rendering as live
+ * work until the PR lookup answers. Writing it once makes the next cold load
+ * correct straight from the projection.
+ *
+ * Deliberately narrow: it never settles anything `canSettle` would refuse, and
+ * never overrides a keep-active pin. Only a merge is recorded — a closed
+ * change request settles every client whatever their toggle says, so writing
+ * it under the merge reason would make clients with the toggle off disregard
+ * a settle they should honour.
+ */
+export function shouldRecordMergeSettle(input: {
+  readonly shell: OrchestrationThreadShell;
+  readonly changeRequest: ChangeRequestSettleSource | null | undefined;
+  readonly autoSettleOnMerge?: boolean | undefined;
+  readonly now: string;
+}): boolean {
+  const { shell } = input;
+  if (input.changeRequest?.state !== "merged") return false;
+  if (shell.settledOverride !== null) return false;
+  if (!canSettle(shell, { now: input.now })) return false;
+  return changeRequestAutoSettles(input.changeRequest, {
+    autoSettleOnMerge: input.autoSettleOnMerge,
+    thread: shell,
+  });
 }
 
 const HOUR_MS = 60 * 60 * 1_000;

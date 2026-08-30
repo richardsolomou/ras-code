@@ -6,6 +6,7 @@ import {
 import { pullRequestDetailToVcsStatus } from "@ras-code/client-runtime/state/pull-requests";
 import type {
   EnvironmentId,
+  OrchestrationThreadShell,
   PullRequestDetail,
   ThreadLinkedPullRequest,
   VcsStatusResult,
@@ -190,6 +191,27 @@ export interface ThreadChangeRequestSnapshot {
 export const threadChangeRequestSnapshotsAtom = Atom.make<
   ReadonlyMap<string, ThreadChangeRequestSnapshot>
 >(new Map()).pipe(Atom.keepAlive, Atom.withLabel("sidebar:thread-change-request-snapshots"));
+
+/**
+ * The snapshot's change request, but only when it belongs to this thread:
+ * matched on the linked pull request when the thread has one, on the branch
+ * otherwise. Shared so the sidebar partition and the merge-settle recorder
+ * cannot drift apart on what counts as "this thread's PR".
+ */
+export function resolveThreadChangeRequest(
+  thread: Pick<OrchestrationThreadShell, "branch" | "worktreePath" | "linkedPullRequest">,
+  snapshot: ThreadChangeRequestSnapshot | null | undefined,
+): NonNullable<ThreadPr> | null {
+  if (snapshot == null) return null;
+  if (thread.linkedPullRequest == null) {
+    return thread.worktreePath === null || snapshot.branch === thread.branch ? snapshot.pr : null;
+  }
+  return snapshot.linkedPullRequest?.projectId === thread.linkedPullRequest.projectId &&
+    snapshot.linkedPullRequest.repository === thread.linkedPullRequest.repository &&
+    snapshot.linkedPullRequest.number === thread.linkedPullRequest.number
+    ? snapshot.pr
+    : null;
+}
 
 function isTerminalChangeRequestState(
   state: NonNullable<ThreadPr>["state"],

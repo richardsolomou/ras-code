@@ -63,6 +63,8 @@ it.effect("projects settled lifecycle events", () =>
     expect(settled.threads[0]?.settledOverride).toBe("settled");
     expect(settled.threads[0]?.settledAt).toBe(now);
     expect(settled.threads[0]?.unsettledAt).toBeNull();
+    // Events written before the reason existed are all user settles.
+    expect(settled.threads[0]?.settledReason).toBe("user");
 
     const unsettleAt = "2026-01-02T00:00:00.000Z";
     const userUnsettled = yield* projectEvent(
@@ -75,6 +77,7 @@ it.effect("projects settled lifecycle events", () =>
     );
     expect(userUnsettled.threads[0]?.settledOverride).toBe("active");
     expect(userUnsettled.threads[0]?.settledAt).toBeNull();
+    expect(userUnsettled.threads[0]?.settledReason).toBeNull();
     expect(userUnsettled.threads[0]?.unsettledAt).toBe(unsettleAt);
 
     // Clearing the keep-active pin on activity is not a re-entry: the thread
@@ -119,5 +122,46 @@ it.effect("projects settled lifecycle events", () =>
     );
     expect(woke.threads[0]?.settledOverride).toBeNull();
     expect(woke.threads[0]?.unsettledAt).toBe(wakeAt);
+  }),
+);
+
+it.effect("projects a merge settle's reason so other clients can disregard it", () =>
+  Effect.gen(function* () {
+    const now = "2026-01-01T00:00:00.000Z";
+    const created = yield* projectEvent(
+      createEmptyReadModel(now),
+      makeEvent({
+        sequence: 1,
+        type: "thread.created",
+        payload: {
+          threadId: ThreadId.make("thread-1"),
+          projectId: ProjectId.make("project-1"),
+          title: "Thread",
+          modelSelection: { provider: "codex", model: "gpt-5.4" },
+          runtimeMode: "full-access",
+          interactionMode: "default",
+          branch: null,
+          worktreePath: null,
+          createdAt: now,
+          updatedAt: now,
+        },
+      }),
+    );
+    expect(created.threads[0]?.settledReason).toBeNull();
+
+    const settled = yield* projectEvent(
+      created,
+      makeEvent({
+        sequence: 2,
+        type: "thread.settled",
+        payload: {
+          threadId: ThreadId.make("thread-1"),
+          settledAt: now,
+          reason: "merge",
+          updatedAt: now,
+        },
+      }),
+    );
+    expect(settled.threads[0]?.settledReason).toBe("merge");
   }),
 );

@@ -712,6 +712,7 @@ const makeOrchestrationProjectionPipeline = Effect.fn("makeOrchestrationProjecti
             archivedAt: null,
             settledOverride: null,
             settledAt: null,
+            settledReason: null,
             unsettledAt: null,
             snoozedUntil: null,
             snoozedAt: null,
@@ -746,6 +747,7 @@ const makeOrchestrationProjectionPipeline = Effect.fn("makeOrchestrationProjecti
             archivedAt: null,
             settledOverride: null,
             settledAt: null,
+            settledReason: null,
             unsettledAt: null,
             snoozedUntil: null,
             snoozedAt: null,
@@ -806,6 +808,7 @@ const makeOrchestrationProjectionPipeline = Effect.fn("makeOrchestrationProjecti
             ...existingRow.value,
             settledOverride: "settled",
             settledAt: event.payload.settledAt,
+            settledReason: event.payload.reason ?? "user",
             unsettledAt: null,
             updatedAt: event.payload.updatedAt,
           });
@@ -823,6 +826,7 @@ const makeOrchestrationProjectionPipeline = Effect.fn("makeOrchestrationProjecti
             ...existingRow.value,
             settledOverride: event.payload.reason === "user" ? "active" : null,
             settledAt: null,
+            settledReason: null,
             // Re-entry stamp for active-list ordering. A thread already pinned
             // active keeps its stamp: the activity reset that clears the pin
             // is not a re-entry and must not reorder the list.

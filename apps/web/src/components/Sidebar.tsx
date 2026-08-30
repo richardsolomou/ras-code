@@ -17,6 +17,7 @@ import {
   changeRequestAutoSettles,
   effectiveSettled,
   effectiveSnoozed,
+  shouldRecordMergeSettle,
   threadWokeAt,
 } from "@ras-code/client-runtime/state/thread-settled";
 import type { EnvironmentThreadShell } from "@ras-code/client-runtime/state/models";
@@ -143,6 +144,7 @@ import {
   prStatusIndicator,
   resolveDisplayedThreadPr,
   resolveDisplayedThreadPrProvider,
+  resolveThreadChangeRequest,
   setThreadChangeRequestSnapshot,
   settledPrHoverColorClass,
   terminalStatusFromRunningIds,
@@ -2163,16 +2165,10 @@ export default function Sidebar() {
       const supportsSnooze =
         serverConfigs.get(thread.environmentId)?.environment.capabilities.threadSnooze === true;
       const threadKey = scopedThreadKey(scopeThreadRef(thread.environmentId, thread.id));
-      const snapshot = changeRequestSnapshotByKey.get(threadKey);
-      const changeRequest =
-        snapshot != null &&
-        (thread.linkedPullRequest == null
-          ? thread.worktreePath === null || snapshot.branch === thread.branch
-          : snapshot.linkedPullRequest?.projectId === thread.linkedPullRequest.projectId &&
-            snapshot.linkedPullRequest.repository === thread.linkedPullRequest.repository &&
-            snapshot.linkedPullRequest.number === thread.linkedPullRequest.number)
-          ? snapshot.pr
-          : null;
+      const changeRequest = resolveThreadChangeRequest(
+        thread,
+        changeRequestSnapshotByKey.get(threadKey),
+      );
       // Snooze outranks settlement and pinning until the thread wakes.
       if (supportsSnooze && effectiveSnoozed(thread, { now: preciseNow })) {
         snoozed.push(thread);
@@ -2228,6 +2224,45 @@ export default function Sidebar() {
     snoozeWakeTick,
     threads,
   ]);
+
+  // Auto-settle-on-merge is otherwise re-derived from a PR lookup on every
+  // load, on every device, so a merged thread renders as live work until that
+  // lookup answers. Recording the decision once makes the next cold load — and
+  // mobile — correct straight from the projection. Threads whose row has not
+  // published a change-request snapshot yet are simply not recorded: this
+  // self-heals on a later render rather than stranding anything.
+  const recordedMergeSettles = useRef(new Set<string>());
+  useEffect(() => {
+    const now = new Date().toISOString();
+    for (const thread of threads) {
+      if (thread.archivedAt !== null) continue;
+      if (
+        serverConfigs.get(thread.environmentId)?.environment.capabilities.threadSettlement !== true
+      ) {
+        continue;
+      }
+      const threadRef = scopeThreadRef(thread.environmentId, thread.id);
+      const threadKey = scopedThreadKey(threadRef);
+      // Once per thread per session: a rejected settle must not retry in a
+      // loop. A reload re-evaluates it.
+      if (recordedMergeSettles.current.has(threadKey)) continue;
+      if (
+        !shouldRecordMergeSettle({
+          shell: thread,
+          changeRequest: resolveThreadChangeRequest(
+            thread,
+            changeRequestSnapshotByKey.get(threadKey),
+          ),
+          autoSettleOnMerge,
+          now,
+        })
+      ) {
+        continue;
+      }
+      recordedMergeSettles.current.add(threadKey);
+      void settleThread(threadRef, "merge");
+    }
+  }, [autoSettleOnMerge, changeRequestSnapshotByKey, serverConfigs, settleThread, threads]);
 
   const threadSearchInputRef = useRef<HTMLInputElement>(null);
   const [threadSearchQuery, setThreadSearchQuery] = useState("");

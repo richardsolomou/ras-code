@@ -313,6 +313,7 @@ export function projectEvent(
             archivedAt: null,
             settledOverride: null,
             settledAt: null,
+            settledReason: null,
             unsettledAt: null,
             snoozedUntil: null,
             snoozedAt: null,
@@ -364,6 +365,7 @@ export function projectEvent(
             archivedAt: null,
             settledOverride: null,
             settledAt: null,
+            settledReason: null,
             unsettledAt: null,
             snoozedUntil: null,
             snoozedAt: null,
@@ -440,6 +442,7 @@ export function projectEvent(
           threads: updateThread(nextBase.threads, payload.threadId, {
             settledOverride: "settled",
             settledAt: payload.settledAt,
+            settledReason: payload.reason ?? "user",
             unsettledAt: null,
             updatedAt: payload.updatedAt,
           }),
@@ -455,6 +458,7 @@ export function projectEvent(
             threads: updateThread(nextBase.threads, payload.threadId, {
               settledOverride: payload.reason === "user" ? "active" : null,
               settledAt: null,
+              settledReason: null,
               // Re-entry stamp for active-list ordering. A thread already
               // pinned active keeps its stamp: the activity reset that clears
               // the pin is not a re-entry and must not reorder the list.

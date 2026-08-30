@@ -511,6 +511,9 @@ export const OrchestrationThread = Schema.Struct({
     Schema.withDecodingDefault(Effect.succeed(null)),
   ),
   settledAt: Schema.NullOr(IsoDateTime).pipe(Schema.withDecodingDefault(Effect.succeed(null))),
+  // Why the thread is settled. Lets a client whose auto-settle-on-merge is off
+  // disregard another client's merge settle without refetching the PR.
+  settledReason: Schema.optional(Schema.NullOr(Schema.Literals(["user", "merge"]))),
   // When the thread last re-entered the active list (any thread.unsettled).
   // Anchors the active-list sort so an unsettled thread surfaces at the top
   // instead of sinking back to its creation-order slot. Cleared on settle.
@@ -591,6 +594,8 @@ export const OrchestrationThreadShell = Schema.Struct({
     Schema.withDecodingDefault(Effect.succeed(null)),
   ),
   settledAt: Schema.NullOr(IsoDateTime).pipe(Schema.withDecodingDefault(Effect.succeed(null))),
+  // See OrchestrationThread.settledReason.
+  settledReason: Schema.optional(Schema.NullOr(Schema.Literals(["user", "merge"]))),
   // See OrchestrationThread.unsettledAt: last re-entry into the active list.
   unsettledAt: Schema.optional(Schema.NullOr(IsoDateTime)),
   snoozedUntil: Schema.optional(Schema.NullOr(IsoDateTime)),
@@ -880,6 +885,10 @@ const ThreadSettleCommand = Schema.Struct({
   type: Schema.Literal("thread.settle"),
   commandId: CommandId,
   threadId: ThreadId,
+  // "merge" records a client's auto-settle-on-merge decision durably, so every
+  // other client stops re-deriving it from change-request state on each load.
+  // Optional so pre-reason clients still decode; absent means "user".
+  reason: Schema.optional(Schema.Literals(["user", "merge"])),
 });
 
 const ThreadUnsettleCommand = Schema.Struct({
@@ -1425,6 +1434,9 @@ export const ThreadUnarchivedPayload = Schema.Struct({
 export const ThreadSettledPayload = Schema.Struct({
   threadId: ThreadId,
   settledAt: IsoDateTime,
+  // See ThreadSettleCommand.reason. Absent on events written before the
+  // distinction existed, which are all user settles.
+  reason: Schema.optional(Schema.Literals(["user", "merge"])),
   updatedAt: IsoDateTime,
 });
 

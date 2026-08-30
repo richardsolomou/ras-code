@@ -36,11 +36,13 @@ import {
   ThreadListV2SettledShelfHeader,
   ThreadListV2SnoozedShelfHeader,
 } from "../threads/thread-list-v2-items";
+import { shouldRecordMergeSettle } from "@ras-code/client-runtime/state/thread-settled";
 import {
   buildThreadListV2Items,
   buildThreadListV2ListItems,
   THREAD_LIST_V2_SETTLED_INITIAL_COUNT,
   THREAD_LIST_V2_SETTLED_PAGE_COUNT,
+  resolveThreadListV2ChangeRequest,
   type ThreadListV2ChangeRequestState,
   type ThreadListV2ListItem,
 } from "../threads/threadListV2";
@@ -90,6 +92,8 @@ interface HomeScreenProps {
   ) => Promise<boolean>;
   readonly onUnsnoozeThread: (thread: EnvironmentThreadShell) => Promise<boolean>;
   readonly onUnsettleThread: (thread: EnvironmentThreadShell) => void;
+  /** Records an auto-settle-on-merge decision durably. Silent, best effort. */
+  readonly onRecordMergeSettle: (thread: EnvironmentThreadShell) => Promise<boolean>;
   readonly onPinThread: (thread: EnvironmentThreadShell) => Promise<boolean>;
   readonly onUnpinThread: (thread: EnvironmentThreadShell) => Promise<boolean>;
   readonly onMovePinnedThread: (
@@ -617,6 +621,45 @@ export function HomeScreen(props: HomeScreenProps) {
     props.threads,
     matchedThreadKeys,
     v2ScopedProjectGroup,
+  ]);
+
+  // Auto-settle-on-merge is derived from a PR lookup that only answers once the
+  // environment is connected, so a merged thread reads as live work on every
+  // cold load until it lands. Recording the decision once makes the next load —
+  // and every other device — correct straight from the projection.
+  const recordedMergeSettles = useRef(new Set<string>());
+  const onRecordMergeSettle = props.onRecordMergeSettle;
+  useEffect(() => {
+    const now = new Date().toISOString();
+    for (const thread of props.threads) {
+      if (thread.archivedAt !== null) continue;
+      if (!settlementEnvironmentIds.has(thread.environmentId)) continue;
+      const threadKey = `${thread.environmentId}:${thread.id}`;
+      // Once per thread per session, so a rejected settle cannot retry in a
+      // loop. A relaunch re-evaluates it.
+      if (recordedMergeSettles.current.has(threadKey)) continue;
+      if (
+        !shouldRecordMergeSettle({
+          shell: thread,
+          changeRequest: resolveThreadListV2ChangeRequest(
+            thread,
+            changeRequestByKey.get(threadKey),
+          ),
+          autoSettleOnMerge,
+          now,
+        })
+      ) {
+        continue;
+      }
+      recordedMergeSettles.current.add(threadKey);
+      void onRecordMergeSettle(thread);
+    }
+  }, [
+    autoSettleOnMerge,
+    changeRequestByKey,
+    onRecordMergeSettle,
+    props.threads,
+    settlementEnvironmentIds,
   ]);
   // Re-partition the moment the earliest snooze expires (clamped to the
   // signed-32-bit setTimeout range; far-future wakes re-arm at the clamp).

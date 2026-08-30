@@ -12,6 +12,7 @@ import {
   changeRequestAutoSettles,
   effectiveSettled,
   hasQueuedTurnStart,
+  shouldRecordMergeSettle,
   threadLastActivityAt,
   type ChangeRequestStateLike,
 } from "./threadSettled.ts";
@@ -124,6 +125,7 @@ describe("changeRequestAutoSettles", () => {
 
 function makeShell(input: {
   readonly settledOverride?: "settled" | "active" | null;
+  readonly settledReason?: "user" | "merge";
   readonly activityAt: string | null;
   readonly sessionStatus?: "starting" | "running";
   readonly pending?: "approval" | "user-input";
@@ -154,6 +156,7 @@ function makeShell(input: {
     archivedAt: null,
     settledOverride: input.settledOverride ?? null,
     settledAt: input.settledOverride === "settled" ? NOW : null,
+    settledReason: input.settledReason ?? (input.settledOverride === "settled" ? "user" : null),
     session:
       input.sessionStatus === undefined
         ? null
@@ -583,5 +586,137 @@ describe("canSettle", () => {
     });
     expect(canSettle(blocked, { now: NOW })).toBe(false);
     expect(effectiveSettled(blocked, { now: NOW, autoSettleAfterDays: 3 })).toBe(false);
+  });
+});
+
+describe("effectiveSettled merge settles", () => {
+  // Auto-settle-on-merge is a per-client toggle, but the settle it produces is
+  // recorded server-side and reaches every device. Only the reason lets a
+  // client with the toggle off tell it apart from a settle the user asked for.
+  it("honours a merge settle when the client auto-settles on merge", () => {
+    const shell = makeShell({
+      settledOverride: "settled",
+      settledReason: "merge",
+      activityAt: FRESH,
+    });
+    expect(
+      effectiveSettled(shell, { now: NOW, autoSettleAfterDays: 3, autoSettleOnMerge: true }),
+    ).toBe(true);
+    // Unset means the default (on), not "unknown".
+    expect(effectiveSettled(shell, { now: NOW, autoSettleAfterDays: 3 })).toBe(true);
+  });
+
+  it("disregards another client's merge settle when this client's toggle is off", () => {
+    const shell = makeShell({
+      settledOverride: "settled",
+      settledReason: "merge",
+      activityAt: FRESH,
+    });
+    expect(
+      effectiveSettled(shell, { now: NOW, autoSettleAfterDays: 3, autoSettleOnMerge: false }),
+    ).toBe(false);
+  });
+
+  it("keeps a user settle regardless of this client's merge toggle", () => {
+    const shell = makeShell({
+      settledOverride: "settled",
+      settledReason: "user",
+      activityAt: FRESH,
+    });
+    expect(
+      effectiveSettled(shell, { now: NOW, autoSettleAfterDays: 3, autoSettleOnMerge: false }),
+    ).toBe(true);
+  });
+
+  it("falls through to the ordinary rules rather than forcing a disregarded thread active", () => {
+    // Disregarding the override is not the same as asserting "not settled":
+    // a stale thread still settles on inactivity.
+    const stale = makeShell({
+      settledOverride: "settled",
+      settledReason: "merge",
+      activityAt: STALE,
+    });
+    expect(
+      effectiveSettled(stale, { now: NOW, autoSettleAfterDays: 3, autoSettleOnMerge: false }),
+    ).toBe(true);
+  });
+});
+
+describe("shouldRecordMergeSettle", () => {
+  const merged = { state: "merged" } as const;
+
+  it("records a merged change request on an unsettled, settleable thread", () => {
+    expect(
+      shouldRecordMergeSettle({
+        shell: makeShell({ activityAt: FRESH }),
+        changeRequest: merged,
+        now: NOW,
+      }),
+    ).toBe(true);
+  });
+
+  it("records nothing when this client does not auto-settle on merge", () => {
+    expect(
+      shouldRecordMergeSettle({
+        shell: makeShell({ activityAt: FRESH }),
+        changeRequest: merged,
+        autoSettleOnMerge: false,
+        now: NOW,
+      }),
+    ).toBe(false);
+  });
+
+  it.each(["settled", "active"] as const)(
+    "leaves an existing %s override alone",
+    (settledOverride) => {
+      expect(
+        shouldRecordMergeSettle({
+          shell: makeShell({ settledOverride, activityAt: FRESH }),
+          changeRequest: merged,
+          now: NOW,
+        }),
+      ).toBe(false);
+    },
+  );
+
+  it.each([
+    ["a pending approval", { pending: "approval" } as const],
+    ["pending user input", { pending: "user-input" } as const],
+    ["a running session", { sessionStatus: "running" } as const],
+    ["a starting session", { sessionStatus: "starting" } as const],
+  ])("records nothing for a thread blocked by %s", (_label, blocker) => {
+    expect(
+      shouldRecordMergeSettle({
+        shell: makeShell({ activityAt: FRESH, ...blocker }),
+        changeRequest: merged,
+        now: NOW,
+      }),
+    ).toBe(false);
+  });
+
+  it.each([
+    ["no change request yet", null],
+    ["an open change request", { state: "open" } as const],
+    // A closed request settles every client whatever their toggle says.
+    // Recording it as a merge would make merge-off clients disregard it.
+    ["a closed change request", { state: "closed" } as const],
+  ])("records nothing for %s", (_label, changeRequest) => {
+    expect(
+      shouldRecordMergeSettle({
+        shell: makeShell({ activityAt: FRESH }),
+        changeRequest,
+        now: NOW,
+      }),
+    ).toBe(false);
+  });
+
+  it("records nothing for a merge that predates the thread's latest event", () => {
+    expect(
+      shouldRecordMergeSettle({
+        shell: makeShell({ activityAt: FRESH }),
+        changeRequest: { state: "merged", updatedAt: "2026-03-20T00:00:00.000Z" },
+        now: NOW,
+      }),
+    ).toBe(false);
   });
 });
