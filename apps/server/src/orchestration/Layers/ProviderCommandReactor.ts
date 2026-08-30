@@ -1514,7 +1514,9 @@ const make = Effect.gen(function* () {
     readonly primarySelection: ModelSelection;
     readonly fallbackSelection: ModelSelection;
     readonly primaryLabel: string;
+    readonly fallbackLabel: string;
     readonly modelLabel: string;
+    readonly resetsAt: string | null;
     readonly sharesContinuation: boolean;
   };
 
@@ -1730,6 +1732,7 @@ const make = Effect.gen(function* () {
             fallbackSelection: {
               ...baseSelection,
               instanceId: activeFallback.fallbackSelection.instanceId,
+              model: activeFallback.fallbackSelection.model,
             },
           }
         : undefined;
@@ -1852,6 +1855,9 @@ const make = Effect.gen(function* () {
     if (pending === undefined) {
       return;
     }
+    if (instanceId !== pending.instanceId) {
+      return;
+    }
 
     // Track what the turn produced. Claude reports an API failure as an
     // assistant message whose text is the error itself, so text alone is not
@@ -1881,7 +1887,6 @@ const make = Effect.gen(function* () {
       declinedFallbacks.delete(event.threadId);
       if (!pending.onFallback) clearAnnouncedFallbacks(event.threadId);
       if (pending.returningFromFallback !== undefined) {
-        activeFallbackRoutes.delete(event.threadId);
         yield* appendFallbackReturnedActivity({
           threadId: event.threadId,
           primaryLabel: pending.returningFromFallback.primaryLabel,
@@ -1890,7 +1895,10 @@ const make = Effect.gen(function* () {
           model: pending.returningFromFallback.primarySelection.model,
           modelLabel: pending.returningFromFallback.modelLabel,
           createdAt: event.createdAt,
-        }).pipe(Effect.ignoreCause({ log: true }));
+        }).pipe(
+          Effect.tap(() => Effect.sync(() => activeFallbackRoutes.delete(event.threadId))),
+          Effect.ignoreCause({ log: true }),
+        );
       }
       return;
     }
@@ -1985,18 +1993,30 @@ const make = Effect.gen(function* () {
     activityCreatedAt?: string,
   ) {
     const threadId = pending.event.payload.threadId;
-    const thread = yield* resolveThread(threadId);
-    if (!thread) {
-      return false;
-    }
+    const approvedRoute = pending.returningFromFallback;
+    const thread = approvedRoute === undefined ? yield* resolveThread(threadId) : undefined;
+    if (approvedRoute === undefined && thread === undefined) return false;
     const baseSelection =
+      approvedRoute?.primarySelection ??
       pending.event.payload.modelSelection ??
       threadModelSelections.get(threadId) ??
-      thread.modelSelection;
-    const routed = yield* resolveFallbackSelection({
-      selection: baseSelection,
-      hasStartedSession: thread.session !== null,
-    });
+      thread?.modelSelection;
+    if (baseSelection === undefined) return false;
+    const routed =
+      approvedRoute !== undefined
+        ? {
+            selection: approvedRoute.fallbackSelection,
+            primaryLabel: approvedRoute.primaryLabel,
+            fallbackLabel: approvedRoute.fallbackLabel,
+            modelLabel: approvedRoute.modelLabel,
+            primaryInstanceId: approvedRoute.primarySelection.instanceId,
+            sharesContinuation: approvedRoute.sharesContinuation,
+            resetsAt: approvedRoute.resetsAt,
+          }
+        : yield* resolveFallbackSelection({
+            selection: baseSelection,
+            hasStartedSession: thread?.session !== null,
+          });
     if (routed === undefined) {
       return false;
     }
@@ -2026,7 +2046,9 @@ const make = Effect.gen(function* () {
       primarySelection: baseSelection,
       fallbackSelection: routed.selection,
       primaryLabel: routed.primaryLabel,
+      fallbackLabel: routed.fallbackLabel,
       modelLabel: routed.modelLabel,
+      resetsAt: routed.resetsAt,
       sharesContinuation: routed.sharesContinuation,
     });
     declinedFallbacks.delete(threadId);
@@ -2044,6 +2066,7 @@ const make = Effect.gen(function* () {
       ...(pending.attachments !== undefined ? { attachments: pending.attachments } : {}),
       modelSelection: routed.selection,
       requestedModelSelection: baseSelection,
+      ...(routed.sharesContinuation === false ? { freshProviderHandoff: true } : {}),
     });
     return true;
   });

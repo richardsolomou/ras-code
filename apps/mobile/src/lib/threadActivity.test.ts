@@ -248,6 +248,18 @@ describe("pending fallback offers", () => {
     expect(derivePendingFallbackOffers(sortThreadActivities([offered, engaged]))).toEqual([]);
     expect(derivePendingFallbackOffers([offered, declined])).toEqual([]);
   });
+
+  it("keeps a clock-skewed response from reopening its offer", () => {
+    const engaged = makeActivity({
+      id: EventId.make("fallback-engaged-skewed"),
+      kind: "provider.fallback.engaged",
+      summary: "Gateway engaged",
+      createdAt: "2026-08-23T23:59:59.000Z",
+      payload: { requestId: "fallback-request" },
+    });
+
+    expect(derivePendingFallbackOffers(sortThreadActivities([offered, engaged]))).toEqual([]);
+  });
 });
 
 function makeActivity(

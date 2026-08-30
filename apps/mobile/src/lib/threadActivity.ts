@@ -18,9 +18,8 @@ import {
   FALLBACK_ENGAGED_ACTIVITY_KIND,
   FALLBACK_OFFER_EXPIRED_ACTIVITY_KIND,
   FALLBACK_OFFERED_ACTIVITY_KIND,
+  derivePendingFallbackOfferActivities,
   readFallbackNoticePayload,
-  readFallbackOfferRequestId,
-  readPendingFallbackOfferPayload,
 } from "@ras-code/client-runtime/provider-fallback";
 
 import * as Arr from "effect/Array";
@@ -1534,36 +1533,14 @@ export function derivePendingApprovals(
 export function derivePendingFallbackOffers(
   sortedActivities: ReadonlyArray<OrchestrationThreadActivity>,
 ): PendingFallbackOffer[] {
-  const openByRequestId = new Map<ApprovalRequestId, PendingFallbackOffer>();
-
-  for (const activity of sortedActivities) {
-    if (activity.kind === FALLBACK_OFFERED_ACTIVITY_KIND) {
-      const offer = readPendingFallbackOfferPayload(activity.payload);
-      if (offer === null) continue;
-      const requestId = ApprovalRequestId.make(offer.requestId);
-      openByRequestId.set(requestId, {
-        requestId,
-        primaryInstanceId: offer.primaryInstanceId,
-        fallbackInstanceId: offer.fallbackInstanceId,
-        model: offer.model,
-        ...(offer.modelLabel !== undefined ? { modelLabel: offer.modelLabel } : {}),
-        resetsAt: offer.resetsAt,
-        createdAt: activity.createdAt,
-      });
-      continue;
-    }
-
-    if (
-      activity.kind === FALLBACK_ENGAGED_ACTIVITY_KIND ||
-      activity.kind === FALLBACK_DECLINED_ACTIVITY_KIND ||
-      activity.kind === FALLBACK_OFFER_EXPIRED_ACTIVITY_KIND
-    ) {
-      const requestId = readFallbackOfferRequestId(activity.payload);
-      if (requestId !== null) openByRequestId.delete(ApprovalRequestId.make(requestId));
-    }
-  }
-
-  return Arr.sortWith(openByRequestId.values(), (offer) => new Date(offer.createdAt), Order.Date);
+  return Arr.sortWith(
+    derivePendingFallbackOfferActivities(sortedActivities).map((offer) => ({
+      ...offer,
+      requestId: ApprovalRequestId.make(offer.requestId),
+    })),
+    (offer) => new Date(offer.createdAt),
+    Order.Date,
+  );
 }
 
 export function derivePendingUserInputs(

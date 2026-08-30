@@ -61,6 +61,10 @@ export interface PendingFallbackOfferPayload {
   readonly resetsAt: string | null;
 }
 
+export interface PendingFallbackOfferActivity extends PendingFallbackOfferPayload {
+  readonly createdAt: string;
+}
+
 /**
  * Read the typed payload off a `provider.fallback.offered` activity: the
  * still-open "switch or wait?" prompt for a usage-limit failure.
@@ -92,6 +96,39 @@ export function readPendingFallbackOfferPayload(
     ...(typeof modelLabel === "string" ? { modelLabel } : {}),
     resetsAt: typeof resetsAt === "string" ? resetsAt : null,
   };
+}
+
+export function derivePendingFallbackOfferActivities(
+  activities: ReadonlyArray<{
+    readonly kind: string;
+    readonly payload: unknown;
+    readonly createdAt: string;
+  }>,
+): ReadonlyArray<PendingFallbackOfferActivity> {
+  const settledRequestIds = new Set<string>();
+  const openByRequestId = new Map<string, PendingFallbackOfferActivity>();
+
+  for (const activity of activities) {
+    if (
+      activity.kind === FALLBACK_ENGAGED_ACTIVITY_KIND ||
+      activity.kind === FALLBACK_DECLINED_ACTIVITY_KIND ||
+      activity.kind === FALLBACK_OFFER_EXPIRED_ACTIVITY_KIND
+    ) {
+      const requestId = readFallbackOfferRequestId(activity.payload);
+      if (requestId !== null) {
+        settledRequestIds.add(requestId);
+        openByRequestId.delete(requestId);
+      }
+      continue;
+    }
+
+    if (activity.kind !== FALLBACK_OFFERED_ACTIVITY_KIND) continue;
+    const offer = readPendingFallbackOfferPayload(activity.payload);
+    if (offer === null || settledRequestIds.has(offer.requestId)) continue;
+    openByRequestId.set(offer.requestId, { ...offer, createdAt: activity.createdAt });
+  }
+
+  return [...openByRequestId.values()];
 }
 
 /** Read the `requestId` off a `provider.fallback.declined` or `.offer-expired` activity. */

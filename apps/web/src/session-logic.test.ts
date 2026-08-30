@@ -285,6 +285,35 @@ describe("derivePendingFallbackOffers", () => {
     expect(derivePendingFallbackOffers(activities)).toEqual([]);
   });
 
+  it("keeps a clock-skewed response from reopening its offer", () => {
+    const activities: OrchestrationThreadActivity[] = [
+      makeActivity({
+        id: "fallback-response-skewed",
+        createdAt: "2026-02-22T23:59:59.000Z",
+        kind: "provider.fallback.engaged",
+        summary: "engaged",
+        tone: "info",
+        payload: { requestId: "req-skewed" },
+      }),
+      makeActivity({
+        id: "fallback-offer-skewed",
+        createdAt: "2026-02-23T00:00:01.000Z",
+        kind: "provider.fallback.offered",
+        summary: "offered",
+        tone: "approval",
+        payload: {
+          requestId: "req-skewed",
+          primaryInstanceId: "claude_subscription",
+          fallbackInstanceId: "posthog_gateway",
+          model: "claude-sonnet-4-5",
+          resetsAt: null,
+        },
+      }),
+    ];
+
+    expect(derivePendingFallbackOffers(activities)).toEqual([]);
+  });
+
   it("clears an offer on decline and on offer-expired, and leaves an unrelated offer open", () => {
     const activities: OrchestrationThreadActivity[] = [
       makeActivity({

@@ -3432,6 +3432,15 @@ describe("ProviderCommandReactor", () => {
         modelSelection: PRIMARY_SELECTION,
       });
       await harness.publishRuntimeEvent({
+        eventId: EventId.make("runtime-event-stale-fallback-exit"),
+        provider: ProviderDriverKind.make("posthogGateway"),
+        providerInstanceId: FALLBACK,
+        threadId: ThreadId.make("thread-1"),
+        createdAt: "2026-01-01T00:00:05.500Z",
+        type: "session.exited",
+        payload: { exitKind: "graceful" },
+      });
+      await harness.publishRuntimeEvent({
         eventId: EventId.make("runtime-event-returned"),
         provider: ProviderDriverKind.make("claudeAgent"),
         providerInstanceId: PRIMARY,
@@ -3797,6 +3806,7 @@ describe("ProviderCommandReactor", () => {
           },
         ],
       });
+      await awaitRuntimeSubscriber(harness);
       await dispatchTurn(harness, "cmd-fallback-codex-1");
       await confirmSwitchOnce(harness, "cmd-fallback-codex-confirm");
       await waitFor(() => harness.sendTurn.mock.calls.length === 1);
@@ -3836,6 +3846,33 @@ describe("ProviderCommandReactor", () => {
       expect(harness.sendTurn.mock.calls[1]?.[0]).toMatchObject({
         modelSelection: selection,
         input: expect.stringContaining("<provider-switch-conversation>"),
+      });
+      const returnCall = harness.sendTurn.mock.calls[1]?.[0];
+      const returnInput =
+        typeof returnCall === "object" && returnCall !== null && "input" in returnCall
+          ? returnCall.input
+          : undefined;
+      if (typeof returnInput !== "string") throw new Error("Return prompt was not text.");
+      expect(returnInput).toContain("hello reactor");
+      expect(returnInput).toMatch(/<\/provider-switch-conversation>\n\nsecond turn$/);
+
+      await harness.publishRuntimeEvent({
+        eventId: EventId.make("runtime-event-codex-return-still-exhausted"),
+        provider: ProviderDriverKind.make("codex"),
+        providerInstanceId: primary,
+        threadId: ThreadId.make("thread-1"),
+        createdAt: "2026-01-01T00:00:06.000Z",
+        type: "turn.completed",
+        payload: { state: "failed", errorMessage: "usage limit reached" },
+      });
+      await waitFor(() => usageLimits.get(primary)?.status === "exhausted");
+      await waitFor(async () => {
+        const failed = findActivity(await harness.readModel(), "provider.turn.start.failed");
+        return harness.sendTurn.mock.calls.length === 3 || failed !== undefined;
+      });
+      expect(findActivity(await harness.readModel(), "provider.turn.start.failed")).toBeUndefined();
+      expect(harness.sendTurn.mock.calls[2]?.[0]).toMatchObject({
+        modelSelection: { instanceId: FALLBACK, model: `openai/${selection.model}` },
       });
     });
 
