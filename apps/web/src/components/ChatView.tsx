@@ -135,6 +135,7 @@ import {
   MAX_TERMINALS_PER_GROUP,
   type ChatMessage,
   isImageAttachment,
+  videoMimeType,
   type SessionPhase,
   type Thread,
   type TurnDiffSummary,
@@ -373,6 +374,8 @@ import {
   planForkHistoryPageLoad,
   deriveLockedProvider,
   readFileAsDataUrl,
+  loadVideoPreviewUrl,
+  isVideoPreviewRequestCurrent,
   reconcileMountedTerminalThreadIds,
   resolveRetainedTerminalThreadKeys,
   resolveBackgroundDraftWorkspaceOptions,
@@ -1461,8 +1464,23 @@ function ChatViewContent(
   const composerElementContextsRef = useRef<ElementContextDraft[]>([]);
   const { composerRef } = props;
   const [isWorkspaceFileDragActive, setIsWorkspaceFileDragActive] = useState(false);
+  const routeThreadKeyRef = useRef(routeThreadKey);
+  routeThreadKeyRef.current = routeThreadKey;
+  const videoPreviewRequestIdRef = useRef(0);
+  const videoPreviewAbortControllerRef = useRef<AbortController | null>(null);
+  const cancelVideoPreviewRequest = useCallback(() => {
+    videoPreviewRequestIdRef.current += 1;
+    videoPreviewAbortControllerRef.current?.abort();
+    videoPreviewAbortControllerRef.current = null;
+  }, []);
+  const [openingVideoAttachmentId, setOpeningVideoAttachmentId] = useState<string | null>(null);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const [expandedImage, setExpandedImage] = useState<ExpandedImagePreview | null>(null);
+  useEffect(() => {
+    const item = expandedImage?.images[expandedImage.index];
+    if (item?.type !== "video" || !item.src.startsWith("blob:")) return;
+    return () => revokeBlobPreviewUrl(item.src);
+  }, [expandedImage]);
   const [optimisticUserMessages, setOptimisticUserMessages] = useState<ChatMessage[]>([]);
   const [feedbackSubmissionsByThreadKey, setFeedbackSubmissionsByThreadKey] = useState<
     Record<string, ReadonlyArray<CodexFeedbackSubmission>>
@@ -2626,11 +2644,12 @@ function ChatViewContent(
   useEffect(() => {
     return () => {
       clearAttachmentPreviewHandoffs();
+      cancelVideoPreviewRequest();
       for (const message of optimisticUserMessagesRef.current) {
         revokeUserMessagePreviewUrls(message);
       }
     };
-  }, [clearAttachmentPreviewHandoffs]);
+  }, [cancelVideoPreviewRequest, clearAttachmentPreviewHandoffs]);
   const handoffAttachmentPreviews = useCallback((messageId: MessageId, previewUrls: string[]) => {
     if (previewUrls.length === 0) return;
 
@@ -2651,17 +2670,40 @@ function ChatViewContent(
     });
   }, []);
   const serverMessages = activeThread?.messages;
-  const downloadFileAttachment = useCallback(
+  const openFileAttachment = useCallback(
     async (attachment: ChatFileAttachment) => {
       const connection = readPreparedConnection(environmentId);
       if (!connection) {
         toastManager.add({ type: "error", title: "The environment is not connected." });
         return;
       }
+      const videoMime = videoMimeType(attachment);
+      const isVideo = videoMime !== null;
+      const action = isVideo ? "play" : "download";
+      const videoPreviewAbortController = isVideo ? new AbortController() : null;
+      if (isVideo) {
+        videoPreviewAbortControllerRef.current?.abort();
+        videoPreviewAbortControllerRef.current = videoPreviewAbortController;
+      }
+      const videoPreviewRequestId = isVideo ? ++videoPreviewRequestIdRef.current : 0;
+      const isCurrentRequest = () =>
+        !isVideo ||
+        isVideoPreviewRequestCurrent(
+          routeThreadKey,
+          routeThreadKeyRef.current,
+          videoPreviewRequestId,
+          videoPreviewRequestIdRef.current,
+        );
+      const finishVideoPreviewRequest = () => {
+        if (videoPreviewRequestIdRef.current === videoPreviewRequestId) {
+          setOpeningVideoAttachmentId(null);
+          videoPreviewAbortControllerRef.current = null;
+        }
+      };
+      if (isVideo) setOpeningVideoAttachmentId(attachment.id);
 
-      // fileName and mimeType ride in the signed claims so the download gets
-      // a real filename and Content-Type even when the anchor's `download`
-      // attribute is ignored (cross-origin environment servers).
+      // fileName and mimeType ride in the signed claims so videos render
+      // inline while other files keep their real download name and type.
       const result = await createAttachmentAssetUrl({
         environmentId,
         input: {
@@ -2669,15 +2711,20 @@ function ChatViewContent(
             _tag: "attachment",
             attachmentId: attachment.id,
             fileName: attachment.name,
-            mimeType: attachment.mimeType,
+            mimeType: videoMime ?? attachment.mimeType,
           },
         },
       });
+      if (!isCurrentRequest()) {
+        finishVideoPreviewRequest();
+        return;
+      }
       if (result._tag === "Failure") {
+        finishVideoPreviewRequest();
         const error = squashAtomCommandFailure(result);
         toastManager.add({
           type: "error",
-          title: `Could not download ${attachment.name}`,
+          title: "Could not " + action + " " + attachment.name,
           description: error instanceof Error ? error.message : "The attachment is unavailable.",
         });
         return;
@@ -2685,7 +2732,31 @@ function ChatViewContent(
 
       const url = resolveAssetUrl(connection.httpBaseUrl, result.value.relativeUrl);
       if (!url) {
-        toastManager.add({ type: "error", title: `Could not download ${attachment.name}` });
+        finishVideoPreviewRequest();
+        toastManager.add({ type: "error", title: "Could not " + action + " " + attachment.name });
+        return;
+      }
+      if (isVideo) {
+        try {
+          const previewUrl = await loadVideoPreviewUrl(url, videoPreviewAbortController?.signal);
+          if (!isCurrentRequest()) {
+            revokeBlobPreviewUrl(previewUrl);
+            return;
+          }
+          setExpandedImage({
+            images: [{ src: previewUrl, name: attachment.name, type: "video" }],
+            index: 0,
+          });
+        } catch (error) {
+          if (!isCurrentRequest()) return;
+          toastManager.add({
+            type: "error",
+            title: "Could not play " + attachment.name,
+            description: error instanceof Error ? error.message : "The attachment is unavailable.",
+          });
+        } finally {
+          finishVideoPreviewRequest();
+        }
         return;
       }
       const anchor = document.createElement("a");
@@ -2693,7 +2764,7 @@ function ChatViewContent(
       anchor.download = attachment.name;
       anchor.click();
     },
-    [createAttachmentAssetUrl, environmentId],
+    [createAttachmentAssetUrl, environmentId, routeThreadKey],
   );
   const serverAttachmentIds = useMemo(() => {
     const attachmentIds = new Set<string>();
@@ -4504,8 +4575,10 @@ function ChatViewContent(
       return [];
     });
     resetLocalDispatch();
+    cancelVideoPreviewRequest();
+    setOpeningVideoAttachmentId(null);
     setExpandedImage(null);
-  }, [draftId, resetLocalDispatch, threadId]);
+  }, [cancelVideoPreviewRequest, draftId, resetLocalDispatch, threadId]);
 
   const closeExpandedImage = useCallback(() => {
     setExpandedImage(null);
@@ -7048,9 +7121,14 @@ function ChatViewContent(
     }
   };
 
-  const onExpandTimelineImage = useCallback((preview: ExpandedImagePreview) => {
-    setExpandedImage(preview);
-  }, []);
+  const onExpandTimelineImage = useCallback(
+    (preview: ExpandedImagePreview) => {
+      cancelVideoPreviewRequest();
+      setOpeningVideoAttachmentId(null);
+      setExpandedImage(preview);
+    },
+    [cancelVideoPreviewRequest],
+  );
   const onOpenTurnDiff = useCallback(
     (turnId: TurnId, filePath?: string) => {
       if (!isServerThread || !activeThreadRef) return;
@@ -7372,7 +7450,8 @@ function ChatViewContent(
                 onForkFromAssistantMessage={onForkFromAssistantMessage}
                 isRevertingCheckpoint={isRevertingCheckpoint}
                 onImageExpand={onExpandTimelineImage}
-                onFileDownload={downloadFileAttachment}
+                onFileOpen={openFileAttachment}
+                openingVideoAttachmentId={openingVideoAttachmentId}
                 markdownCwd={gitCwd ?? undefined}
                 resolvedTheme={resolvedTheme}
                 timestampFormat={timestampFormat}
@@ -7553,6 +7632,8 @@ function ChatViewContent(
                             scheduleComposerFocus={scheduleComposerFocus}
                             setThreadError={setThreadError}
                             onExpandImage={onExpandTimelineImage}
+                            onFileOpen={openFileAttachment}
+                            openingVideoAttachmentId={openingVideoAttachmentId}
                           />
                         </div>
                       </div>
