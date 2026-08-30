@@ -1,50 +1,11 @@
-import { AuthOrchestrationOperateScope, EnvironmentId } from "@ras-code/contracts";
+import { AuthOrchestrationOperateScope } from "@ras-code/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import {
-  buildProviderEnvironmentOptions,
   classifyProviderEnvironmentAccess,
   resolvePrimaryOperateAccess,
   resolveRemoteOperateAccess,
-  resolveSelectedProviderEnvironmentId,
 } from "./ProviderSettingsPanel.logic";
-
-const primaryId = EnvironmentId.make("primary");
-const relayId = EnvironmentId.make("relay");
-const sshId = EnvironmentId.make("ssh");
-
-const environments = [
-  { environmentId: sshId, label: "Zulu SSH" },
-  { environmentId: relayId, label: "Alpha Relay" },
-  { environmentId: primaryId, label: "This device" },
-] as const;
-
-describe("provider environment selection", () => {
-  it("sorts the primary environment first and the rest by label", () => {
-    expect(
-      buildProviderEnvironmentOptions(environments, primaryId).map(
-        (environment) => environment.environmentId,
-      ),
-    ).toEqual([primaryId, relayId, sshId]);
-  });
-
-  it("keeps a valid selection, then falls back to primary or the first environment", () => {
-    const options = buildProviderEnvironmentOptions(environments, primaryId);
-
-    expect(resolveSelectedProviderEnvironmentId(options, sshId, primaryId)).toBe(sshId);
-    expect(
-      resolveSelectedProviderEnvironmentId(
-        options.filter((environment) => environment.environmentId !== sshId),
-        sshId,
-        primaryId,
-      ),
-    ).toBe(primaryId);
-    expect(resolveSelectedProviderEnvironmentId(options.slice(1), primaryId, primaryId)).toBe(
-      relayId,
-    );
-    expect(resolveSelectedProviderEnvironmentId([], null, primaryId)).toBeNull();
-  });
-});
 
 describe("provider environment access", () => {
   it("allows connected environments with config and operate access", () => {

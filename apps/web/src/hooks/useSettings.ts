@@ -36,6 +36,10 @@ import {
 import * as Struct from "effect/Struct";
 import { primaryServerSettingsAtom, serverEnvironment } from "~/state/server";
 import { usePrimaryEnvironment } from "~/state/environments";
+import {
+  useSettingsEnvironmentConfig,
+  useSettingsEnvironmentId,
+} from "~/state/settingsEnvironment";
 import { useAtomCommand } from "~/state/use-atom-command";
 import { useTheme } from "./useTheme";
 
@@ -291,6 +295,20 @@ export function usePrimarySettings<T = UnifiedSettings>(
 }
 
 /**
+ * Settings for the device the settings UI is scoped to.
+ *
+ * Server keys come from that device, client keys from this browser, so a
+ * settings panel can mix the two in one object exactly as before while its
+ * server rows follow the selected device.
+ */
+export function useDeviceSettings<T = UnifiedSettings>(
+  selector?: (settings: UnifiedSettings) => T,
+): T {
+  const config = useSettingsEnvironmentConfig();
+  return useMergedSettings(config?.settings ?? DEFAULT_SERVER_SETTINGS, selector);
+}
+
+/**
  * Returns an updater that routes each key to the correct backing store.
  *
  * Server keys are optimistically patched in atom-backed server state, then
@@ -332,6 +350,11 @@ export function useUpdateEnvironmentSettings(environmentId: EnvironmentId) {
 
 export function useUpdatePrimarySettings() {
   return useUpdateSettingsTarget(usePrimaryEnvironment()?.environmentId ?? null);
+}
+
+/** Writes server keys to the device the settings UI is scoped to. */
+export function useUpdateDeviceSettings() {
+  return useUpdateSettingsTarget(useSettingsEnvironmentId());
 }
 
 export function useUpdateClientSettings() {

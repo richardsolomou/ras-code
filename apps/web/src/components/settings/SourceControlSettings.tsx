@@ -17,10 +17,10 @@ import {
   resolveServerBackgroundActivitySettings,
 } from "@ras-code/shared/backgroundActivitySettings";
 
-import { usePrimarySettings, useUpdatePrimarySettings } from "../../hooks/useSettings";
+import { useDeviceSettings, useUpdateDeviceSettings } from "../../hooks/useSettings";
 import { cn } from "../../lib/utils";
-import { useEnvironments, usePrimaryEnvironment } from "../../state/environments";
 import { useEnvironmentQuery } from "../../state/query";
+import { useSettingsEnvironmentScope } from "../../state/settingsEnvironment";
 import { sourceControlEnvironment } from "../../state/sourceControl";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
@@ -54,6 +54,7 @@ import {
   type Icon,
 } from "../Icons";
 import { RedactedSensitiveText } from "./RedactedSensitiveText";
+import { SettingsDeviceTabs } from "./SettingsDeviceTabs";
 import { SourceControlWritingSettingsSection } from "./SourceControlWritingSettings";
 import {
   PolicyTooltip,
@@ -332,8 +333,8 @@ function DiscoveryItemRow({
 }
 
 function GitFetchIntervalSettings() {
-  const settings = usePrimarySettings();
-  const updateSettings = useUpdatePrimarySettings();
+  const settings = useDeviceSettings();
+  const updateSettings = useUpdateDeviceSettings();
   const resolvedBackgroundActivity = resolveServerBackgroundActivitySettings(settings);
   const automaticGitFetchIntervalSeconds = durationToSeconds(
     resolvedBackgroundActivity.automaticGitFetchInterval,
@@ -493,15 +494,12 @@ function EmptySourceControlDiscovery({
 }
 
 export function SourceControlSettingsPanel() {
-  const { environments } = useEnvironments();
-  const primaryEnvironment = usePrimaryEnvironment();
-  const fallbackEnvironment =
-    environments.find((environment) => environment.connection.phase === "connected") ??
-    environments[0] ??
-    null;
-  const environmentId =
-    primaryEnvironment?.environmentId ?? fallbackEnvironment?.environmentId ?? null;
-  const isPrimaryEnvironment = environmentId === primaryEnvironment?.environmentId;
+  const { options, environmentId, select } = useSettingsEnvironmentScope();
+  // Everything on this page — the scan, the fetch interval, the writing style —
+  // belongs to one device, so the tabs scope the whole page rather than a section.
+  const deviceTabs = (
+    <SettingsDeviceTabs options={options} environmentId={environmentId} onSelect={select} />
+  );
   const discovery = useEnvironmentQuery(
     environmentId === null
       ? null
@@ -538,6 +536,8 @@ export function SourceControlSettingsPanel() {
 
   return (
     <SettingsPageContainer>
+      {deviceTabs}
+
       {isInitialScanPending ? (
         <>
           <SourceControlSectionSkeleton title="Version Control" headerAction={scanButton} />
@@ -553,9 +553,7 @@ export function SourceControlSettingsPanel() {
             >
               {result.versionControlSystems.map((item) => (
                 <DiscoveryItemRow key={`vcs:${item.kind}`} item={item}>
-                  {item.kind === "git" && isPrimaryEnvironment ? (
-                    <GitFetchIntervalSettings />
-                  ) : undefined}
+                  {item.kind === "git" ? <GitFetchIntervalSettings /> : undefined}
                 </DiscoveryItemRow>
               ))}
             </SettingsSection>
@@ -581,7 +579,7 @@ export function SourceControlSettingsPanel() {
         />
       )}
 
-      {isPrimaryEnvironment ? <SourceControlWritingSettingsSection /> : null}
+      {environmentId !== null ? <SourceControlWritingSettingsSection /> : null}
     </SettingsPageContainer>
   );
 }

@@ -201,6 +201,21 @@ see [Keeping RAS Code in Sync](./updating.md).
 On a Linux host, you can keep the server running after logout and manage it independently of the
 connection method. See [Running RAS Code in the Background](./background-service.md).
 
+## Settings on a Connected Device
+
+Some settings belong to the device that runs your agents rather than to the app you are looking at:
+the default model, new-thread defaults, where **Add Project** starts browsing, background activity,
+provider configuration, source control writing style, and agent browser access. They are stored on
+that device, so every client you connect from sees the same values.
+
+When more than one device is connected, those settings sections show a row of device tabs. Pick a
+device to read and change its settings; the choice carries across the settings pages. Settings that
+belong to the app you are using — appearance, fonts, time format, sidebar behavior — have no device
+tabs and stay local to that app.
+
+The hosted web app has no device of its own, so it always shows the settings of the device you
+select. Connect at least one device before changing them.
+
 ## How Pairing Works
 
 The remote device does not need a long-lived secret up front.

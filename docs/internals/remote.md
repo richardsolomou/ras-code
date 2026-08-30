@@ -63,6 +63,31 @@ separate target kind. A Tailscale URL is paired through the ordinary bearer path
 host plus pairing code. Tailscale is an endpoint provider and transport, not a distinct runtime
 concept.
 
+### Settings scope
+
+Settings split by owner. `ClientSettings` are browser-local (appearance, fonts, sidebar behavior).
+`ServerSettings` live in one environment's `settings.json` — default model, thread defaults,
+`addProjectBaseDirectory`, background activity, provider instances, source control writing style,
+`enableAgentBrowserAccess` — so a settings row that writes one has to name a device.
+
+The settings UI resolves that device once, in
+[`state/settingsEnvironment.ts`](../../apps/web/src/state/settingsEnvironment.ts): an explicit tab
+pick while that device is still in the catalog, else the primary environment, else the active one,
+else the first device in tab order. The pick is a module atom, so Providers, General, Source Control,
+Integrations, and Diagnostics all follow the same device. `SettingsDeviceTabs` renders the switcher
+and hides itself when the only device is the primary one.
+
+The active-environment step is what makes the hosted app work at all: it has no
+`PrimaryConnectionTarget` (`PlatformConnectionSource` yields no registrations for
+`isHostedStaticApp()`), so anything reading `primaryServerConfigAtom` there sees `null` and any
+server write routed through a null environment id is silently dropped. Consumers that still go
+through the primary atoms — keybindings app-wide, provider update prompts, the window title's server
+version — degrade to defaults in the hosted app for that reason.
+
+Runtime code already resolves settings per environment (`useEnvironmentSettings`, and the Add Project
+palette reading each environment's `addProjectBaseDirectory`); only the editing surfaces needed the
+scope.
+
 ### AdvertisedEndpoint
 
 A server- or desktop-authored candidate endpoint for an environment: a concrete HTTP and WebSocket

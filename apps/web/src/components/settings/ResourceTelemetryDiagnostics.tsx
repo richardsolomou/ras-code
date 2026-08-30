@@ -39,7 +39,7 @@ import {
 } from "../../lib/resourceTelemetryState";
 import { cn } from "../../lib/utils";
 import { ensureLocalApi } from "../../localApi";
-import { usePrimaryEnvironment } from "../../state/environments";
+import { useSettingsEnvironmentId } from "../../state/settingsEnvironment";
 import { serverEnvironment } from "../../state/server";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { formatRelativeTime } from "../../timestampFormat";
@@ -835,21 +835,21 @@ export function ResourceTelemetryDiagnostics() {
   const [windowMs, setWindowMs] = useState(15 * 60_000);
   const selectedWindow =
     HISTORY_WINDOWS.find((option) => option.windowMs === windowMs) ?? HISTORY_WINDOWS[1];
-  const telemetry = useResourceTelemetry();
+  const settingsEnvironmentId = useSettingsEnvironmentId();
+  const telemetry = useResourceTelemetry(settingsEnvironmentId);
   const retryTelemetry = telemetry.retry;
-  const history = useResourceTelemetryHistory({
+  const history = useResourceTelemetryHistory(settingsEnvironmentId, {
     windowMs: selectedWindow.windowMs,
     bucketMs: selectedWindow.bucketMs,
   });
-  const primaryEnvironment = usePrimaryEnvironment();
   const signalServerProcess = useAtomCommand(serverEnvironment.signalProcess, {
     reportFailure: false,
   });
   const [signalingKeys, setSignalingKeys] = useState<ReadonlySet<string>>(() => new Set());
   const signalingKeysRef = useRef<ReadonlySet<string>>(new Set());
   signalingKeysRef.current = signalingKeys;
-  const primaryEnvironmentIdRef = useRef(primaryEnvironment?.environmentId);
-  primaryEnvironmentIdRef.current = primaryEnvironment?.environmentId;
+  const environmentIdRef = useRef(settingsEnvironmentId);
+  environmentIdRef.current = settingsEnvironmentId;
   const [isRetrying, setIsRetrying] = useState(false);
   const snapshot = telemetry.data;
   const allRasCode = snapshot?.groups.allRasCode;
@@ -889,8 +889,8 @@ export function ResourceTelemetryDiagnostics() {
           return;
         }
       }
-      const environmentId = primaryEnvironmentIdRef.current;
-      if (environmentId === undefined) {
+      const environmentId = environmentIdRef.current;
+      if (environmentId === null) {
         clearSignaling();
         return;
       }

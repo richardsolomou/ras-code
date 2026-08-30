@@ -1,11 +1,10 @@
-import { useAtomValue } from "@effect/atom-react";
 import { useRef } from "react";
 import type { SourceControlWritingStyleMode } from "@ras-code/contracts";
 import { DEFAULT_UNIFIED_SETTINGS } from "@ras-code/contracts/settings";
 import { createModelSelection } from "@ras-code/shared/model";
 import { resolveSourceControlWriterModelSelection } from "@ras-code/shared/serverSettings";
 
-import { usePrimarySettings, useUpdatePrimarySettings } from "../../hooks/useSettings";
+import { useDeviceSettings, useUpdateDeviceSettings } from "../../hooks/useSettings";
 import {
   applyProviderInstanceSettings,
   deriveProviderInstanceEntries,
@@ -15,7 +14,7 @@ import {
   getCustomModelOptionsByInstance,
   resolveAppModelSelectionState,
 } from "../../modelSelection";
-import { primaryServerProvidersAtom } from "../../state/server";
+import { useSettingsEnvironmentProviders } from "../../state/settingsEnvironment";
 import { ProviderModelPicker } from "../chat/ProviderModelPicker";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "../ui/select";
 import { Switch } from "../ui/switch";
@@ -41,9 +40,9 @@ const MODE_OPTIONS: Record<SourceControlWritingStyleMode, { label: string; descr
   };
 
 export function SourceControlWritingSettingsSection() {
-  const settings = usePrimarySettings();
-  const updateSettings = useUpdatePrimarySettings();
-  const serverProviders = useAtomValue(primaryServerProvidersAtom);
+  const settings = useDeviceSettings();
+  const updateSettings = useUpdateDeviceSettings();
+  const serverProviders = useSettingsEnvironmentProviders();
   const customInstructionsRef = useRef<HTMLTextAreaElement>(null);
   const style = settings.sourceControlWritingStyle;
   const defaults = DEFAULT_UNIFIED_SETTINGS.sourceControlWritingStyle;
