@@ -8,6 +8,7 @@ import {
   AssetSigningKeyLoadError,
   AssetWorkspaceAssetInspectionError,
   AssetWorkspaceAssetNotFoundError,
+  AssetWorkspaceAssetOutsideRootError,
   AssetWorkspaceContextNotFoundError,
   AssetWorkspacePathValidationError,
   AssetWorkspaceResolutionError,
@@ -154,6 +155,19 @@ const resolveCanonicalFile = Effect.fn("AssetAccess.resolveCanonicalFile")(funct
   return Option.isSome(info) && info.value.type === "File" ? canonicalFile.value : null;
 });
 
+/**
+ * Why a workspace path did not resolve to a servable file. "Outside the root"
+ * and "missing" both used to arrive as null, so a readable file one directory
+ * over was reported to the caller, the log, and the user as not found.
+ */
+type WorkspaceFileOutcome =
+  | { readonly _tag: "Resolved"; readonly path: string }
+  | { readonly _tag: "OutsideRoot" }
+  | { readonly _tag: "Missing" };
+
+const OUTSIDE_ROOT: WorkspaceFileOutcome = { _tag: "OutsideRoot" };
+const MISSING: WorkspaceFileOutcome = { _tag: "Missing" };
+
 const resolveCanonicalWorkspaceFile = Effect.fn("AssetAccess.resolveCanonicalWorkspaceFile")(
   function* (input: { readonly workspaceRoot: string; readonly relativePath: string }) {
     const fileSystem = yield* FileSystem.FileSystem;
@@ -164,28 +178,41 @@ const resolveCanonicalWorkspaceFile = Effect.fn("AssetAccess.resolveCanonicalWor
         WorkspacePathOutsideRootError: () => Effect.succeed(Option.none()),
       }),
     );
-    if (Option.isNone(resolved)) return null;
+    if (Option.isNone(resolved)) return OUTSIDE_ROOT;
 
     const [canonicalRoot, canonicalFile] = yield* Effect.all([
       optionOnNotFound(fileSystem.realPath(input.workspaceRoot)),
       optionOnNotFound(fileSystem.realPath(resolved.value.absolutePath)),
     ]);
-    if (Option.isNone(canonicalRoot) || Option.isNone(canonicalFile)) return null;
+    if (Option.isNone(canonicalRoot) || Option.isNone(canonicalFile)) return MISSING;
 
     const path = yield* Path.Path;
     const relative = path.relative(canonicalRoot.value, canonicalFile.value);
-    if (relative === "" || relative.startsWith("..") || path.isAbsolute(relative)) return null;
+    // A symlink inside the root can still land outside it once resolved.
+    if (relative === "" || relative.startsWith("..") || path.isAbsolute(relative)) {
+      return OUTSIDE_ROOT;
+    }
 
     const info = yield* optionOnNotFound(fileSystem.stat(canonicalFile.value));
-    return Option.isSome(info) && info.value.type === "File" ? canonicalFile.value : null;
+    return Option.isSome(info) && info.value.type === "File"
+      ? { _tag: "Resolved", path: canonicalFile.value }
+      : MISSING;
   },
 );
+
+const canonicalWorkspaceFilePath = (input: {
+  readonly workspaceRoot: string;
+  readonly relativePath: string;
+}) =>
+  resolveCanonicalWorkspaceFile(input).pipe(
+    Effect.map((outcome) => (outcome._tag === "Resolved" ? outcome.path : null)),
+  );
 
 const resolveCanonicalWorkspaceFileForRequest = (input: {
   readonly workspaceRoot: string;
   readonly relativePath: string;
 }) =>
-  resolveCanonicalWorkspaceFile(input).pipe(
+  canonicalWorkspaceFilePath(input).pipe(
     Effect.tapError((cause) =>
       Effect.logError("Failed to resolve canonical asset path.", {
         workspaceRoot: input.workspaceRoot,
@@ -245,7 +272,7 @@ export const issueAssetUrl = Effect.fn("AssetAccess.issueAssetUrl")(function* (i
           resource: input.resource,
         });
       }
-      const canonicalFile = yield* resolveCanonicalWorkspaceFile({
+      const outcome = yield* resolveCanonicalWorkspaceFile({
         workspaceRoot,
         relativePath: resolved.relativePath,
       }).pipe(
@@ -257,7 +284,12 @@ export const issueAssetUrl = Effect.fn("AssetAccess.issueAssetUrl")(function* (i
             }),
         ),
       );
-      if (!canonicalFile) {
+      if (outcome._tag === "OutsideRoot") {
+        return yield* new AssetWorkspaceAssetOutsideRootError({
+          resource: input.resource,
+        });
+      }
+      if (outcome._tag === "Missing") {
         return yield* new AssetWorkspaceAssetNotFoundError({
           resource: input.resource,
         });
@@ -364,7 +396,7 @@ export const issueAssetUrl = Effect.fn("AssetAccess.issueAssetUrl")(function* (i
         ? yield* (
             isExternalOverride
               ? resolveCanonicalFile(sourceFaviconPath)
-              : resolveCanonicalWorkspaceFile({ workspaceRoot, relativePath: sourceFaviconPath })
+              : canonicalWorkspaceFilePath({ workspaceRoot, relativePath: sourceFaviconPath })
           ).pipe(
             Effect.mapError(
               (cause) =>

@@ -1,4 +1,5 @@
 import { AssetResource, EnvironmentId, WS_METHODS } from "@ras-code/contracts";
+import * as Cause from "effect/Cause";
 import * as Schema from "effect/Schema";
 import { Atom } from "effect/unstable/reactivity";
 
@@ -33,6 +34,51 @@ export function parseAssetCollectionKey(
     return decodeAssetCollectionKey(JSON.parse(key));
   } catch (cause) {
     throw new InvalidAssetCollectionKeyError({ key, cause });
+  }
+}
+
+/**
+ * Why an asset URL could not be issued, in the terms a reader cares about.
+ * A dead "unavailable" chip sends people hunting through server logs, and the
+ * most common cause -- a file written outside the project folder, often on a
+ * machine the client is not even running on -- is invisible without this.
+ */
+export type AssetUrlFailureReason =
+  | "outside-project"
+  | "not-found"
+  | "unsupported-type"
+  | "unavailable";
+
+const ASSET_FAILURE_REASON_BY_TAG: Record<string, AssetUrlFailureReason> = {
+  AssetWorkspaceAssetOutsideRootError: "outside-project",
+  AssetWorkspacePathValidationError: "outside-project",
+  AssetWorkspaceAssetNotFoundError: "not-found",
+  AssetAttachmentNotFoundError: "not-found",
+  AssetProjectFaviconNotFoundError: "not-found",
+  AssetPreviewTypeValidationError: "unsupported-type",
+};
+
+/** Reads the failure reason out of a create-url rejection. */
+export function assetUrlFailureReason(cause: Cause.Cause<unknown>): AssetUrlFailureReason {
+  const error: unknown = Cause.squash(cause);
+  const tag =
+    typeof error === "object" && error !== null && "_tag" in error
+      ? (error as { readonly _tag: unknown })._tag
+      : null;
+  return (typeof tag === "string" ? ASSET_FAILURE_REASON_BY_TAG[tag] : undefined) ?? "unavailable";
+}
+
+/** Short, user-facing text for an image that could not be loaded. */
+export function assetUrlFailureLabel(reason: AssetUrlFailureReason): string {
+  switch (reason) {
+    case "outside-project":
+      return "Image is outside the project folder";
+    case "not-found":
+      return "Image not found";
+    case "unsupported-type":
+      return "Unsupported image type";
+    case "unavailable":
+      return "Image unavailable";
   }
 }
 

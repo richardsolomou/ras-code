@@ -1,10 +1,20 @@
 import { describe, expect, it } from "@effect/vitest";
-import { EnvironmentId } from "@ras-code/contracts";
+import {
+  AssetPreviewTypeValidationError,
+  AssetWorkspaceAssetNotFoundError,
+  AssetWorkspaceAssetOutsideRootError,
+  AssetWorkspacePathValidationError,
+  EnvironmentId,
+  ThreadId,
+} from "@ras-code/contracts";
+import * as Cause from "effect/Cause";
 import * as Layer from "effect/Layer";
 import { Atom } from "effect/unstable/reactivity";
 
 import type { EnvironmentRegistry } from "../connection/registry.ts";
 import {
+  assetUrlFailureLabel,
+  assetUrlFailureReason,
   createAssetEnvironmentAtoms,
   InvalidAssetCollectionKeyError,
   parseAssetCollectionKey,
@@ -131,5 +141,30 @@ describe("resolveAssetUrl", () => {
     expect(
       resolveAssetUrl("https://gateway.example.com/e/abcdef0123456789/", "https://cdn.test/one"),
     ).toBe("https://cdn.test/one");
+  });
+});
+
+describe("asset failure reasons", () => {
+  const resource = {
+    _tag: "workspace-file",
+    threadId: ThreadId.make("thread-1"),
+    path: "/tmp/outside/shot.png",
+  } as const;
+
+  it.each([
+    [new AssetWorkspaceAssetOutsideRootError({ resource }), "outside-project"],
+    [new AssetWorkspacePathValidationError({ resource, cause: "outside" }), "outside-project"],
+    [new AssetWorkspaceAssetNotFoundError({ resource }), "not-found"],
+    [new AssetPreviewTypeValidationError({ resource }), "unsupported-type"],
+    [new Error("socket closed"), "unavailable"],
+  ])("maps %s to a reason a reader can act on", (error, expected) => {
+    expect(assetUrlFailureReason(Cause.fail(error))).toBe(expected);
+  });
+
+  it("labels the reason without leaking the error tag", () => {
+    expect(assetUrlFailureLabel("outside-project")).toBe("Image is outside the project folder");
+    expect(assetUrlFailureLabel("not-found")).toBe("Image not found");
+    expect(assetUrlFailureLabel("unsupported-type")).toBe("Unsupported image type");
+    expect(assetUrlFailureLabel("unavailable")).toBe("Image unavailable");
   });
 });

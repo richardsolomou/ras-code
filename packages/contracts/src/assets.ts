@@ -183,6 +183,17 @@ export class AssetWorkspaceAssetNotFoundError extends Schema.TaggedErrorClass<As
   }
 }
 
+export class AssetWorkspaceAssetOutsideRootError extends Schema.TaggedErrorClass<AssetWorkspaceAssetOutsideRootError>()(
+  "AssetWorkspaceAssetOutsideRootError",
+  {
+    resource: AssetResource,
+  },
+) {
+  override get message(): string {
+    return "Workspace asset is outside the project folder.";
+  }
+}
+
 export class AssetWorkspaceResolutionError extends Schema.TaggedErrorClass<AssetWorkspaceResolutionError>()(
   "AssetWorkspaceResolutionError",
   {
@@ -261,6 +272,7 @@ export const AssetAccessError = Schema.Union([
   AssetPreviewTypeValidationError,
   AssetWorkspaceAssetInspectionError,
   AssetWorkspaceAssetNotFoundError,
+  AssetWorkspaceAssetOutsideRootError,
   AssetWorkspaceResolutionError,
   AssetAttachmentNotFoundError,
   AssetProjectFaviconResolutionError,

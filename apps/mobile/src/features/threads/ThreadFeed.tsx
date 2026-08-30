@@ -111,7 +111,12 @@ import {
   WORK_GROUP_TOGGLE_HEIGHT,
 } from "./thread-work-log";
 import { useMarkdownCodeHighlight } from "./markdownCodeHighlightState";
-import { useAssetUrl, useAssetUrlState } from "../../state/assets";
+import {
+  assetUrlFailureLabel,
+  useAssetUrl,
+  useAssetUrlState,
+  type AssetUrlFailureReason,
+} from "../../state/assets";
 import { resolveWorkspaceRelativeFilePath } from "../files/filePath";
 import { MARKDOWN_IMAGE_MAX_WIDTH, resolveMarkdownImageDisplaySize } from "./markdownImageSize";
 
@@ -209,6 +214,8 @@ function ThreadMarkdownImageView(props: {
   readonly uri: string | null;
   readonly sourceKey: string;
   readonly unavailable: boolean;
+  readonly failureReason?: AssetUrlFailureReason;
+  readonly detail?: string | null;
   readonly alt: string | null;
   readonly onPressImage: (uri: string) => void;
 }) {
@@ -254,7 +261,20 @@ function ThreadMarkdownImageView(props: {
           }}
         >
           {failed ? (
-            <Text className="text-xs text-foreground-muted">Image unavailable</Text>
+            <View style={{ alignItems: "center", gap: 2, paddingHorizontal: 12 }}>
+              <Text className="text-xs text-foreground-muted">
+                {assetUrlFailureLabel(props.failureReason ?? "unavailable")}
+              </Text>
+              {props.detail ? (
+                <Text
+                  numberOfLines={1}
+                  ellipsizeMode="head"
+                  className="text-[10px] text-foreground-muted"
+                >
+                  {props.detail}
+                </Text>
+              ) : null}
+            </View>
           ) : (
             <ActivityIndicator />
           )}
@@ -346,6 +366,8 @@ function ThreadMarkdownImage(props: {
       uri={assetUrl._tag === "Success" ? assetUrl.url : null}
       sourceKey={props.path}
       unavailable={assetUrl._tag === "Failure"}
+      {...(assetUrl._tag === "Failure" ? { failureReason: assetUrl.reason } : {})}
+      detail={props.path}
       alt={props.alt}
       onPressImage={props.onPressImage}
     />

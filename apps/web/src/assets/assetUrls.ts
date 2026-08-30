@@ -1,5 +1,9 @@
 import { useAtomValue } from "@effect/atom-react";
-import { resolveAssetUrl } from "@ras-code/client-runtime/state/assets";
+import {
+  assetUrlFailureReason,
+  resolveAssetUrl,
+  type AssetUrlFailureReason,
+} from "@ras-code/client-runtime/state/assets";
 import type { AssetResource, EnvironmentId } from "@ras-code/contracts";
 import { AsyncResult } from "effect/unstable/reactivity";
 import { useMemo } from "react";
@@ -7,11 +11,15 @@ import { useMemo } from "react";
 import { assetEnvironment } from "~/state/assets";
 import { usePreparedConnection } from "~/state/session";
 
-export { resolveAssetUrl } from "@ras-code/client-runtime/state/assets";
+export {
+  assetUrlFailureLabel,
+  resolveAssetUrl,
+  type AssetUrlFailureReason,
+} from "@ras-code/client-runtime/state/assets";
 
 export type AssetUrlState =
   | { readonly _tag: "Loading" }
-  | { readonly _tag: "Failure" }
+  | { readonly _tag: "Failure"; readonly reason: AssetUrlFailureReason }
   | {
       readonly _tag: "Success";
       readonly url: string;
@@ -31,14 +39,14 @@ export function useAssetUrlState(
     }),
   );
   if (result._tag === "Failure") {
-    return { _tag: "Failure" };
+    return { _tag: "Failure", reason: assetUrlFailureReason(result.cause) };
   }
   if (preparedConnection._tag === "None" || result._tag !== "Success") {
     return { _tag: "Loading" };
   }
   const url = resolveAssetUrl(preparedConnection.value.httpBaseUrl, result.value.relativeUrl);
   return url === null
-    ? { _tag: "Failure" }
+    ? { _tag: "Failure", reason: "unavailable" }
     : {
         _tag: "Success",
         url,

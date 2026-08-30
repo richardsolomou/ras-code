@@ -106,6 +106,44 @@ describe("AssetAccess", () => {
     }).pipe(Effect.provide(testLayer)),
   );
 
+  it.effect("separates a symlink escape from a missing workspace file", () =>
+    Effect.gen(function* () {
+      const fileSystem = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const root = yield* fileSystem.makeTempDirectoryScoped({
+        prefix: "ras-code-asset-symlink-root-",
+      });
+      const outside = yield* fileSystem.makeTempDirectoryScoped({
+        prefix: "ras-code-asset-symlink-outside-",
+      });
+      const targetPath = path.join(outside, "escaped.png");
+      yield* fileSystem.writeFileString(targetPath, "png");
+      yield* fileSystem.symlink(targetPath, path.join(root, "escaped.png"));
+
+      // The link sits inside the root, so only the realpath check can catch it.
+      const escaped = yield* issueAssetUrl({
+        resource: {
+          _tag: "workspace-file",
+          threadId: ThreadId.make("thread-1"),
+          path: "escaped.png",
+        },
+        workspaceRoot: root,
+      }).pipe(Effect.flip);
+      expect(escaped._tag).toBe("AssetWorkspaceAssetOutsideRootError");
+      expect(escaped.message).toBe("Workspace asset is outside the project folder.");
+
+      const missing = yield* issueAssetUrl({
+        resource: {
+          _tag: "workspace-file",
+          threadId: ThreadId.make("thread-1"),
+          path: "absent.png",
+        },
+        workspaceRoot: root,
+      }).pipe(Effect.flip);
+      expect(missing._tag).toBe("AssetWorkspaceAssetNotFoundError");
+    }).pipe(Effect.provide(testLayer)),
+  );
+
   it.effect("preserves non-missing canonical path failures when issuing asset URLs", () =>
     Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;

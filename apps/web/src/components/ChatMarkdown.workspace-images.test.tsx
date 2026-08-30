@@ -4,16 +4,19 @@ import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 const testState = vi.hoisted(() => ({
   resources: [] as Array<unknown>,
-  assetState: "success" as "success" | "loading",
+  assetState: "success" as "success" | "loading" | "failure",
+  failureReason: "unavailable" as string,
 }));
 
 vi.mock("@effect/atom-react", () => ({ useAtomValue: () => null }));
 vi.mock("../assets/assetUrls", () => ({
   useAssetUrlState: (_environmentId: unknown, resource: unknown) => {
     testState.resources.push(resource);
-    return testState.assetState === "loading"
-      ? { _tag: "Loading" }
-      : { _tag: "Success", url: "https://signed.test/workspace-image.svg" };
+    if (testState.assetState === "loading") return { _tag: "Loading" };
+    if (testState.assetState === "failure") {
+      return { _tag: "Failure", reason: testState.failureReason };
+    }
+    return { _tag: "Success", url: "https://signed.test/workspace-image.svg" };
   },
 }));
 vi.mock("../hooks/useTheme", () => ({ useTheme: () => ({ resolvedTheme: "dark" }) }));
@@ -62,6 +65,7 @@ describe("ChatMarkdown workspace images", () => {
   beforeEach(() => {
     testState.resources = [];
     testState.assetState = "success";
+    testState.failureReason = "unavailable";
   });
 
   it("loads every Windows workspace path form through a signed asset URL", () => {
@@ -93,6 +97,26 @@ describe("ChatMarkdown workspace images", () => {
     expect(html.match(/max-w-\[min\(100%,30rem\)\]/g)).toHaveLength(4);
     expect(html.match(/max-h-\[30rem\]/g)).toHaveLength(4);
     expect(html).not.toContain("Image unavailable");
+  });
+
+  it("names the reason and the path when an image cannot be loaded", () => {
+    testState.assetState = "failure";
+    testState.failureReason = "outside-project";
+
+    const html = render("![shot](C:/tmp/scratch/workspace-image.svg)");
+
+    expect(html).toContain("Image is outside the project folder");
+    expect(html).toContain("C:/tmp/scratch/workspace-image.svg");
+    expect(html).not.toContain("Image unavailable");
+  });
+
+  it("falls back to the generic label for an unclassified failure", () => {
+    testState.assetState = "failure";
+    testState.failureReason = "unavailable";
+
+    const html = render("![shot](.ras-code/workspace-image.svg)");
+
+    expect(html).toContain("Image unavailable");
   });
 
   it("normalizes a drive-absolute src in raw image HTML", () => {
