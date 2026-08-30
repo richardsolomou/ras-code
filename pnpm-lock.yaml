@@ -806,6 +806,9 @@ importers:
 
   infra/web:
     dependencies:
+      '@ras-code/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       alchemy:
         specifier: 2.0.0-beta.70
         version: 2.0.0-beta.70(f8fe89699da21c6cf5e5fd2fa307d248)

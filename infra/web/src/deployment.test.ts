@@ -5,6 +5,7 @@ import {
   deploymentForStage,
   routerHostname,
   runsChannelRouter,
+  hostedAppRoutePatterns,
   webWorkerDomain,
   servesOnWorkersDev,
   webWorkerEnv,
@@ -52,8 +53,8 @@ describe("deploymentForStage", () => {
 });
 
 describe("webWorkerDomain", () => {
-  it("serves latest on the router domain itself", () => {
-    expect(webWorkerDomain(LATEST, DOMAINS)).toEqual({ name: "code.ras.sh" });
+  it("leaves the router domain to the marketing site, reaching latest by route", () => {
+    expect(webWorkerDomain(LATEST, DOMAINS)).toBeUndefined();
   });
 
   it("gives canary only its own channel domain", () => {
@@ -62,6 +63,28 @@ describe("webWorkerDomain", () => {
 
   it("gives a preview no domain, so it cannot take one from a channel", () => {
     expect(webWorkerDomain(PREVIEW, DOMAINS)).toBeUndefined();
+  });
+});
+
+describe("hostedAppRoutePatterns", () => {
+  it("claims the bare prefix as well as everything under it", () => {
+    expect(hostedAppRoutePatterns("code.ras.sh")).toContain("code.ras.sh/app");
+    expect(hostedAppRoutePatterns("code.ras.sh")).toContain("code.ras.sh/app/*");
+  });
+
+  it("keeps the legacy entry points shipped clients still address", () => {
+    expect(hostedAppRoutePatterns("code.ras.sh")).toEqual(
+      expect.arrayContaining([
+        "code.ras.sh/pair",
+        "code.ras.sh/connect",
+        "code.ras.sh/connect/*",
+        "code.ras.sh/__ras-code/*",
+      ]),
+    );
+  });
+
+  it("claims nothing the marketing site serves", () => {
+    expect(hostedAppRoutePatterns("code.ras.sh")).not.toContain("code.ras.sh/*");
   });
 });
 

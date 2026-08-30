@@ -133,19 +133,29 @@ Required GitHub Actions variables:
 - `CLOUDFLARE_ACCOUNT_ID`
 - `RAS_CODE_WEB_ROUTER_URL`: set to `https://code.ras.sh` for the RAS-hosted deployment.
 - `RAS_CODE_WEB_CANARY_DOMAIN`: set to `code-canary.ras.sh` for the RAS-hosted deployment.
+- `RAS_CODE_WEB_ZONE_ID`: the zone the router domain belongs to, which the stable
+  channel's routes attach to.
 
 Worker custom domains, which Alchemy attaches:
 
-- `code.ras.sh`: the stable channel and the domain users open, served by the `latest` stage.
 - `code-canary.ras.sh`: the canary channel, served by the `canary` stage. Canary
-  needs its own name because the router proxies to it; stable does not, because
-  the router serves stable itself.
+  needs its own name because the router proxies to it.
+
+The marketing site claims that hostname by deploying `infra/marketing` with
+`RAS_CODE_MARKETING_DOMAIN=code.ras.sh`; without it the site is reachable only at
+its generated `workers.dev` URL and the app's routes have nothing to sit in front
+of. The marketing site owns `code.ras.sh` as its custom domain, so the stable channel
+is attached to that hostname with Worker routes instead: `/app` and `/app/*` for
+the app itself, plus `/pair`, `/connect`, `/connect/*`, and `/__ras-code/*`, which
+the Worker redirects under the prefix for clients that still address them at the
+root. Everything else on the hostname is the marketing site.
 
 Both channels deploy the same Worker entry, `apps/web/worker.ts`. Only the
 `latest` stage receives `RAS_CODE_WEB_ROUTER_HOST` and
 `RAS_CODE_WEB_CANARY_ORIGIN`, so only it routes; the canary deployment serves
 its own assets unconditionally. Users opt into a channel by visiting
-`/__ras-code/channel?channel=latest` or `/__ras-code/channel?channel=canary`,
+`/app/__ras-code/channel?channel=latest` or
+`/app/__ras-code/channel?channel=canary`,
 which sets the `ras_code_web_channel` cookie. On the router domain the Worker
 reads that cookie and proxies to the canary origin when it says `canary`;
 otherwise it serves its own assets. The canary domain never routes, so a stale
@@ -153,16 +163,22 @@ cookie cannot cause a loop.
 
 Known limitation: Cloudflare serves static assets before invoking the Worker, so
 the router does not see requests whose path exactly matches a built file. Channel
-switching therefore takes effect on application routes but not on `/`, which
-resolves directly to `index.html`. The stack sets `runWorkerFirst` on the router
-deployment, but Alchemy does not currently forward it — a deployed version
-reports `raw_run_worker_first: false`.
+switching therefore takes effect on application routes but not on the app's own
+index, which resolves directly to `index.html`. The stack sets `runWorkerFirst`
+on the router deployment, but Alchemy does not currently forward it — a deployed
+version reports `raw_run_worker_first: false`.
+
+The hosted build is emitted under the same prefix it is served from, so
+`/app/assets/...` resolves to a real file. Asset misses do reach the Worker, so
+it serves the app shell for client-side routes under `/app` and 302s the legacy
+root entry points; `notFoundHandling` is `none` because Cloudflare's own
+single-page fallback looks for a root `index.html` that no longer exists.
 
 The release deploy job rewrites release package versions before the build so the
 hosted app's About panel renders the release version. It also passes
 `VITE_HOSTED_APP_CHANNEL=latest|canary`, which renders the hosted update track
 selector in the About panel. Changing the selector navigates through
-`/__ras-code/channel` on the router domain so the user's channel cookie is
+`/app/__ras-code/channel` on the router domain so the user's channel cookie is
 updated before redirecting to the hosted app root.
 
 Deploy a channel by hand with:

@@ -7,9 +7,19 @@
  * per request whether to serve its own assets or hand off to canary.
  */
 
+import { HOSTED_APP_BASE_PATH } from "@ras-code/shared/connectAuth";
+
 const CHANNEL_COOKIE = "ras_code_web_channel";
-const CHANNEL_PATH = "/__ras-code/channel";
+const CHANNEL_PATH = `${HOSTED_APP_BASE_PATH}__ras-code/channel`;
 const CHANNEL_COOKIE_MAX_AGE = 31_536_000;
+
+/**
+ * Entry points that shipped clients still address at the origin root, from
+ * before the marketing site took it over. Their fragments carry the CLI's
+ * `state` and `challenge`; a fragment never reaches the Worker and browsers
+ * reattach it across a redirect, so forwarding the path and query is enough.
+ */
+const LEGACY_ROOT_PATHS = ["/pair", "/connect", "/__ras-code/channel"];
 
 export type Channel = "latest" | "canary";
 
@@ -23,7 +33,22 @@ export interface WebRouterConfig {
 export type RouterAction =
   | { readonly kind: "set-channel"; readonly channel: Channel }
   | { readonly kind: "proxy"; readonly origin: string }
+  | { readonly kind: "redirect"; readonly location: string }
   | { readonly kind: "assets" };
+
+/**
+ * Maps a legacy root entry point onto its path-prefixed equivalent, or returns
+ * null when the request is already addressed to the app.
+ */
+export function legacyRedirectLocation(url: URL): string | null {
+  const legacy = LEGACY_ROOT_PATHS.find(
+    (path) => url.pathname === path || url.pathname.startsWith(`${path}/`),
+  );
+  if (!legacy) {
+    return null;
+  }
+  return `${HOSTED_APP_BASE_PATH}${url.pathname.slice(1)}${url.search}`;
+}
 
 export function channelCookie(channel: Channel): string {
   return [
@@ -67,6 +92,11 @@ export function routeRequest(
     };
   }
 
+  const legacyLocation = legacyRedirectLocation(url);
+  if (legacyLocation) {
+    return { kind: "redirect", location: legacyLocation };
+  }
+
   const isRouterHost = Boolean(config.routerHost) && url.hostname === config.routerHost;
   if (isRouterHost && config.canaryOrigin && readChannelCookie(cookieHeader) === "canary") {
     return { kind: "proxy", origin: config.canaryOrigin };
@@ -102,14 +132,24 @@ export default {
         return new Response(null, {
           status: 302,
           headers: {
-            Location: "/",
+            Location: HOSTED_APP_BASE_PATH,
             "Set-Cookie": channelCookie(action.channel),
           },
         });
+      case "redirect":
+        return new Response(null, { status: 302, headers: { Location: action.location } });
       case "proxy":
         return fetch(new Request(proxyUrl(url, action.origin), request));
-      case "assets":
-        return env.ASSETS.fetch(request);
+      case "assets": {
+        // Only asset misses reach the Worker, so an app route that matched no
+        // file is a client-side route: hand back the shell and let the router
+        // resolve it. Anything outside the prefix is not ours to serve.
+        if (!url.pathname.startsWith(HOSTED_APP_BASE_PATH)) {
+          return env.ASSETS.fetch(request);
+        }
+        const shell = new URL(`${HOSTED_APP_BASE_PATH}index.html`, url.origin);
+        return env.ASSETS.fetch(new Request(shell, request));
+      }
     }
   },
 };

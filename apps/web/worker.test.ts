@@ -4,6 +4,7 @@ import {
   channelCookie,
   proxyUrl,
   readChannelCookie,
+  legacyRedirectLocation,
   routeRequest,
   type WebRouterConfig,
 } from "./worker.ts";
@@ -19,39 +20,39 @@ const route = (url: string, cookie: string | null, config: WebRouterConfig = ROU
 
 describe("routeRequest", () => {
   it("opts into the canary channel", () => {
-    expect(route("https://code.ras.sh/__ras-code/channel?channel=canary", null)).toEqual({
+    expect(route("https://code.ras.sh/app/__ras-code/channel?channel=canary", null)).toEqual({
       kind: "set-channel",
       channel: "canary",
     });
   });
 
   it("treats any other channel value as latest", () => {
-    expect(route("https://code.ras.sh/__ras-code/channel?channel=banana", null)).toEqual({
+    expect(route("https://code.ras.sh/app/__ras-code/channel?channel=banana", null)).toEqual({
       kind: "set-channel",
       channel: "latest",
     });
   });
 
   it("opts back into latest when no channel is given", () => {
-    expect(route("https://code.ras.sh/__ras-code/channel", null)).toEqual({
+    expect(route("https://code.ras.sh/app/__ras-code/channel", null)).toEqual({
       kind: "set-channel",
       channel: "latest",
     });
   });
 
   it("hands the router host to canary when the cookie says so", () => {
-    expect(route("https://code.ras.sh/threads/1", "ras_code_web_channel=canary")).toEqual({
+    expect(route("https://code.ras.sh/app/threads/1", "ras_code_web_channel=canary")).toEqual({
       kind: "proxy",
       origin: "https://code-canary.ras.sh",
     });
   });
 
   it("serves its own assets on the router host without a cookie", () => {
-    expect(route("https://code.ras.sh/threads/1", null)).toEqual({ kind: "assets" });
+    expect(route("https://code.ras.sh/app/threads/1", null)).toEqual({ kind: "assets" });
   });
 
   it("serves its own assets on the router host when the cookie says latest", () => {
-    expect(route("https://code.ras.sh/threads/1", "ras_code_web_channel=latest")).toEqual({
+    expect(route("https://code.ras.sh/app/threads/1", "ras_code_web_channel=latest")).toEqual({
       kind: "assets",
     });
   });
@@ -66,6 +67,37 @@ describe("routeRequest", () => {
     expect(
       route("https://code-canary.ras.sh/", "ras_code_web_channel=canary", CANARY_DEPLOYMENT),
     ).toEqual({ kind: "assets" });
+  });
+});
+
+describe("legacyRedirectLocation", () => {
+  it("moves a bare pairing link under the app prefix", () => {
+    expect(legacyRedirectLocation(new URL("https://code.ras.sh/pair?host=x"))).toBe(
+      "/app/pair?host=x",
+    );
+  });
+
+  it("moves the CLI callback under the app prefix", () => {
+    expect(legacyRedirectLocation(new URL("https://code.ras.sh/connect/callback?code=1"))).toBe(
+      "/app/connect/callback?code=1",
+    );
+  });
+
+  it("leaves a request that already carries the prefix alone", () => {
+    expect(legacyRedirectLocation(new URL("https://code.ras.sh/app/pair"))).toBeNull();
+  });
+
+  it("ignores a marketing path that merely starts with a legacy name", () => {
+    expect(legacyRedirectLocation(new URL("https://code.ras.sh/pairing-guide"))).toBeNull();
+  });
+});
+
+describe("routeRequest legacy entry points", () => {
+  it("redirects rather than serving, so the fragment survives the hop", () => {
+    expect(route("https://code.ras.sh/connect", null)).toEqual({
+      kind: "redirect",
+      location: "/app/connect",
+    });
   });
 });
 
@@ -98,7 +130,7 @@ describe("channelCookie", () => {
 describe("proxyUrl", () => {
   it("preserves the path and query against the upstream origin", () => {
     expect(
-      proxyUrl(new URL("https://code.ras.sh/threads/1?tab=diff"), "https://code-canary.ras.sh"),
-    ).toBe("https://code-canary.ras.sh/threads/1?tab=diff");
+      proxyUrl(new URL("https://code.ras.sh/app/threads/1?tab=diff"), "https://code-canary.ras.sh"),
+    ).toBe("https://code-canary.ras.sh/app/threads/1?tab=diff");
   });
 });

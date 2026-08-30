@@ -6,8 +6,17 @@ const CONNECT_AUTH_PORT_PARAM = "port";
 const CONNECT_AUTH_CODE_SEPARATOR = ".";
 const CONNECT_LOOPBACK_CALLBACK_PATH = "/callback";
 
-const CONNECT_AUTHORIZE_PATH = "/connect";
-const CONNECT_CALLBACK_PATH = "/connect/callback";
+// Resolved against the hosted app URL, so they carry no leading slash: an
+// absolute path would discard that URL's own path prefix.
+const CONNECT_AUTHORIZE_PATH = "connect";
+const CONNECT_CALLBACK_PATH = "connect/callback";
+
+/**
+ * Path prefix the hosted deployment serves the app under, so the marketing
+ * site can own the origin root. The hosted build bakes this in as its Vite
+ * base; other deployments (desktop, a bundled server) serve from the root.
+ */
+export const HOSTED_APP_BASE_PATH = "/app/";
 
 /**
  * The RAS-hosted deployment. The web bundle compares its own origin against
@@ -15,7 +24,20 @@ const CONNECT_CALLBACK_PATH = "/connect/callback";
  * deriving it from the current origin makes every build think it is hosted.
  * Builds for another deployment override it with `VITE_HOSTED_APP_URL`.
  */
-export const DEFAULT_HOSTED_APP_URL = "https://code.ras.sh";
+export const DEFAULT_HOSTED_APP_URL = `https://code.ras.sh${HOSTED_APP_BASE_PATH}`;
+
+/**
+ * Resolves a path against a hosted app URL that may carry a path prefix.
+ * `new URL("/pair", "https://host/app")` drops the prefix, so every hosted
+ * link builds from a base normalized to end in a slash.
+ */
+export function hostedAppUrlFor(hostedAppUrl: string, path: string): URL {
+  const base = new URL(hostedAppUrl);
+  if (!base.pathname.endsWith("/")) {
+    base.pathname = `${base.pathname}/`;
+  }
+  return new URL(path, base);
+}
 
 /**
  * Requested at authorize time by the hosted page and honored by the CLI's
@@ -52,7 +74,7 @@ export function buildConnectAuthorizeRequestUrl(input: {
   readonly challenge: string;
   readonly loopbackPort?: number;
 }): string {
-  const url = new URL(CONNECT_AUTHORIZE_PATH, input.hostedAppUrl);
+  const url = hostedAppUrlFor(input.hostedAppUrl, CONNECT_AUTHORIZE_PATH);
   url.hash = new URLSearchParams([
     [CONNECT_AUTH_STATE_PARAM, input.state],
     [CONNECT_AUTH_CHALLENGE_PARAM, input.challenge],
@@ -101,7 +123,7 @@ export function connectLoopbackRedirectUri(port: number): string {
 }
 
 export function connectCallbackUrl(hostedAppUrl: string): string {
-  return new URL(CONNECT_CALLBACK_PATH, hostedAppUrl).toString();
+  return hostedAppUrlFor(hostedAppUrl, CONNECT_CALLBACK_PATH).toString();
 }
 
 export function buildConnectClerkAuthorizeUrl(input: {

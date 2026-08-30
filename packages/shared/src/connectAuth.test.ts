@@ -101,4 +101,26 @@ describe("connectAuth", () => {
     expect(parseConnectAuthCode(".leading")).toBeNull();
     expect(parseConnectAuthCode("trailing.")).toBeNull();
   });
+
+  it("keeps the hosted app's path prefix when building the callback URL", () => {
+    expect(connectCallbackUrl("https://code.ras.sh/app")).toBe(
+      "https://code.ras.sh/app/connect/callback",
+    );
+  });
+
+  it("keeps the hosted app's path prefix when building the authorize URL", () => {
+    expect(
+      buildConnectAuthorizeRequestUrl({
+        hostedAppUrl: "https://code.ras.sh/app/",
+        state: "state-uuid",
+        challenge: "challenge",
+      }),
+    ).toBe("https://code.ras.sh/app/connect#state=state-uuid&challenge=challenge");
+  });
+
+  it("still resolves against a hosted app served from the origin root", () => {
+    expect(connectCallbackUrl("https://app.t3.codes")).toBe(
+      "https://app.t3.codes/connect/callback",
+    );
+  });
 });
