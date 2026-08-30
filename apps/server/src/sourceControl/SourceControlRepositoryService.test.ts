@@ -163,6 +163,7 @@ it.effect("clones a looked-up repository into the requested destination", () =>
       cwd: string;
       args: ReadonlyArray<string>;
       timeoutMs: number | null | undefined;
+      appendTruncationMarker: boolean | undefined;
     }> = [];
 
     yield* Effect.gen(function* () {
@@ -180,12 +181,13 @@ it.effect("clones a looked-up repository into the requested destination", () =>
         repository: { provider: "github", ...CLONE_URLS },
       });
       // A large repository takes far longer than any fixed timeout, so the
-      // clone must run unbounded.
+      // clone must run unbounded, and its discarded output must never fail it.
       assert.deepStrictEqual(cloneCalls, [
         {
           cwd: parent,
           args: ["clone", CLONE_URLS.url, "ras-code"],
           timeoutMs: null,
+          appendTruncationMarker: true,
         },
       ]);
     }).pipe(
@@ -198,6 +200,7 @@ it.effect("clones a looked-up repository into the requested destination", () =>
                   cwd: input.cwd,
                   args: input.args,
                   timeoutMs: input.timeoutMs,
+                  appendTruncationMarker: input.appendTruncationMarker,
                 });
                 return processOutput();
               }),

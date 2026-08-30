@@ -676,7 +676,7 @@ const collectOutput = Effect.fnUntraced(function* (
     if (!appendTruncationMarker && nextBytes > maxOutputBytes) {
       return yield* new GitCommandError({
         ...gitCommandContext(input),
-        detail: `Git output exceeded ${maxOutputBytes} bytes and was truncated.`,
+        detail: `Git output exceeded ${maxOutputBytes} bytes.`,
         outputLength: nextBytes,
       });
     }
