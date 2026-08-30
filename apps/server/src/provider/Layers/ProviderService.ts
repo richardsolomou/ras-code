@@ -349,7 +349,20 @@ const makeProviderService = Effect.fn("makeProviderService")(function* (
         increment(providerRuntimeEventsTotal, {
           provider: canonicalEvent.provider,
           eventType: canonicalEvent.type,
-        }).pipe(Effect.andThen(publishRuntimeEvent(canonicalEvent))),
+        }).pipe(
+          Effect.andThen(
+            canonicalEvent.type === "turn.started" ||
+              canonicalEvent.type === "thread.token-usage.updated" ||
+              canonicalEvent.type === "turn.completed" ||
+              canonicalEvent.type === "turn.aborted" ||
+              canonicalEvent.type === "runtime.error"
+              ? analytics
+                  .recordProviderRuntimeEvent(canonicalEvent)
+                  .pipe(Effect.ignoreCause({ log: true }))
+              : Effect.void,
+          ),
+          Effect.andThen(publishRuntimeEvent(canonicalEvent)),
+        ),
       ),
     );
 

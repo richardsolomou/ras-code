@@ -6,6 +6,7 @@ import {
   createRootRoute,
   type ErrorComponentProps,
   useLocation,
+  useMatches,
   useNavigate,
 } from "@tanstack/react-router";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
@@ -39,6 +40,10 @@ import {
 import { useUiStateStore } from "../uiStateStore";
 import { syncBrowserChromeTheme } from "../hooks/useTheme";
 import { configureClientTracing } from "../observability/clientTracing";
+import {
+  capturePostHogBrowserException,
+  configurePostHogBrowserTelemetry,
+} from "../telemetry/posthog";
 import { resolveInitialServerAuthGateState } from "../environments/primary";
 import { hasHostedPairingRequest, isHostedStaticApp } from "../hostedPairing";
 import { shellEnvironment } from "../state/shell";
@@ -46,6 +51,7 @@ import { useAtomValue } from "@effect/atom-react";
 import { useAtomCommand } from "../state/use-atom-command";
 import { useEnvironments, usePrimaryEnvironment } from "../state/environments";
 import {
+  liveServerConfigAtom,
   primaryServerConfigAtom,
   primaryServerConfigEventAtom,
   primaryServerWelcomeAtom,
@@ -132,6 +138,7 @@ function RootRouteView() {
         <DocumentTitleSync />
         <FontAppearanceSync />
         {primaryEnvironmentAuthenticated ? <AuthenticatedTracingBootstrap /> : null}
+        <PostHogBrowserTelemetry authGateStatus={authGateState.status} />
         <ConnectOnboardingDialog />
         <SshPasswordPromptDialog />
         <ConfirmDialogHost />
@@ -215,6 +222,25 @@ function HostedStaticEnvironmentBootstrap() {
 function RootRouteErrorView({ error, reset }: ErrorComponentProps) {
   const message = errorMessage(error);
   const details = errorDetails(error);
+  const pathname = useLocation({ select: (location) => location.pathname });
+  const routePattern = useMatches({
+    select: (matches) => matches.at(-1)?.fullPath ?? "/",
+  });
+  const authGateStatus = useMatches({
+    select: (matches) => matches.at(0)?.context.authGateState?.status ?? null,
+  });
+  const telemetryEnabled = usePostHogTelemetryEnabled(pathname, authGateStatus);
+
+  useEffect(() => {
+    let active = true;
+    void configurePostHogBrowserTelemetry(telemetryEnabled, pathname, routePattern).then(() => {
+      if (active) capturePostHogBrowserException(error);
+    });
+    return () => {
+      active = false;
+      void configurePostHogBrowserTelemetry(false, "/", "/");
+    };
+  }, [error, pathname, routePattern, telemetryEnabled]);
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4 py-10 text-foreground sm:px-6">
@@ -252,6 +278,41 @@ function RootRouteErrorView({ error, reset }: ErrorComponentProps) {
         </details>
       </section>
     </div>
+  );
+}
+
+function PostHogBrowserTelemetry({ authGateStatus }: { readonly authGateStatus: string }) {
+  const pathname = useLocation({ select: (location) => location.pathname });
+  const routePattern = useMatches({
+    select: (matches) => matches.at(-1)?.fullPath ?? "/",
+  });
+  const enabled = usePostHogTelemetryEnabled(pathname, authGateStatus);
+
+  useEffect(() => {
+    void configurePostHogBrowserTelemetry(enabled, pathname, routePattern);
+  }, [enabled, pathname, routePattern]);
+
+  useEffect(
+    () => () => {
+      void configurePostHogBrowserTelemetry(false, "/", "/");
+    },
+    [],
+  );
+
+  return null;
+}
+
+function usePostHogTelemetryEnabled(pathname: string, authGateStatus: string | null): boolean {
+  const primaryConfig = useAtomValue(primaryServerConfigAtom);
+  const activeEnvironmentId = useActiveEnvironmentId();
+  const liveServerConfig = useAtomValue(liveServerConfigAtom(activeEnvironmentId));
+  const serverConfig = authGateStatus === "hosted-static" ? liveServerConfig : primaryConfig;
+  const appRoute =
+    pathname !== "/pair" && pathname !== "/connect" && !pathname.startsWith("/connect/");
+  return (
+    appRoute &&
+    (authGateStatus === "authenticated" || authGateStatus === "hosted-static") &&
+    serverConfig?.observability.posthogTelemetryEnabled === true
   );
 }
 

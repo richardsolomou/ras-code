@@ -11,6 +11,7 @@ import { defineConfig, type Connect, type Plugin } from "vite-plus";
 import pkg from "./package.json" with { type: "json" };
 
 import { DEV_PROXIED_PATH_PREFIXES } from "@ras-code/shared/devProxy";
+import { POSTHOG_DEV_PROXY_PATH, POSTHOG_MANAGED_PROXY_HOST } from "@ras-code/shared/posthog";
 
 import { loadRepoEnv } from "../../scripts/lib/public-config";
 
@@ -105,6 +106,20 @@ function resolveDevProxyTarget(
 }
 
 const devProxyTarget = resolveDevProxyTarget(process.env.RAS_CODE_PORT, configuredWsUrl);
+// Shared prefixes match the server catch-all; Vite matches HMR separately by path and subprotocol.
+const appDevProxy =
+  devProxyTarget === undefined
+    ? {}
+    : Object.fromEntries(
+        DEV_PROXIED_PATH_PREFIXES.map((prefix) => [
+          prefix,
+          {
+            target: devProxyTarget,
+            changeOrigin: true,
+            ...(prefix === "/ws" ? { ws: true } : {}),
+          },
+        ]),
+      );
 
 // Vite's dev server sends JS uncompressed. On localhost that is free; over a
 // shared origin (tailnet, LAN) it is the whole cold-start: bundled dev serves
@@ -206,25 +221,15 @@ export default defineConfig(() => {
       warmup: {
         clientFiles: ["./src/main.tsx"],
       },
-      ...(devProxyTarget
-        ? {
-            // One entry per shared prefix; the server's dev catch-all 404s the
-            // same list, so the two sides cannot drift. `/ws` is the app's own
-            // socket — Vite's HMR socket is matched separately and exactly
-            // (path "/" plus a vite-hmr subprotocol), so the two upgrade
-            // handlers don't collide.
-            proxy: Object.fromEntries(
-              DEV_PROXIED_PATH_PREFIXES.map((prefix) => [
-                prefix,
-                {
-                  target: devProxyTarget,
-                  changeOrigin: true,
-                  ...(prefix === "/ws" ? { ws: true } : {}),
-                },
-              ]),
-            ),
-          }
-        : {}),
+      proxy: {
+        // Match the path segment, not application routes whose names start with "t".
+        [`^${POSTHOG_DEV_PROXY_PATH}(?:/|$)`]: {
+          target: POSTHOG_MANAGED_PROXY_HOST,
+          changeOrigin: true,
+          rewrite: (requestPath) => requestPath.slice(POSTHOG_DEV_PROXY_PATH.length),
+        },
+        ...appDevProxy,
+      },
       // Electron's BrowserWindow needs the HMR socket pinned to an explicit
       // host to connect reliably; dev:desktop is the only mode that sets HOST.
       // Everywhere else, leaving this unset lets the client derive it from the

@@ -70,8 +70,11 @@ const makeRecordingAnalytics = Effect.gen(function* () {
   const layer = Layer.succeed(
     AnalyticsService,
     AnalyticsService.of({
+      enabled: true,
       record: (event, properties) =>
         Ref.update(recorded, (current) => [...current, { event, properties }]),
+      recordProviderRuntimeEvent: () => Effect.void,
+      refreshFeatureFlags: Effect.void,
       flush: Effect.void,
     }),
   );

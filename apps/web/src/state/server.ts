@@ -1,6 +1,7 @@
 import {
   DEFAULT_SERVER_SETTINGS,
   type EditorId,
+  type EnvironmentId,
   type ServerConfig,
   type ServerConfigStreamEvent,
   type ServerLifecycleWelcomePayload,
@@ -24,6 +25,19 @@ export const serverEnvironment = createServerEnvironmentAtoms(connectionAtomRunt
 export const environmentServerConfigsAtom = createEnvironmentServerConfigsAtom({
   catalogValueAtom: environmentCatalog.catalogValueAtom,
   serverConfigValueAtom: serverEnvironment.configValueAtom,
+});
+
+const EMPTY_LIVE_SERVER_CONFIG_ATOM = Atom.make<ServerConfig | null>(null).pipe(
+  Atom.withLabel("web-live-server-config:empty"),
+);
+export const liveServerConfigAtom = Atom.family((environmentId: EnvironmentId | null) => {
+  if (environmentId === null) return EMPTY_LIVE_SERVER_CONFIG_ATOM;
+  return Atom.make((get): ServerConfig | null => {
+    const projection = Option.getOrNull(
+      AsyncResult.value(get(serverEnvironment.configProjection({ environmentId, input: {} }))),
+    );
+    return projection?.source === "live" ? projection.config : null;
+  }).pipe(Atom.withLabel(`web-live-server-config:${environmentId}`));
 });
 
 interface PrimaryServerState {

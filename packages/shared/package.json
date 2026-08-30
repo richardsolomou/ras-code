@@ -235,6 +235,10 @@
       "types": "./src/posthogGateway.ts",
       "import": "./src/posthogGateway.ts"
     },
+    "./posthog": {
+      "types": "./src/posthog.ts",
+      "import": "./src/posthog.ts"
+    },
     "./claudeCompaction": {
       "types": "./src/claudeCompaction.ts",
       "import": "./src/claudeCompaction.ts"
