@@ -2,10 +2,9 @@
 // move exact directory entries with rename, which the FileSystem service does
 // not expose atomically.
 /**
- * `t3 theme` - inspect and set the environment's theme. Connected web and
- * desktop clients switch when it is set; mobile keeps its own appearance
- * settings. Each client applies one set once, so a theme the user picks in
- * Settings afterwards sticks until the next `t3 theme set`.
+ * `t3 theme` - inspect and set the environment's legacy theme. Clients that
+ * advertise environment-theme support switch when it is set. Current clients
+ * keep their own consolidated appearance preference.
  *
  * Writes `defaultTheme` (and `defaultThemeSetAt`, so a re-set of the same
  * value still acts) into the environment's `settings.json`. A running server
@@ -473,7 +472,7 @@ const themeSetCommand = Command.make("set", {
     ),
   ),
 }).pipe(
-  Command.withDescription("Set the environment's theme; connected clients switch to it."),
+  Command.withDescription("Set the theme for clients with environment-theme support."),
   Command.withHandler((flags) =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
@@ -582,7 +581,7 @@ const themeShowCommand = Command.make("show", { baseDir: baseDirFlag }).pipe(
 );
 
 export const themeCommand = Command.make("theme").pipe(
-  Command.withDescription("Inspect and set environment-wide theme defaults."),
+  Command.withDescription("Inspect and set legacy environment-wide theme defaults."),
   Command.withSubcommands([themeSetCommand, themeClearCommand, themeShowCommand]),
   Command.withHidden,
 );

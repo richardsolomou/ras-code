@@ -14,6 +14,7 @@
       (() => {
         const THEME_STORAGE_KEY = "ras-code:theme";
         const APPEARANCE_STORAGE_KEY = "ras-code:theme-appearance-mode";
+        const FOLLOW_SYSTEM_STORAGE_KEY = "ras-code:theme-follow-system";
         const isAppearance = (value) => value === "system" || value === "light" || value === "dark";
         const apply = (appearance) => {
           const isDark =
@@ -30,13 +31,16 @@
         try {
           const storedAppearance = window.localStorage.getItem(APPEARANCE_STORAGE_KEY);
           const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+          const storedFollowSystem = window.localStorage.getItem(FOLLOW_SYSTEM_STORAGE_KEY);
           const appearance = isAppearance(storedAppearance)
             ? storedAppearance
-            : storedTheme === "light" || storedTheme === "dark"
-              ? storedTheme
-              : storedTheme === "t3-chat-dark"
-                ? "dark"
-                : "system";
+            : storedFollowSystem === "true"
+              ? "system"
+              : storedTheme === "light" || storedTheme === "dark"
+                ? storedTheme
+                : storedTheme === "t3-chat-dark"
+                  ? "dark"
+                  : "system";
           apply(appearance);
         } catch {
           apply("system");

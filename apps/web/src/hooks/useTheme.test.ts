@@ -82,6 +82,51 @@ describe("theme failure handling", () => {
     expect(readThemePreference()).toBe("system");
   });
 
+  it("keeps the legacy dark default dark at runtime", async () => {
+    vi.stubGlobal("window", {
+      localStorage: createStorage({
+        getItem: (key) => (key === "ras-code:theme" ? "t3-chat-dark" : null),
+      }),
+    });
+
+    const { readThemePreference } = await import("./useTheme");
+
+    expect(readThemePreference()).toBe("dark");
+  });
+
+  it("reads a legacy explicit mode for restore defaults", async () => {
+    vi.stubGlobal("window", {
+      localStorage: createStorage({
+        getItem: (key) => (key === "ras-code:theme" ? "dark" : null),
+      }),
+    });
+
+    const { readCurrentAppearanceModePreference } = await import("./useTheme");
+
+    expect(readCurrentAppearanceModePreference()).toBe("dark");
+  });
+
+  it("ignores legacy theme halves without deleting them", async () => {
+    const halves = JSON.stringify({ light: "iris", dark: "ocean" });
+    const storage = createStorage();
+    storage.setItem("ras-code:theme", "grove");
+    storage.setItem("ras-code:theme-halves:v1", halves);
+    vi.doMock("react", () => ({
+      useCallback: <A>(callback: A) => callback,
+      useEffect: () => undefined,
+      useSyncExternalStore: (_subscribe: unknown, getSnapshot: () => unknown) => getSnapshot(),
+    }));
+    vi.stubGlobal("window", {
+      localStorage: storage,
+      matchMedia: () => ({ matches: true }),
+    });
+
+    const { useTheme } = await import("./useTheme");
+
+    expect(useTheme().themeHalves).toBeNull();
+    expect(storage.getItem("ras-code:theme-halves:v1")).toBe(halves);
+  });
+
   it("falls back during initial theme application and logs only safe attributes", async () => {
     const cause = new Error("private browsing storage failure");
     const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});

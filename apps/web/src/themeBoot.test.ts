@@ -5,6 +5,7 @@ import indexHtml from "../index.html?raw";
 const THEME_STORAGE_KEY = "ras-code:theme";
 const APPEARANCE_STORAGE_KEY = "ras-code:theme-appearance-mode";
 const THEME_HALVES_STORAGE_KEY = "ras-code:theme-halves:v1";
+const FOLLOW_SYSTEM_STORAGE_KEY = "ras-code:theme-follow-system";
 
 const bootScript = (() => {
   const match = indexHtml.match(/<script>([\s\S]*?)<\/script>/);
@@ -114,6 +115,30 @@ describe("index.html boot script", () => {
     expect(result.storage.get(THEME_HALVES_STORAGE_KEY)).toBe(
       JSON.stringify({ light: "iris", dark: "ocean" }),
     );
+  });
+
+  it("keeps the legacy dark default dark on a light OS", () => {
+    const result = runBootScript({
+      storage: { [THEME_STORAGE_KEY]: "t3-chat-dark" },
+      prefersDark: false,
+    });
+
+    expect(result.isDark).toBe(true);
+    expect(result.storage.get(THEME_STORAGE_KEY)).toBe("t3-chat-dark");
+  });
+
+  it("honors the legacy follow-system preference", () => {
+    const result = runBootScript({
+      storage: {
+        [THEME_STORAGE_KEY]: "light",
+        [FOLLOW_SYSTEM_STORAGE_KEY]: "true",
+      },
+      prefersDark: true,
+    });
+
+    expect(result.isDark).toBe(true);
+    expect(result.storage.get(THEME_STORAGE_KEY)).toBe("light");
+    expect(result.storage.get(FOLLOW_SYSTEM_STORAGE_KEY)).toBe("true");
   });
 
   it("follows the OS when storage is unavailable", () => {

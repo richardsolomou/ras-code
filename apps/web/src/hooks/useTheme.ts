@@ -9,7 +9,6 @@ import {
   CUSTOM_THEMES_STORAGE_KEY,
   invalidateCustomThemes,
   getThemePreferenceMode,
-  parseThemeHalves,
   resolveDesktopTheme,
   resolveThemeAppearance,
   resolveThemeHalf,
@@ -64,12 +63,7 @@ export function readThemeHalvesRaw(): { light?: string; dark?: string } {
 }
 
 function readStoredThemeHalves(): ThemeHalves | null {
-  if (typeof window === "undefined") return null;
-  try {
-    return parseThemeHalves(window.localStorage.getItem(THEME_HALVES_STORAGE_KEY));
-  } catch {
-    return null;
-  }
+  return null;
 }
 
 /**
@@ -212,6 +206,7 @@ export function readThemePreference(): Theme {
     });
   }
   if (isThemePreferenceMode(raw)) return raw;
+  if (raw === "t3-chat-dark") return "dark";
   return DEFAULT_THEME_SNAPSHOT.theme;
 }
 
@@ -252,6 +247,10 @@ function getStored(): Theme {
     });
     return DEFAULT_THEME_SNAPSHOT.theme;
   }
+}
+
+export function readCurrentAppearanceModePreference(): ThemePreferenceMode {
+  return readAppearanceModePreference(getStored());
 }
 
 function ensureThemeColorMetaTag(): HTMLMetaElement {

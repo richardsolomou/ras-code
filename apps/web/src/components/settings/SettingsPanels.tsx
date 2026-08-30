@@ -51,7 +51,7 @@ import {
 } from "../environmentStage";
 import { isElectron } from "../../env";
 import { buildHostedChannelSelectionUrl, type HostedAppChannel } from "../../hostedPairing";
-import { readAppearanceModePreference, useTheme } from "../../hooks/useTheme";
+import { readCurrentAppearanceModePreference, useTheme } from "../../hooks/useTheme";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
 import {
   useDeviceSettings,
@@ -558,7 +558,7 @@ export function useSettingsRestore(onRestored?: () => void) {
     );
     if (!confirmed) return;
 
-    const needsAppearanceReset = readAppearanceModePreference("system") !== "system";
+    const needsAppearanceReset = readCurrentAppearanceModePreference() !== "system";
     if (needsAppearanceReset && !setAppearanceMode("system")) {
       toastManager.add(
         stackedThreadToast({
