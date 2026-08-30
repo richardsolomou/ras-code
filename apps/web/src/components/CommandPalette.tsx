@@ -105,7 +105,8 @@ import {
   newProjectId,
 } from "../lib/utils";
 import { selectThreadTerminalUiState, useTerminalUiStateStore } from "../terminalUiStateStore";
-import { buildThreadRouteParams, resolveThreadRouteTarget } from "../threadRoutes";
+import { resolveThreadRouteTarget } from "../threadRoutes";
+import { useOpenThreadInPane } from "../hooks/useOpenThreadInPane";
 import {
   applyWslEnvironmentConfiguration,
   parseWslUncPath,
@@ -155,8 +156,6 @@ import { Button } from "./ui/button";
 import { Kbd, KbdGroup } from "./ui/kbd";
 import { stackedThreadToast, toastManager } from "./ui/toast";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "./ui/tooltip";
-import { ComposerHandleContext, useComposerHandleContext } from "../composerHandleContext";
-import type { ChatComposerHandle } from "./chat/ChatComposer";
 import { getProjectOrderKey, selectProjectGroupingSettings } from "../logicalProject";
 import { legacyProjectCwdPreferenceKey, useUiStateStore } from "../uiStateStore";
 import {
@@ -164,6 +163,8 @@ import {
   buildSidebarProjectSnapshots,
 } from "../sidebarProjectGrouping";
 import type { Project } from "../types";
+import { restoreActivePaneFocus } from "./chat/paneFocus";
+import { selectFocusedThread, useChatPaneStore } from "../chatPaneStore";
 
 const EMPTY_BROWSE_ENTRIES: FilesystemBrowseResult["entries"] = [];
 
@@ -403,20 +404,22 @@ export function CommandPalette({ children }: { children: ReactNode }) {
   const openNewThreadIn = useCallback(() => dispatch({ _tag: "OpenNewThreadIn" }), []);
   const clearOpenIntent = useCallback(() => dispatch({ _tag: "ClearOpenIntent" }), []);
   const keybindings = useAtomValue(primaryServerKeybindingsAtom);
-  const composerHandleRef = useRef<ChatComposerHandle | null>(null);
   const routeTarget = useParams({
     strict: false,
     select: (params) => resolveThreadRouteTarget(params),
   });
   const routeThreadRef = routeTarget?.kind === "server" ? routeTarget.threadRef : null;
+  const focusedThreadRef = useChatPaneStore((paneState) =>
+    selectFocusedThread(paneState, routeThreadRef),
+  );
   const terminalOpen = useTerminalUiStateStore((state) =>
-    routeThreadRef
-      ? selectThreadTerminalUiState(state.terminalUiStateByThreadKey, routeThreadRef).terminalOpen
+    focusedThreadRef
+      ? selectThreadTerminalUiState(state.terminalUiStateByThreadKey, focusedThreadRef).terminalOpen
       : false,
   );
   const previewOpen = useRightPanelStore((state) =>
-    routeThreadRef
-      ? selectActiveRightPanel(state.byThreadKey, routeThreadRef) === "preview"
+    focusedThreadRef
+      ? selectActiveRightPanel(state.byThreadKey, focusedThreadRef) === "preview"
       : false,
   );
 
@@ -472,28 +475,26 @@ export function CommandPalette({ children }: { children: ReactNode }) {
   );
 
   return (
-    <ComposerHandleContext value={composerHandleRef}>
-      <CommandDialog
-        open={state.open}
-        onOpenChange={(open, eventDetails) => {
-          if (!open && eventDetails.reason === "escape-key" && state.mode !== "command") {
-            eventDetails.cancel();
-            toggleMode("command");
-            return;
-          }
-          setOpen(open);
-        }}
-      >
-        {children}
-        <CommandPaletteDialog
-          mode={state.mode}
-          openIntent={state.openIntent}
-          setOpen={setOpen}
-          openOverlayMode={toggleMode}
-          clearOpenIntent={clearOpenIntent}
-        />
-      </CommandDialog>
-    </ComposerHandleContext>
+    <CommandDialog
+      open={state.open}
+      onOpenChange={(open, eventDetails) => {
+        if (!open && eventDetails.reason === "escape-key" && state.mode !== "command") {
+          eventDetails.cancel();
+          toggleMode("command");
+          return;
+        }
+        setOpen(open);
+      }}
+    >
+      {children}
+      <CommandPaletteDialog
+        mode={state.mode}
+        openIntent={state.openIntent}
+        setOpen={setOpen}
+        openOverlayMode={toggleMode}
+        clearOpenIntent={clearOpenIntent}
+      />
+    </CommandDialog>
   );
 }
 
@@ -504,8 +505,6 @@ function CommandPaletteDialog(props: {
   readonly openOverlayMode: (mode: SearchOverlayMode) => void;
   readonly clearOpenIntent: () => void;
 }) {
-  const composerHandleRef = useComposerHandleContext();
-
   return (
     <CommandDialogPopup
       aria-label={
@@ -520,7 +519,7 @@ function CommandPaletteDialog(props: {
       data-palette-mode={props.mode}
       data-testid="command-palette"
       finalFocus={() => {
-        composerHandleRef?.current?.focusAtEnd();
+        restoreActivePaneFocus();
         return false;
       }}
       onBackdropPointerDown={() => {
@@ -550,6 +549,7 @@ function OpenCommandPaletteDialog(props: {
   readonly clearOpenIntent: () => void;
 }) {
   const navigate = useNavigate();
+  const openThreadInPane = useOpenThreadInPane();
   const { clearOpenIntent, openIntent, openOverlayMode, setOpen } = props;
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);
@@ -1005,12 +1005,7 @@ function OpenCommandPaletteDialog(props: {
             clientSettings.sidebarThreadSortOrder,
           );
       if (latestThread) {
-        await navigate({
-          to: "/$environmentId/$threadId",
-          params: buildThreadRouteParams(
-            scopeThreadRef(latestThread.environmentId, latestThread.id),
-          ),
-        });
+        await openThreadInPane(scopeThreadRef(latestThread.environmentId, latestThread.id));
         return;
       }
 
@@ -1019,7 +1014,7 @@ function OpenCommandPaletteDialog(props: {
     [
       clientSettings.sidebarThreadSortOrder,
       handleNewThread,
-      navigate,
+      openThreadInPane,
       projectGroupByTargetKey,
       threads,
     ],
@@ -1149,16 +1144,13 @@ function OpenCommandPaletteDialog(props: {
             : undefined;
         },
         runThread: async (thread) => {
-          await navigate({
-            to: "/$environmentId/$threadId",
-            params: buildThreadRouteParams(scopeThreadRef(thread.environmentId, thread.id)),
-          });
+          await openThreadInPane(scopeThreadRef(thread.environmentId, thread.id));
         },
       }),
     [
       activeThreadId,
       clientSettings.sidebarThreadSortOrder,
-      navigate,
+      openThreadInPane,
       projectCwdById,
       projectFaviconPathById,
       projectIconEmojiById,
@@ -1746,12 +1738,7 @@ function OpenCommandPaletteDialog(props: {
           clientSettings.sidebarThreadSortOrder,
         );
         if (latestThread) {
-          await navigate({
-            to: "/$environmentId/$threadId",
-            params: buildThreadRouteParams(
-              scopeThreadRef(latestThread.environmentId, latestThread.id),
-            ),
-          });
+          await openThreadInPane(scopeThreadRef(latestThread.environmentId, latestThread.id));
         } else {
           const navigationResult = await settlePromise(() =>
             handleNewThread(scopeProjectRef(existing.environmentId, existing.id)),
@@ -1817,7 +1804,7 @@ function OpenCommandPaletteDialog(props: {
       handleNewThread,
       createProject,
       environments,
-      navigate,
+      openThreadInPane,
       primaryEnvironmentId,
       projects,
       providers,

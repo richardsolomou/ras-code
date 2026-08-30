@@ -1,6 +1,5 @@
 import { scopeProjectRef } from "@ras-code/client-runtime/environment";
 import type { MessageId, ThreadId } from "@ras-code/contracts";
-import { useRouter } from "@tanstack/react-router";
 import { useCallback } from "react";
 
 import { stackedThreadToast, toastManager } from "../components/ui/toast";
@@ -12,6 +11,7 @@ import {
 import { newDraftId, newThreadId } from "../lib/utils";
 import { useProjects, useServerConfigs } from "../state/entities";
 import type { Thread } from "../types";
+import { useOpenDraftInPane } from "./useOpenThreadInPane";
 import { useClientSettings } from "./useSettings";
 
 export interface ForkThreadRequest {
@@ -33,7 +33,7 @@ export function useForkThreadHandler() {
   const projects = useProjects();
   const serverConfigs = useServerConfigs();
   const projectGroupingSettings = useClientSettings(selectProjectGroupingSettings);
-  const router = useRouter();
+  const openDraftInPane = useOpenDraftInPane();
 
   return useCallback(
     async (
@@ -95,9 +95,9 @@ export function useForkThreadHandler() {
       // is the default; the composer's model picker is how you change it.
       setModelSelection(draftId, sourceThread.modelSelection, { replaceOptions: true });
 
-      await router.navigate({ to: "/draft/$draftId", params: { draftId } });
+      await openDraftInPane(draftId);
       return { draftId, threadId };
     },
-    [projectGroupingSettings, projects, router, serverConfigs],
+    [openDraftInPane, projectGroupingSettings, projects, serverConfigs],
   );
 }

@@ -9,11 +9,16 @@ import {
   canSplitPaneRow,
   clampPaneFraction,
   INITIAL_CHAT_PANE_LAYOUT,
-  planPaneFocusChange,
+  openDraftInFocusedPane,
+  planThreadDrop,
   planPaneSplit,
+  planRoutedDraftOpen,
+  planRouteChange,
+  planThreadOpen,
   reconcileCompanion,
-  shouldCollapseOnNavigation,
+  takeRouteOpenPane,
   type ChatPaneMeasuredLayout,
+  useChatPaneStore,
 } from "./chatPaneStore";
 
 const threadRef = (threadId: string, environmentId = "env-1") =>
@@ -68,7 +73,12 @@ describe("planPaneSplit", () => {
         dropped: beta,
         side: "left",
       }),
-    ).toEqual({ ...INITIAL_CHAT_PANE_LAYOUT, companion: beta, companionSide: "left" });
+    ).toEqual({
+      ...INITIAL_CHAT_PANE_LAYOUT,
+      companion: beta,
+      companionSide: "left",
+      focusedPane: "companion",
+    });
   });
 
   it("refuses to sit a thread beside itself", () => {
@@ -93,7 +103,7 @@ describe("planPaneSplit", () => {
     ).toBeNull();
   });
 
-  it("leaves focus in the pane the user was working in", () => {
+  it("focuses the pane receiving the dropped thread", () => {
     expect(
       planPaneSplit({
         layout: { ...INITIAL_CHAT_PANE_LAYOUT, focusedPane: "companion" },
@@ -101,7 +111,7 @@ describe("planPaneSplit", () => {
         dropped: beta,
         side: "right",
       })?.focusedPane,
-    ).toBe("routed");
+    ).toBe("companion");
   });
 
   it("moves the companion across when it is dropped on the other side", () => {
@@ -124,6 +134,307 @@ describe("planPaneSplit", () => {
         side: "right",
       })?.companion,
     ).toEqual(beta);
+  });
+});
+
+describe("planThreadOpen", () => {
+  it("replaces the active companion without navigating the other pane", () => {
+    expect(
+      planThreadOpen({
+        layout: splitLayout({ focusedPane: "companion" }),
+        routed: alpha,
+        target: gamma,
+      }),
+    ).toEqual({
+      layout: splitLayout({ companion: gamma, focusedPane: "companion" }),
+      navigateTo: null,
+    });
+  });
+
+  it("navigates the active routed pane without collapsing the split", () => {
+    expect(
+      planThreadOpen({
+        layout: splitLayout({ focusedPane: "routed" }),
+        routed: alpha,
+        target: gamma,
+      }),
+    ).toEqual({
+      layout: splitLayout({ focusedPane: "routed" }),
+      navigateTo: gamma,
+    });
+  });
+
+  it("activates a thread already visible in the other pane", () => {
+    expect(
+      planThreadOpen({
+        layout: splitLayout({ focusedPane: "routed" }),
+        routed: alpha,
+        target: beta,
+      }),
+    ).toEqual({
+      layout: splitLayout({ focusedPane: "companion" }),
+      navigateTo: null,
+    });
+  });
+
+  it("falls back to navigation while the companion is hidden", () => {
+    expect(
+      planThreadOpen({
+        layout: splitLayout({ canSplit: false, focusedPane: "companion" }),
+        routed: alpha,
+        target: gamma,
+      }),
+    ).toEqual({
+      layout: splitLayout({ canSplit: false, focusedPane: "routed" }),
+      navigateTo: gamma,
+    });
+  });
+});
+
+describe("planThreadDrop", () => {
+  it("opens a new split on the side receiving the drop", () => {
+    expect(
+      planThreadDrop({
+        layout: { ...INITIAL_CHAT_PANE_LAYOUT, canSplit: true },
+        routed: alpha,
+        target: beta,
+        side: "left",
+      }),
+    ).toEqual({
+      layout: {
+        ...INITIAL_CHAT_PANE_LAYOUT,
+        canSplit: true,
+        companion: beta,
+        companionSide: "left",
+        focusedPane: "companion",
+      },
+      navigateTo: null,
+    });
+  });
+
+  it("replaces the pane receiving a drop in an existing split", () => {
+    expect(
+      planThreadDrop({
+        layout: splitLayout({ companionSide: "right" }),
+        routed: alpha,
+        target: gamma,
+        side: "right",
+      }),
+    ).toEqual({
+      layout: splitLayout({
+        companion: gamma,
+        companionSide: "right",
+        focusedPane: "companion",
+      }),
+      navigateTo: null,
+    });
+  });
+
+  it("moves an existing pane to the side receiving the drop", () => {
+    expect(
+      planThreadDrop({
+        layout: splitLayout({ companionSide: "right" }),
+        routed: alpha,
+        target: alpha,
+        side: "right",
+      }),
+    ).toEqual({
+      layout: splitLayout({ companionSide: "left", focusedPane: "routed" }),
+      navigateTo: null,
+    });
+  });
+
+  it("navigates when an unseen thread is dropped on the routed pane", () => {
+    const layout = splitLayout({ companionSide: "right" });
+    expect(
+      planThreadDrop({
+        layout,
+        routed: alpha,
+        target: gamma,
+        side: "left",
+      }),
+    ).toEqual({
+      layout: splitLayout({ companionSide: "right", focusedPane: "routed" }),
+      navigateTo: gamma,
+    });
+  });
+
+  it("moves the companion when it is dropped on the opposite pane", () => {
+    expect(
+      planThreadDrop({
+        layout: splitLayout({ companionSide: "right" }),
+        routed: alpha,
+        target: beta,
+        side: "left",
+      }),
+    ).toEqual({
+      layout: splitLayout({ companionSide: "left", focusedPane: "companion" }),
+      navigateTo: null,
+    });
+  });
+});
+
+describe("draft route intent", () => {
+  it("holds the opening pane until the matching route is observed", async () => {
+    useChatPaneStore.setState(splitLayout({ focusedPane: "companion" }));
+
+    await openDraftInFocusedPane("new", async () => undefined);
+
+    expect(takeRouteOpenPane("draft:new")).toBe("companion");
+    useChatPaneStore.setState({ ...INITIAL_CHAT_PANE_LAYOUT, canSplit: false });
+  });
+
+  it("keeps intent when a different route is observed first", async () => {
+    useChatPaneStore.setState(splitLayout({ focusedPane: "companion" }));
+
+    await openDraftInFocusedPane("new", async () => undefined);
+
+    expect(takeRouteOpenPane("thread:alpha")).toBeNull();
+    expect(takeRouteOpenPane("draft:new")).toBe("companion");
+    useChatPaneStore.setState({ ...INITIAL_CHAT_PANE_LAYOUT, canSplit: false });
+  });
+
+  it("keeps overlapping draft intents independent", async () => {
+    await Promise.all([
+      openDraftInFocusedPane("alpha", async () => undefined, "companion"),
+      openDraftInFocusedPane("beta", async () => undefined, "routed"),
+    ]);
+
+    expect(takeRouteOpenPane("draft:alpha")).toBe("companion");
+    expect(takeRouteOpenPane("draft:beta")).toBe("routed");
+  });
+
+  it("keeps the pane captured before asynchronous navigation", async () => {
+    useChatPaneStore.setState(splitLayout({ focusedPane: "routed" }));
+
+    await openDraftInFocusedPane("new", async () => undefined, "companion");
+
+    expect(takeRouteOpenPane("draft:new")).toBe("companion");
+    useChatPaneStore.setState({ ...INITIAL_CHAT_PANE_LAYOUT, canSplit: false });
+  });
+
+  it("clears pane intent when navigation fails", async () => {
+    const failure = new Error("navigation failed");
+
+    await expect(
+      openDraftInFocusedPane("new", async () => {
+        throw failure;
+      }),
+    ).rejects.toBe(failure);
+
+    expect(takeRouteOpenPane("draft:new")).toBeNull();
+  });
+});
+
+describe("planRouteChange", () => {
+  it("leaves browser history navigation to a draft in the routed pane", () => {
+    const layout = splitLayout({ focusedPane: "companion" });
+    expect(
+      planRouteChange({
+        layout,
+        openedFromPane: null,
+        previousRouteId: "thread:alpha",
+        nextRouteId: "draft:historical",
+        previousRouted: alpha,
+        nextRouted: null,
+      }),
+    ).toBe(layout);
+  });
+
+  it("puts routed navigation in the active companion's screen position", () => {
+    expect(
+      planRouteChange({
+        layout: splitLayout({ companionSide: "right", focusedPane: "companion" }),
+        openedFromPane: "companion",
+        previousRouteId: "thread:alpha",
+        nextRouteId: "draft:new",
+        previousRouted: alpha,
+        nextRouted: null,
+      }),
+    ).toEqual(
+      splitLayout({
+        companion: alpha,
+        companionSide: "left",
+        focusedPane: "routed",
+      }),
+    );
+  });
+
+  it("leaves routed navigation in place when that pane is active", () => {
+    const layout = splitLayout({ focusedPane: "routed" });
+    expect(
+      planRouteChange({
+        layout,
+        openedFromPane: null,
+        previousRouteId: "thread:alpha",
+        nextRouteId: "thread:gamma",
+        previousRouted: alpha,
+        nextRouted: gamma,
+      }),
+    ).toBe(layout);
+  });
+
+  it("leaves an unrelated server redirect in the routed pane", () => {
+    const layout = splitLayout({ focusedPane: "companion" });
+    expect(
+      planRouteChange({
+        layout,
+        openedFromPane: null,
+        previousRouteId: "thread:alpha",
+        nextRouteId: "thread:gamma",
+        previousRouted: alpha,
+        nextRouted: gamma,
+      }),
+    ).toBe(layout);
+  });
+
+  it("activates a companion selected through route navigation", () => {
+    expect(
+      planRouteChange({
+        layout: splitLayout({ companionSide: "right", focusedPane: "routed" }),
+        openedFromPane: null,
+        previousRouteId: "thread:alpha",
+        nextRouteId: "thread:beta",
+        previousRouted: alpha,
+        nextRouted: beta,
+      }),
+    ).toEqual(
+      splitLayout({
+        companion: alpha,
+        companionSide: "left",
+        focusedPane: "routed",
+      }),
+    );
+  });
+
+  it("ignores a draft promotion that keeps the same route target", () => {
+    const layout = splitLayout({ focusedPane: "companion" });
+    expect(
+      planRouteChange({
+        layout,
+        openedFromPane: null,
+        previousRouteId: "draft:new",
+        nextRouteId: "draft:new",
+        previousRouted: null,
+        nextRouted: gamma,
+      }),
+    ).toBe(layout);
+  });
+});
+
+describe("planRoutedDraftOpen", () => {
+  it("moves an already-routed draft into the companion's screen position", () => {
+    expect(
+      planRoutedDraftOpen(
+        splitLayout({ companionSide: "right", focusedPane: "companion" }),
+        "companion",
+      ),
+    ).toEqual(splitLayout({ companionSide: "left", focusedPane: "routed" }));
+  });
+
+  it("keeps an already-routed draft in place when the routed pane opened it", () => {
+    const layout = splitLayout({ focusedPane: "routed" });
+    expect(planRoutedDraftOpen(layout, "routed")).toBe(layout);
   });
 });
 
@@ -166,93 +477,6 @@ describe("canOpenThreadInSplit", () => {
     expect(
       canOpenThreadInSplit(splitLayout({ canSplit: false }), { routed: alpha, candidate: gamma }),
     ).toBe(false);
-  });
-});
-
-describe("planPaneFocusChange", () => {
-  it("navigates to the thread that was in the companion", () => {
-    expect(planPaneFocusChange(splitLayout(), alpha)?.navigateTo).toEqual(beta);
-  });
-
-  it("hands the routed thread to the companion so both stay on screen", () => {
-    expect(planPaneFocusChange(splitLayout(), alpha)?.layout.companion).toEqual(alpha);
-  });
-
-  it("flips the side with the swap so neither pane moves on screen", () => {
-    expect(
-      planPaneFocusChange(splitLayout({ companionSide: "right" }), alpha)?.layout.companionSide,
-    ).toBe("left");
-  });
-
-  it("keeps the divider where the user left it", () => {
-    expect(
-      planPaneFocusChange(splitLayout({ leftFraction: 0.3 }), alpha)?.layout.leftFraction,
-    ).toBe(0.3);
-  });
-
-  it("adopts the companion as the only pane when the route has no thread to hand back", () => {
-    expect(planPaneFocusChange(splitLayout(), null)).toEqual({
-      layout: { ...splitLayout(), companion: null },
-      navigateTo: beta,
-    });
-  });
-
-  it("does nothing when the inset holds a single pane", () => {
-    expect(planPaneFocusChange(INITIAL_CHAT_PANE_LAYOUT, alpha)).toBeNull();
-  });
-});
-
-describe("shouldCollapseOnNavigation", () => {
-  const keys = {
-    previousRouteId: "thread:env-1:alpha",
-    nextRouteId: "thread:env-1:gamma",
-    previousRoutedKey: "env-1:alpha",
-    companionKey: "env-1:beta",
-  };
-
-  it("collapses the split when the route moves to an unrelated thread", () => {
-    expect(shouldCollapseOnNavigation(keys)).toBe(true);
-  });
-
-  it("leaves a single pane alone", () => {
-    expect(shouldCollapseOnNavigation({ ...keys, companionKey: null })).toBe(false);
-  });
-
-  it("ignores a route that has not actually moved", () => {
-    expect(shouldCollapseOnNavigation({ ...keys, nextRouteId: keys.previousRouteId })).toBe(false);
-  });
-
-  it("keeps both panes when the companion is promoted", () => {
-    expect(
-      shouldCollapseOnNavigation({
-        previousRouteId: "thread:env-1:beta",
-        nextRouteId: "thread:env-1:alpha",
-        previousRoutedKey: "env-1:beta",
-        companionKey: "env-1:beta",
-      }),
-    ).toBe(false);
-  });
-
-  it("keeps both panes when a draft promotes in place, which moves no route", () => {
-    expect(
-      shouldCollapseOnNavigation({
-        previousRouteId: "draft:draft-1",
-        nextRouteId: "draft:draft-1",
-        previousRoutedKey: null,
-        companionKey: "env-1:beta",
-      }),
-    ).toBe(false);
-  });
-
-  it("collapses when leaving a draft for a thread, since that is a real navigation", () => {
-    expect(
-      shouldCollapseOnNavigation({
-        previousRouteId: "draft:draft-1",
-        nextRouteId: "thread:env-1:gamma",
-        previousRoutedKey: null,
-        companionKey: "env-1:beta",
-      }),
-    ).toBe(true);
   });
 });
 

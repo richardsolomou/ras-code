@@ -1,9 +1,9 @@
 import { scopeThreadRef } from "@ras-code/client-runtime/environment";
 import type { EnvironmentId, ThreadForkPoint, ThreadId } from "@ras-code/contracts";
-import { useNavigate } from "@tanstack/react-router";
 import { GitForkIcon } from "lucide-react";
 import { memo } from "react";
 
+import { useOpenThreadInPane } from "../../hooks/useOpenThreadInPane";
 import { useThreadForks, useThreadShell } from "../../state/entities";
 import { Button } from "../ui/button";
 import { Menu, MenuItem, MenuPopup, MenuTrigger } from "../ui/menu";
@@ -29,7 +29,7 @@ export const ThreadForkLineage = memo(function ThreadForkLineage({
   forkedFrom,
   forkedFromTitle,
 }: ThreadForkLineageProps) {
-  const navigate = useNavigate();
+  const openThreadInPane = useOpenThreadInPane();
   const threadRef = scopeThreadRef(environmentId, threadId);
   const parent = useThreadShell(
     forkedFrom ? scopeThreadRef(environmentId, forkedFrom.threadId) : null,
@@ -39,10 +39,7 @@ export const ThreadForkLineage = memo(function ThreadForkLineage({
   const parentLabel = parentTitle ? `Forked from ${parentTitle}` : "Forked from another thread";
 
   const goToThread = (targetThreadId: ThreadId) =>
-    void navigate({
-      to: "/$environmentId/$threadId",
-      params: { environmentId, threadId: targetThreadId },
-    });
+    void openThreadInPane(scopeThreadRef(environmentId, targetThreadId));
 
   if (forkedFrom === null && forks.length === 0) {
     return null;

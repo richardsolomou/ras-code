@@ -1,8 +1,54 @@
 import { createContext, useContext } from "react";
 
+export const PANE_DEFAULT_FOCUS_SELECTOR = '[data-testid="composer-editor"]';
+const PANE_FOCUSABLE_SELECTOR =
+  'a[href],button,input,select,textarea,[contenteditable="true"],[tabindex]:not([tabindex="-1"])';
+
+export function restorePaneFocus(root: HTMLElement, remembered: HTMLElement | null): boolean {
+  const target =
+    remembered?.isConnected && root.contains(remembered)
+      ? remembered
+      : root.querySelector<HTMLElement>(PANE_DEFAULT_FOCUS_SELECTOR);
+  if (!target) return false;
+  target.focus({ preventScroll: true });
+  return true;
+}
+
+export function restorePaneFocusAfterClick(
+  root: HTMLElement,
+  target: EventTarget | null,
+  activeElement: Element | null,
+  remembered: HTMLElement | null,
+): boolean {
+  if (
+    target !== null &&
+    typeof target === "object" &&
+    "closest" in target &&
+    typeof target.closest === "function" &&
+    target.closest(PANE_FOCUSABLE_SELECTOR) !== null
+  ) {
+    return false;
+  }
+  if (root.contains(activeElement)) return false;
+  return restorePaneFocus(root, remembered);
+}
+
+let paneFocusRestorer: (() => boolean) | null = null;
+
+export function registerPaneFocusRestorer(restorer: () => boolean): () => void {
+  paneFocusRestorer = restorer;
+  return () => {
+    if (paneFocusRestorer === restorer) paneFocusRestorer = null;
+  };
+}
+
+export function restoreActivePaneFocus(): boolean {
+  return paneFocusRestorer?.() ?? false;
+}
+
 /**
  * Whether the ChatView reading this is the pane the user is working in, and so
- * owns the window-level shortcuts and the automatic composer focus.
+ * owns pane-scoped shortcuts.
  *
  * Focus is client state rather than the route — a click moves it, and the URL
  * stays where it is. Defaults to true, which is every ChatView outside a split:

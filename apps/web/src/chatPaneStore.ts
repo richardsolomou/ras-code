@@ -30,6 +30,13 @@ export type ChatPaneSide = "left" | "right";
  */
 export type FocusedPane = "routed" | "companion";
 
+interface PaneRouteOpenIntent {
+  pane: FocusedPane;
+  routeId: string;
+}
+
+const pendingRouteOpenIntents = new Map<string, PaneRouteOpenIntent>();
+
 export interface ChatPaneLayout {
   /** The thread beside the routed one, or null while the inset holds one pane. */
   companion: ScopedThreadRef | null;
@@ -61,6 +68,35 @@ export const INITIAL_CHAT_PANE_LAYOUT: ChatPaneLayout = {
  */
 export function isCompanionVisible(layout: ChatPaneMeasuredLayout): boolean {
   return layout.companion !== null && layout.canSplit;
+}
+
+export async function openDraftInFocusedPane<T>(
+  draftId: string,
+  navigate: () => Promise<T>,
+  pane?: FocusedPane,
+): Promise<T> {
+  const paneState = useChatPaneStore.getState();
+  const intent = {
+    pane: pane ?? (isCompanionVisible(paneState) ? paneState.focusedPane : "routed"),
+    routeId: `draft:${draftId}`,
+  } satisfies PaneRouteOpenIntent;
+  pendingRouteOpenIntents.set(intent.routeId, intent);
+  try {
+    return await navigate();
+  } catch (error) {
+    if (pendingRouteOpenIntents.get(intent.routeId) === intent) {
+      pendingRouteOpenIntents.delete(intent.routeId);
+    }
+    throw error;
+  }
+}
+
+export function takeRouteOpenPane(routeId: string | null): FocusedPane | null {
+  if (routeId === null) return null;
+  const intent = pendingRouteOpenIntents.get(routeId);
+  if (!intent) return null;
+  pendingRouteOpenIntents.delete(routeId);
+  return intent.pane;
 }
 
 /**
@@ -133,75 +169,107 @@ export function planPaneSplit(input: {
   const { dropped, layout, routed, side } = input;
   if (isSameThreadRef(routed, dropped)) return null;
   if (isSameThreadRef(layout.companion, dropped) && layout.companionSide === side) return null;
-  return { ...layout, companion: dropped, companionSide: side, focusedPane: "routed" };
+  return { ...layout, companion: dropped, companionSide: side, focusedPane: "companion" };
 }
 
-export interface PaneFocusPlan {
+export interface ThreadOpenPlan {
   layout: ChatPaneLayout;
-  /** The thread the router must move to, since the routed pane is the focused one. */
-  navigateTo: ScopedThreadRef;
+  navigateTo: ScopedThreadRef | null;
 }
 
-/**
- * Focus moving to the companion. The two threads trade places and the side flips
- * with them, so focus changes without either pane sliding across.
- *
- * A route with no server thread of its own — a draft, or the landing page — has
- * nothing to hand back, so the companion is adopted as the only pane. The draft
- * is still in the sidebar afterwards; this navigates away from it exactly as
- * clicking its row would.
- */
-export function planPaneFocusChange(
-  layout: ChatPaneLayout,
-  routed: ScopedThreadRef | null,
-): PaneFocusPlan | null {
-  if (!layout.companion) return null;
-  if (!routed) {
+export function planThreadOpen(input: {
+  layout: ChatPaneMeasuredLayout;
+  routed: ScopedThreadRef | null;
+  target: ScopedThreadRef;
+}): ThreadOpenPlan {
+  const { layout, routed, target } = input;
+  if (!isCompanionVisible(layout)) {
+    return { layout: { ...layout, focusedPane: "routed" }, navigateTo: target };
+  }
+  if (isSameThreadRef(routed, target)) {
+    return { layout: { ...layout, focusedPane: "routed" }, navigateTo: null };
+  }
+  if (isSameThreadRef(layout.companion, target)) {
+    return { layout: { ...layout, focusedPane: "companion" }, navigateTo: null };
+  }
+  if (layout.focusedPane === "companion") {
+    return { layout: { ...layout, companion: target }, navigateTo: null };
+  }
+  return { layout, navigateTo: target };
+}
+
+export function planThreadDrop(input: {
+  layout: ChatPaneMeasuredLayout;
+  routed: ScopedThreadRef | null;
+  target: ScopedThreadRef;
+  side: ChatPaneSide;
+}): ThreadOpenPlan | null {
+  const { layout, routed, side, target } = input;
+  if (!isCompanionVisible(layout)) {
+    const nextLayout = planPaneSplit({ layout, routed, dropped: target, side });
+    return nextLayout ? { layout: nextLayout, navigateTo: null } : null;
+  }
+  if (isSameThreadRef(routed, target)) {
     return {
-      layout: { ...layout, companion: null, focusedPane: "routed" },
-      navigateTo: layout.companion,
+      layout: {
+        ...layout,
+        companionSide: oppositePaneSide(side),
+        focusedPane: "routed",
+      },
+      navigateTo: null,
     };
   }
-  return {
+  if (isSameThreadRef(layout.companion, target)) {
+    return {
+      layout: { ...layout, companionSide: side, focusedPane: "companion" },
+      navigateTo: null,
+    };
+  }
+  return planThreadOpen({
     layout: {
       ...layout,
-      companion: routed,
-      companionSide: oppositePaneSide(layout.companionSide),
-      focusedPane: "routed",
+      focusedPane: layout.companionSide === side ? "companion" : "routed",
     },
-    navigateTo: layout.companion,
+    routed,
+    target,
+  });
+}
+
+export function planRoutedDraftOpen(
+  layout: ChatPaneMeasuredLayout,
+  openedFromPane: FocusedPane,
+): ChatPaneLayout {
+  if (openedFromPane !== "companion" || !isCompanionVisible(layout)) return layout;
+  return {
+    ...layout,
+    companionSide: oppositePaneSide(layout.companionSide),
+    focusedPane: "routed",
   };
 }
 
-/**
- * Whether a change of routed thread should collapse the split.
- *
- * Clicking a thread — in the sidebar, the palette, a notification, a link — is a
- * navigation, not a pane operation: it takes you to that thread, on its own.
- * Re-targeting one of two panes instead leaves the user working out which pane a
- * click will land in, which is exactly the question panes should not raise.
- *
- * Keyed off the route target rather than the thread it resolves to, because a
- * draft promoting in place resolves from no thread to a real one without the
- * route moving at all — collapsing there would delete the companion the moment
- * the user sends the prompt they opened it for.
- *
- * Promoting the companion is the one real navigation that keeps both panes, and
- * it is recognisable without a flag: it moves the route onto the thread the
- * companion was already showing, so the pane the route just left is the
- * companion.
- */
-export function shouldCollapseOnNavigation(input: {
+/** Places drafts and already-visible threads in the pane that opened them. */
+export function planRouteChange(input: {
+  layout: ChatPaneMeasuredLayout;
+  openedFromPane: FocusedPane | null;
   previousRouteId: string | null;
   nextRouteId: string | null;
-  previousRoutedKey: string | null;
-  companionKey: string | null;
-}): boolean {
-  const { companionKey, nextRouteId, previousRouteId, previousRoutedKey } = input;
-  if (companionKey === null) return false;
-  if (nextRouteId === previousRouteId) return false;
-  if (previousRoutedKey === companionKey) return false;
-  return true;
+  previousRouted: ScopedThreadRef | null;
+  nextRouted: ScopedThreadRef | null;
+}): ChatPaneLayout {
+  const { layout, nextRouteId, nextRouted, openedFromPane, previousRouteId, previousRouted } =
+    input;
+  if (nextRouteId === previousRouteId || !isCompanionVisible(layout)) return layout;
+  const opensDraftInCompanion =
+    openedFromPane === "companion" && nextRouteId?.startsWith("draft:") === true;
+  if (!opensDraftInCompanion && !isSameThreadRef(layout.companion, nextRouted)) {
+    return layout;
+  }
+  return {
+    ...layout,
+    companion: previousRouted,
+    companionSide: oppositePaneSide(layout.companionSide),
+    focusedPane: "routed",
+  };
 }
 
 /**
