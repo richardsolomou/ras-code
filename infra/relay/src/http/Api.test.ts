@@ -188,6 +188,7 @@ function relayUnlinkTestLayer(input?: {
   readonly revokeForUser?: EnvironmentLinks.EnvironmentLinks["Service"]["revokeForUser"];
   readonly revokeCredential?: EnvironmentCredentials.EnvironmentCredentials["Service"]["revokeForEnvironmentPublicKey"];
   readonly disconnect?: RasRelaySession.RasRelaySessionDirectory["Service"]["disconnect"];
+  readonly listPublicKeysForEnvironment?: EnvironmentLinks.EnvironmentLinks["Service"]["listPublicKeysForEnvironment"];
 }) {
   return Layer.mergeAll(
     Layer.succeed(
@@ -202,7 +203,8 @@ function relayUnlinkTestLayer(input?: {
         upsert: () => Effect.die("unused upsert"),
         listUsersForEnvironment: () => Effect.die("unused listUsersForEnvironment"),
         listDeliveryUsersForEnvironment: () => Effect.die("unused listDeliveryUsersForEnvironment"),
-        listPublicKeysForEnvironment: () => Effect.die("unused listPublicKeysForEnvironment"),
+        listPublicKeysForEnvironment:
+          input?.listPublicKeysForEnvironment ?? (() => Effect.succeed([])),
         listForUser: () => Effect.die("unused listForUser"),
         getForUser: input?.getForUser ?? (() => Effect.succeed(null)),
         revokeForUser: input?.revokeForUser ?? (() => Effect.succeed(false)),
@@ -280,7 +282,14 @@ describe("relay environment unlink", () => {
           environmentId: "environment-1",
         }),
       ).toBe(true);
-      expect(calls).toEqual(["lookup", "transaction", "link", "credential", "disconnect"]);
+      expect(calls).toEqual([
+        "lookup",
+        "transaction",
+        "link",
+        "credential",
+        "remaining-links",
+        "disconnect",
+      ]);
     }).pipe(
       Effect.provide(
         relayUnlinkTestLayer({
@@ -303,6 +312,11 @@ describe("relay environment unlink", () => {
               calls.push("credential");
               return true;
             }),
+          listPublicKeysForEnvironment: () =>
+            Effect.sync(() => {
+              calls.push("remaining-links");
+              return [];
+            }),
           disconnect: () =>
             Effect.sync(() => {
               calls.push("disconnect");
@@ -312,7 +326,7 @@ describe("relay environment unlink", () => {
     );
   });
 
-  it.effect("disconnects the relay session when the link is already absent", () => {
+  it.effect("does not disconnect the relay session when the link is absent", () => {
     const calls: Array<string> = [];
     return Effect.gen(function* () {
       expect(
@@ -321,10 +335,39 @@ describe("relay environment unlink", () => {
           environmentId: "environment-1",
         }),
       ).toBe(false);
-      expect(calls).toEqual(["disconnect"]);
+      expect(calls).toEqual([]);
     }).pipe(
       Effect.provide(
         relayUnlinkTestLayer({
+          disconnect: () =>
+            Effect.sync(() => {
+              calls.push("disconnect");
+            }),
+        }),
+      ),
+    );
+  });
+
+  it.effect("keeps the relay session while another user remains linked", () => {
+    const calls: Array<string> = [];
+    return Effect.gen(function* () {
+      expect(
+        yield* unlinkEnvironmentRecord({
+          userId: "user-1",
+          environmentId: "environment-1",
+        }),
+      ).toBe(true);
+      expect(calls).toEqual(["remaining-links"]);
+    }).pipe(
+      Effect.provide(
+        relayUnlinkTestLayer({
+          getForUser: () => Effect.succeed(linkedEnvironmentRecord),
+          revokeForUser: () => Effect.succeed(true),
+          listPublicKeysForEnvironment: () =>
+            Effect.sync(() => {
+              calls.push("remaining-links");
+              return ["public-key-2"];
+            }),
           disconnect: () =>
             Effect.sync(() => {
               calls.push("disconnect");

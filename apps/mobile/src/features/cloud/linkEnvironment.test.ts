@@ -146,6 +146,9 @@ function validLinkResponse(environmentId = "env-1") {
     endpointRuntime: {
       providerKind: "ras_relay",
       connectorToken: "connector-token",
+      connectorUrl: "wss://relay.example.test/v1/ras-relay/connect/abcdef0123456789",
+      localHttpHost: "127.0.0.1",
+      localHttpPort: 3000,
     },
     relayIssuer: "https://relay.example.test",
     cloudUserId: "user_123",

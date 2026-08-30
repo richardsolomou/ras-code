@@ -208,6 +208,41 @@ describe("RasRelaySession", () => {
       }
 
       expect(connector.sent.at(-1)?.message).toEqual({ type: "http_request_cancel", id });
+      yield* sendToSession(session, state, connector.socket, [
+        {
+          message: { type: "http_response_body", id },
+          payload: new Uint8Array(1),
+        },
+        {
+          message: { type: "http_response_end", id },
+          payload: new Uint8Array(),
+        },
+      ]);
+      expect(connector.closes).toEqual([]);
+    }),
+  );
+
+  it.effect("cancels an HTTP request when its public request is interrupted", () =>
+    Effect.gen(function* () {
+      const requestSent = yield* Deferred.make<string>();
+      const connector = fakeSocket({ role: "connector" }, (frames) => {
+        const end = frames.find(({ message }) => message.type === "http_request_end");
+        return end
+          ? Deferred.succeed(requestSent, end.message.id).pipe(Effect.asVoid)
+          : Effect.void;
+      });
+      const state = relayState([connector.socket]);
+      const session = yield* makeSession(state);
+      const responseFiber = yield* fetchSession(
+        session,
+        state,
+        new Request("https://code-tunnels.ras.sh/e/abcdef0123456789/api/slow"),
+      ).pipe(Effect.forkChild);
+      const id = yield* Deferred.await(requestSent);
+
+      yield* Fiber.interrupt(responseFiber);
+
+      expect(connector.sent.at(-1)?.message).toEqual({ type: "http_request_cancel", id });
     }),
   );
 
@@ -243,6 +278,37 @@ describe("RasRelaySession", () => {
       ]);
 
       expect(HttpServerResponse.toWeb(yield* Fiber.join(responseFiber)).status).toBe(502);
+    }),
+  );
+
+  it.effect("closes a pending WebSocket when its public request is interrupted", () =>
+    Effect.gen(function* () {
+      const socketOpened = yield* Deferred.make<string>();
+      const connector = fakeSocket({ role: "connector" }, (frames) => {
+        const open = frames.find(({ message }) => message.type === "websocket_open");
+        return open
+          ? Deferred.succeed(socketOpened, open.message.id).pipe(Effect.asVoid)
+          : Effect.void;
+      });
+      const state = relayState([connector.socket]);
+      const session = yield* makeSession(state);
+      const responseFiber = yield* fetchSession(
+        session,
+        state,
+        new Request("https://code-tunnels.ras.sh/e/abcdef0123456789/ws", {
+          headers: { upgrade: "websocket" },
+        }),
+      ).pipe(Effect.forkChild);
+      const id = yield* Deferred.await(socketOpened);
+
+      yield* Fiber.interrupt(responseFiber);
+
+      expect(connector.sent.at(-1)?.message).toEqual({
+        type: "websocket_close",
+        id,
+        code: 1001,
+        reason: "Relay request canceled",
+      });
     }),
   );
 });

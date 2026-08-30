@@ -64,6 +64,7 @@ import * as ManagedEndpointProvider from "./environments/ManagedEndpointProvider
 import { RasRelaySession, RasRelaySessionDirectory } from "./environments/RasRelaySession.ts";
 import * as MobileRegistrations from "./agentActivity/MobileRegistrations.ts";
 import { rasRelayEndpointDigestInput, rasRelayEndpointId } from "./deploymentConfig.ts";
+import { authorizeConnectorIngress } from "./connectorIngress.ts";
 
 const RAS_RELAY_CONNECT_PATH = /^\/v1\/ras-relay\/connect\/([a-f0-9]{16})$/u;
 
@@ -340,18 +341,17 @@ export const ApiLive = Api.make(
           });
           return HttpServerResponse.empty({ status: 503 });
         }
-        if (!authorization.success || authorization.success !== connectorMatch[1]) {
+        const route = authorizeConnectorIngress({
+          authenticatedEndpointId: authorization.success,
+          requestedEndpointId: connectorMatch[1] ?? "",
+          headers: request.headers,
+        });
+        if (!route) {
           return HttpServerResponse.empty({ status: 403 });
         }
-        const connectorRequest = request.modify({
-          headers: Headers.set(
-            Headers.remove(request.headers, "authorization"),
-            "x-ras-relay-connector",
-            "1",
-          ),
-        });
+        const connectorRequest = request.modify({ headers: route.headers });
         return yield* rasRelaySessions
-          .getByName(authorization.success)
+          .getByName(route.endpointId)
           .fetch(connectorRequest)
           .pipe(Effect.orDie);
       }

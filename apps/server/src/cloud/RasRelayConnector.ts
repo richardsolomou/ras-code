@@ -31,6 +31,7 @@ interface PendingHttpRequest {
   readonly headers: ReadonlyArray<readonly [string, string]>;
   readonly chunks: Array<Uint8Array>;
   byteLength: number;
+  accounted: boolean;
 }
 
 interface LocalWebSocket {
@@ -57,6 +58,7 @@ export interface RasRelayConnectorHandle {
 
 const emptyPayload = new Uint8Array();
 const textDecoder = new TextDecoder();
+const MAX_BUFFERED_HTTP_REQUEST_BYTES = RAS_RELAY_MAX_STREAM_BYTES * 2;
 
 function frame(message: RasRelayMessage, payload = emptyPayload): RasRelayFrame {
   return { message, payload };
@@ -152,6 +154,13 @@ export const start = Effect.fn("RasRelayConnector.start")(function* (
   let outgoing: Array<RasRelayFrame> = [];
   let outgoingBytes = 6;
   let flushScheduled = false;
+  let bufferedHttpRequestBytes = 0;
+
+  const releaseRequestBytes = (request: PendingHttpRequest) => {
+    if (!request.accounted) return;
+    request.accounted = false;
+    bufferedHttpRequestBytes -= request.byteLength;
+  };
 
   const flush = () => {
     flushScheduled = false;
@@ -191,10 +200,12 @@ export const start = Effect.fn("RasRelayConnector.start")(function* (
       }
     });
 
-  const sendHttpResponse = (id: string, request: PendingHttpRequest) => {
-    const abortController = new AbortController();
+  const sendHttpResponse = (
+    id: string,
+    request: PendingHttpRequest,
+    abortController: AbortController,
+  ) => {
     return Effect.gen(function* () {
-      inFlightHttpRequests.set(id, abortController);
       const url = localUrl(origin, request.path, "http:");
       if (!url || !parseRasRelayPublicOrigin(request.origin)) {
         yield* send(
@@ -209,6 +220,7 @@ export const start = Effect.fn("RasRelayConnector.start")(function* (
         return;
       }
       const body = concatChunks(request.chunks, request.byteLength);
+      request.chunks.length = 0;
       const headers: Record<string, string> = {
         ...forwardedHeaders(request.headers, false),
         "accept-encoding": "identity",
@@ -288,6 +300,7 @@ export const start = Effect.fn("RasRelayConnector.start")(function* (
       Effect.ensuring(
         Effect.sync(() => {
           inFlightHttpRequests.delete(id);
+          releaseRequestBytes(request);
         }),
       ),
     );
@@ -391,20 +404,27 @@ export const start = Effect.fn("RasRelayConnector.start")(function* (
           headers: message.headers,
           chunks: [],
           byteLength: 0,
+          accounted: true,
         });
         return;
       case "http_request_body": {
         const request = requests.get(message.id);
         if (!request) return;
         request.byteLength += payload.byteLength;
-        if (request.byteLength > RAS_RELAY_MAX_STREAM_BYTES) {
+        bufferedHttpRequestBytes += payload.byteLength;
+        const requestTooLarge = request.byteLength > RAS_RELAY_MAX_STREAM_BYTES;
+        const connectorBusy = bufferedHttpRequestBytes > MAX_BUFFERED_HTTP_REQUEST_BYTES;
+        if (requestTooLarge || connectorBusy) {
           requests.delete(message.id);
+          releaseRequestBytes(request);
           yield* send(
             frame({
               type: "http_response_error",
               id: message.id,
-              status: 413,
-              message: "Relay request exceeded its size limit.",
+              status: requestTooLarge ? 413 : 503,
+              message: requestTooLarge
+                ? "Relay request exceeded its size limit."
+                : "Relay request buffer is full.",
             }),
           );
           return;
@@ -416,13 +436,20 @@ export const start = Effect.fn("RasRelayConnector.start")(function* (
         const request = requests.get(message.id);
         if (!request) return;
         requests.delete(message.id);
-        yield* Effect.forkDetach(sendHttpResponse(message.id, request));
+        const abortController = new AbortController();
+        inFlightHttpRequests.set(message.id, abortController);
+        yield* Effect.forkDetach(sendHttpResponse(message.id, request, abortController));
         return;
       }
-      case "http_request_cancel":
-        requests.delete(message.id);
+      case "http_request_cancel": {
+        const request = requests.get(message.id);
+        if (request) {
+          requests.delete(message.id);
+          releaseRequestBytes(request);
+        }
         inFlightHttpRequests.get(message.id)?.abort();
         return;
+      }
       case "websocket_open":
         yield* openLocalWebSocket(message);
         return;
@@ -493,6 +520,7 @@ export const start = Effect.fn("RasRelayConnector.start")(function* (
     );
   });
   connector.once("close", () => {
+    for (const request of requests.values()) releaseRequestBytes(request);
     requests.clear();
     for (const request of inFlightHttpRequests.values()) request.abort();
     inFlightHttpRequests.clear();

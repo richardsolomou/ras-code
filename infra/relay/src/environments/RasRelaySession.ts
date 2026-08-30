@@ -108,7 +108,17 @@ export const makeRasRelaySession = Effect.all({
       let connector: Cloudflare.WebSocket | null = null;
       const clients = new Map<string, Cloudflare.WebSocket>();
       const pendingHttp = new Map<string, PendingHttpRequest>();
+      const canceledHttp = new Set<string>();
       const pendingWebSockets = new Map<string, PendingWebSocket>();
+
+      const cancelHttp = (id: string) => {
+        pendingHttp.delete(id);
+        canceledHttp.add(id);
+        if (canceledHttp.size > 128) {
+          const oldest = canceledHttp.values().next().value;
+          if (oldest) canceledHttp.delete(oldest);
+        }
+      };
 
       for (const socket of yield* state.getWebSockets()) {
         const attachment = socket.deserializeAttachment<SocketAttachment>();
@@ -181,7 +191,7 @@ export const makeRasRelaySession = Effect.all({
                   controller = value;
                 },
                 cancel: () => {
-                  pendingHttp.delete(message.id);
+                  cancelHttp(message.id);
                   if (socketEquals(connector, socket)) {
                     runFork(
                       send(socket, [frame({ type: "http_request_cancel", id: message.id })]).pipe(
@@ -206,6 +216,7 @@ export const makeRasRelaySession = Effect.all({
           }
           case "http_response_body": {
             const pending = pendingHttp.get(message.id);
+            if (!pending && canceledHttp.has(message.id)) return;
             if (!pending || pending.response._tag !== "streaming") {
               return yield* rejectConnector(socket);
             }
@@ -214,7 +225,7 @@ export const makeRasRelaySession = Effect.all({
               pending.response.controller.error(
                 new Error("RAS relay response exceeded its size limit"),
               );
-              pendingHttp.delete(message.id);
+              cancelHttp(message.id);
               yield* send(socket, [frame({ type: "http_request_cancel", id: message.id })]).pipe(
                 Effect.ignore,
               );
@@ -222,7 +233,7 @@ export const makeRasRelaySession = Effect.all({
             }
             if ((pending.response.controller.desiredSize ?? 0) < payload.byteLength) {
               pending.response.controller.error(new Error("RAS relay response consumer is slow"));
-              pendingHttp.delete(message.id);
+              cancelHttp(message.id);
               yield* send(socket, [frame({ type: "http_request_cancel", id: message.id })]).pipe(
                 Effect.ignore,
               );
@@ -233,6 +244,7 @@ export const makeRasRelaySession = Effect.all({
           }
           case "http_response_end": {
             const pending = pendingHttp.get(message.id);
+            if (!pending && canceledHttp.delete(message.id)) return;
             if (!pending || pending.response._tag === "awaiting") {
               return yield* rejectConnector(socket);
             }
@@ -242,7 +254,10 @@ export const makeRasRelaySession = Effect.all({
           }
           case "http_response_error": {
             const pending = pendingHttp.get(message.id);
-            if (!pending) return;
+            if (!pending) {
+              canceledHttp.delete(message.id);
+              return;
+            }
             if (pending.response._tag === "streaming") {
               pending.response.controller.error(new Error(message.message));
             } else if (pending.response._tag === "awaiting") {
@@ -302,6 +317,7 @@ export const makeRasRelaySession = Effect.all({
           yield* connector.close(1012, "Connector replaced");
           yield* closeClients(1012, "Connector replaced");
           yield* failPending();
+          canceledHttp.clear();
         }
         const [response, socket] = yield* Cloudflare.upgrade();
         socket.serializeAttachment<SocketAttachment>({ role: "connector" });
@@ -334,75 +350,88 @@ export const makeRasRelaySession = Effect.all({
           response: { _tag: "awaiting" },
           responseBytes: 0,
         });
-        const startedSent = yield* send(targetConnector, [
-          frame({
-            type: "http_request_start",
-            id,
-            method: request.method,
-            origin: requestUrl.origin,
-            path,
-            headers: requestHeaders(request),
-          }),
-        ]).pipe(Effect.result);
-        if (startedSent._tag === "Failure") {
-          pendingHttp.delete(id);
-          return HttpServerResponse.text("Environment is offline.", { status: 503 });
-        }
-        const reader = request.body?.getReader();
-        let requestBytes = 0;
-        if (reader) {
-          while (true) {
-            const chunk = yield* Effect.promise(() => reader.read()).pipe(Effect.result);
-            if (chunk._tag === "Failure") {
-              pendingHttp.delete(id);
-              yield* send(targetConnector, [frame({ type: "http_request_cancel", id })]).pipe(
-                Effect.ignore,
-              );
-              return HttpServerResponse.text("Could not read request body.", { status: 400 });
-            }
-            if (chunk.success.done) break;
-            requestBytes += chunk.success.value.byteLength;
-            if (requestBytes > RAS_RELAY_MAX_STREAM_BYTES) {
-              pendingHttp.delete(id);
-              yield* Effect.promise(() => reader.cancel()).pipe(Effect.ignore);
-              yield* send(targetConnector, [frame({ type: "http_request_cancel", id })]).pipe(
-                Effect.ignore,
-              );
-              return HttpServerResponse.text("Request body is too large.", { status: 413 });
-            }
-            for (const bodyFrame of rasRelayPayloadFrames(
-              { type: "http_request_body", id },
-              chunk.success.value,
-            )) {
-              const sent = yield* send(targetConnector, [bodyFrame]).pipe(Effect.result);
-              if (sent._tag === "Failure") {
-                pendingHttp.delete(id);
-                return HttpServerResponse.text("Environment is offline.", { status: 503 });
+        return yield* Effect.gen(function* () {
+          const startedSent = yield* send(targetConnector, [
+            frame({
+              type: "http_request_start",
+              id,
+              method: request.method,
+              origin: requestUrl.origin,
+              path,
+              headers: requestHeaders(request),
+            }),
+          ]).pipe(Effect.result);
+          if (startedSent._tag === "Failure") {
+            pendingHttp.delete(id);
+            return HttpServerResponse.text("Environment is offline.", { status: 503 });
+          }
+          const reader = request.body?.getReader();
+          let requestBytes = 0;
+          if (reader) {
+            while (true) {
+              const chunk = yield* Effect.promise(() => reader.read()).pipe(Effect.result);
+              if (chunk._tag === "Failure") {
+                cancelHttp(id);
+                yield* send(targetConnector, [frame({ type: "http_request_cancel", id })]).pipe(
+                  Effect.ignore,
+                );
+                return HttpServerResponse.text("Could not read request body.", { status: 400 });
+              }
+              if (chunk.success.done) break;
+              requestBytes += chunk.success.value.byteLength;
+              if (requestBytes > RAS_RELAY_MAX_STREAM_BYTES) {
+                cancelHttp(id);
+                yield* Effect.promise(() => reader.cancel()).pipe(Effect.ignore);
+                yield* send(targetConnector, [frame({ type: "http_request_cancel", id })]).pipe(
+                  Effect.ignore,
+                );
+                return HttpServerResponse.text("Request body is too large.", { status: 413 });
+              }
+              for (const bodyFrame of rasRelayPayloadFrames(
+                { type: "http_request_body", id },
+                chunk.success.value,
+              )) {
+                const sent = yield* send(targetConnector, [bodyFrame]).pipe(Effect.result);
+                if (sent._tag === "Failure") {
+                  pendingHttp.delete(id);
+                  return HttpServerResponse.text("Environment is offline.", { status: 503 });
+                }
               }
             }
           }
-        }
-        const ended = yield* send(targetConnector, [frame({ type: "http_request_end", id })]).pipe(
-          Effect.result,
-        );
-        if (ended._tag === "Failure") {
-          pendingHttp.delete(id);
-          return HttpServerResponse.text("Environment is offline.", { status: 503 });
-        }
-        return yield* Deferred.await(started).pipe(
-          Effect.timeoutOrElse({
-            duration: "30 seconds",
-            orElse: () =>
-              Effect.gen(function* () {
-                pendingHttp.delete(id);
-                if (socketEquals(connector, targetConnector)) {
-                  yield* send(targetConnector, [frame({ type: "http_request_cancel", id })]).pipe(
-                    Effect.ignore,
-                  );
-                }
-                return HttpServerResponse.text("Environment request timed out.", { status: 504 });
-              }),
-          }),
+          const ended = yield* send(targetConnector, [
+            frame({ type: "http_request_end", id }),
+          ]).pipe(Effect.result);
+          if (ended._tag === "Failure") {
+            pendingHttp.delete(id);
+            return HttpServerResponse.text("Environment is offline.", { status: 503 });
+          }
+          return yield* Deferred.await(started).pipe(
+            Effect.timeoutOrElse({
+              duration: "30 seconds",
+              orElse: () =>
+                Effect.gen(function* () {
+                  cancelHttp(id);
+                  if (socketEquals(connector, targetConnector)) {
+                    yield* send(targetConnector, [frame({ type: "http_request_cancel", id })]).pipe(
+                      Effect.ignore,
+                    );
+                  }
+                  return HttpServerResponse.text("Environment request timed out.", { status: 504 });
+                }),
+            }),
+          );
+        }).pipe(
+          Effect.onInterrupt(() =>
+            Effect.gen(function* () {
+              cancelHttp(id);
+              if (socketEquals(connector, targetConnector)) {
+                yield* send(targetConnector, [frame({ type: "http_request_cancel", id })]).pipe(
+                  Effect.ignore,
+                );
+              }
+            }),
+          ),
         );
       });
 
@@ -426,69 +455,92 @@ export const makeRasRelaySession = Effect.all({
         >();
         const pending = { accepted, closed: null } satisfies PendingWebSocket;
         pendingWebSockets.set(id, pending);
-        const sent = yield* send(targetConnector, [
-          frame({
-            type: "websocket_open",
-            id,
-            origin: requestUrl.origin,
-            path,
-            headers: requestHeaders(request),
-            protocols: websocketProtocols(request),
-          }),
-        ]).pipe(Effect.result);
-        if (sent._tag === "Failure") {
+        return yield* Effect.gen(function* () {
+          const sent = yield* send(targetConnector, [
+            frame({
+              type: "websocket_open",
+              id,
+              origin: requestUrl.origin,
+              path,
+              headers: requestHeaders(request),
+              protocols: websocketProtocols(request),
+            }),
+          ]).pipe(Effect.result);
+          if (sent._tag === "Failure") {
+            pendingWebSockets.delete(id);
+            return HttpServerResponse.text("Environment is offline.", { status: 503 });
+          }
+          const result = yield* Deferred.await(accepted).pipe(
+            Effect.timeoutOrElse({
+              duration: "10 seconds",
+              orElse: () =>
+                (socketEquals(connector, targetConnector)
+                  ? send(targetConnector, [
+                      frame({
+                        type: "websocket_close",
+                        id,
+                        code: 1001,
+                        reason: "Relay request timed out",
+                      }),
+                    ]).pipe(Effect.ignore)
+                  : Effect.void
+                ).pipe(Effect.as({ accepted: false as const, status: 504 })),
+            }),
+          );
+          if (pending.closed) {
+            pendingWebSockets.delete(id);
+            return HttpServerResponse.empty({ status: 502 });
+          }
+          if (!result.accepted) {
+            pendingWebSockets.delete(id);
+            return HttpServerResponse.empty({ status: result.status });
+          }
+          if (!socketEquals(connector, targetConnector)) {
+            pendingWebSockets.delete(id);
+            return HttpServerResponse.text("Environment is offline.", { status: 503 });
+          }
+          const [response, socket] = yield* Cloudflare.upgrade();
+          socket.serializeAttachment<SocketAttachment>({ role: "client", id });
+          const closedDuringUpgrade = pendingWebSocketClose(pending);
+          if (closedDuringUpgrade) {
+            pendingWebSockets.delete(id);
+            yield* socket.close(closedDuringUpgrade.code, closedDuringUpgrade.reason);
+            return response;
+          }
+          clients.set(id, socket);
           pendingWebSockets.delete(id);
-          return HttpServerResponse.text("Environment is offline.", { status: 503 });
-        }
-        const result = yield* Deferred.await(accepted).pipe(
-          Effect.timeoutOrElse({
-            duration: "10 seconds",
-            orElse: () =>
-              (socketEquals(connector, targetConnector)
-                ? send(targetConnector, [
-                    frame({
-                      type: "websocket_close",
-                      id,
-                      code: 1001,
-                      reason: "Relay request timed out",
-                    }),
-                  ]).pipe(Effect.ignore)
-                : Effect.void
-              ).pipe(Effect.as({ accepted: false as const, status: 504 })),
-          }),
+          const readySent = yield* send(targetConnector, [
+            frame({ type: "websocket_ready", id }),
+          ]).pipe(Effect.result);
+          if (readySent._tag === "Failure") {
+            clients.delete(id);
+            yield* socket.close(1012, "Environment is offline");
+          }
+          return result.protocol
+            ? HttpServerResponse.setHeader(response, "sec-websocket-protocol", result.protocol)
+            : response;
+        }).pipe(
+          Effect.onInterrupt(() =>
+            Effect.gen(function* () {
+              pendingWebSockets.delete(id);
+              const client = clients.get(id);
+              if (client) {
+                clients.delete(id);
+                yield* client.close(1001, "Relay request canceled");
+              }
+              if (socketEquals(connector, targetConnector)) {
+                yield* send(targetConnector, [
+                  frame({
+                    type: "websocket_close",
+                    id,
+                    code: 1001,
+                    reason: "Relay request canceled",
+                  }),
+                ]).pipe(Effect.ignore);
+              }
+            }),
+          ),
         );
-        if (pending.closed) {
-          pendingWebSockets.delete(id);
-          return HttpServerResponse.empty({ status: 502 });
-        }
-        if (!result.accepted) {
-          pendingWebSockets.delete(id);
-          return HttpServerResponse.empty({ status: result.status });
-        }
-        if (!socketEquals(connector, targetConnector)) {
-          pendingWebSockets.delete(id);
-          return HttpServerResponse.text("Environment is offline.", { status: 503 });
-        }
-        const [response, socket] = yield* Cloudflare.upgrade();
-        socket.serializeAttachment<SocketAttachment>({ role: "client", id });
-        const closedDuringUpgrade = pendingWebSocketClose(pending);
-        if (closedDuringUpgrade) {
-          pendingWebSockets.delete(id);
-          yield* socket.close(closedDuringUpgrade.code, closedDuringUpgrade.reason);
-          return response;
-        }
-        clients.set(id, socket);
-        pendingWebSockets.delete(id);
-        const readySent = yield* send(targetConnector, [
-          frame({ type: "websocket_ready", id }),
-        ]).pipe(Effect.result);
-        if (readySent._tag === "Failure") {
-          clients.delete(id);
-          yield* socket.close(1012, "Environment is offline");
-        }
-        return result.protocol
-          ? HttpServerResponse.setHeader(response, "sec-websocket-protocol", result.protocol)
-          : response;
       });
 
       return {
@@ -499,6 +551,7 @@ export const makeRasRelaySession = Effect.all({
           }
           yield* closeClients(1008, "Environment unlinked");
           yield* failPending();
+          canceledHttp.clear();
         }),
         fetch: Effect.gen(function* () {
           const request = yield* HttpServerRequest.HttpServerRequest;
@@ -561,6 +614,7 @@ export const makeRasRelaySession = Effect.all({
             connector = null;
             yield* closeClients(1012, "Environment is offline");
             yield* failPending();
+            canceledHttp.clear();
           } else if (
             attachment?.role === "client" &&
             clients.get(attachment.id)?.ws === socket.ws

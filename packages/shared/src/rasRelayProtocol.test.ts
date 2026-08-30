@@ -4,6 +4,7 @@ import {
   decodeRasRelayBatch,
   encodeRasRelayBatch,
   RAS_RELAY_MAX_BATCH_BYTES,
+  RAS_RELAY_MAX_FRAME_PAYLOAD_BYTES,
   parseRasRelayPublicOrigin,
   rasRelayClose,
   rasRelayPayloadFrames,
@@ -88,9 +89,24 @@ describe("rasRelayProtocol", () => {
   it("splits payloads without exceeding the frame limit", () => {
     const frames = rasRelayPayloadFrames(
       { type: "http_request_body", id: "request-1" },
-      new Uint8Array(262_145),
+      new Uint8Array(RAS_RELAY_MAX_FRAME_PAYLOAD_BYTES + 1),
     );
 
-    expect(frames.map(({ payload }) => payload.byteLength)).toEqual([262_144, 1]);
+    expect(frames.map(({ payload }) => payload.byteLength)).toEqual([
+      RAS_RELAY_MAX_FRAME_PAYLOAD_BYTES,
+      1,
+    ]);
+  });
+
+  it("round-trips a one-megabyte WebSocket RPC message", () => {
+    const payload = new Uint8Array(1_048_576);
+    const encoded = encodeRasRelayBatch([
+      {
+        message: { type: "websocket_message", id: "socket-1", binary: false },
+        payload,
+      },
+    ]);
+
+    expect(decodeRasRelayBatch(encoded)?.[0]?.payload.byteLength).toBe(payload.byteLength);
   });
 });

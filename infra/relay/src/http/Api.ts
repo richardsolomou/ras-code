@@ -437,17 +437,20 @@ export const unlinkEnvironmentRecord = Effect.fn("relay.api.client.unlinkEnviron
       userId: input.userId,
       environmentId: input.environmentId,
     });
-    const unlinked =
-      link === null
-        ? false
-        : yield* revokeEnvironmentLinkRecord({
-            userId: input.userId,
-            environmentId: link.environmentId,
-            environmentPublicKey: link.environmentPublicKey,
-          });
-
-    yield* rasRelaySessions.disconnect(input.environmentId);
-    return unlinked;
+    if (link === null) return false;
+    const unlinked = yield* revokeEnvironmentLinkRecord({
+      userId: input.userId,
+      environmentId: link.environmentId,
+      environmentPublicKey: link.environmentPublicKey,
+    });
+    if (!unlinked) return false;
+    const remainingPublicKeys = yield* links.listPublicKeysForEnvironment({
+      environmentId: input.environmentId,
+    });
+    if (remainingPublicKeys.length === 0) {
+      yield* rasRelaySessions.disconnect(input.environmentId);
+    }
+    return true;
   },
 );
 

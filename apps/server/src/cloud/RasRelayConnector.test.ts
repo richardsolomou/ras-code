@@ -3,10 +3,12 @@ import * as NodeHttp from "node:http";
 import * as NodeZlib from "node:zlib";
 
 import * as NodeSocket from "@effect/platform-node-shared/NodeSocket";
+import { PROVIDER_SEND_TURN_MAX_FILE_BYTES } from "@ras-code/contracts";
 import {
   decodeRasRelayBatch,
   encodeRasRelayBatch,
   RAS_RELAY_MAX_SOCKET_BUFFER_BYTES,
+  RAS_RELAY_MAX_STREAM_BYTES,
   type RasRelayFrame,
 } from "@ras-code/shared/rasRelayProtocol";
 import { describe, expect, it } from "@effect/vitest";
@@ -354,5 +356,9 @@ describe("RasRelayConnector", () => {
     expect(
       RasRelayConnector.rasRelaySocketBufferHasCapacity(RAS_RELAY_MAX_SOCKET_BUFFER_BYTES, 1),
     ).toBe(false);
+  });
+
+  it("accepts the advertised file attachment size", () => {
+    expect(RAS_RELAY_MAX_STREAM_BYTES).toBeGreaterThanOrEqual(PROVIDER_SEND_TURN_MAX_FILE_BYTES);
   });
 });
