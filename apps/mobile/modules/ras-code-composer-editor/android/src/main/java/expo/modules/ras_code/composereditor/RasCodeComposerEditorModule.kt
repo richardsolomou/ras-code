@@ -26,7 +26,10 @@ class RasCodeComposerEditorModule : Module() {
       Prop("lineHeight") { view: RasCodeComposerEditorView, lineHeight: Double ->
         view.setLineHeight(lineHeight.toFloat())
       }
-      Prop("contentInsetVertical") { view: RasCodeComposerEditorView, contentInsetVertical: Double ->
+      Prop("contentInsetVertical") {
+          view: RasCodeComposerEditorView,
+          contentInsetVertical: Double
+        ->
         view.setContentInsetVertical(contentInsetVertical.toInt())
       }
 
