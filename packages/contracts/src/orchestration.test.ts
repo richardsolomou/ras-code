@@ -441,6 +441,42 @@ it.effect("accepts bootstrap metadata in thread.turn.start", () =>
   }),
 );
 
+it.effect("preserves an explicit after-message fork boundary", () =>
+  Effect.gen(function* () {
+    const parsed = yield* decodeThreadTurnStartCommand({
+      type: "thread.turn.start",
+      commandId: "cmd-turn-fork",
+      threadId: "thread-fork",
+      message: {
+        messageId: "msg-new",
+        role: "user",
+        text: "continue here",
+        attachments: [],
+      },
+      bootstrap: {
+        forkThread: {
+          projectId: "project-1",
+          sourceThreadId: "thread-source",
+          sourceMessageId: "msg-response",
+          sourceMessageBoundary: "after",
+          turnCount: 3,
+          workspaceMode: "worktree",
+          title: "Forked thread",
+          modelSelection: { provider: "codex", model: "gpt-5.4" },
+          runtimeMode: "full-access",
+          interactionMode: "default",
+          branch: "ras-code/forked-thread",
+          worktreePath: null,
+          createdAt: "2026-01-01T00:00:00.000Z",
+        },
+      },
+      createdAt: "2026-01-01T00:00:00.000Z",
+    });
+
+    assert.strictEqual(parsed.bootstrap?.forkThread?.sourceMessageBoundary, "after");
+  }),
+);
+
 it.effect("decodes thread.created runtime mode for historical events", () =>
   Effect.gen(function* () {
     const parsed = yield* decodeThreadCreatedPayload({

@@ -458,10 +458,8 @@ export const ThreadTitleRegeneration = Schema.Struct({
 export type ThreadTitleRegeneration = typeof ThreadTitleRegeneration.Type;
 
 /**
- * Where a forked thread was cut from its parent. `turnCount` is the parent's
- * checkpoint turn count at the fork point, so it addresses both the parent's
- * filesystem checkpoint (`refs/t3/checkpoints/<parent>/turn/<n>`) and the
- * parent turn whose provider resume anchor a native fork resumes from.
+ * A fork's parent boundary. `messageId` identifies the source message and
+ * `turnCount` addresses its filesystem checkpoint and provider resume anchor.
  */
 export const ThreadForkPoint = Schema.Struct({
   threadId: ThreadId,
@@ -469,6 +467,9 @@ export const ThreadForkPoint = Schema.Struct({
   turnCount: NonNegativeInt,
 });
 export type ThreadForkPoint = typeof ThreadForkPoint.Type;
+
+export const ThreadForkMessageBoundary = Schema.Literals(["before", "after"]);
+export type ThreadForkMessageBoundary = typeof ThreadForkMessageBoundary.Type;
 
 /**
  * Where a fork's workspace lives. "worktree" cuts a fresh git worktree at the
@@ -988,16 +989,16 @@ const ThreadTurnStartBootstrapCreateThread = Schema.Struct({
 });
 
 /**
- * Fork bootstrap. Creates `threadId` as a fork of `sourceThreadId` cut before
- * `sourceMessageId`, carrying the parent's messages up to that point as
- * inherited history. The server resolves the inherited prefix itself — clients
- * send the fork point, not the transcript — and pairs this with
- * `prepareWorktree` when `workspaceMode` is "worktree".
+ * Fork bootstrap. Creates `threadId` as a fork of `sourceThreadId` at
+ * `sourceMessageId`. A missing boundary preserves the legacy behavior of
+ * stopping before that message. The server resolves the inherited prefix and
+ * pairs this with `prepareWorktree` when `workspaceMode` is "worktree".
  */
 const ThreadTurnStartBootstrapForkThread = Schema.Struct({
   projectId: ProjectId,
   sourceThreadId: ThreadId,
   sourceMessageId: MessageId,
+  sourceMessageBoundary: Schema.optionalKey(ThreadForkMessageBoundary),
   turnCount: NonNegativeInt,
   workspaceMode: ThreadForkWorkspaceMode,
   title: TrimmedNonEmptyString,

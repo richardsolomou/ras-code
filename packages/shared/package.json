@@ -203,6 +203,10 @@
       "types": "./src/chatList.ts",
       "import": "./src/chatList.ts"
     },
+    "./forkHistory": {
+      "types": "./src/forkHistory.ts",
+      "import": "./src/forkHistory.ts"
+    },
     "./hostProcess": {
       "types": "./src/hostProcess.ts",
       "import": "./src/hostProcess.ts"

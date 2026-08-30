@@ -1,40 +1,37 @@
 import { scopeProjectRef } from "@ras-code/client-runtime/environment";
-import type { MessageId, ThreadForkWorkspaceMode, ThreadId } from "@ras-code/contracts";
+import type { MessageId, ThreadId } from "@ras-code/contracts";
 import { useRouter } from "@tanstack/react-router";
 import { useCallback } from "react";
 
+import { stackedThreadToast, toastManager } from "../components/ui/toast";
 import { useComposerDraftStore, type DraftId } from "../composerDraftStore";
 import {
   deriveLogicalProjectKeyFromSettings,
   selectProjectGroupingSettings,
 } from "../logicalProject";
 import { newDraftId, newThreadId } from "../lib/utils";
-import { useProjects } from "../state/entities";
+import { useProjects, useServerConfigs } from "../state/entities";
 import type { Thread } from "../types";
 import { useClientSettings } from "./useSettings";
 
 export interface ForkThreadRequest {
   /** The thread being forked. */
   readonly sourceThread: Thread;
-  /** The user message the fork is cut *before*. */
+  /** The assistant response included at the end of the fork's inherited history. */
   readonly messageId: MessageId;
-  /** The source thread's checkpoint turn count at that point. */
+  /** The source thread's checkpoint turn count after that response. */
   readonly turnCount: number;
-  /** That message's text, pre-filled into the fork's composer. */
-  readonly promptSeed: string;
-  readonly workspaceMode: ThreadForkWorkspaceMode;
 }
 
 /**
  * Opens a fork of a thread as a draft.
  *
- * The fork is not created on the server yet: the draft holds the fork point,
- * the composer holds the message to re-ask, and sending is what cuts the fork.
- * That keeps "fork" and "say something different" one gesture, and leaves an
- * abandoned fork as a draft the user can simply discard.
+ * The fork is created on the server when its first message is sent. Until then,
+ * the draft renders the parent's inherited prefix and an empty composer.
  */
 export function useForkThreadHandler() {
   const projects = useProjects();
+  const serverConfigs = useServerConfigs();
   const projectGroupingSettings = useClientSettings(selectProjectGroupingSettings);
   const router = useRouter();
 
@@ -51,27 +48,36 @@ export function useForkThreadHandler() {
       if (!project) {
         return null;
       }
+      if (
+        serverConfigs.get(sourceThread.environmentId)?.environment.capabilities
+          .threadForkAfterMessage !== true
+      ) {
+        toastManager.add(
+          stackedThreadToast({
+            type: "warning",
+            title: "Update the environment to fork from a response",
+            description: "This environment only supports the legacy fork boundary.",
+          }),
+        );
+        return null;
+      }
 
       const projectRef = scopeProjectRef(sourceThread.environmentId, sourceThread.projectId);
       const logicalProjectKey = deriveLogicalProjectKeyFromSettings(
         project,
         projectGroupingSettings,
       );
-      const { setLogicalProjectDraftThreadId, setModelSelection, setPrompt } =
+      const { setLogicalProjectDraftThreadId, setModelSelection } =
         useComposerDraftStore.getState();
 
       const draftId = newDraftId();
       const threadId = newThreadId();
-      // Forking in place means running where the parent runs; a worktree fork
-      // gets its own, cut from the parent's branch by the server.
-      const forksInPlace = request.workspaceMode === "in-place";
-
       setLogicalProjectDraftThreadId(logicalProjectKey, projectRef, draftId, {
         threadId,
         createdAt: new Date().toISOString(),
         branch: sourceThread.branch,
-        worktreePath: forksInPlace ? sourceThread.worktreePath : null,
-        envMode: forksInPlace ? (sourceThread.worktreePath ? "worktree" : "local") : "worktree",
+        worktreePath: null,
+        envMode: "worktree",
         // A fork branches from the parent's work, never from origin.
         startFromOrigin: false,
         runtimeMode: sourceThread.runtimeMode,
@@ -79,19 +85,19 @@ export function useForkThreadHandler() {
         forkedFrom: {
           threadId: sourceThread.id,
           messageId: request.messageId,
+          sourceMessageBoundary: "after",
           turnCount: request.turnCount,
-          workspaceMode: request.workspaceMode,
+          workspaceMode: "worktree",
           sourceTitle: sourceThread.title,
         },
       });
       // The fork inherits the parent's model so "same route, different words"
       // is the default; the composer's model picker is how you change it.
       setModelSelection(draftId, sourceThread.modelSelection, { replaceOptions: true });
-      setPrompt(draftId, request.promptSeed);
 
       await router.navigate({ to: "/draft/$draftId", params: { draftId } });
       return { draftId, threadId };
     },
-    [projectGroupingSettings, projects, router],
+    [projectGroupingSettings, projects, router, serverConfigs],
   );
 }

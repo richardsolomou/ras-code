@@ -973,6 +973,58 @@ describe("composerDraftStore terminal contexts", () => {
   });
 });
 
+describe("composerDraftStore fork persistence", () => {
+  it("normalizes persisted fork boundaries across client versions", () => {
+    const persistApi = useComposerDraftStore.persist as unknown as {
+      getOptions: () => {
+        merge: (
+          persistedState: unknown,
+          currentState: ReturnType<typeof useComposerDraftStore.getState>,
+        ) => ReturnType<typeof useComposerDraftStore.getState>;
+      };
+    };
+    const projectId = ProjectId.make("project-fork-boundary");
+    const makeDraftThread = (threadId: string, sourceMessageBoundary?: string) => ({
+      threadId,
+      environmentId: TEST_ENVIRONMENT_ID,
+      projectId,
+      logicalProjectKey: "fork-boundary-project",
+      forkedFrom: {
+        threadId: "source-thread",
+        messageId: "source-message",
+        ...(sourceMessageBoundary ? { sourceMessageBoundary } : {}),
+        turnCount: 3,
+        workspaceMode: "worktree",
+        sourceTitle: "Source thread",
+      },
+    });
+    const mergedState = persistApi.getOptions().merge(
+      {
+        draftsByThreadKey: {},
+        draftThreadsByThreadKey: {
+          legacy: makeDraftThread("legacy"),
+          after: makeDraftThread("after", "after"),
+          invalid: makeDraftThread("invalid", "sideways"),
+        },
+        logicalProjectDraftThreadKeyByLogicalProjectKey: {},
+      },
+      useComposerDraftStore.getInitialState(),
+    );
+
+    expect(mergedState.draftThreadsByThreadKey.legacy?.forkedFrom).toMatchObject({
+      messageId: "source-message",
+      turnCount: 3,
+    });
+    expect(
+      mergedState.draftThreadsByThreadKey.legacy?.forkedFrom?.sourceMessageBoundary,
+    ).toBeUndefined();
+    expect(mergedState.draftThreadsByThreadKey.after?.forkedFrom?.sourceMessageBoundary).toBe(
+      "after",
+    );
+    expect(mergedState.draftThreadsByThreadKey.invalid?.forkedFrom).toBeNull();
+  });
+});
+
 describe("composerDraftStore element contexts", () => {
   const threadId = ThreadId.make("thread-element");
   const threadRef = scopeThreadRef(TEST_ENVIRONMENT_ID, threadId);

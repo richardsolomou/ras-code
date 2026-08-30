@@ -5,7 +5,6 @@ import {
   type ProviderInstanceId,
   type ScopedThreadRef,
   type ServerProviderSkill,
-  type ThreadForkWorkspaceMode,
   PROVIDER_DISPLAY_NAMES,
   type TurnId,
 } from "@ras-code/contracts";
@@ -62,17 +61,19 @@ import {
   ChevronRightIcon,
   CircleAlertIcon,
   DownloadIcon,
+  EllipsisIcon,
   EyeIcon,
   FileIcon,
+  GitForkIcon,
   GlobeIcon,
   HammerIcon,
   MessageCircleIcon,
   MousePointerClickIcon,
   PaintbrushIcon,
+  RotateCcwIcon,
   SearchIcon,
   SquarePenIcon,
   TerminalIcon,
-  Undo2Icon,
   WrenchIcon,
   XIcon,
   ZapIcon,
@@ -163,8 +164,8 @@ interface TimelineRowSharedState {
   workspaceRoot: string | undefined;
   skills: ReadonlyArray<Pick<ServerProviderSkill, "name" | "displayName">>;
   activeThreadEnvironmentId: EnvironmentId;
-  onRevertUserMessage: (messageId: MessageId) => void;
-  onForkFromUserMessage: (messageId: MessageId, workspaceMode: ThreadForkWorkspaceMode) => void;
+  onRevertAssistantMessage: (messageId: MessageId) => void;
+  onForkFromAssistantMessage: (messageId: MessageId) => void;
   onImageExpand: (preview: ExpandedImagePreview) => void;
   onFileDownload: (attachment: ChatFileAttachment) => void;
   onOpenTurnDiff: (turnId: TurnId, filePath?: string) => void;
@@ -241,9 +242,9 @@ interface MessagesTimelineProps {
   turnDiffSummaryByAssistantMessageId: Map<MessageId, TurnDiffSummary>;
   routeThreadKey: string;
   onOpenTurnDiff: (turnId: TurnId, filePath?: string) => void;
-  revertTurnCountByUserMessageId: Map<MessageId, number>;
-  onRevertUserMessage: (messageId: MessageId) => void;
-  onForkFromUserMessage: (messageId: MessageId, workspaceMode: ThreadForkWorkspaceMode) => void;
+  checkpointTurnCountByAssistantMessageId: Map<MessageId, number>;
+  onRevertAssistantMessage: (messageId: MessageId) => void;
+  onForkFromAssistantMessage: (messageId: MessageId) => void;
   isRevertingCheckpoint: boolean;
   onImageExpand: (preview: ExpandedImagePreview) => void;
   onFileDownload?: (attachment: ChatFileAttachment) => void;
@@ -288,9 +289,9 @@ export const MessagesTimeline = memo(function MessagesTimeline({
   turnDiffSummaryByAssistantMessageId,
   routeThreadKey,
   onOpenTurnDiff,
-  revertTurnCountByUserMessageId,
-  onRevertUserMessage,
-  onForkFromUserMessage,
+  checkpointTurnCountByAssistantMessageId,
+  onRevertAssistantMessage,
+  onForkFromAssistantMessage,
   isRevertingCheckpoint,
   onImageExpand,
   onFileDownload = NOOP_DOWNLOAD_ATTACHMENT,
@@ -444,7 +445,7 @@ export const MessagesTimeline = memo(function MessagesTimeline({
         isWorking,
         activeTurnStartedAt,
         turnDiffSummaryByAssistantMessageId,
-        revertTurnCountByUserMessageId,
+        checkpointTurnCountByAssistantMessageId,
       }),
     [
       timelineEntries,
@@ -455,7 +456,7 @@ export const MessagesTimeline = memo(function MessagesTimeline({
       isWorking,
       activeTurnStartedAt,
       turnDiffSummaryByAssistantMessageId,
-      revertTurnCountByUserMessageId,
+      checkpointTurnCountByAssistantMessageId,
     ],
   );
   const rows = useStableRows(rawRows);
@@ -550,8 +551,8 @@ export const MessagesTimeline = memo(function MessagesTimeline({
       workspaceRoot,
       skills,
       activeThreadEnvironmentId,
-      onRevertUserMessage,
-      onForkFromUserMessage,
+      onRevertAssistantMessage,
+      onForkFromAssistantMessage,
       onImageExpand,
       onFileDownload,
       onOpenTurnDiff,
@@ -568,8 +569,8 @@ export const MessagesTimeline = memo(function MessagesTimeline({
       workspaceRoot,
       skills,
       activeThreadEnvironmentId,
-      onRevertUserMessage,
-      onForkFromUserMessage,
+      onRevertAssistantMessage,
+      onForkFromAssistantMessage,
       onImageExpand,
       onFileDownload,
       onOpenTurnDiff,
@@ -1042,8 +1043,6 @@ function UserTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" 
   ];
   const previewImages = userImages.filter((image) => image.name.startsWith("preview-annotation-"));
   const regularImages = userImages.filter((image) => !image.name.startsWith("preview-annotation-"));
-  const canRevertAgentWork = typeof row.revertTurnCount === "number";
-
   return (
     // Inherited messages are the parent thread's history, carried in by a
     // fork. Dimming them keeps the fork readable as a conversation without
@@ -1168,7 +1167,6 @@ function UserTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" 
             </TooltipPopup>
           </Tooltip>
           <div className="flex items-center gap-0.5">
-            {canRevertAgentWork && <UserMessageActionsMenu messageId={row.message.id} />}
             {displayedUserMessage.copyText && (
               <MessageCopyButton text={displayedUserMessage.copyText} variant="ghost" />
             )}
@@ -1183,7 +1181,7 @@ function UserTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" 
  * The two ways back to a point in the conversation: revert, which throws the
  * later turns away, and fork, which keeps them and continues elsewhere.
  */
-function UserMessageActionsMenu({ messageId }: { messageId: MessageId }) {
+function AssistantMessageActionsMenu({ messageId }: { messageId: MessageId }) {
   const ctx = use(TimelineRowCtx);
   const activity = use(TimelineRowActivityCtx);
 
@@ -1199,24 +1197,25 @@ function UserMessageActionsMenu({ messageId }: { messageId: MessageId }) {
                   size="xs"
                   variant="ghost"
                   disabled={activity.isRevertingCheckpoint || activity.isWorking}
-                  aria-label="Rewind or fork from this message"
+                  aria-label="More message actions"
                 />
               }
             />
           }
         >
-          <Undo2Icon className="size-3" />
+          <EllipsisIcon className="size-3" />
         </TooltipTrigger>
-        <TooltipPopup side="top">Rewind or fork from here</TooltipPopup>
+        <TooltipPopup side="top">More actions</TooltipPopup>
       </Tooltip>
       <MenuPopup align="end">
-        <MenuItem onClick={() => ctx.onForkFromUserMessage(messageId, "worktree")}>
+        <MenuItem onClick={() => ctx.onForkFromAssistantMessage(messageId)}>
+          <GitForkIcon />
           Fork from here
         </MenuItem>
-        <MenuItem onClick={() => ctx.onForkFromUserMessage(messageId, "in-place")}>
-          Fork here in place
+        <MenuItem onClick={() => ctx.onRevertAssistantMessage(messageId)}>
+          <RotateCcwIcon />
+          Revert to here
         </MenuItem>
-        <MenuItem onClick={() => ctx.onRevertUserMessage(messageId)}>Revert to here</MenuItem>
       </MenuPopup>
     </Menu>
   );
@@ -1271,6 +1270,9 @@ function AssistantTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "mess
         {row.showAssistantMeta ? (
           <div className="mt-1.5 flex items-center gap-2 text-xs tabular-nums opacity-0 transition-opacity duration-200 focus-within:opacity-100 group-hover/assistant:opacity-100">
             <AssistantCopyButton row={row} />
+            {typeof row.checkpointTurnCount === "number" ? (
+              <AssistantMessageActionsMenu messageId={row.message.id} />
+            ) : null}
             {!row.message.streaming && (
               <Tooltip>
                 <TooltipTrigger

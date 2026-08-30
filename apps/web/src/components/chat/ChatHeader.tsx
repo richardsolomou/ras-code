@@ -3,6 +3,7 @@ import {
   type EditorId,
   type ProjectScript,
   type ResolvedKeybindingsConfig,
+  type ThreadForkPoint,
   type ThreadId,
 } from "@ras-code/contracts";
 import { scopeThreadRef } from "@ras-code/client-runtime/environment";
@@ -52,6 +53,8 @@ interface ChatHeaderProps {
   activeThreadId: ThreadId;
   draftId?: DraftId;
   activeThreadTitle: string;
+  forkedFrom: ThreadForkPoint | null;
+  forkedFromTitle?: string;
   /** Drafts have no server thread yet, so the title carries no action menu. */
   isServerThread: boolean;
   /** PR feeding the settled classification, resolved by ChatView. */
@@ -124,6 +127,8 @@ export const ChatHeader = memo(function ChatHeader({
   activeThreadId,
   draftId,
   activeThreadTitle,
+  forkedFrom,
+  forkedFromTitle,
   isServerThread,
   changeRequest,
   activeProjectName,
@@ -376,9 +381,12 @@ export const ChatHeader = memo(function ChatHeader({
             </Tooltip>
           )}
         </WorkspaceBreadcrumbItem>
-        {isServerThread && (
-          <ThreadForkLineage environmentId={activeThreadEnvironmentId} threadId={activeThreadId} />
-        )}
+        <ThreadForkLineage
+          environmentId={activeThreadEnvironmentId}
+          threadId={activeThreadId}
+          forkedFrom={forkedFrom}
+          {...(forkedFromTitle ? { forkedFromTitle } : {})}
+        />
       </WorkspaceBreadcrumb>
       <div
         data-chat-header-actions

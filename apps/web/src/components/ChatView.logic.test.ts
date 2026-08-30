@@ -1,4 +1,5 @@
 import {
+  CheckpointRef,
   EnvironmentId,
   MessageId,
   ProjectId,
@@ -17,13 +18,17 @@ import {
   buildLoadingThreadFromShell,
   buildThreadTurnInterruptInput,
   createLocalDispatchSnapshot,
+  deriveCheckpointTurnCountByAssistantMessageId,
   deriveComposerSendState,
+  deriveForkInheritedMessages,
+  deriveLockedProvider,
   dismissBranchMismatchForSession,
   ENVIRONMENT_RECONNECT_WARNING_GRACE_MS,
   getStartedThreadModelChangeBlockReason,
   hasEnvironmentReconnectWarningGraceElapsed,
   hasServerAcknowledgedLocalDispatch,
   isBranchMismatchDismissedForSession,
+  planForkHistoryPageLoad,
   reconcileMountedTerminalThreadIds,
   reconcileRetainedMountedThreadIds,
   resolveBackgroundDraftWorkspaceOptions,
@@ -34,6 +39,7 @@ import {
   scheduleEnvironmentReconnectWarning,
   shoulderTabReserve,
   startNewThreadForProject,
+  threadHasStarted,
   shouldDockDraftHeroForSubmission,
   shouldReleaseTimelineAnchorForToolActivity,
   shouldShowBranchMismatchBanner,
@@ -85,6 +91,18 @@ describe("draft hero submission transition", () => {
         backgroundSubmissionPending: true,
       }),
     ).toBe(true);
+  });
+
+  it("uses the thread layout when a fork draft has inherited history", () => {
+    expect(
+      resolveDraftHeroState({
+        isLocalDraftThread: true,
+        hasTimelineEntries: true,
+        isWorking: false,
+        draftHeroDockRequested: false,
+        backgroundSubmissionPending: false,
+      }),
+    ).toBe(false);
   });
 
   it("does not auto-navigate a background submission after server promotion", () => {
@@ -334,6 +352,211 @@ describe("buildLoadingThreadFromShell", () => {
       activities: [],
       checkpoints: [],
     });
+  });
+});
+
+describe("fork response state", () => {
+  it("loads each fork-history cursor once until state or cursor advances", () => {
+    const page = { beforeCursor: "cursor-1", hasMore: true, loadingOlder: false };
+    const initial = planForkHistoryPageLoad({
+      tracker: null,
+      parentKey: "fork-a:parent",
+      status: "cached",
+      sourceLoaded: false,
+      page,
+    });
+    const requestCursors = [
+      initial.requestCursor,
+      planForkHistoryPageLoad({
+        tracker: initial.tracker,
+        parentKey: "fork-a:parent",
+        status: "cached",
+        sourceLoaded: false,
+        page,
+      }).requestCursor,
+      planForkHistoryPageLoad({
+        tracker: initial.tracker,
+        parentKey: "fork-a:parent",
+        status: "live",
+        sourceLoaded: false,
+        page,
+      }).requestCursor,
+      planForkHistoryPageLoad({
+        tracker: initial.tracker,
+        parentKey: "fork-a:parent",
+        status: "cached",
+        sourceLoaded: false,
+        page: { ...page, loadingOlder: true },
+      }).requestCursor,
+      planForkHistoryPageLoad({
+        tracker: initial.tracker,
+        parentKey: "fork-a:parent",
+        status: "cached",
+        sourceLoaded: false,
+        page: { ...page, beforeCursor: "cursor-2" },
+      }).requestCursor,
+      planForkHistoryPageLoad({
+        tracker: initial.tracker,
+        parentKey: "fork-b:parent",
+        status: "cached",
+        sourceLoaded: false,
+        page,
+      }).requestCursor,
+      planForkHistoryPageLoad({
+        tracker: null,
+        parentKey: "fork-a:parent",
+        status: "cached",
+        sourceLoaded: true,
+        page,
+      }).requestCursor,
+    ];
+    expect(requestCursors).toEqual([
+      "cursor-1",
+      null,
+      "cursor-1",
+      null,
+      "cursor-2",
+      "cursor-1",
+      null,
+    ]);
+  });
+
+  it("maps a completed assistant response to its checkpoint", () => {
+    const messageId = MessageId.make("assistant-1");
+    const turnId = TurnId.make("turn-1");
+
+    expect(
+      deriveCheckpointTurnCountByAssistantMessageId({
+        turnDiffSummaryByAssistantMessageId: new Map([
+          [
+            messageId,
+            {
+              turnId,
+              checkpointTurnCount: 2,
+              checkpointRef: CheckpointRef.make("checkpoint-2"),
+              status: "ready",
+              files: [],
+              assistantMessageId: messageId,
+              completedAt: now,
+            },
+          ],
+        ]),
+        inferredCheckpointTurnCountByTurnId: {},
+      }),
+    ).toEqual(new Map([[messageId, 2]]));
+  });
+
+  it("inherits conversation history through the selected response", () => {
+    const selectedMessageId = MessageId.make("assistant-1");
+    const messages = [
+      {
+        id: MessageId.make("user-1"),
+        role: "user" as const,
+        text: "Build it",
+        attachments: [],
+        turnId: TurnId.make("turn-1"),
+        streaming: false,
+        createdAt: "2026-03-29T00:00:00.000Z",
+        updatedAt: "2026-03-29T00:00:00.000Z",
+      },
+      {
+        id: selectedMessageId,
+        role: "assistant" as const,
+        text: "Done",
+        turnId: TurnId.make("turn-1"),
+        streaming: false,
+        createdAt: "2026-03-29T00:00:10.000Z",
+        updatedAt: "2026-03-29T00:00:10.000Z",
+      },
+      {
+        id: MessageId.make("user-2"),
+        role: "user" as const,
+        text: "Change it",
+        turnId: TurnId.make("turn-2"),
+        streaming: false,
+        createdAt: "2026-03-29T00:01:00.000Z",
+        updatedAt: "2026-03-29T00:01:00.000Z",
+      },
+    ];
+
+    const inheritedMessages = deriveForkInheritedMessages(messages, selectedMessageId, "after");
+    expect(inheritedMessages).toEqual([
+      {
+        id: MessageId.make("user-1"),
+        role: "user",
+        text: "Build it",
+        turnId: null,
+        streaming: false,
+        inherited: true,
+        createdAt: "2026-03-29T00:00:00.000Z",
+        updatedAt: "2026-03-29T00:00:00.000Z",
+      },
+      {
+        id: selectedMessageId,
+        role: "assistant",
+        text: "Done",
+        turnId: null,
+        streaming: false,
+        inherited: true,
+        createdAt: "2026-03-29T00:00:10.000Z",
+        updatedAt: "2026-03-29T00:00:10.000Z",
+      },
+    ]);
+  });
+
+  it("keeps persisted legacy fork boundaries exclusive", () => {
+    const sourceMessageId = MessageId.make("user-2");
+    const messages = [
+      {
+        id: MessageId.make("assistant-1"),
+        role: "assistant" as const,
+        text: "Earlier response",
+        turnId: null,
+        streaming: false,
+        createdAt: "2026-03-29T00:00:00.000Z",
+        updatedAt: "2026-03-29T00:00:00.000Z",
+      },
+      {
+        id: sourceMessageId,
+        role: "user" as const,
+        text: "Legacy fork prompt",
+        attachments: [],
+        turnId: null,
+        streaming: false,
+        createdAt: "2026-03-29T00:01:00.000Z",
+        updatedAt: "2026-03-29T00:01:00.000Z",
+      },
+    ];
+
+    expect(
+      deriveForkInheritedMessages(messages, sourceMessageId).map((message) => message.id),
+    ).toEqual([MessageId.make("assistant-1")]);
+  });
+
+  it("keeps the provider unlocked while a fork only has inherited history", () => {
+    const forkDraft = makeThread({
+      messages: [
+        {
+          id: MessageId.make("inherited-assistant"),
+          role: "assistant",
+          text: "Inherited response",
+          turnId: null,
+          streaming: false,
+          inherited: true,
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+    });
+
+    expect(threadHasStarted(forkDraft)).toBe(false);
+    expect(
+      deriveLockedProvider({
+        thread: forkDraft,
+        selectedProvider: null,
+        threadProvider: "codex",
+      }),
+    ).toBeNull();
   });
 });
 

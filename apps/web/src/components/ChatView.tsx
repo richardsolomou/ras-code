@@ -15,7 +15,6 @@ import {
   ProviderInstanceId,
   type ServerProvider,
   type ResolvedKeybindingsConfig,
-  type ThreadForkWorkspaceMode,
   type ScopedThreadRef,
   type ThreadId,
   type TurnId,
@@ -282,6 +281,7 @@ import {
   useProject,
   useProjects,
   useThread,
+  useThreadMessages,
   useThreadRefs,
   useThreadShell,
 } from "../state/entities";
@@ -362,7 +362,10 @@ import {
   type LocalDispatchSnapshot,
   PullRequestDialogState,
   cloneComposerImageForRetry,
-  deriveForkTurnCountByUserMessageId,
+  deriveCheckpointTurnCountByAssistantMessageId,
+  deriveForkInheritedMessages,
+  type ForkHistoryPageLoadTracker,
+  planForkHistoryPageLoad,
   deriveLockedProvider,
   readFileAsDataUrl,
   reconcileMountedTerminalThreadIds,
@@ -1371,7 +1374,7 @@ function ChatViewContent(props: ChatViewProps) {
     routeKind === "server" ? routeThreadRef.environmentId : null,
     routeKind === "server" ? routeThreadRef.threadId : null,
   );
-  const loadEarlierTurns = useMemo(() => {
+  const routeLoadEarlierTurns = useMemo(() => {
     if (routeKind !== "server" || !threadHasOlderTurns(routeThreadState)) {
       return null;
     }
@@ -1609,6 +1612,117 @@ function ChatViewContent(props: ChatViewProps) {
     fallbackDraftProject,
     settings,
   );
+  const draftForkParentRef = useMemo(
+    () =>
+      draftThread?.forkedFrom
+        ? scopeThreadRef(draftThread.environmentId, draftThread.forkedFrom.threadId)
+        : null,
+    [draftThread],
+  );
+  const draftForkParentMessages = useThreadMessages(draftForkParentRef);
+  const draftForkParentState = useEnvironmentThread(
+    draftForkParentRef?.environmentId ?? null,
+    draftForkParentRef?.threadId ?? null,
+  );
+  const draftForkKey = draftThread?.forkedFrom
+    ? [
+        draftThread.environmentId,
+        draftThread.forkedFrom.threadId,
+        draftThread.forkedFrom.messageId,
+        draftThread.forkedFrom.sourceMessageBoundary ?? "before",
+      ].join("\0")
+    : null;
+  const [frozenDraftInheritedMessages, setFrozenDraftInheritedMessages] = useState<{
+    forkKey: string;
+    messages: ChatMessage[];
+  } | null>(null);
+  const draftForkSourceLoaded = useMemo(
+    () =>
+      frozenDraftInheritedMessages?.forkKey === draftForkKey ||
+      (draftThread?.forkedFrom !== undefined &&
+        draftThread.forkedFrom !== null &&
+        draftForkParentMessages.some(
+          (message) => message.id === draftThread.forkedFrom?.messageId,
+        )),
+    [draftForkKey, draftForkParentMessages, draftThread?.forkedFrom, frozenDraftInheritedMessages],
+  );
+  const draftForkHistoryRequestRef = useRef<ForkHistoryPageLoadTracker | null>(null);
+  useEffect(() => {
+    if (draftForkParentRef === null) {
+      return;
+    }
+    const page = draftForkParentState.page._tag === "Some" ? draftForkParentState.page.value : null;
+    const parentKey = `${draftForkKey ?? ""}\0${scopedThreadKey(draftForkParentRef)}`;
+    const loadPlan = planForkHistoryPageLoad({
+      tracker: draftForkHistoryRequestRef.current,
+      parentKey,
+      status: draftForkParentState.status,
+      sourceLoaded: draftForkSourceLoaded,
+      page,
+    });
+    draftForkHistoryRequestRef.current = loadPlan.tracker;
+    if (loadPlan.requestCursor === null) return;
+    if (!requestOlderThreadTurns(draftForkParentRef.environmentId, draftForkParentRef.threadId)) {
+      draftForkHistoryRequestRef.current = {
+        ...loadPlan.tracker,
+        requestedCursor: null,
+      } satisfies ForkHistoryPageLoadTracker;
+    }
+  }, [draftForkKey, draftForkParentRef, draftForkParentState, draftForkSourceLoaded]);
+  const draftForkHistoryComplete =
+    draftForkSourceLoaded && !threadHasOlderTurns(draftForkParentState);
+  const draftInheritedMessages = useMemo(() => {
+    if (draftForkKey === null || !draftThread?.forkedFrom) {
+      return [];
+    }
+    if (frozenDraftInheritedMessages?.forkKey === draftForkKey) {
+      return frozenDraftInheritedMessages.messages;
+    }
+    return deriveForkInheritedMessages(
+      draftForkParentMessages,
+      draftThread.forkedFrom.messageId,
+      draftThread.forkedFrom.sourceMessageBoundary,
+    );
+  }, [
+    draftForkKey,
+    draftForkParentMessages,
+    draftThread?.forkedFrom,
+    frozenDraftInheritedMessages,
+  ]);
+  useEffect(() => {
+    if (draftForkKey === null) {
+      if (frozenDraftInheritedMessages !== null) setFrozenDraftInheritedMessages(null);
+      return;
+    }
+    if (draftForkHistoryComplete && frozenDraftInheritedMessages?.forkKey !== draftForkKey) {
+      setFrozenDraftInheritedMessages({
+        forkKey: draftForkKey,
+        messages: draftInheritedMessages,
+      });
+    }
+  }, [
+    draftForkHistoryComplete,
+    draftForkKey,
+    draftInheritedMessages,
+    frozenDraftInheritedMessages,
+  ]);
+  const draftLoadEarlierTurns = useMemo(() => {
+    if (
+      draftForkParentRef === null ||
+      !draftForkSourceLoaded ||
+      !threadHasOlderTurns(draftForkParentState)
+    ) {
+      return null;
+    }
+    return {
+      loading:
+        draftForkParentState.page._tag === "Some" && draftForkParentState.page.value.loadingOlder,
+      onLoadEarlier: () => {
+        requestOlderThreadTurns(draftForkParentRef.environmentId, draftForkParentRef.threadId);
+      },
+    };
+  }, [draftForkParentRef, draftForkParentState, draftForkSourceLoaded]);
+  const loadEarlierTurns = routeLoadEarlierTurns ?? draftLoadEarlierTurns;
   const localDraftThread = useMemo(
     () =>
       draftThread
@@ -1616,9 +1730,10 @@ function ChatViewContent(props: ChatViewProps) {
             threadId,
             draftThread,
             draftDefaultModelSelection ?? NO_PROVIDER_MODEL_SELECTION,
+            draftInheritedMessages,
           )
         : undefined,
-    [draftDefaultModelSelection, draftThread, threadId],
+    [draftDefaultModelSelection, draftInheritedMessages, draftThread, threadId],
   );
   // Promotion is data-driven: the draft route keeps rendering while the
   // server thread (same pre-allocated ref) starts, so live state must not
@@ -2794,16 +2909,13 @@ function ChatViewContent(props: ChatViewProps) {
     }
     return byMessageId;
   }, [turnDiffSummaries]);
-  const revertTurnCountByUserMessageId = useMemo(
+  const checkpointTurnCountByAssistantMessageId = useMemo(
     () =>
-      deriveForkTurnCountByUserMessageId({
-        messages: timelineEntries.flatMap((entry) =>
-          entry.kind === "message" ? [entry.message] : [],
-        ),
+      deriveCheckpointTurnCountByAssistantMessageId({
         turnDiffSummaryByAssistantMessageId,
         inferredCheckpointTurnCountByTurnId,
       }),
-    [inferredCheckpointTurnCountByTurnId, timelineEntries, turnDiffSummaryByAssistantMessageId],
+    [inferredCheckpointTurnCountByTurnId, turnDiffSummaryByAssistantMessageId],
   );
 
   const gitCwd = activeProject
@@ -5749,6 +5861,20 @@ function ChatViewContent(props: ChatViewProps) {
       );
       return;
     }
+    const draftForkSpec = isLocalDraftThread ? (draftThread?.forkedFrom ?? null) : null;
+    if (
+      draftForkSpec?.sourceMessageBoundary === "after" &&
+      serverConfig?.environment.capabilities.threadForkAfterMessage !== true
+    ) {
+      toastManager.add(
+        stackedThreadToast({
+          type: "warning",
+          title: "Update the environment to send this fork",
+          description: "This environment cannot fork after an assistant response.",
+        }),
+      );
+      return;
+    }
     const threadIdForSend = activeThread.id;
     const isFirstMessage = !isServerThread || activeThread.messages.length === 0;
     const baseBranchForWorktree =
@@ -6051,7 +6177,7 @@ function ChatViewContent(props: ChatViewProps) {
       // A fork draft creates its thread through forkThread instead of
       // createThread: same handoff, but the server carries the parent's
       // history and fork point across with it.
-      const forkSpec = isLocalDraftThread ? (draftThread?.forkedFrom ?? null) : null;
+      const forkSpec = draftForkSpec;
       const bootstrap =
         isLocalDraftThread || baseBranchForWorktree
           ? {
@@ -6061,6 +6187,9 @@ function ChatViewContent(props: ChatViewProps) {
                       projectId: activeProject.id,
                       sourceThreadId: forkSpec.threadId,
                       sourceMessageId: forkSpec.messageId,
+                      ...(forkSpec.sourceMessageBoundary
+                        ? { sourceMessageBoundary: forkSpec.sourceMessageBoundary }
+                        : {}),
                       turnCount: NonNegativeInt.make(forkSpec.turnCount),
                       workspaceMode: forkSpec.workspaceMode,
                       title,
@@ -6929,44 +7058,34 @@ function ChatViewContent(props: ChatViewProps) {
     },
     [activeThreadRef, isServerThread, onDiffPanelOpen],
   );
-  // Both the Map and the revert handler are read from refs at call-time so
-  // the callback reference is fully stable and never busts context identity.
-  const revertTurnCountRef = useRef(revertTurnCountByUserMessageId);
-  revertTurnCountRef.current = revertTurnCountByUserMessageId;
+  const checkpointTurnCountRef = useRef(checkpointTurnCountByAssistantMessageId);
+  checkpointTurnCountRef.current = checkpointTurnCountByAssistantMessageId;
   const onRevertToTurnCountRef = useRef(onRevertToTurnCount);
   onRevertToTurnCountRef.current = onRevertToTurnCount;
-  const onRevertUserMessage = useCallback((messageId: MessageId) => {
-    const targetTurnCount = revertTurnCountRef.current.get(messageId);
+  const onRevertAssistantMessage = useCallback((messageId: MessageId) => {
+    const targetTurnCount = checkpointTurnCountRef.current.get(messageId);
     if (typeof targetTurnCount !== "number") {
       return;
     }
     void onRevertToTurnCountRef.current(targetTurnCount);
   }, []);
-  // Forking reads the same map revert does: the checkpoint turn count before
-  // this message is exactly the state a fork should start from.
   const activeServerThreadRef = useRef(activeServerThread);
   activeServerThreadRef.current = activeServerThread;
   const forkThread = useForkThreadHandler();
   const forkThreadRef = useRef(forkThread);
   forkThreadRef.current = forkThread;
-  const onForkFromUserMessage = useCallback(
-    (messageId: MessageId, workspaceMode: ThreadForkWorkspaceMode) => {
-      const sourceThread = activeServerThreadRef.current;
-      const targetTurnCount = revertTurnCountRef.current.get(messageId);
-      if (!sourceThread || typeof targetTurnCount !== "number") {
-        return;
-      }
-      const message = sourceThread.messages.find((entry) => entry.id === messageId);
-      void forkThreadRef.current({
-        sourceThread,
-        messageId,
-        turnCount: targetTurnCount,
-        promptSeed: message?.text ?? "",
-        workspaceMode,
-      });
-    },
-    [],
-  );
+  const onForkFromAssistantMessage = useCallback((messageId: MessageId) => {
+    const sourceThread = activeServerThreadRef.current;
+    const targetTurnCount = checkpointTurnCountRef.current.get(messageId);
+    if (!sourceThread || typeof targetTurnCount !== "number") {
+      return;
+    }
+    void forkThreadRef.current({
+      sourceThread,
+      messageId,
+      turnCount: targetTurnCount,
+    });
+  }, []);
 
   // Empty state: no active thread
   if (!activeThread) {
@@ -7161,6 +7280,10 @@ function ChatViewContent(props: ChatViewProps) {
             activeThreadId={activeThread.id}
             {...(routeKind === "draft" && draftId ? { draftId } : {})}
             activeThreadTitle={activeThread.title}
+            forkedFrom={activeThread.forkedFrom ?? null}
+            {...(draftThread?.forkedFrom?.sourceTitle
+              ? { forkedFromTitle: draftThread.forkedFrom.sourceTitle }
+              : {})}
             isServerThread={isServerThread}
             changeRequest={activeThreadChangeRequest}
             activeProjectName={activeProject?.title}
@@ -7242,9 +7365,9 @@ function ChatViewContent(props: ChatViewProps) {
                 activeThreadEnvironmentId={activeThread.environmentId}
                 routeThreadKey={routeThreadKey}
                 onOpenTurnDiff={onOpenTurnDiff}
-                revertTurnCountByUserMessageId={revertTurnCountByUserMessageId}
-                onRevertUserMessage={onRevertUserMessage}
-                onForkFromUserMessage={onForkFromUserMessage}
+                checkpointTurnCountByAssistantMessageId={checkpointTurnCountByAssistantMessageId}
+                onRevertAssistantMessage={onRevertAssistantMessage}
+                onForkFromAssistantMessage={onForkFromAssistantMessage}
                 isRevertingCheckpoint={isRevertingCheckpoint}
                 onImageExpand={onExpandTimelineImage}
                 onFileDownload={downloadFileAttachment}

@@ -2,41 +2,30 @@
 
 Forking takes a conversation from a point in its past and continues it somewhere
 else, leaving the original untouched. Use it when you want to try a different
-approach without losing the one you have, or to re-ask a question on a different
-model.
+approach without losing the one you have, or to continue with a different model.
 
-## Forking from a message
+## Forking from a response
 
-Hover any message you sent and open the menu next to its timestamp. It offers
-three things:
+Hover a completed agent response and open the three-dot menu to the right of
+Copy. It offers two things:
 
-- **Fork from here** — starts a new thread cut just before that message, in its
-  own worktree.
-- **Fork here in place** — same, but the new thread shares the original's
-  working directory.
-- **Revert to here** — the destructive option: rewinds this thread's files and
-  throws away everything after that point.
+- **Fork from here** — starts a new thread after that response, in its own
+  worktree.
+- **Revert to here** — after confirmation, restores that response's checkpoint
+  and discards everything later in the thread.
 
-Fork opens a draft with the message you picked already in the composer and the
-earlier conversation carried in above it. Edit the message, change the model if
-you want to, and send. Nothing is created until you do, so an abandoned fork is
-just a draft you can discard.
+Fork opens the normal thread view with the inherited conversation above an empty
+composer. Continue the conversation, change the model if you want to, and send.
+Nothing is created on the server until you do, so an abandoned fork remains a
+draft you can discard.
 
-The command palette also offers **Fork thread from my last message**, which is
-the same action pointed at the most recent thing you asked for.
+The command palette also offers **Fork thread from latest response**.
 
-## Which fork should I use?
+## How the workspace is forked
 
 **Fork from here** gets its own worktree, cut from the original's branch with
 the files restored to exactly how they looked at the fork point. Both threads
-can run at the same time without stepping on each other. This is what you want
-when you are comparing two approaches.
-
-**Fork here in place** shares the original thread's working directory. Because
-they share files, the fork sees the directory's _current_ contents — not the
-fork point's — and the two threads must not run at the same time. Use it when
-you only want to re-ask something on a different model and have no intention of
-running both.
+can run at the same time without stepping on each other.
 
 If the original thread runs in your project checkout rather than a worktree,
 "fork from here" promotes the fork to a worktree so the two can still run
@@ -63,7 +52,7 @@ Attachments are not copied into a fork; they stay with the original thread.
 
 ## Finding your way back
 
-A forked thread shows **Forked from <thread>** in its header; click it to jump
+A forked thread shows **Forked from _thread_** in its header; click it to jump
 to the original. The original shows a fork count next to its title, listing
 every fork made from it. Forks are ordinary threads otherwise — rename, snooze,
 archive, and delete them like any other.
