@@ -258,18 +258,11 @@ function derivePendingUserInputCountFromActivities(
 }
 
 export function derivePendingFallbackOfferCountFromActivities(
-  activities: ReadonlyArray<
-    Pick<ProjectionThreadActivity, "activityId" | "createdAt" | "kind" | "payload">
-  >,
+  orderedActivities: ReadonlyArray<Pick<ProjectionThreadActivity, "kind" | "payload">>,
 ): number {
   const openRequestIds = new Set<string>();
-  const ordered = [...activities].toSorted(
-    (left, right) =>
-      left.createdAt.localeCompare(right.createdAt) ||
-      left.activityId.localeCompare(right.activityId),
-  );
 
-  for (const activity of ordered) {
+  for (const activity of orderedActivities) {
     const requestId = extractActivityRequestId(activity.payload);
     if (requestId === null) continue;
     if (activity.kind === FALLBACK_OFFERED_ACTIVITY_KIND) {

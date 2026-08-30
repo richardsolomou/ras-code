@@ -1910,6 +1910,16 @@ function compareActivitiesByOrder(
 }
 
 function compareActivityLifecycleRank(kind: string): number {
+  if (kind === FALLBACK_OFFERED_ACTIVITY_KIND) {
+    return 0;
+  }
+  if (
+    kind === FALLBACK_ENGAGED_ACTIVITY_KIND ||
+    kind === FALLBACK_DECLINED_ACTIVITY_KIND ||
+    kind === FALLBACK_OFFER_EXPIRED_ACTIVITY_KIND
+  ) {
+    return 2;
+  }
   if (kind.endsWith(".started") || kind === "tool.started") {
     return 0;
   }

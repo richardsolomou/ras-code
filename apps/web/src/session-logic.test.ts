@@ -269,7 +269,7 @@ describe("derivePendingFallbackOffers", () => {
       }),
       makeActivity({
         id: "fallback-offer-engaged",
-        createdAt: "2026-02-23T00:00:02.000Z",
+        createdAt: "2026-02-23T00:00:01.000Z",
         kind: "provider.fallback.engaged",
         summary: "Using PostHog AI Gateway (claude-sonnet-4-5) until 2026-02-23T05:00:00.000Z.",
         tone: "info",

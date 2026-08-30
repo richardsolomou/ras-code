@@ -21,6 +21,7 @@ import {
   formatFallbackEngagedSummary,
   isPendingUserInputOptionSelected,
   setPendingUserInputCustomAnswer,
+  sortThreadActivities,
   togglePendingUserInputOptionSelection,
   type ThreadFeedActivity,
   type ThreadFeedEntry,
@@ -230,10 +231,10 @@ describe("pending fallback offers", () => {
 
   it("closes the offer after either decision", () => {
     const engaged = makeActivity({
-      id: EventId.make("fallback-engaged"),
+      id: EventId.make("a-fallback-engaged"),
       kind: "provider.fallback.engaged",
       summary: "Gateway engaged",
-      createdAt: "2026-08-24T00:00:01.000Z",
+      createdAt: "2026-08-24T00:00:00.000Z",
       payload: { requestId: "fallback-request" },
     });
     const declined = makeActivity({
@@ -244,7 +245,7 @@ describe("pending fallback offers", () => {
       payload: { requestId: "fallback-request" },
     });
 
-    expect(derivePendingFallbackOffers([offered, engaged])).toEqual([]);
+    expect(derivePendingFallbackOffers(sortThreadActivities([offered, engaged]))).toEqual([]);
     expect(derivePendingFallbackOffers([offered, declined])).toEqual([]);
   });
 });

@@ -215,6 +215,7 @@ function buildProps() {
     resolvedTheme: "light" as const,
     timestampFormat: "locale" as const,
     workspaceRoot: undefined,
+    providers: [],
     anchorMessageId: null,
     onAnchorReady: () => {},
     contentInsetEndAdjustment: 0,

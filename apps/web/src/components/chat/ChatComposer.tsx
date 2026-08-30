@@ -3349,7 +3349,10 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
             </div>
           ) : !isComposerCollapsedMobile && activePendingFallbackOffer ? (
             <div className="flex min-w-0 flex-wrap items-center gap-1 px-3 py-1.5 sm:px-4">
-              <ComposerPendingFallbackOfferPanel offer={activePendingFallbackOffer} />
+              <ComposerPendingFallbackOfferPanel
+                offer={activePendingFallbackOffer}
+                providers={providerStatuses}
+              />
               <div className="flex min-w-0 flex-wrap items-center gap-0.5">
                 <ComposerPendingFallbackOfferActions
                   requestId={activePendingFallbackOffer.requestId}
@@ -3394,6 +3397,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
             <div data-chat-composer-collapsed-controls="true">
               <ComposerPendingFallbackOfferPanel
                 offer={activePendingFallbackOffer}
+                providers={providerStatuses}
                 className="px-3 pt-2 sm:px-4"
               />
               <div className="flex flex-wrap items-center justify-end gap-1 px-3 pt-2 pb-3 sm:px-4">

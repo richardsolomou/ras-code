@@ -90,9 +90,11 @@ shapes need their own compatible continuation identity before they can do the sa
 The user confirms the switch once for an exhaustion episode. The saved thread selection remains
 the subscription provider and model while the provider session records the gateway that actually
 runs the turn. This keeps thread identity stable and lets the next turn try the subscription again
-after its reset. A successful primary turn emits `provider.fallback.returned`; another usage-limit
-failure before output resumes the already-approved gateway without another prompt. The gateway
-never falls back to itself, no alternative model is selected, and no fallback chain is traversed.
+after its reset. When the two harnesses cannot share continuation state, the return starts a fresh
+subscription session and carries the recent thread transcript into its first prompt. A successful
+primary turn emits `provider.fallback.returned`; another usage-limit failure before output resumes
+the already-approved gateway without another prompt. The gateway never falls back to itself, no
+alternative model is selected, and no fallback chain is traversed.
 
 ## OpenCode server ownership and catalog
 

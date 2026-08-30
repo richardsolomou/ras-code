@@ -2,14 +2,13 @@ import {
   type ChatFileAttachment,
   type EnvironmentId,
   type MessageId,
-  type ProviderInstanceId,
   type ScopedThreadRef,
+  type ServerProvider,
   type ServerProviderSkill,
   PROVIDER_DISPLAY_NAMES,
   type TurnId,
 } from "@ras-code/contracts";
 import { parseScopedThreadKey } from "@ras-code/client-runtime/environment";
-import { useAtomValue } from "@effect/atom-react";
 import type { AgentPanelModel } from "@ras-code/client-runtime/state/subagentRuntime";
 import {
   emptyAgentPanelModel,
@@ -133,8 +132,7 @@ import {
   describeFallbackNotice,
   type FallbackNoticePayload,
 } from "../settings/providerUsageLimit.logic";
-import { useClientSettings, usePrimarySettings } from "../../hooks/useSettings";
-import { primaryServerProvidersAtom } from "../../state/server";
+import { useClientSettings } from "../../hooks/useSettings";
 
 import {
   buildInlineTerminalContextText,
@@ -165,6 +163,7 @@ interface TimelineRowSharedState {
   resolvedTheme: "light" | "dark";
   workspaceRoot: string | undefined;
   skills: ReadonlyArray<Pick<ServerProviderSkill, "name" | "displayName">>;
+  providers: ReadonlyArray<ServerProvider>;
   activeThreadEnvironmentId: EnvironmentId;
   onRevertAssistantMessage: (messageId: MessageId) => void;
   onForkFromAssistantMessage: (messageId: MessageId) => void;
@@ -256,6 +255,7 @@ interface MessagesTimelineProps {
   timestampFormat: TimestampFormat;
   workspaceRoot: string | undefined;
   skills?: ReadonlyArray<Pick<ServerProviderSkill, "name" | "displayName">>;
+  providers: ReadonlyArray<ServerProvider>;
   anchorMessageId: MessageId | null;
   onAnchorReady: (messageId: MessageId, anchorIndex: number) => void;
   contentInsetEndAdjustment: number;
@@ -303,6 +303,7 @@ export const MessagesTimeline = memo(function MessagesTimeline({
   timestampFormat,
   workspaceRoot,
   skills = EMPTY_TIMELINE_SKILLS,
+  providers,
   anchorMessageId,
   onAnchorReady,
   contentInsetEndAdjustment,
@@ -552,6 +553,7 @@ export const MessagesTimeline = memo(function MessagesTimeline({
       resolvedTheme,
       workspaceRoot,
       skills,
+      providers,
       activeThreadEnvironmentId,
       onRevertAssistantMessage,
       onForkFromAssistantMessage,
@@ -570,6 +572,7 @@ export const MessagesTimeline = memo(function MessagesTimeline({
       resolvedTheme,
       workspaceRoot,
       skills,
+      providers,
       activeThreadEnvironmentId,
       onRevertAssistantMessage,
       onForkFromAssistantMessage,
@@ -2706,16 +2709,12 @@ const FallbackNoticeRow = memo(function FallbackNoticeRow(props: {
   notice: FallbackNoticePayload;
 }) {
   const timestampFormat = useClientSettings((settings) => settings.timestampFormat);
-  const providerInstances = usePrimarySettings((settings) => settings.providerInstances);
-  const serverProviders = useAtomValue(primaryServerProvidersAtom);
+  const { providers } = use(TimelineRowCtx);
   const instanceName = (instanceId: string) => {
-    const instance = providerInstances[instanceId as ProviderInstanceId];
-    const provider = serverProviders.find((entry) => String(entry.instanceId) === instanceId);
+    const provider = providers.find((entry) => String(entry.instanceId) === instanceId);
     return (
       provider?.displayName?.trim() ||
-      instance?.displayName?.trim() ||
       (provider ? PROVIDER_DISPLAY_NAMES[provider.driver] : undefined) ||
-      (instance ? PROVIDER_DISPLAY_NAMES[instance.driver] : undefined) ||
       instanceId
     );
   };

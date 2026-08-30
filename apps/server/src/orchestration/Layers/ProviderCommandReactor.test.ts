@@ -3426,6 +3426,7 @@ describe("ProviderCommandReactor", () => {
       });
 
       await waitFor(() => harness.startSession.mock.calls.length === 2);
+      await waitFor(() => harness.sendTurn.mock.calls.length === 2);
       expect(harness.startSession.mock.calls[1]?.[1]).toMatchObject({
         providerInstanceId: PRIMARY,
         modelSelection: PRIMARY_SELECTION,
@@ -3515,6 +3516,31 @@ describe("ProviderCommandReactor", () => {
         providerInstanceId: FALLBACK,
         modelSelection: { instanceId: FALLBACK, model: "claude-sonnet-4-5" },
       });
+    });
+
+    it("expires an accepted offer when the gateway is no longer available", async () => {
+      const usageLimits = new Map<ProviderInstanceId, ProviderUsageLimit>([[PRIMARY, EXHAUSTED]]);
+      const harness = await createHarness(fallbackHarnessInput({ usageLimits }));
+      await dispatchTurn(harness, "cmd-fallback-unavailable");
+      await waitFor(
+        async () =>
+          findActivity(await harness.readModel(), "provider.fallback.offered") !== undefined,
+      );
+      const offer = findActivity(await harness.readModel(), "provider.fallback.offered");
+
+      usageLimits.set(FALLBACK, EXHAUSTED);
+      await respondToFallbackOffer(
+        harness,
+        "cmd-fallback-unavailable-confirm",
+        fallbackRequestId(offer),
+        "switch",
+      );
+
+      await waitFor(
+        async () =>
+          findActivity(await harness.readModel(), "provider.fallback.offer-expired") !== undefined,
+      );
+      expect(harness.sendTurn).not.toHaveBeenCalled();
     });
 
     it("announces the substitution on the thread once confirmed", async () => {
@@ -3745,6 +3771,72 @@ describe("ProviderCommandReactor", () => {
             FALLBACK,
         ),
       ).toBe(true);
+    });
+
+    it("returns an unstarted Codex thread with a transcript handoff", async () => {
+      const primary = ProviderInstanceId.make("codex_subscription");
+      const selection = { instanceId: primary, model: "gpt-5.6-codex" } as const;
+      const usageLimits = new Map<ProviderInstanceId, ProviderUsageLimit>([[primary, EXHAUSTED]]);
+      const harness = await createHarness({
+        threadModelSelection: selection,
+        usageLimits,
+        extraProviderSnapshots: [
+          {
+            instanceId: FALLBACK,
+            driver: "posthogGateway",
+            enabled: true,
+            displayName: "PostHog AI Gateway",
+            models: [
+              {
+                slug: `openai/${selection.model}`,
+                name: "GPT-5.6 Codex",
+                isCustom: false,
+                capabilities: null,
+              },
+            ],
+          },
+        ],
+      });
+      await dispatchTurn(harness, "cmd-fallback-codex-1");
+      await confirmSwitchOnce(harness, "cmd-fallback-codex-confirm");
+      await waitFor(() => harness.sendTurn.mock.calls.length === 1);
+      await harness.publishRuntimeEvent({
+        eventId: EventId.make("runtime-event-codex-fallback-complete"),
+        provider: ProviderDriverKind.make("posthogGateway"),
+        providerInstanceId: FALLBACK,
+        threadId: ThreadId.make("thread-1"),
+        createdAt: "2026-01-01T00:00:03.000Z",
+        type: "turn.completed",
+        payload: { state: "completed" },
+      });
+
+      usageLimits.delete(primary);
+      await dispatchCommand(harness, {
+        type: "thread.turn.start",
+        commandId: CommandId.make("cmd-fallback-codex-2"),
+        threadId: ThreadId.make("thread-1"),
+        message: {
+          messageId: asMessageId("user-message-2"),
+          role: "user",
+          text: "second turn",
+          attachments: [],
+        },
+        interactionMode: DEFAULT_PROVIDER_INTERACTION_MODE,
+        runtimeMode: "approval-required",
+        createdAt: "2026-01-01T00:00:05.000Z",
+      });
+
+      await waitFor(() => harness.startSession.mock.calls.length === 2);
+      await waitFor(() => harness.sendTurn.mock.calls.length === 2);
+      expect(harness.startSession.mock.calls[1]?.[1]).toMatchObject({
+        providerInstanceId: primary,
+        modelSelection: selection,
+      });
+      expect(harness.startSession.mock.calls[1]?.[1]).not.toHaveProperty("resumeCursor");
+      expect(harness.sendTurn.mock.calls[1]?.[0]).toMatchObject({
+        modelSelection: selection,
+        input: expect.stringContaining("<provider-switch-conversation>"),
+      });
     });
 
     it("keeps the primary instance mid-thread when the driver forbids switching", async () => {

@@ -34,13 +34,9 @@ function renderMessage(message: ForkTranscriptMessage): string {
   return `### ${ROLE_LABELS[message.role]}\n${message.text.trim()}`;
 }
 
-/**
- * Renders the inherited prefix as a context block to prepend to a fork's first
- * prompt. Returns undefined when there is nothing to hand over.
- */
-export function renderForkTranscript(
+function renderTranscriptBody(
   messages: ReadonlyArray<ForkTranscriptMessage>,
-): string | undefined {
+): { readonly body: string; readonly truncated: boolean } | undefined {
   const rendered = messages.filter((message) => message.text.trim().length > 0).map(renderMessage);
   if (rendered.length === 0) {
     return undefined;
@@ -59,16 +55,49 @@ export function renderForkTranscript(
 
   const truncated = kept.length < rendered.length;
   const body = kept.length > 0 ? kept.join("\n\n") : "(transcript omitted: too long)";
+  return { body, truncated };
+}
+
+/**
+ * Renders the inherited prefix as a context block to prepend to a fork's first
+ * prompt. Returns undefined when there is nothing to hand over.
+ */
+export function renderForkTranscript(
+  messages: ReadonlyArray<ForkTranscriptMessage>,
+): string | undefined {
+  const transcript = renderTranscriptBody(messages);
+  if (transcript === undefined) return undefined;
 
   return [
     "<forked-conversation>",
     "This thread was forked from an earlier conversation. The workspace already",
     "reflects the state at the fork point, so treat the work described below as",
     "done. It is context, not a task list.",
-    ...(truncated ? ["", "(Earlier messages were dropped to fit the context window.)"] : []),
+    ...(transcript.truncated
+      ? ["", "(Earlier messages were dropped to fit the context window.)"]
+      : []),
     "",
-    body,
+    transcript.body,
     "</forked-conversation>",
+  ].join("\n");
+}
+
+export function renderProviderSwitchTranscript(
+  messages: ReadonlyArray<ForkTranscriptMessage>,
+): string | undefined {
+  const transcript = renderTranscriptBody(messages);
+  if (transcript === undefined) return undefined;
+
+  return [
+    "<provider-switch-conversation>",
+    "This conversation is continuing through a different provider runtime.",
+    "The workspace already reflects the work below. Use it as context, not as a task list.",
+    ...(transcript.truncated
+      ? ["", "(Earlier messages were dropped to fit the context window.)"]
+      : []),
+    "",
+    transcript.body,
+    "</provider-switch-conversation>",
   ].join("\n");
 }
 
@@ -80,5 +109,13 @@ export function withForkTranscript(input: {
   readonly inheritedMessages: ReadonlyArray<ForkTranscriptMessage>;
 }): string {
   const transcript = renderForkTranscript(input.inheritedMessages);
+  return transcript === undefined ? input.messageText : `${transcript}\n\n${input.messageText}`;
+}
+
+export function withProviderSwitchTranscript(input: {
+  readonly messageText: string;
+  readonly priorMessages: ReadonlyArray<ForkTranscriptMessage>;
+}): string {
+  const transcript = renderProviderSwitchTranscript(input.priorMessages);
   return transcript === undefined ? input.messageText : `${transcript}\n\n${input.messageText}`;
 }
