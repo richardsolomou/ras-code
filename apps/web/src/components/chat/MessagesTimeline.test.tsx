@@ -126,6 +126,22 @@ vi.mock("@pierre/diffs/react", () => {
   return { FileDiff: MockFileDiff };
 });
 
+vi.mock("../ui/menu", () => ({
+  Menu: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  MenuTrigger: ({ children, render }: { children?: ReactNode; render: ReactNode }) => (
+    <>
+      {render}
+      {children}
+    </>
+  ),
+  MenuPopup: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  MenuItem: ({ children, onClick }: { children: ReactNode; onClick?: () => void }) => (
+    <button type="button" data-has-on-click={Boolean(onClick)}>
+      {children}
+    </button>
+  ),
+}));
+
 function matchMedia() {
   return {
     matches: false,
@@ -1023,7 +1039,12 @@ describe("MessagesTimeline", () => {
       markup.indexOf('aria-label="More message actions"'),
     );
     expect(markup).toContain("lucide-ellipsis");
-    expect(markup).not.toContain("lucide-undo-2");
+    expect(markup).toContain("Fork from here");
+    expect(markup).toContain("lucide-git-fork");
+    expect(markup).toContain("Revert to here");
+    expect(markup).toContain("lucide-rotate-ccw");
+    expect(markup).not.toContain("Fork here in place");
+    expect(markup.match(/data-has-on-click="true"/g)).toHaveLength(2);
   });
 
   it("renders context compaction entries in the normal work log", () => {

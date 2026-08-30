@@ -281,6 +281,7 @@ import {
   useProject,
   useProjects,
   useThread,
+  useThreadMessages,
   useThreadRefs,
   useThreadShell,
 } from "../state/entities";
@@ -1616,13 +1617,17 @@ function ChatViewContent(props: ChatViewProps) {
         : null,
     [draftThread],
   );
-  const draftForkParent = useThread(draftForkParentRef);
+  const draftForkParentMessages = useThreadMessages(draftForkParentRef);
   const draftInheritedMessages = useMemo(
     () =>
-      draftThread?.forkedFrom && draftForkParent
-        ? deriveForkInheritedMessages(draftForkParent.messages, draftThread.forkedFrom.messageId)
+      draftThread?.forkedFrom
+        ? deriveForkInheritedMessages(
+            draftForkParentMessages,
+            draftThread.forkedFrom.messageId,
+            draftThread.forkedFrom.sourceMessageBoundary,
+          )
         : [],
-    [draftForkParent, draftThread?.forkedFrom],
+    [draftForkParentMessages, draftThread?.forkedFrom],
   );
   const localDraftThread = useMemo(
     () =>
@@ -5762,6 +5767,20 @@ function ChatViewContent(props: ChatViewProps) {
       );
       return;
     }
+    const draftForkSpec = isLocalDraftThread ? (draftThread?.forkedFrom ?? null) : null;
+    if (
+      draftForkSpec?.sourceMessageBoundary === "after" &&
+      serverConfig?.environment.capabilities.threadForkAfterMessage !== true
+    ) {
+      toastManager.add(
+        stackedThreadToast({
+          type: "warning",
+          title: "Update the environment to send this fork",
+          description: "This environment cannot fork after an assistant response.",
+        }),
+      );
+      return;
+    }
     const threadIdForSend = activeThread.id;
     const isFirstMessage = !isServerThread || activeThread.messages.length === 0;
     const baseBranchForWorktree =
@@ -6064,7 +6083,7 @@ function ChatViewContent(props: ChatViewProps) {
       // A fork draft creates its thread through forkThread instead of
       // createThread: same handoff, but the server carries the parent's
       // history and fork point across with it.
-      const forkSpec = isLocalDraftThread ? (draftThread?.forkedFrom ?? null) : null;
+      const forkSpec = draftForkSpec;
       const bootstrap =
         isLocalDraftThread || baseBranchForWorktree
           ? {
@@ -6074,6 +6093,9 @@ function ChatViewContent(props: ChatViewProps) {
                       projectId: activeProject.id,
                       sourceThreadId: forkSpec.threadId,
                       sourceMessageId: forkSpec.messageId,
+                      ...(forkSpec.sourceMessageBoundary
+                        ? { sourceMessageBoundary: forkSpec.sourceMessageBoundary }
+                        : {}),
                       turnCount: NonNegativeInt.make(forkSpec.turnCount),
                       workspaceMode: forkSpec.workspaceMode,
                       title,
@@ -6942,14 +6964,12 @@ function ChatViewContent(props: ChatViewProps) {
     },
     [activeThreadRef, isServerThread, onDiffPanelOpen],
   );
-  // Both the Map and the revert handler are read from refs at call-time so
-  // the callback reference is fully stable and never busts context identity.
-  const revertTurnCountRef = useRef(checkpointTurnCountByAssistantMessageId);
-  revertTurnCountRef.current = checkpointTurnCountByAssistantMessageId;
+  const checkpointTurnCountRef = useRef(checkpointTurnCountByAssistantMessageId);
+  checkpointTurnCountRef.current = checkpointTurnCountByAssistantMessageId;
   const onRevertToTurnCountRef = useRef(onRevertToTurnCount);
   onRevertToTurnCountRef.current = onRevertToTurnCount;
   const onRevertAssistantMessage = useCallback((messageId: MessageId) => {
-    const targetTurnCount = revertTurnCountRef.current.get(messageId);
+    const targetTurnCount = checkpointTurnCountRef.current.get(messageId);
     if (typeof targetTurnCount !== "number") {
       return;
     }
@@ -6962,7 +6982,7 @@ function ChatViewContent(props: ChatViewProps) {
   forkThreadRef.current = forkThread;
   const onForkFromAssistantMessage = useCallback((messageId: MessageId) => {
     const sourceThread = activeServerThreadRef.current;
-    const targetTurnCount = revertTurnCountRef.current.get(messageId);
+    const targetTurnCount = checkpointTurnCountRef.current.get(messageId);
     if (!sourceThread || typeof targetTurnCount !== "number") {
       return;
     }

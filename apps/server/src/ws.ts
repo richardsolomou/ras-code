@@ -68,6 +68,7 @@ import {
   WsRpcGroup,
 } from "@ras-code/contracts";
 import { resolveServerBackgroundActivitySettings } from "@ras-code/shared/backgroundActivitySettings";
+import { selectForkInheritedPrefix } from "@ras-code/shared/forkHistory";
 import { HttpRouter, HttpServerRequest, HttpServerRespondable } from "effect/unstable/http";
 import { RpcSerialization, RpcServer } from "effect/unstable/rpc";
 
@@ -111,7 +112,7 @@ import * as PortScanner from "./preview/PortScanner.ts";
 import * as WorkspaceEntries from "./workspace/WorkspaceEntries.ts";
 import * as WorkspaceFileSystem from "./workspace/WorkspaceFileSystem.ts";
 import { readWorkflowScript } from "./orchestration/workflowScriptQuery.ts";
-import { selectForkInheritedPrefix } from "./orchestration/forkHistory.ts";
+import { resolveForkTurnCount } from "./orchestration/forkHistory.ts";
 import * as WorkspacePaths from "./workspace/WorkspacePaths.ts";
 import * as VcsStatusBroadcaster from "./vcs/VcsStatusBroadcaster.ts";
 import * as VcsProvisioningService from "./vcs/VcsProvisioningService.ts";
@@ -1037,6 +1038,7 @@ const makeWsRpcLayer = (
             });
 
           const bootstrapProgram = Effect.gen(function* () {
+            let resolvedForkTurnCount: number | null = null;
             if (bootstrap?.forkThread) {
               const fork = bootstrap.forkThread;
               const sourceThread = yield* projectionSnapshotQuery
@@ -1051,9 +1053,24 @@ const makeWsRpcLayer = (
                   message: `Thread '${fork.sourceThreadId}' cannot be forked because it no longer exists.`,
                 });
               }
+              const sourceMessageBoundary = fork.sourceMessageBoundary ?? "before";
+              const forkTurnCount = resolveForkTurnCount(
+                sourceThread.value.messages,
+                sourceThread.value.checkpoints,
+                fork.sourceMessageId,
+                sourceMessageBoundary,
+                fork.turnCount,
+              );
+              if (forkTurnCount === null) {
+                return yield* new OrchestrationDispatchCommandError({
+                  message: `Message '${fork.sourceMessageId}' is not a completed assistant response with a checkpoint.`,
+                });
+              }
+              resolvedForkTurnCount = forkTurnCount;
               const inheritedPrefix = selectForkInheritedPrefix(
                 sourceThread.value.messages,
                 fork.sourceMessageId,
+                sourceMessageBoundary,
               );
               if (inheritedPrefix === null) {
                 return yield* new OrchestrationDispatchCommandError({
@@ -1081,7 +1098,7 @@ const makeWsRpcLayer = (
                 projectId: fork.projectId,
                 sourceThreadId: fork.sourceThreadId,
                 sourceMessageId: fork.sourceMessageId,
-                turnCount: fork.turnCount,
+                turnCount: forkTurnCount,
                 title: fork.title,
                 modelSelection: fork.modelSelection,
                 runtimeMode: fork.runtimeMode,
@@ -1156,14 +1173,15 @@ const makeWsRpcLayer = (
               // refs live in the shared git dir, so it restores from here.
               if (bootstrap.forkThread?.workspaceMode === "worktree") {
                 const forkPoint = bootstrap.forkThread;
+                const forkTurnCount = resolvedForkTurnCount ?? forkPoint.turnCount;
                 const restored = yield* checkpointStore
                   .restoreCheckpoint({
                     cwd: targetWorktreePath,
                     checkpointRef: checkpointRefForThreadTurn(
                       forkPoint.sourceThreadId,
-                      forkPoint.turnCount,
+                      forkTurnCount,
                     ),
-                    fallbackToHead: forkPoint.turnCount === 0,
+                    fallbackToHead: forkTurnCount === 0,
                   })
                   .pipe(Effect.orElseSucceed(() => false));
                 if (!restored) {
@@ -1177,7 +1195,7 @@ const makeWsRpcLayer = (
                     createdAt: yield* nowIso,
                     payload: {
                       sourceThreadId: forkPoint.sourceThreadId,
-                      turnCount: forkPoint.turnCount,
+                      turnCount: forkTurnCount,
                       worktreePath: targetWorktreePath,
                     },
                     tone: "info",

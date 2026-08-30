@@ -1,11 +1,21 @@
-export function selectForkInheritedPrefix<
-  Message extends { readonly id: string; readonly createdAt: string; readonly streaming: boolean },
->(messages: ReadonlyArray<Message>, sourceMessageId: string): Message[] | null {
-  const orderedMessages = messages.toSorted(
-    (left, right) =>
-      left.createdAt.localeCompare(right.createdAt) || left.id.localeCompare(right.id),
+export function resolveForkTurnCount<
+  Message extends { readonly id: string; readonly role: string; readonly streaming: boolean },
+  Checkpoint extends {
+    readonly assistantMessageId: string | null;
+    readonly checkpointTurnCount: number;
+  },
+>(
+  messages: ReadonlyArray<Message>,
+  checkpoints: ReadonlyArray<Checkpoint>,
+  sourceMessageId: string,
+  sourceMessageBoundary: "before" | "after",
+  requestedTurnCount: number,
+): number | null {
+  if (sourceMessageBoundary === "before") return requestedTurnCount;
+  const sourceMessage = messages.find((message) => message.id === sourceMessageId);
+  if (sourceMessage?.role !== "assistant" || sourceMessage.streaming) return null;
+  return (
+    checkpoints.find((checkpoint) => checkpoint.assistantMessageId === sourceMessageId)
+      ?.checkpointTurnCount ?? null
   );
-  const forkIndex = orderedMessages.findIndex((message) => message.id === sourceMessageId);
-  if (forkIndex < 0) return null;
-  return orderedMessages.slice(0, forkIndex + 1).filter((message) => !message.streaming);
 }

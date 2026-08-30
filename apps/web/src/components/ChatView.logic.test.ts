@@ -413,7 +413,7 @@ describe("fork response state", () => {
       },
     ];
 
-    const inheritedMessages = deriveForkInheritedMessages(messages, selectedMessageId);
+    const inheritedMessages = deriveForkInheritedMessages(messages, selectedMessageId, "after");
     expect(inheritedMessages).toEqual([
       {
         id: MessageId.make("user-1"),
@@ -436,6 +436,35 @@ describe("fork response state", () => {
         updatedAt: "2026-03-29T00:00:10.000Z",
       },
     ]);
+  });
+
+  it("keeps persisted legacy fork boundaries exclusive", () => {
+    const sourceMessageId = MessageId.make("user-2");
+    const messages = [
+      {
+        id: MessageId.make("assistant-1"),
+        role: "assistant" as const,
+        text: "Earlier response",
+        turnId: null,
+        streaming: false,
+        createdAt: "2026-03-29T00:00:00.000Z",
+        updatedAt: "2026-03-29T00:00:00.000Z",
+      },
+      {
+        id: sourceMessageId,
+        role: "user" as const,
+        text: "Legacy fork prompt",
+        attachments: [],
+        turnId: null,
+        streaming: false,
+        createdAt: "2026-03-29T00:01:00.000Z",
+        updatedAt: "2026-03-29T00:01:00.000Z",
+      },
+    ];
+
+    expect(
+      deriveForkInheritedMessages(messages, sourceMessageId).map((message) => message.id),
+    ).toEqual([MessageId.make("assistant-1")]);
   });
 
   it("keeps the provider unlocked while a fork only has inherited history", () => {

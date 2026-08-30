@@ -1,33 +1,56 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { selectForkInheritedPrefix } from "./forkHistory.ts";
+import { resolveForkTurnCount } from "./forkHistory.ts";
 
-describe("selectForkInheritedPrefix", () => {
-  it("includes the selected response and excludes later messages", () => {
-    const messages = [
-      { id: "later", createdAt: "2026-01-01T00:00:03Z", streaming: false },
-      { id: "prompt", createdAt: "2026-01-01T00:00:01Z", streaming: false },
-      { id: "response", createdAt: "2026-01-01T00:00:02Z", streaming: false },
-    ];
+describe("resolveForkTurnCount", () => {
+  const checkpoints = [{ assistantMessageId: "response", checkpointTurnCount: 3 }];
 
-    expect(selectForkInheritedPrefix(messages, "response")?.map((message) => message.id)).toEqual([
-      "prompt",
-      "response",
-    ]);
+  it("derives the turn count from the selected response checkpoint", () => {
+    expect(
+      resolveForkTurnCount(
+        [{ id: "response", role: "assistant", streaming: false }],
+        checkpoints,
+        "response",
+        "after",
+        99,
+      ),
+    ).toBe(3);
   });
 
-  it("rejects a missing fork point", () => {
-    expect(selectForkInheritedPrefix([], "missing")).toBeNull();
+  it("rejects user messages and streaming responses", () => {
+    expect(
+      resolveForkTurnCount(
+        [{ id: "response", role: "user", streaming: false }],
+        checkpoints,
+        "response",
+        "after",
+        3,
+      ),
+    ).toBeNull();
+    expect(
+      resolveForkTurnCount(
+        [{ id: "response", role: "assistant", streaming: true }],
+        checkpoints,
+        "response",
+        "after",
+        3,
+      ),
+    ).toBeNull();
   });
 
-  it("omits streaming messages from inherited history", () => {
-    const messages = [
-      { id: "streaming", createdAt: "2026-01-01T00:00:01Z", streaming: true },
-      { id: "response", createdAt: "2026-01-01T00:00:02Z", streaming: false },
-    ];
+  it("rejects responses without a checkpoint", () => {
+    expect(
+      resolveForkTurnCount(
+        [{ id: "response", role: "assistant", streaming: false }],
+        [],
+        "response",
+        "after",
+        3,
+      ),
+    ).toBeNull();
+  });
 
-    expect(selectForkInheritedPrefix(messages, "response")?.map((message) => message.id)).toEqual([
-      "response",
-    ]);
+  it("preserves the requested count for legacy before-boundary forks", () => {
+    expect(resolveForkTurnCount([], [], "prompt", "before", 2)).toBe(2);
   });
 });

@@ -448,8 +448,8 @@ describe("deriveMessagesTimelineRows", () => {
         row.kind === "message" && row.message.role === "assistant",
     );
 
-    expect(userRow?.revertTurnCount).toBeUndefined();
-    expect(assistantRow?.revertTurnCount).toBe(1);
+    expect(userRow?.checkpointTurnCount).toBeUndefined();
+    expect(assistantRow?.checkpointTurnCount).toBe(1);
     expect(assistantRow?.assistantTurnDiffSummary).toBe(assistantTurnDiffSummary);
   });
 

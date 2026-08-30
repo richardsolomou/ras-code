@@ -3,13 +3,14 @@ import type { MessageId, ThreadId } from "@ras-code/contracts";
 import { useRouter } from "@tanstack/react-router";
 import { useCallback } from "react";
 
+import { stackedThreadToast, toastManager } from "../components/ui/toast";
 import { useComposerDraftStore, type DraftId } from "../composerDraftStore";
 import {
   deriveLogicalProjectKeyFromSettings,
   selectProjectGroupingSettings,
 } from "../logicalProject";
 import { newDraftId, newThreadId } from "../lib/utils";
-import { useProjects } from "../state/entities";
+import { useProjects, useServerConfigs } from "../state/entities";
 import type { Thread } from "../types";
 import { useClientSettings } from "./useSettings";
 
@@ -30,6 +31,7 @@ export interface ForkThreadRequest {
  */
 export function useForkThreadHandler() {
   const projects = useProjects();
+  const serverConfigs = useServerConfigs();
   const projectGroupingSettings = useClientSettings(selectProjectGroupingSettings);
   const router = useRouter();
 
@@ -44,6 +46,19 @@ export function useForkThreadHandler() {
           candidate.environmentId === sourceThread.environmentId,
       );
       if (!project) {
+        return null;
+      }
+      if (
+        serverConfigs.get(sourceThread.environmentId)?.environment.capabilities
+          .threadForkAfterMessage !== true
+      ) {
+        toastManager.add(
+          stackedThreadToast({
+            type: "warning",
+            title: "Update the environment to fork from a response",
+            description: "This environment only supports the legacy fork boundary.",
+          }),
+        );
         return null;
       }
 
@@ -70,6 +85,7 @@ export function useForkThreadHandler() {
         forkedFrom: {
           threadId: sourceThread.id,
           messageId: request.messageId,
+          sourceMessageBoundary: "after",
           turnCount: request.turnCount,
           workspaceMode: "worktree",
           sourceTitle: sourceThread.title,
@@ -82,6 +98,6 @@ export function useForkThreadHandler() {
       await router.navigate({ to: "/draft/$draftId", params: { draftId } });
       return { draftId, threadId };
     },
-    [projectGroupingSettings, projects, router],
+    [projectGroupingSettings, projects, router, serverConfigs],
   );
 }

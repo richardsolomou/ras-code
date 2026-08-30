@@ -40,6 +40,19 @@ describe("ExecutionEnvironmentDescriptor", () => {
     ).toBe(true);
   });
 
+  it("treats a missing after-message fork capability as unsupported", () => {
+    expect(decodeDescriptor(descriptor).capabilities.threadForkAfterMessage).toBeUndefined();
+  });
+
+  it("preserves an advertised after-message fork capability", () => {
+    expect(
+      decodeDescriptor({
+        ...descriptor,
+        capabilities: { ...descriptor.capabilities, threadForkAfterMessage: true },
+      }).capabilities.threadForkAfterMessage,
+    ).toBe(true);
+  });
+
   it("preserves the server's generic attachment upload limit", () => {
     expect(
       decodeDescriptor({

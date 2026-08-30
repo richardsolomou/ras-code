@@ -18,6 +18,7 @@ import {
   type ServerProvider,
   type ScopedProjectRef,
   type ScopedThreadRef,
+  ThreadForkMessageBoundary,
   ThreadForkWorkspaceMode,
   ThreadId,
 } from "@ras-code/contracts";
@@ -281,6 +282,7 @@ const PersistedDraftThreadState = Schema.Struct({
       Schema.Struct({
         threadId: ThreadId,
         messageId: MessageId,
+        sourceMessageBoundary: Schema.optionalKey(ThreadForkMessageBoundary),
         turnCount: NonNegativeInt,
         workspaceMode: ThreadForkWorkspaceMode,
         sourceTitle: Schema.String,
@@ -391,6 +393,7 @@ export function composerDraftHasUserContent(
 export interface DraftThreadForkSpec {
   threadId: ThreadId;
   messageId: MessageId;
+  sourceMessageBoundary?: ThreadForkMessageBoundary;
   turnCount: number;
   workspaceMode: ThreadForkWorkspaceMode;
   /** The parent's title at fork time, for the draft's own title and header. */
@@ -1583,6 +1586,7 @@ function draftThreadForksEqual(
   return (
     left.threadId === right.threadId &&
     left.messageId === right.messageId &&
+    left.sourceMessageBoundary === right.sourceMessageBoundary &&
     left.turnCount === right.turnCount &&
     left.workspaceMode === right.workspaceMode &&
     left.sourceTitle === right.sourceTitle
@@ -1628,7 +1632,8 @@ function normalizePersistedDraftThreadFork(raw: unknown): DraftThreadForkSpec | 
     return null;
   }
   const candidate = raw as Record<string, unknown>;
-  const { threadId, messageId, turnCount, workspaceMode, sourceTitle } = candidate;
+  const { threadId, messageId, sourceMessageBoundary, turnCount, workspaceMode, sourceTitle } =
+    candidate;
   if (
     typeof threadId !== "string" ||
     threadId.length === 0 ||
@@ -1637,13 +1642,17 @@ function normalizePersistedDraftThreadFork(raw: unknown): DraftThreadForkSpec | 
     typeof turnCount !== "number" ||
     !Number.isInteger(turnCount) ||
     turnCount < 0 ||
-    (workspaceMode !== "worktree" && workspaceMode !== "in-place")
+    (workspaceMode !== "worktree" && workspaceMode !== "in-place") ||
+    (sourceMessageBoundary !== undefined &&
+      sourceMessageBoundary !== "before" &&
+      sourceMessageBoundary !== "after")
   ) {
     return null;
   }
   return {
     threadId: ThreadId.make(threadId),
     messageId: MessageId.make(messageId),
+    ...(sourceMessageBoundary ? { sourceMessageBoundary } : {}),
     turnCount,
     workspaceMode,
     sourceTitle: typeof sourceTitle === "string" ? sourceTitle : "",

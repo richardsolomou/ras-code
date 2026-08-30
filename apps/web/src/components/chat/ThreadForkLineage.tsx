@@ -12,7 +12,7 @@ import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 interface ThreadForkLineageProps {
   readonly environmentId: EnvironmentId;
   readonly threadId: ThreadId;
-  readonly forkedFrom?: ThreadForkPoint | null;
+  readonly forkedFrom: ThreadForkPoint | null;
   readonly forkedFromTitle?: string;
 }
 
@@ -26,14 +26,11 @@ interface ThreadForkLineageProps {
 export const ThreadForkLineage = memo(function ThreadForkLineage({
   environmentId,
   threadId,
-  forkedFrom: forkedFromOverride,
+  forkedFrom,
   forkedFromTitle,
 }: ThreadForkLineageProps) {
   const navigate = useNavigate();
   const threadRef = scopeThreadRef(environmentId, threadId);
-  const shell = useThreadShell(threadRef);
-  const forkedFrom =
-    forkedFromOverride === undefined ? (shell?.forkedFrom ?? null) : forkedFromOverride;
   const parent = useThreadShell(
     forkedFrom ? scopeThreadRef(environmentId, forkedFrom.threadId) : null,
   );

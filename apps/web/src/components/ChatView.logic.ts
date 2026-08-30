@@ -11,8 +11,10 @@ import {
   type ScopedProjectRef,
   type ScopedThreadRef,
   type ThreadId,
+  type ThreadForkMessageBoundary,
   type TurnId,
 } from "@ras-code/contracts";
+import { selectForkInheritedPrefix } from "@ras-code/shared/forkHistory";
 import {
   type ChatMessage,
   isImageAttachment,
@@ -185,30 +187,23 @@ export function deriveCheckpointTurnCountByAssistantMessageId(input: {
 export function deriveForkInheritedMessages(
   messages: ReadonlyArray<ChatMessage>,
   sourceMessageId: MessageId,
+  sourceMessageBoundary: ThreadForkMessageBoundary = "before",
 ): ChatMessage[] {
-  const orderedMessages = messages.toSorted(
-    (left, right) =>
-      left.createdAt.localeCompare(right.createdAt) || left.id.localeCompare(right.id),
+  const inheritedPrefix = selectForkInheritedPrefix(
+    messages,
+    sourceMessageId,
+    sourceMessageBoundary,
   );
-  const forkIndex = orderedMessages.findIndex((message) => message.id === sourceMessageId);
-  if (forkIndex < 0) return [];
-
-  return orderedMessages.slice(0, forkIndex + 1).flatMap((message) =>
-    message.streaming
-      ? []
-      : [
-          {
-            id: message.id,
-            role: message.role,
-            text: message.text,
-            turnId: null,
-            streaming: false,
-            inherited: true,
-            createdAt: message.createdAt,
-            updatedAt: message.updatedAt,
-          },
-        ],
-  );
+  return (inheritedPrefix ?? []).map((message) => ({
+    id: message.id,
+    role: message.role,
+    text: message.text,
+    turnId: null,
+    streaming: false,
+    inherited: true,
+    createdAt: message.createdAt,
+    updatedAt: message.updatedAt,
+  }));
 }
 
 export function buildLocalDraftThread(
