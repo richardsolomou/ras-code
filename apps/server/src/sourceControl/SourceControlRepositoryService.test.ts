@@ -159,7 +159,11 @@ it.effect("clones a looked-up repository into the requested destination", () =>
       prefix: "ras-code-source-control-clone-parent-",
     });
     const destinationPath = `${parent}/ras-code`;
-    const cloneCalls: Array<{ cwd: string; args: ReadonlyArray<string> }> = [];
+    const cloneCalls: Array<{
+      cwd: string;
+      args: ReadonlyArray<string>;
+      timeoutMs: number | null | undefined;
+    }> = [];
 
     yield* Effect.gen(function* () {
       const service = yield* SourceControlRepositoryService.SourceControlRepositoryService;
@@ -175,10 +179,13 @@ it.effect("clones a looked-up repository into the requested destination", () =>
         remoteUrl: CLONE_URLS.url,
         repository: { provider: "github", ...CLONE_URLS },
       });
+      // A large repository takes far longer than any fixed timeout, so the
+      // clone must run unbounded.
       assert.deepStrictEqual(cloneCalls, [
         {
           cwd: parent,
           args: ["clone", CLONE_URLS.url, "ras-code"],
+          timeoutMs: null,
         },
       ]);
     }).pipe(
@@ -187,7 +194,11 @@ it.effect("clones a looked-up repository into the requested destination", () =>
           git: {
             execute: (input) =>
               Effect.sync(() => {
-                cloneCalls.push({ cwd: input.cwd, args: input.args });
+                cloneCalls.push({
+                  cwd: input.cwd,
+                  args: input.args,
+                  timeoutMs: input.timeoutMs,
+                });
                 return processOutput();
               }),
           },

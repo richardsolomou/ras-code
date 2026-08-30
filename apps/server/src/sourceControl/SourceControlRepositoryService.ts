@@ -203,11 +203,15 @@ export const make = Effect.gen(function* () {
       });
     }
 
+    // Clone duration scales with repository size and network speed, so there is
+    // no timeout that is both long enough for a large repository and short
+    // enough to be useful. Like push, this runs unbounded and is cancelled by
+    // interrupting the request.
     yield* git.execute({
       operation: "SourceControlRepositoryService.cloneRepository",
       cwd: preparedDestination.parentPath,
       args: ["clone", remoteUrl, preparedDestination.directoryName],
-      timeoutMs: 120_000,
+      timeoutMs: null,
       maxOutputBytes: 256 * 1024,
     });
 
