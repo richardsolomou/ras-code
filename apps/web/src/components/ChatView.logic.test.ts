@@ -28,6 +28,7 @@ import {
   hasEnvironmentReconnectWarningGraceElapsed,
   hasServerAcknowledgedLocalDispatch,
   isBranchMismatchDismissedForSession,
+  planForkHistoryPageLoad,
   reconcileMountedTerminalThreadIds,
   reconcileRetainedMountedThreadIds,
   resolveBackgroundDraftWorkspaceOptions,
@@ -355,6 +356,71 @@ describe("buildLoadingThreadFromShell", () => {
 });
 
 describe("fork response state", () => {
+  it("loads each fork-history cursor once until state or cursor advances", () => {
+    const page = { beforeCursor: "cursor-1", hasMore: true, loadingOlder: false };
+    const initial = planForkHistoryPageLoad({
+      tracker: null,
+      parentKey: "fork-a:parent",
+      status: "cached",
+      sourceLoaded: false,
+      page,
+    });
+    const requestCursors = [
+      initial.requestCursor,
+      planForkHistoryPageLoad({
+        tracker: initial.tracker,
+        parentKey: "fork-a:parent",
+        status: "cached",
+        sourceLoaded: false,
+        page,
+      }).requestCursor,
+      planForkHistoryPageLoad({
+        tracker: initial.tracker,
+        parentKey: "fork-a:parent",
+        status: "live",
+        sourceLoaded: false,
+        page,
+      }).requestCursor,
+      planForkHistoryPageLoad({
+        tracker: initial.tracker,
+        parentKey: "fork-a:parent",
+        status: "cached",
+        sourceLoaded: false,
+        page: { ...page, loadingOlder: true },
+      }).requestCursor,
+      planForkHistoryPageLoad({
+        tracker: initial.tracker,
+        parentKey: "fork-a:parent",
+        status: "cached",
+        sourceLoaded: false,
+        page: { ...page, beforeCursor: "cursor-2" },
+      }).requestCursor,
+      planForkHistoryPageLoad({
+        tracker: initial.tracker,
+        parentKey: "fork-b:parent",
+        status: "cached",
+        sourceLoaded: false,
+        page,
+      }).requestCursor,
+      planForkHistoryPageLoad({
+        tracker: null,
+        parentKey: "fork-a:parent",
+        status: "cached",
+        sourceLoaded: true,
+        page,
+      }).requestCursor,
+    ];
+    expect(requestCursors).toEqual([
+      "cursor-1",
+      null,
+      "cursor-1",
+      null,
+      "cursor-2",
+      "cursor-1",
+      null,
+    ]);
+  });
+
   it("maps a completed assistant response to its checkpoint", () => {
     const messageId = MessageId.make("assistant-1");
     const turnId = TurnId.make("turn-1");

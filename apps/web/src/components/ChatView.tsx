@@ -364,6 +364,8 @@ import {
   cloneComposerImageForRetry,
   deriveCheckpointTurnCountByAssistantMessageId,
   deriveForkInheritedMessages,
+  type ForkHistoryPageLoadTracker,
+  planForkHistoryPageLoad,
   deriveLockedProvider,
   readFileAsDataUrl,
   reconcileMountedTerminalThreadIds,
@@ -1372,7 +1374,7 @@ function ChatViewContent(props: ChatViewProps) {
     routeKind === "server" ? routeThreadRef.environmentId : null,
     routeKind === "server" ? routeThreadRef.threadId : null,
   );
-  const loadEarlierTurns = useMemo(() => {
+  const routeLoadEarlierTurns = useMemo(() => {
     if (routeKind !== "server" || !threadHasOlderTurns(routeThreadState)) {
       return null;
     }
@@ -1630,41 +1632,45 @@ function ChatViewContent(props: ChatViewProps) {
         draftThread.forkedFrom.sourceMessageBoundary ?? "before",
       ].join("\0")
     : null;
-  const draftForkSourceLoaded = useMemo(
-    () =>
-      draftThread?.forkedFrom !== undefined &&
-      draftThread.forkedFrom !== null &&
-      draftForkParentMessages.some((message) => message.id === draftThread.forkedFrom?.messageId),
-    [draftForkParentMessages, draftThread?.forkedFrom],
-  );
-  const draftForkHistoryRequestRef = useRef<{
-    parentKey: string;
-    attemptedCursors: Set<string>;
-  } | null>(null);
-  useEffect(() => {
-    if (draftForkParentRef === null || draftForkSourceLoaded) {
-      return;
-    }
-    const page = draftForkParentState.page._tag === "Some" ? draftForkParentState.page.value : null;
-    if (page === null || page.loadingOlder || !page.hasMore || page.beforeCursor === null) {
-      return;
-    }
-    const parentKey = `${draftForkKey ?? ""}\0${scopedThreadKey(draftForkParentRef)}`;
-    if (draftForkHistoryRequestRef.current?.parentKey !== parentKey) {
-      draftForkHistoryRequestRef.current = { parentKey, attemptedCursors: new Set() };
-    }
-    const attemptedCursors = draftForkHistoryRequestRef.current.attemptedCursors;
-    if (attemptedCursors.has(page.beforeCursor)) {
-      return;
-    }
-    if (requestOlderThreadTurns(draftForkParentRef.environmentId, draftForkParentRef.threadId)) {
-      attemptedCursors.add(page.beforeCursor);
-    }
-  }, [draftForkKey, draftForkParentRef, draftForkParentState, draftForkSourceLoaded]);
   const [frozenDraftInheritedMessages, setFrozenDraftInheritedMessages] = useState<{
     forkKey: string;
     messages: ChatMessage[];
   } | null>(null);
+  const draftForkSourceLoaded = useMemo(
+    () =>
+      frozenDraftInheritedMessages?.forkKey === draftForkKey ||
+      (draftThread?.forkedFrom !== undefined &&
+        draftThread.forkedFrom !== null &&
+        draftForkParentMessages.some(
+          (message) => message.id === draftThread.forkedFrom?.messageId,
+        )),
+    [draftForkKey, draftForkParentMessages, draftThread?.forkedFrom, frozenDraftInheritedMessages],
+  );
+  const draftForkHistoryRequestRef = useRef<ForkHistoryPageLoadTracker | null>(null);
+  useEffect(() => {
+    if (draftForkParentRef === null) {
+      return;
+    }
+    const page = draftForkParentState.page._tag === "Some" ? draftForkParentState.page.value : null;
+    const parentKey = `${draftForkKey ?? ""}\0${scopedThreadKey(draftForkParentRef)}`;
+    const loadPlan = planForkHistoryPageLoad({
+      tracker: draftForkHistoryRequestRef.current,
+      parentKey,
+      status: draftForkParentState.status,
+      sourceLoaded: draftForkSourceLoaded,
+      page,
+    });
+    draftForkHistoryRequestRef.current = loadPlan.tracker;
+    if (loadPlan.requestCursor === null) return;
+    if (!requestOlderThreadTurns(draftForkParentRef.environmentId, draftForkParentRef.threadId)) {
+      draftForkHistoryRequestRef.current = {
+        ...loadPlan.tracker,
+        requestedCursor: null,
+      } satisfies ForkHistoryPageLoadTracker;
+    }
+  }, [draftForkKey, draftForkParentRef, draftForkParentState, draftForkSourceLoaded]);
+  const draftForkHistoryComplete =
+    draftForkSourceLoaded && !threadHasOlderTurns(draftForkParentState);
   const draftInheritedMessages = useMemo(() => {
     if (draftForkKey === null || !draftThread?.forkedFrom) {
       return [];
@@ -1688,13 +1694,35 @@ function ChatViewContent(props: ChatViewProps) {
       if (frozenDraftInheritedMessages !== null) setFrozenDraftInheritedMessages(null);
       return;
     }
-    if (draftForkSourceLoaded && frozenDraftInheritedMessages?.forkKey !== draftForkKey) {
+    if (draftForkHistoryComplete && frozenDraftInheritedMessages?.forkKey !== draftForkKey) {
       setFrozenDraftInheritedMessages({
         forkKey: draftForkKey,
         messages: draftInheritedMessages,
       });
     }
-  }, [draftForkKey, draftForkSourceLoaded, draftInheritedMessages, frozenDraftInheritedMessages]);
+  }, [
+    draftForkHistoryComplete,
+    draftForkKey,
+    draftInheritedMessages,
+    frozenDraftInheritedMessages,
+  ]);
+  const draftLoadEarlierTurns = useMemo(() => {
+    if (
+      draftForkParentRef === null ||
+      !draftForkSourceLoaded ||
+      !threadHasOlderTurns(draftForkParentState)
+    ) {
+      return null;
+    }
+    return {
+      loading:
+        draftForkParentState.page._tag === "Some" && draftForkParentState.page.value.loadingOlder,
+      onLoadEarlier: () => {
+        requestOlderThreadTurns(draftForkParentRef.environmentId, draftForkParentRef.threadId);
+      },
+    };
+  }, [draftForkParentRef, draftForkParentState, draftForkSourceLoaded]);
+  const loadEarlierTurns = routeLoadEarlierTurns ?? draftLoadEarlierTurns;
   const localDraftThread = useMemo(
     () =>
       draftThread

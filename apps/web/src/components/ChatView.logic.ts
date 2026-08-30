@@ -206,6 +206,56 @@ export function deriveForkInheritedMessages(
   }));
 }
 
+export interface ForkHistoryPageLoadTracker {
+  readonly parentKey: string;
+  readonly requestedCursor: string | null;
+  readonly requestedStatus: string;
+}
+
+export function planForkHistoryPageLoad(input: {
+  readonly tracker: ForkHistoryPageLoadTracker | null;
+  readonly parentKey: string;
+  readonly status: string;
+  readonly sourceLoaded: boolean;
+  readonly page: {
+    readonly beforeCursor: string | null;
+    readonly hasMore: boolean;
+    readonly loadingOlder: boolean;
+  } | null;
+}): {
+  readonly tracker: ForkHistoryPageLoadTracker;
+  readonly requestCursor: string | null;
+} {
+  const tracker =
+    input.tracker?.parentKey === input.parentKey
+      ? input.tracker
+      : {
+          parentKey: input.parentKey,
+          requestedCursor: null,
+          requestedStatus: input.status,
+        };
+  const page = input.page;
+  if (
+    input.sourceLoaded ||
+    page === null ||
+    page.beforeCursor === null ||
+    page.loadingOlder ||
+    !page.hasMore
+  ) {
+    return { tracker, requestCursor: null };
+  }
+  const cursor = page.beforeCursor;
+  if (tracker.requestedCursor === cursor && tracker.requestedStatus === input.status) {
+    return { tracker, requestCursor: null };
+  }
+  const nextTracker = {
+    parentKey: input.parentKey,
+    requestedCursor: cursor,
+    requestedStatus: input.status,
+  };
+  return { tracker: nextTracker, requestCursor: cursor };
+}
+
 export function buildLocalDraftThread(
   threadId: ThreadId,
   draftThread: DraftThreadState,
