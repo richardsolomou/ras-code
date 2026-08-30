@@ -453,7 +453,7 @@ function ConfiguredSettingsRouteScreen() {
           <SettingsSection title="Account">
             <SettingsRow
               icon="person.crop.circle"
-              label="T3 Account"
+              label="RAS Code Account"
               value={accountLabel}
               onPress={openAccount}
             />
