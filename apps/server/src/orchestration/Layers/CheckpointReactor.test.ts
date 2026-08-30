@@ -9,6 +9,7 @@ import {
   ProviderRuntimeEvent,
   ProviderSession,
   ProviderInstanceId,
+  type VcsStatusResult,
 } from "@ras-code/contracts";
 import {
   CommandId,
@@ -286,9 +287,15 @@ describe("CheckpointReactor", () => {
     readonly providerSessionCwd?: string;
     readonly providerName?: ProviderDriverKind;
     readonly gitStatusRefreshCalls?: Array<string>;
+    readonly remoteUrl?: string;
+    readonly remoteStatus?: VcsStatusResult;
+    readonly remoteStatusRefreshCalls?: Array<string>;
   }) {
     const cwd = createGitRepository();
     tempDirs.push(cwd);
+    if (options?.remoteUrl) {
+      runGit(cwd, ["remote", "add", "origin", options.remoteUrl]);
+    }
     const provider = createProviderServiceHarness(
       cwd,
       options?.hasSession ?? true,
@@ -331,7 +338,13 @@ describe("CheckpointReactor", () => {
             workingTree: { files: [], insertions: 0, deletions: 0 },
           }),
         ),
-      refreshStatus: () => Effect.die("refreshStatus should not be called in this test"),
+      refreshStatus: (cwd: string) =>
+        options?.remoteStatus === undefined
+          ? Effect.die("refreshStatus should not be called in this test")
+          : Effect.sync(() => {
+              options.remoteStatusRefreshCalls?.push(cwd);
+              return options.remoteStatus!;
+            }),
       streamStatus: () => Stream.empty,
     });
 
@@ -550,6 +563,89 @@ describe("CheckpointReactor", () => {
     await harness.drain();
 
     expect(gitStatusRefreshCalls).toEqual([harness.cwd]);
+  });
+
+  it("durably links an open pull request discovered after an agent turn", async () => {
+    const remoteStatusRefreshCalls: string[] = [];
+    const harness = await createHarness({
+      seedFilesystemCheckpoints: false,
+      threadBranch: "feature/agent-created-pr",
+      localStatusRefName: "feature/agent-created-pr",
+      remoteUrl: "https://github.com/acme/widgets.git",
+      remoteStatusRefreshCalls,
+      remoteStatus: {
+        isRepo: true,
+        sourceControlProvider: {
+          kind: "github",
+          name: "GitHub",
+          baseUrl: "https://github.com",
+        },
+        hasPrimaryRemote: true,
+        isDefaultRef: false,
+        refName: "feature/agent-created-pr",
+        hasWorkingTreeChanges: false,
+        workingTree: { files: [], insertions: 0, deletions: 0 },
+        hasUpstream: true,
+        aheadCount: 0,
+        behindCount: 0,
+        pr: {
+          number: 42,
+          title: "Agent-created pull request",
+          url: "https://github.com/acme/widgets/pull/42",
+          baseRef: "main",
+          headRef: "feature/agent-created-pr",
+          state: "open",
+          updatedAt: "2026-01-01T00:00:00.000Z",
+        },
+      },
+    });
+
+    await runtime!.runPromise(
+      harness.engine.dispatch({
+        type: "thread.session.set",
+        commandId: CommandId.make("cmd-turn-completed-link-pr"),
+        threadId: ThreadId.make("thread-1"),
+        session: {
+          threadId: ThreadId.make("thread-1"),
+          status: "ready",
+          providerName: "codex",
+          runtimeMode: "approval-required",
+          activeTurnId: null,
+          lastError: null,
+          updatedAt: "2026-01-01T00:00:00.000Z",
+        },
+        createdAt: "2026-01-01T00:00:00.000Z",
+      }),
+    );
+
+    await harness.drain();
+
+    const snapshot = await harness.readModel();
+    const thread = snapshot.threads.find((entry) => entry.id === ThreadId.make("thread-1"));
+    expect(thread?.linkedPullRequest).toEqual({
+      projectId: ProjectId.make("project-1"),
+      repository: "acme/widgets",
+      number: 42,
+      url: "https://github.com/acme/widgets/pull/42",
+    });
+    expect(remoteStatusRefreshCalls).toEqual([harness.cwd]);
+
+    await runtime!.runPromise(
+      harness.engine.dispatch({
+        type: "thread.meta.update",
+        commandId: CommandId.make("cmd-stale-pull-request-discovery"),
+        threadId: ThreadId.make("thread-1"),
+        linkedPullRequest: {
+          projectId: ProjectId.make("project-1"),
+          repository: "acme/widgets",
+          number: 43,
+          url: "https://github.com/acme/widgets/pull/43",
+        },
+        expectedLinkedPullRequest: null,
+      }),
+    );
+    const afterStaleDiscovery = await harness.readModel();
+    expect(afterStaleDiscovery.threads[0]?.linkedPullRequest?.number).toBe(42);
   });
 
   it("adopts a drifted checkout as the thread branch on a dedicated worktree", async () => {

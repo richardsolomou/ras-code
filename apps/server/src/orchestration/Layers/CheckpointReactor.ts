@@ -38,6 +38,7 @@ import type { OrchestrationDispatchError } from "../Errors.ts";
 import { isGitRepository } from "../../git/Utils.ts";
 import { VcsStatusBroadcaster } from "../../vcs/VcsStatusBroadcaster.ts";
 import * as WorkspaceEntries from "../../workspace/WorkspaceEntries.ts";
+import { repositoryIdentityOf } from "../../pullRequest/PullRequestService.ts";
 
 const nowIso = Effect.map(DateTime.now, DateTime.formatIso);
 
@@ -213,6 +214,65 @@ const make = Effect.gen(function* () {
       return undefined;
     }
     return cwd;
+  });
+
+  const reconcileThreadPullRequest = Effect.fn("reconcileThreadPullRequest")(function* (
+    threadId: ThreadId,
+    cwd: string,
+  ) {
+    const thread = yield* projectionSnapshotQuery
+      .getThreadShellById(threadId)
+      .pipe(Effect.map(Option.getOrUndefined));
+    if (!thread || thread.linkedPullRequest != null || thread.branch === null) {
+      return;
+    }
+
+    const project = yield* projectionSnapshotQuery
+      .getProjectShellById(thread.projectId)
+      .pipe(Effect.map(Option.getOrUndefined));
+    const repository = project ? repositoryIdentityOf(project) : null;
+    if (project === undefined || repository === null) {
+      return;
+    }
+
+    const status = yield* vcsStatusBroadcaster.refreshStatus(cwd).pipe(
+      Effect.catch((error) =>
+        Effect.logWarning("failed to discover pull request after turn completion", {
+          threadId,
+          cwd,
+          detail: error.message,
+        }).pipe(Effect.as(null)),
+      ),
+    );
+    const pullRequest = status?.pr;
+    if (
+      status === null ||
+      pullRequest == null ||
+      pullRequest.state !== "open" ||
+      status.refName !== thread.branch ||
+      pullRequest.headRef !== thread.branch
+    ) {
+      return;
+    }
+
+    yield* orchestrationEngine.dispatch({
+      type: "thread.meta.update",
+      commandId: yield* serverCommandId("thread-pull-request-discovered"),
+      threadId,
+      linkedPullRequest: {
+        projectId: project.id,
+        repository,
+        number: pullRequest.number,
+        url: pullRequest.url,
+      },
+      expectedLinkedPullRequest: null,
+    });
+    yield* Effect.logInfo("linked thread to pull request discovered after turn completion", {
+      threadId,
+      projectId: project.id,
+      repository,
+      pullRequestNumber: pullRequest.number,
+    });
   });
 
   // Shared tail for both capture paths: creates the git checkpoint ref, diffs
@@ -479,6 +539,31 @@ const make = Effect.gen(function* () {
     });
   });
 
+  const reconcileThreadPullRequestFromSettledSession = Effect.fn(
+    "reconcileThreadPullRequestFromSettledSession",
+  )(function* (event: Extract<OrchestrationEvent, { type: "thread.session-set" }>) {
+    if (
+      event.payload.session.activeTurnId !== null ||
+      (event.payload.session.status !== "ready" && event.payload.session.status !== "error")
+    ) {
+      return;
+    }
+    const thread = yield* resolveThreadDetail(event.payload.threadId);
+    if (!thread || thread.linkedPullRequest != null) {
+      return;
+    }
+    const projects = yield* resolveThreadProjects(thread.projectId);
+    const cwd = yield* resolveCheckpointCwd({
+      threadId: thread.id,
+      thread,
+      projects,
+      preferSessionRuntime: true,
+    });
+    if (cwd !== undefined) {
+      yield* reconcileThreadPullRequest(thread.id, cwd);
+    }
+  });
+
   const ensurePreTurnBaselineFromTurnStart = Effect.fn("ensurePreTurnBaselineFromTurnStart")(
     function* (event: Extract<ProviderRuntimeEvent, { type: "turn.started" }>) {
       const turnId = toTurnId(event.turnId);
@@ -534,7 +619,7 @@ const make = Effect.gen(function* () {
   )(function* (event: Extract<ProviderRuntimeEvent, { type: "turn.completed" }>) {
     const sessionRuntime = yield* resolveSessionRuntimeForThread(event.threadId);
     if (Option.isNone(sessionRuntime)) {
-      return;
+      return null;
     }
 
     const local = yield* vcsStatusBroadcaster.refreshLocalStatus(sessionRuntime.value.cwd).pipe(
@@ -554,6 +639,7 @@ const make = Effect.gen(function* () {
         local,
       });
     }
+    return sessionRuntime.value.cwd;
   });
 
   // A `git checkout` run inside a thread's dedicated worktree (by an agent or
@@ -818,6 +904,11 @@ const make = Effect.gen(function* () {
   });
 
   const processDomainEvent = Effect.fn("processDomainEvent")(function* (event: OrchestrationEvent) {
+    if (event.type === "thread.session-set") {
+      yield* reconcileThreadPullRequestFromSettledSession(event);
+      return;
+    }
+
     if (event.type === "thread.turn-start-requested" || event.type === "thread.message-sent") {
       yield* ensurePreTurnBaselineFromDomainTurnStart(event);
       return;
@@ -870,7 +961,7 @@ const make = Effect.gen(function* () {
 
     if (event.type === "turn.completed") {
       const turnId = toTurnId(event.turnId);
-      yield* refreshLocalGitStatusFromTurnCompletion(event);
+      const sessionCwd = yield* refreshLocalGitStatusFromTurnCompletion(event);
       yield* captureCheckpointFromTurnCompletion(event).pipe(
         Effect.catch((error) =>
           Effect.flatMap(nowIso, (createdAt) =>
@@ -883,6 +974,9 @@ const make = Effect.gen(function* () {
           ),
         ),
       );
+      if (sessionCwd !== null) {
+        yield* reconcileThreadPullRequest(event.threadId, sessionCwd);
+      }
       return;
     }
   });
@@ -918,6 +1012,7 @@ const make = Effect.gen(function* () {
         if (
           event.type !== "thread.turn-start-requested" &&
           event.type !== "thread.message-sent" &&
+          event.type !== "thread.session-set" &&
           event.type !== "thread.checkpoint-revert-requested" &&
           event.type !== "thread.turn-diff-completed"
         ) {

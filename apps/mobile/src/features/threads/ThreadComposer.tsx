@@ -107,6 +107,12 @@ export interface ThreadComposerProps {
   readonly onExpandedChange?: (expanded: boolean) => void;
   /** Fires on editor focus/blur; hosts use it to vet stale keyboard state. */
   readonly onEditorFocusChange?: (focused: boolean) => void;
+  readonly conflictSuggestion?: {
+    readonly number: number;
+    readonly baseBranch: string;
+    readonly onResolve: () => void;
+    readonly onDismiss: () => void;
+  } | null;
 }
 
 /**
@@ -515,6 +521,37 @@ export const ThreadComposer = memo(function ThreadComposer(props: ThreadComposer
             status={connectionStatus}
             onPress={props.onReconnectEnvironment}
           />
+        ) : null}
+
+        {connectionStatus === null && props.conflictSuggestion ? (
+          <Animated.View
+            className="mb-2 flex-row items-center gap-2 rounded-2xl border border-amber-500/30 bg-card px-3 py-2 shadow-sm"
+            entering={FadeInDown.duration(180)}
+            exiting={FadeOutDown.duration(140)}
+          >
+            <View className="size-2 rounded-full bg-amber-500" />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Resolve conflicts in PR #${props.conflictSuggestion.number}`}
+              className="min-w-0 flex-1 active:opacity-70"
+              onPress={props.conflictSuggestion.onResolve}
+            >
+              <Text className="text-sm font-ras-code-bold text-foreground">
+                PR #{props.conflictSuggestion.number} has conflicts
+              </Text>
+              <Text className="text-xs text-foreground-muted" numberOfLines={1}>
+                Resolve against {props.conflictSuggestion.baseBranch} in this thread
+              </Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Dismiss pull request conflict suggestion"
+              className="rounded-full px-2 py-1 active:opacity-60"
+              onPress={props.conflictSuggestion.onDismiss}
+            >
+              <Text className="text-base text-foreground-muted">×</Text>
+            </Pressable>
+          </Animated.View>
         ) : null}
 
         <ComposerSurface

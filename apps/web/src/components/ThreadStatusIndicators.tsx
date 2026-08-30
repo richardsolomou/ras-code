@@ -4,7 +4,12 @@ import {
   scopeThreadRef,
 } from "@ras-code/client-runtime/environment";
 import { pullRequestDetailToVcsStatus } from "@ras-code/client-runtime/state/pull-requests";
-import type { EnvironmentId, ThreadLinkedPullRequest, VcsStatusResult } from "@ras-code/contracts";
+import type {
+  EnvironmentId,
+  PullRequestDetail,
+  ThreadLinkedPullRequest,
+  VcsStatusResult,
+} from "@ras-code/contracts";
 import { Atom } from "effect/unstable/reactivity";
 import { CloudIcon, FolderGit2Icon, GitPullRequestIcon, TerminalIcon } from "lucide-react";
 import { useMemo } from "react";
@@ -43,6 +48,7 @@ export type ThreadPr = VcsStatusResult["pr"];
 export interface LinkedThreadPullRequestStatus {
   readonly pr: NonNullable<ThreadPr>;
   readonly sourceControlProvider: NonNullable<VcsStatusResult["sourceControlProvider"]>;
+  readonly detail?: PullRequestDetail;
 }
 
 export function useLinkedThreadPullRequest(
@@ -68,6 +74,7 @@ export function useLinkedThreadPullRequest(
         ? null
         : {
             pr: pullRequestDetailToVcsStatus(detail),
+            detail,
             sourceControlProvider: {
               kind: detail.provider,
               name: detail.provider,

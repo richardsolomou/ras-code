@@ -811,11 +811,13 @@ it.effect("accepts a linked pull request in thread.meta.update", () =>
       commandId: "cmd-link-pull-request",
       threadId: "thread-1",
       linkedPullRequest,
+      expectedLinkedPullRequest: null,
     });
 
     assert.strictEqual(parsed.type, "thread.meta.update");
     if (parsed.type === "thread.meta.update") {
       assert.deepStrictEqual(parsed.linkedPullRequest, linkedPullRequest);
+      assert.strictEqual(parsed.expectedLinkedPullRequest, null);
     }
   }),
 );

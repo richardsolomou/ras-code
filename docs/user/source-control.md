@@ -32,6 +32,8 @@ RAS Code works with the platforms your team already uses:
 **Create pull requests while you work**
 
 - Push a branch and create a pull request from the Git actions controls in the toolbar
+- Pull requests created by an agent or custom skill are linked to their thread automatically after
+  the turn finishes
 - RAS Code can suggest titles and descriptions based on your commits
 - Supports GitHub Pull Requests, GitLab Merge Requests, Bitbucket Pull Requests, and Azure DevOps Pull Requests
 
@@ -46,6 +48,8 @@ RAS Code works with the platforms your team already uses:
   **Open on GitHub** in the error view
 - Command-click (Control-click on Windows and Linux) a pull request number in the sidebar to open it in your browser instead of in RAS Code
 - Check out a teammate's branch to review code locally
+- When a linked pull request conflicts with its base branch, use the suggestion above the composer
+  to add a conflict-resolution request to the same thread
 
 **Fix what you wrote, in place**
 
