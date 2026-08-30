@@ -14,7 +14,6 @@
       (() => {
         const THEME_STORAGE_KEY = "ras-code:theme";
         const APPEARANCE_STORAGE_KEY = "ras-code:theme-appearance-mode";
-        const THEME_HALVES_STORAGE_KEY = "ras-code:theme-halves:v1";
         const isAppearance = (value) => value === "system" || value === "light" || value === "dark";
         const apply = (appearance) => {
           const isDark =
@@ -38,9 +37,6 @@
               : storedTheme === "t3-chat-dark"
                 ? "dark"
                 : "system";
-          window.localStorage.setItem(THEME_STORAGE_KEY, "system");
-          window.localStorage.setItem(APPEARANCE_STORAGE_KEY, appearance);
-          window.localStorage.removeItem(THEME_HALVES_STORAGE_KEY);
           apply(appearance);
         } catch {
           apply("system");

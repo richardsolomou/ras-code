@@ -81,7 +81,7 @@ describe("index.html boot script", () => {
     expect(result.metaContent).toBe(result.backgroundColor);
   });
 
-  it("migrates explicit legacy light and dark preferences", () => {
+  it("applies explicit legacy light and dark preferences without rewriting them", () => {
     const light = runBootScript({
       storage: { [THEME_STORAGE_KEY]: "light" },
       prefersDark: true,
@@ -92,12 +92,14 @@ describe("index.html boot script", () => {
     });
 
     expect(light.isDark).toBe(false);
-    expect(light.storage.get(APPEARANCE_STORAGE_KEY)).toBe("light");
+    expect(light.storage.get(THEME_STORAGE_KEY)).toBe("light");
+    expect(light.storage.has(APPEARANCE_STORAGE_KEY)).toBe(false);
     expect(dark.isDark).toBe(true);
-    expect(dark.storage.get(APPEARANCE_STORAGE_KEY)).toBe("dark");
+    expect(dark.storage.get(THEME_STORAGE_KEY)).toBe("dark");
+    expect(dark.storage.has(APPEARANCE_STORAGE_KEY)).toBe(false);
   });
 
-  it("migrates named themes and mixes to the consolidated system palette", () => {
+  it("renders named themes and mixes as system without rewriting them", () => {
     const result = runBootScript({
       storage: {
         [THEME_STORAGE_KEY]: "grove",
@@ -107,9 +109,11 @@ describe("index.html boot script", () => {
     });
 
     expect(result.isDark).toBe(true);
-    expect(result.storage.get(THEME_STORAGE_KEY)).toBe("system");
-    expect(result.storage.get(APPEARANCE_STORAGE_KEY)).toBe("system");
-    expect(result.storage.has(THEME_HALVES_STORAGE_KEY)).toBe(false);
+    expect(result.storage.get(THEME_STORAGE_KEY)).toBe("grove");
+    expect(result.storage.has(APPEARANCE_STORAGE_KEY)).toBe(false);
+    expect(result.storage.get(THEME_HALVES_STORAGE_KEY)).toBe(
+      JSON.stringify({ light: "iris", dark: "ocean" }),
+    );
   });
 
   it("follows the OS when storage is unavailable", () => {
