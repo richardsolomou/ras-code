@@ -336,6 +336,7 @@ import {
   MOBILE_DRAFT_HEADLINE_VIEW_TRANSITION_NAME,
   runMobileComposerTransition,
 } from "./chat/draftHeroTransition";
+import { DiffWorkerPoolProvider } from "./DiffWorkerPoolProvider";
 import { useIsFocusedPane } from "./chat/paneFocus";
 import {
   MAX_HIDDEN_MOUNTED_TERMINAL_THREADS,
@@ -3862,13 +3863,15 @@ function ChatViewContent(props: ChatViewProps) {
       },
     );
   }, []);
-  useEffect(
-    () =>
-      subscribePreviewAction((action) => {
-        if (action === "toggle-panel") togglePreviewPanel();
-      }),
-    [togglePreviewPanel],
-  );
+  // Same rule as the window keydown listener below: the preview bus is a window
+  // broadcast, so an ungated companion pane would answer a shortcut aimed at the
+  // pane the user is actually in and toggle its own preview alongside.
+  useEffect(() => {
+    if (!isFocusedPane) return;
+    return subscribePreviewAction((action) => {
+      if (action === "toggle-panel") togglePreviewPanel();
+    });
+  }, [isFocusedPane, togglePreviewPanel]);
   const persistThreadSettingsForNextTurn = useCallback(
     async (input: {
       threadId: ThreadId;
@@ -7656,10 +7659,10 @@ function ChatViewContent(props: ChatViewProps) {
   );
 }
 
-/**
- * The diff worker pool is provided by ChatPanes rather than here, so two panes
- * share one pool of workers instead of standing up a second.
- */
 export default function ChatView(props: ChatViewProps) {
-  return <ChatViewContent {...props} />;
+  return (
+    <DiffWorkerPoolProvider>
+      <ChatViewContent {...props} />
+    </DiffWorkerPoolProvider>
+  );
 }

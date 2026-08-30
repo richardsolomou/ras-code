@@ -9,12 +9,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import {
-  canSplitPaneRow,
-  isSameThreadRef,
-  selectFocusedThread,
-  useChatPaneStore,
-} from "../chatPaneStore";
+import { canOpenThreadInSplit, selectFocusedThread, useChatPaneStore } from "../chatPaneStore";
 import { useRoutedThreadRef } from "../hooks/useRoutedThreadRef";
 import { setPinnedReorderHandler, type ThreadDragData } from "../threadDrag";
 import {
@@ -469,7 +464,13 @@ function SortablePinnedThreadRow(props: {
     data: props.data,
     animateLayoutChanges: animatePinnedLayoutChanges,
   });
-  return props.children({ listeners, setNodeRef, transform, transition, isDragging });
+  // Memoized because the row it feeds is memoized: a fresh bag every render
+  // would defeat the comparison for every card in the list.
+  const bag = useMemo(
+    () => ({ listeners, setNodeRef, transform, transition, isDragging }),
+    [isDragging, listeners, setNodeRef, transform, transition],
+  );
+  return props.children(bag);
 }
 
 /**
@@ -483,7 +484,13 @@ function DraggableThreadRow(props: {
   children: (bag: ThreadRowDragBag) => ReactNode;
 }) {
   const { listeners, setNodeRef, isDragging } = useDraggable({ id: props.id, data: props.data });
-  return props.children({ listeners, setNodeRef, transform: null, isDragging });
+  // See SortablePinnedThreadRow: the bag has to keep its identity or every row
+  // re-renders on every sidebar update.
+  const bag = useMemo(
+    () => ({ listeners, setNodeRef, transform: null, isDragging }),
+    [isDragging, listeners, setNodeRef],
+  );
+  return props.children(bag);
 }
 
 // One unsent draft session the user has invested content in. Two lines,
@@ -1883,15 +1890,18 @@ export default function Sidebar() {
   // thread until they click into a split pane beside it.
   const focusedThreadRef = useChatPaneStore((state) => selectFocusedThread(state, routeThreadRef));
   const focusedThreadKey = focusedThreadRef ? scopedThreadKey(focusedThreadRef) : null;
+  const routeThreadKey = routeThreadRef ? scopedThreadKey(routeThreadRef) : null;
   const routeTargetRef = useRef(routeTarget);
   routeTargetRef.current = routeTarget;
   const routedThreadRefRef = useRef(routeThreadRef);
   routedThreadRefRef.current = routeThreadRef;
   // Post-settle navigation validates against the CURRENT route, not the one
   // captured when the settle started: if the user navigated elsewhere while
-  // the command was in flight, completing it must not yank them away.
-  const routeThreadKeyRef = useRef(focusedThreadKey);
-  routeThreadKeyRef.current = focusedThreadKey;
+  // the command was in flight, completing it must not yank them away. The
+  // routed key, never the focused one — this guards a navigation, and parking
+  // a thread in the companion pane must not move the pane beside it.
+  const routeThreadKeyRef = useRef(routeThreadKey);
+  routeThreadKeyRef.current = routeThreadKey;
 
   const environmentLabelById = useMemo(
     () =>
@@ -3175,9 +3185,10 @@ export default function Sidebar() {
           api.contextMenu.show(
             buildThreadActionMenuItems({
               branch: thread.branch ?? null,
-              canOpenInSplit:
-                canSplitPaneRow(useChatPaneStore.getState().rowWidth) &&
-                !isSameThreadRef(routedThreadRefRef.current, threadRef),
+              canOpenInSplit: canOpenThreadInSplit(useChatPaneStore.getState(), {
+                routed: routedThreadRefRef.current,
+                candidate: threadRef,
+              }),
               isPinned,
               isSettled,
               isSnoozed,

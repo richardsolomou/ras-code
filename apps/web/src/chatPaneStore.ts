@@ -1,18 +1,18 @@
 /**
  * Side-by-side chat panes.
  *
- * The focused pane is always the routed thread, so this store only holds the
- * companion beside it. The URL stays the single source of truth for what has
- * focus, and focusing the companion swaps the two rather than introducing a
- * second notion of "the current thread"; `companionSide` flips with that swap
- * so neither pane moves on screen.
+ * The routed pane is the router's outlet; this store holds the optional
+ * companion beside it, which half it occupies, and which of the two the user is
+ * working in. Focus is tracked separately from the route on purpose — see
+ * `FocusedPane` — and `companionSide` flips when the two trade places so neither
+ * pane moves on screen.
  */
 import { scopedThreadKey } from "@ras-code/client-runtime/environment";
 import type { ScopedThreadRef } from "@ras-code/contracts";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
-import { resolveStorage } from "./lib/storage";
+import { createDebouncedStorage } from "./lib/storage";
 
 const CHAT_PANES_STORAGE_KEY = "ras-code:chat-panes:v1";
 const CHAT_PANES_STORAGE_VERSION = 1;
@@ -44,6 +44,9 @@ export interface ChatPaneLayout {
   leftFraction: number;
 }
 
+/** A layout plus whether the row it sits in can currently show two panes. */
+export type ChatPaneMeasuredLayout = ChatPaneLayout & { canSplit: boolean };
+
 export const INITIAL_CHAT_PANE_LAYOUT: ChatPaneLayout = {
   companion: null,
   companionSide: "right",
@@ -51,12 +54,35 @@ export const INITIAL_CHAT_PANE_LAYOUT: ChatPaneLayout = {
   leftFraction: 0.5,
 };
 
+/**
+ * Whether the companion is actually on screen. A row too narrow to hold two
+ * readable panes suspends it, and a suspended pane can hold neither focus nor
+ * the sidebar's active row.
+ */
+export function isCompanionVisible(layout: ChatPaneMeasuredLayout): boolean {
+  return layout.companion !== null && layout.canSplit;
+}
+
+/**
+ * Whether a thread can usefully be opened beside the current one. False for a
+ * thread already on screen in either pane, and for a row with no space for two —
+ * the menu must never offer a split that would do nothing.
+ */
+export function canOpenThreadInSplit(
+  layout: ChatPaneMeasuredLayout,
+  input: { routed: ScopedThreadRef | null; candidate: ScopedThreadRef },
+): boolean {
+  if (!layout.canSplit) return false;
+  if (isSameThreadRef(input.routed, input.candidate)) return false;
+  return !isSameThreadRef(layout.companion, input.candidate);
+}
+
 /** The thread the user is working in, which is what the sidebar marks active. */
 export function selectFocusedThread(
-  layout: ChatPaneLayout,
+  layout: ChatPaneMeasuredLayout,
   routed: ScopedThreadRef | null,
 ): ScopedThreadRef | null {
-  if (layout.focusedPane === "companion" && layout.companion) return layout.companion;
+  if (layout.focusedPane === "companion" && isCompanionVisible(layout)) return layout.companion;
   return routed;
 }
 
@@ -155,33 +181,40 @@ export function planPaneFocusChange(
  * Re-targeting one of two panes instead leaves the user working out which pane a
  * click will land in, which is exactly the question panes should not raise.
  *
- * Promoting the companion is the one navigation that keeps both panes, and it is
- * recognisable without a flag: it moves the route onto the thread the companion
- * was already showing, so the pane the route just left is the companion.
+ * Keyed off the route target rather than the thread it resolves to, because a
+ * draft promoting in place resolves from no thread to a real one without the
+ * route moving at all — collapsing there would delete the companion the moment
+ * the user sends the prompt they opened it for.
+ *
+ * Promoting the companion is the one real navigation that keeps both panes, and
+ * it is recognisable without a flag: it moves the route onto the thread the
+ * companion was already showing, so the pane the route just left is the
+ * companion.
  */
 export function shouldCollapseOnNavigation(input: {
+  previousRouteId: string | null;
+  nextRouteId: string | null;
   previousRoutedKey: string | null;
-  nextRoutedKey: string | null;
   companionKey: string | null;
 }): boolean {
-  const { companionKey, nextRoutedKey, previousRoutedKey } = input;
+  const { companionKey, nextRouteId, previousRouteId, previousRoutedKey } = input;
   if (companionKey === null) return false;
-  if (nextRoutedKey === previousRoutedKey) return false;
+  if (nextRouteId === previousRouteId) return false;
   if (previousRoutedKey === companionKey) return false;
-  if (nextRoutedKey === companionKey) return false;
   return true;
 }
 
 /**
- * Drops a companion the routed pane has taken over, or one whose thread the
+ * Drops a companion the routed pane has taken over, or one whose thread its
  * environment no longer has. Persisted refs outlive the threads they name, and
  * navigating the focused pane onto the companion's thread would otherwise show
  * the same transcript twice.
  *
- * An empty `knownThreadKeys` means "not loaded yet", never "no threads exist".
- * The list is empty on every boot, and the environment-bootstrap flag reads true
- * before any environment has connected, so treating empty as authoritative
- * evicts a restored companion on the first render after a reload.
+ * "Gone" is judged per environment, never globally. `knownThreadKeys` spans every
+ * connected environment and they connect independently, so a companion living in
+ * a slower environment looks absent the moment a faster one reports — and a
+ * transient disconnect would evict it for good. Absence only counts once the
+ * companion's own environment has threads of its own to be missing from.
  *
  * Keyed by string rather than by ref on purpose. This runs from an effect, and a
  * router selector that rebuilds its result each render would re-run it on every
@@ -199,7 +232,15 @@ export function reconcileCompanion(input: {
   if (!companion) return layout;
   const companionKey = scopedThreadKey(companion);
   if (companionKey === routedKey) return { ...layout, companion: null, focusedPane: "routed" };
-  if (knownThreadKeys.size > 0 && !knownThreadKeys.has(companionKey)) {
+  const environmentPrefix = `${companion.environmentId}:`;
+  let environmentHasLoaded = false;
+  for (const key of knownThreadKeys) {
+    if (key.startsWith(environmentPrefix)) {
+      environmentHasLoaded = true;
+      break;
+    }
+  }
+  if (environmentHasLoaded && !knownThreadKeys.has(companionKey)) {
     return { ...layout, companion: null, focusedPane: "routed" };
   }
   return layout;
@@ -207,12 +248,13 @@ export function reconcileCompanion(input: {
 
 interface ChatPaneStore extends ChatPaneLayout {
   /**
-   * Measured width of the pane row. Not persisted — it is a fact about the
-   * current window, and it lives here so the sidebar can hide a split action
-   * the inset has no room for without measuring the inset itself.
+   * Whether the pane row currently has space for two readable panes. Only the
+   * boolean is stored, never the measured width: the width changes every frame
+   * of a window or sidebar resize, and each write would re-render the companion's
+   * whole ChatView. Not persisted — it is a fact about the current window.
    */
-  rowWidth: number;
-  setRowWidth: (width: number) => void;
+  canSplit: boolean;
+  setCanSplit: (canSplit: boolean) => void;
   /** Puts `thread` in the pane on `side`, splitting the inset if it was whole. */
   splitWithThread: (input: {
     routed: ScopedThreadRef | null;
@@ -223,7 +265,7 @@ interface ChatPaneStore extends ChatPaneLayout {
   applyLayout: (layout: ChatPaneLayout) => void;
   closeCompanion: () => void;
   focusPane: (pane: FocusedPane) => void;
-  setLeftFraction: (fraction: number) => void;
+  setLeftFraction: (fraction: number, rowWidth: number) => void;
   reconcile: (input: { routedKey: string | null; knownThreadKeys: ReadonlySet<string> }) => void;
 }
 
@@ -231,10 +273,10 @@ export const useChatPaneStore = create<ChatPaneStore>()(
   persist(
     (set) => ({
       ...INITIAL_CHAT_PANE_LAYOUT,
-      rowWidth: 0,
+      canSplit: false,
 
-      setRowWidth: (width) =>
-        set((state) => (state.rowWidth === width ? state : { rowWidth: width })),
+      setCanSplit: (canSplit) =>
+        set((state) => (state.canSplit === canSplit ? state : { canSplit })),
 
       splitWithThread: ({ dropped, routed, side }) =>
         set((state) => planPaneSplit({ dropped, layout: state, routed, side }) ?? state),
@@ -251,8 +293,8 @@ export const useChatPaneStore = create<ChatPaneStore>()(
           return { focusedPane: pane };
         }),
 
-      setLeftFraction: (fraction) =>
-        set((state) => ({ leftFraction: clampPaneFraction(fraction, state.rowWidth) })),
+      setLeftFraction: (fraction, rowWidth) =>
+        set({ leftFraction: clampPaneFraction(fraction, rowWidth) }),
 
       reconcile: ({ knownThreadKeys, routedKey }) =>
         set((state) => reconcileCompanion({ knownThreadKeys, layout: state, routedKey })),
@@ -260,8 +302,11 @@ export const useChatPaneStore = create<ChatPaneStore>()(
     {
       name: CHAT_PANES_STORAGE_KEY,
       version: CHAT_PANES_STORAGE_VERSION,
+      // Debounced because zustand's persist writes on every `set`, including the
+      // no-op ones: focus lands on a pointerdown and the divider commits a
+      // fraction, and neither should mean a synchronous localStorage write.
       storage: createJSONStorage(() =>
-        resolveStorage(typeof window !== "undefined" ? window.localStorage : undefined),
+        createDebouncedStorage(typeof window !== "undefined" ? window.localStorage : undefined),
       ),
       partialize: (state): ChatPaneLayout => ({
         companion: state.companion,

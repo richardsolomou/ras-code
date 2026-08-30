@@ -5,6 +5,7 @@ import { describe, expect, it } from "vite-plus/test";
 import {
   CHAT_PANE_MIN_WIDTH,
   selectFocusedThread,
+  canOpenThreadInSplit,
   canSplitPaneRow,
   clampPaneFraction,
   INITIAL_CHAT_PANE_LAYOUT,
@@ -12,7 +13,7 @@ import {
   planPaneSplit,
   reconcileCompanion,
   shouldCollapseOnNavigation,
-  type ChatPaneLayout,
+  type ChatPaneMeasuredLayout,
 } from "./chatPaneStore";
 
 const threadRef = (threadId: string, environmentId = "env-1") =>
@@ -20,10 +21,13 @@ const threadRef = (threadId: string, environmentId = "env-1") =>
 
 const alpha = threadRef("alpha");
 const beta = threadRef("beta");
+const gamma = threadRef("gamma");
 
-const splitLayout = (overrides: Partial<ChatPaneLayout> = {}): ChatPaneLayout => ({
+const splitLayout = (overrides: Partial<ChatPaneMeasuredLayout> = {}): ChatPaneMeasuredLayout => ({
   ...INITIAL_CHAT_PANE_LAYOUT,
   companion: beta,
+  // Room for two panes unless a test takes it away.
+  canSplit: true,
   ...overrides,
 });
 
@@ -134,8 +138,34 @@ describe("selectFocusedThread", () => {
 
   it("falls back to the routed thread when no companion is open", () => {
     expect(
-      selectFocusedThread({ ...INITIAL_CHAT_PANE_LAYOUT, focusedPane: "companion" }, alpha),
+      selectFocusedThread(splitLayout({ companion: null, focusedPane: "companion" }), alpha),
     ).toEqual(alpha);
+  });
+
+  it("falls back to the routed thread when the row is too narrow to show the companion", () => {
+    expect(
+      selectFocusedThread(splitLayout({ focusedPane: "companion", canSplit: false }), alpha),
+    ).toEqual(alpha);
+  });
+});
+
+describe("canOpenThreadInSplit", () => {
+  it("offers a split for a thread that is in neither pane", () => {
+    expect(canOpenThreadInSplit(splitLayout(), { routed: alpha, candidate: gamma })).toBe(true);
+  });
+
+  it("refuses the thread already in the routed pane", () => {
+    expect(canOpenThreadInSplit(splitLayout(), { routed: alpha, candidate: alpha })).toBe(false);
+  });
+
+  it("refuses the thread already in the companion, which would be a no-op", () => {
+    expect(canOpenThreadInSplit(splitLayout(), { routed: alpha, candidate: beta })).toBe(false);
+  });
+
+  it("refuses any split on a row with no room for two panes", () => {
+    expect(
+      canOpenThreadInSplit(splitLayout({ canSplit: false }), { routed: alpha, candidate: gamma }),
+    ).toBe(false);
   });
 });
 
@@ -174,8 +204,9 @@ describe("planPaneFocusChange", () => {
 
 describe("shouldCollapseOnNavigation", () => {
   const keys = {
+    previousRouteId: "thread:env-1:alpha",
+    nextRouteId: "thread:env-1:gamma",
     previousRoutedKey: "env-1:alpha",
-    nextRoutedKey: "env-1:gamma",
     companionKey: "env-1:beta",
   };
 
@@ -188,25 +219,40 @@ describe("shouldCollapseOnNavigation", () => {
   });
 
   it("ignores a route that has not actually moved", () => {
-    expect(shouldCollapseOnNavigation({ ...keys, nextRoutedKey: "env-1:alpha" })).toBe(false);
+    expect(shouldCollapseOnNavigation({ ...keys, nextRouteId: keys.previousRouteId })).toBe(false);
   });
 
   it("keeps both panes when the companion is promoted", () => {
     expect(
       shouldCollapseOnNavigation({
+        previousRouteId: "thread:env-1:beta",
+        nextRouteId: "thread:env-1:alpha",
         previousRoutedKey: "env-1:beta",
-        nextRoutedKey: "env-1:alpha",
         companionKey: "env-1:beta",
       }),
     ).toBe(false);
   });
 
-  it("keeps both panes when the route lands on the companion's own thread", () => {
-    expect(shouldCollapseOnNavigation({ ...keys, nextRoutedKey: "env-1:beta" })).toBe(false);
+  it("keeps both panes when a draft promotes in place, which moves no route", () => {
+    expect(
+      shouldCollapseOnNavigation({
+        previousRouteId: "draft:draft-1",
+        nextRouteId: "draft:draft-1",
+        previousRoutedKey: null,
+        companionKey: "env-1:beta",
+      }),
+    ).toBe(false);
   });
 
-  it("collapses when leaving a draft for a thread, since that is still a navigation", () => {
-    expect(shouldCollapseOnNavigation({ ...keys, previousRoutedKey: null })).toBe(true);
+  it("collapses when leaving a draft for a thread, since that is a real navigation", () => {
+    expect(
+      shouldCollapseOnNavigation({
+        previousRouteId: "draft:draft-1",
+        nextRouteId: "thread:env-1:gamma",
+        previousRoutedKey: null,
+        companionKey: "env-1:beta",
+      }),
+    ).toBe(true);
   });
 });
 
@@ -231,7 +277,7 @@ describe("reconcileCompanion", () => {
     ).toBe("routed");
   });
 
-  it("drops a companion whose thread no longer exists", () => {
+  it("drops a companion whose thread its own environment no longer has", () => {
     expect(
       reconcileCompanion({
         layout: splitLayout(),
@@ -239,6 +285,16 @@ describe("reconcileCompanion", () => {
         knownThreadKeys: new Set(["env-1:alpha"]),
       }).companion,
     ).toBeNull();
+  });
+
+  it("holds a companion whose environment has not reported yet", () => {
+    expect(
+      reconcileCompanion({
+        layout: splitLayout({ companion: threadRef("beta", "env-2") }),
+        routedKey: "env-1:alpha",
+        knownThreadKeys: new Set(["env-1:alpha", "env-1:other"]),
+      }).companion,
+    ).toEqual(threadRef("beta", "env-2"));
   });
 
   it("holds the companion while the thread list is still empty", () => {

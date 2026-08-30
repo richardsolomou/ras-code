@@ -6,8 +6,10 @@ agent's progress while you drive another.
 ## Open a second thread
 
 Drag a thread from the sidebar onto the chat area. The left and right halves light up as you drag;
-drop on the half you want the thread to occupy. Dropping on a half that already holds a thread
-replaces it.
+drop on the half you want the thread to occupy.
+
+Once a split is open, only the second pane's half takes a drop — drag another thread onto it to
+swap what it shows. The first pane belongs to the address bar and changes by navigating.
 
 You can also right-click a thread in the sidebar and choose **Open in split**. It opens on the
 right. The option is hidden for the thread you already have open, and when the window is too narrow
@@ -19,8 +21,7 @@ Clicking a thread — in the sidebar, in search, or through a link — takes you
 own, and closes the split. Clicking navigates; dragging arranges. So a thread you open the ordinary
 way never lands in a pane you were not looking at.
 
-To swap one side of a split without losing the other, drag the new thread onto the half you want it
-to replace.
+To change the second pane without losing it, drag another thread onto its half.
 
 ## Which pane you are working in
 

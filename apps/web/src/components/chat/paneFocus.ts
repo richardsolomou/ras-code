@@ -1,13 +1,12 @@
 import { createContext, useContext } from "react";
 
 /**
- * Whether the ChatView reading this owns the window-level shortcuts and the
- * automatic composer focus.
+ * Whether the ChatView reading this is the pane the user is working in, and so
+ * owns the window-level shortcuts and the automatic composer focus.
  *
- * Focus follows the router: the routed pane is the focused one, so a companion
- * pane reads false and leaves the global keys alone. Defaults to true, which is
- * every ChatView outside a split — those behave exactly as they did before panes
- * existed.
+ * Focus is client state rather than the route — a click moves it, and the URL
+ * stays where it is. Defaults to true, which is every ChatView outside a split:
+ * those behave exactly as they did before panes existed.
  */
 const PaneFocusContext = createContext(true);
 

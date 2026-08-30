@@ -1,3 +1,4 @@
+import { scopedThreadKey } from "@ras-code/client-runtime/environment";
 import type { ScopedThreadRef } from "@ras-code/contracts";
 import { useParams } from "@tanstack/react-router";
 import { useMemo } from "react";
@@ -25,4 +26,24 @@ export function useRoutedThreadRef(): ScopedThreadRef | null {
     () => resolveActiveThreadRouteRef(routeTarget, routeDraftThread),
     [routeDraftThread, routeTarget],
   );
+}
+
+/**
+ * A stable identity for whatever the route points at, draft or thread.
+ *
+ * Distinct from the thread ref: a draft keeps the same identity across the
+ * promotion that gives it one, which is what tells an in-place promotion apart
+ * from a real navigation.
+ */
+export function useRouteTargetId(): string | null {
+  return useParams({
+    strict: false,
+    select: (params) => {
+      const target = resolveThreadRouteTarget(params);
+      if (!target) return null;
+      return target.kind === "draft"
+        ? `draft:${target.draftId}`
+        : `thread:${scopedThreadKey(target.threadRef)}`;
+    },
+  });
 }

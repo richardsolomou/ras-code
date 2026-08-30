@@ -9,23 +9,25 @@ import {
   useMemo,
   useRef,
   type CSSProperties,
+  type RefObject,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from "react";
 
 import ChatView from "../ChatView";
-import { DiffWorkerPoolProvider } from "../DiffWorkerPoolProvider";
 import { WorkspacePageHeader } from "../WorkspacePageHeader";
 import {
   canSplitPaneRow,
   clampPaneFraction,
+  isCompanionVisible,
+  oppositePaneSide,
   planPaneFocusChange,
   shouldCollapseOnNavigation,
   useChatPaneStore,
   type ChatPaneSide,
   type FocusedPane,
 } from "../../chatPaneStore";
-import { useRoutedThreadRef } from "../../hooks/useRoutedThreadRef";
+import { useRouteTargetId, useRoutedThreadRef } from "../../hooks/useRoutedThreadRef";
 import {
   useThreadDetail,
   useThreadRefs,
@@ -75,31 +77,46 @@ const PANE_KEYBOARD_STEP = 0.02;
  *  neither remounts and neither moves on screen. */
 const ORDER_BY_SIDE = { left: 0, right: 2 } as const;
 
-/** Publishes the pane row's width so anything offering a split can check for room. */
-function useMeasureRowWidth(): (node: HTMLDivElement | null) => void {
-  const setRowWidth = useChatPaneStore((state) => state.setRowWidth);
+/**
+ * Watches the pane row and publishes only whether it has room for two panes.
+ *
+ * The measured width stays in a ref: it changes every frame of a window or
+ * sidebar resize, and pushing that through the store would re-render the
+ * companion's entire ChatView per frame. Only crossing the threshold is a fact
+ * React needs. The ref is what the divider clamps against.
+ */
+function useMeasureRow(): {
+  rowRef: (node: HTMLDivElement | null) => void;
+  rowWidthRef: RefObject<number>;
+} {
+  const setCanSplit = useChatPaneStore((state) => state.setCanSplit);
   const observerRef = useRef<ResizeObserver | null>(null);
+  const rowWidthRef = useRef(0);
 
-  const ref = useCallback(
+  const rowRef = useCallback(
     (node: HTMLDivElement | null) => {
       observerRef.current?.disconnect();
       observerRef.current = null;
       if (!node) return;
-      setRowWidth(node.clientWidth);
+      const publish = (width: number) => {
+        rowWidthRef.current = width;
+        setCanSplit(canSplitPaneRow(width));
+      };
+      publish(node.clientWidth);
       if (typeof ResizeObserver === "undefined") return;
       const observer = new ResizeObserver((entries) => {
         const entry = entries[0];
-        if (entry) setRowWidth(entry.contentRect.width);
+        if (entry) publish(entry.contentRect.width);
       });
       observer.observe(node);
       observerRef.current = observer;
     },
-    [setRowWidth],
+    [setCanSplit],
   );
 
   useEffect(() => () => observerRef.current?.disconnect(), []);
 
-  return ref;
+  return { rowRef, rowWidthRef };
 }
 
 /**
@@ -110,10 +127,12 @@ function useMeasureRowWidth(): (node: HTMLDivElement | null) => void {
 function PaneDropZone({
   side,
   label,
+  spacerBefore,
   visible,
 }: {
   side: ChatPaneSide;
   label: string;
+  spacerBefore: boolean;
   visible: boolean;
 }) {
   const { isOver, setNodeRef } = useDroppable({
@@ -122,21 +141,24 @@ function PaneDropZone({
   });
 
   return (
-    <div
-      ref={setNodeRef}
-      data-testid={`chat-pane-drop-${side}`}
-      className={`pointer-events-none flex flex-1 items-center justify-center rounded-lg transition-colors ${
-        visible ? "" : "invisible"
-      } ${isOver ? "bg-accent/10 ring-2 ring-accent ring-inset" : "ring-1 ring-border ring-inset"}`}
-    >
-      <span
-        className={`rounded-md bg-accent px-2 py-1 font-medium text-[11px] text-accent-foreground shadow-sm transition-opacity ${
-          isOver ? "opacity-100" : "opacity-0"
-        }`}
+    <>
+      {spacerBefore ? <div className="flex-1" /> : null}
+      <div
+        ref={setNodeRef}
+        data-testid={`chat-pane-drop-${side}`}
+        className={`pointer-events-none flex flex-1 items-center justify-center rounded-lg transition-colors ${
+          visible ? "" : "invisible"
+        } ${isOver ? "bg-accent/10 ring-2 ring-accent ring-inset" : "ring-1 ring-border ring-inset"}`}
       >
-        {label}
-      </span>
-    </div>
+        <span
+          className={`rounded-md bg-accent px-2 py-1 font-medium text-[11px] text-accent-foreground shadow-sm transition-opacity ${
+            isOver ? "opacity-100" : "opacity-0"
+          }`}
+        >
+          {label}
+        </span>
+      </div>
+    </>
   );
 }
 
@@ -147,36 +169,57 @@ function PaneDropZone({
  *
  * No zones at all on a row too narrow to hold two panes: offering a target that
  * would immediately suspend itself is a lie.
+ *
+ * While a split is live only the companion's own half takes a drop. The routed
+ * half belongs to the URL and changes by navigating, and a zone over it could
+ * only be honoured by evicting the companion — replacing the pane the user did
+ * not aim at.
  */
-function PaneDropOverlay({ canSplit, splitActive }: { canSplit: boolean; splitActive: boolean }) {
+function PaneDropOverlay({
+  canSplit,
+  companionSide,
+  splitActive,
+}: {
+  canSplit: boolean;
+  companionSide: ChatPaneSide;
+  splitActive: boolean;
+}) {
   const { active } = useDndContext();
   if (!canSplit) return null;
   const dragging = readThreadDrag(active) !== null;
+  const sides: ChatPaneSide[] = splitActive ? [companionSide] : ["left", "right"];
 
   return (
     <div
       className={`pointer-events-none absolute inset-0 z-30 flex gap-2 p-2 ${dragging ? "" : "invisible"}`}
     >
-      <PaneDropZone
-        side="left"
-        visible={dragging}
-        label={splitActive ? "Replace left pane" : "Open on the left"}
-      />
-      <PaneDropZone
-        side="right"
-        visible={dragging}
-        label={splitActive ? "Replace right pane" : "Open on the right"}
-      />
+      {sides.map((side) => (
+        <PaneDropZone
+          key={side}
+          side={side}
+          visible={dragging}
+          // The lone zone in a live split sits on the companion's side, so it is
+          // pushed across by an empty flex spacer rather than laid out at half.
+          spacerBefore={splitActive && side === "right"}
+          label={splitActive ? "Replace this pane" : `Open on the ${side}`}
+        />
+      ))}
     </div>
   );
 }
 
+/**
+ * Resizes by writing a CSS variable on the row and committing to the store once,
+ * on release. The in-flight fraction never reaches React: the companion pane
+ * cannot be memoized — its width is the thing changing — so a state write per
+ * pointer event would re-render its whole ChatView at pointer rate.
+ */
 function PaneDivider({
   leftFraction,
   onFractionChange,
 }: {
   leftFraction: number;
-  onFractionChange: (fraction: number) => void;
+  onFractionChange: (fraction: number, rowWidth: number) => void;
 }) {
   const dividerRef = useRef<HTMLDivElement>(null);
 
@@ -189,19 +232,29 @@ function PaneDivider({
       const target = event.currentTarget;
       target.setPointerCapture(event.pointerId);
 
+      let pendingFraction = leftFraction;
       const handleMove = (moveEvent: PointerEvent) => {
-        onFractionChange((moveEvent.clientX - rowRect.left) / rowRect.width);
+        pendingFraction = clampPaneFraction(
+          (moveEvent.clientX - rowRect.left) / rowRect.width,
+          rowRect.width,
+        );
+        // Writing the variable is a style mutation the browser already batches
+        // to the next frame; going through React instead would re-render the
+        // companion's ChatView on every pointer event.
+        row.style.setProperty("--chat-pane-left-fraction", `${pendingFraction}`);
       };
       const handleUp = () => {
+        row.style.removeProperty("--chat-pane-left-fraction");
         target.removeEventListener("pointermove", handleMove);
         target.removeEventListener("pointerup", handleUp);
         target.removeEventListener("pointercancel", handleUp);
+        onFractionChange(pendingFraction, rowRect.width);
       };
       target.addEventListener("pointermove", handleMove);
       target.addEventListener("pointerup", handleUp);
       target.addEventListener("pointercancel", handleUp);
     },
-    [onFractionChange],
+    [leftFraction, onFractionChange],
   );
 
   return (
@@ -223,9 +276,12 @@ function PaneDivider({
         if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
         event.preventDefault();
         const step = event.key === "ArrowLeft" ? -PANE_KEYBOARD_STEP : PANE_KEYBOARD_STEP;
-        onFractionChange(leftFraction + step);
+        const width = dividerRef.current?.parentElement?.clientWidth ?? 0;
+        onFractionChange(leftFraction + step, width);
       }}
-      onDoubleClick={() => onFractionChange(0.5)}
+      onDoubleClick={() =>
+        onFractionChange(0.5, dividerRef.current?.parentElement?.clientWidth ?? 0)
+      }
     >
       {/* The grab area is wider than the rule, so the divider stays hairline
           without being a pixel-hunt. */}
@@ -286,7 +342,7 @@ function CompanionPane({
   onMakePrimary,
 }: {
   companion: ScopedThreadRef;
-  grow: number;
+  grow: string;
   isFocused: boolean;
   order: number;
   onClose: () => void;
@@ -358,15 +414,16 @@ function CompanionPane({
  */
 export function ChatPanes({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
-  const rowRef = useMeasureRowWidth();
+  const { rowRef, rowWidthRef } = useMeasureRow();
   const routed = useRoutedThreadRef();
   const routedKey = routed ? scopedThreadKey(routed) : null;
+  const routeId = useRouteTargetId();
 
   const companion = useChatPaneStore((state) => state.companion);
   const focusedPane = useChatPaneStore((state) => state.focusedPane);
   const companionSide = useChatPaneStore((state) => state.companionSide);
   const leftFraction = useChatPaneStore((state) => state.leftFraction);
-  const rowWidth = useChatPaneStore((state) => state.rowWidth);
+  const canSplit = useChatPaneStore((state) => state.canSplit);
   const closeCompanion = useChatPaneStore((state) => state.closeCompanion);
   const setLeftFraction = useChatPaneStore((state) => state.setLeftFraction);
   const applyLayout = useChatPaneStore((state) => state.applyLayout);
@@ -377,16 +434,19 @@ export function ChatPanes({ children }: { children: ReactNode }) {
 
   // `undefined` until the first run, which keeps a companion restored from a
   // previous session from reading as a navigation and closing itself.
-  const previousRoutedKeyRef = useRef<string | null | undefined>(undefined);
+  const previousRouteRef = useRef<{ routeId: string | null; routedKey: string | null } | undefined>(
+    undefined,
+  );
   useEffect(() => {
-    const previousRoutedKey = previousRoutedKeyRef.current;
-    previousRoutedKeyRef.current = routedKey;
+    const previous = previousRouteRef.current;
+    previousRouteRef.current = { routeId, routedKey };
     const { companion } = useChatPaneStore.getState();
     if (
-      previousRoutedKey !== undefined &&
+      previous !== undefined &&
       shouldCollapseOnNavigation({
-        previousRoutedKey,
-        nextRoutedKey: routedKey,
+        previousRouteId: previous.routeId,
+        nextRouteId: routeId,
+        previousRoutedKey: previous.routedKey,
         companionKey: companion ? scopedThreadKey(companion) : null,
       })
     ) {
@@ -394,7 +454,7 @@ export function ChatPanes({ children }: { children: ReactNode }) {
       return;
     }
     reconcile({ knownThreadKeys, routedKey });
-  }, [closeCompanion, knownThreadKeys, reconcile, routedKey]);
+  }, [closeCompanion, knownThreadKeys, reconcile, routeId, routedKey]);
 
   const focusRoutedPane = usePaneFocusHandler("routed");
 
@@ -414,51 +474,64 @@ export function ChatPanes({ children }: { children: ReactNode }) {
   // A row too narrow for two readable transcripts shows only the routed pane.
   // The companion is suspended rather than dropped, so widening the window (or
   // collapsing the sidebar) brings it straight back.
-  const canSplit = canSplitPaneRow(rowWidth);
-  const splitActive = companion !== null && canSplit;
-  const clampedLeftFraction = clampPaneFraction(leftFraction, rowWidth);
-  const routedGrow = splitActive
-    ? companionSide === "left"
-      ? 1 - clampedLeftFraction
-      : clampedLeftFraction
-    : 1;
+  const splitActive = isCompanionVisible({
+    canSplit,
+    companion,
+    companionSide,
+    focusedPane,
+    leftFraction,
+  });
   const companionFocused = splitActive && focusedPane === "companion";
+  // Both panes grow from one custom property, so the divider retunes the split
+  // by writing a variable rather than re-rendering either ChatView.
+  const routedOnLeft = companionSide === "right";
   const routedStyle: CSSProperties = {
-    order: splitActive ? ORDER_BY_SIDE[companionSide === "left" ? "right" : "left"] : 0,
-    flexGrow: routedGrow,
+    order: splitActive ? ORDER_BY_SIDE[oppositePaneSide(companionSide)] : 0,
+    flexGrow: splitActive ? `calc(${routedOnLeft ? "" : "1 - "}var(--chat-pane-left-fraction))` : 1,
     flexBasis: 0,
   };
 
   return (
-    <DiffWorkerPoolProvider>
-      <div ref={rowRef} data-chat-panes="" className="relative flex min-w-0 flex-1">
-        {/* biome-ignore lint/a11y/noStaticElementInteractions: pane focus mirrors pointer focus */}
-        <div
-          className="relative flex min-w-0"
-          data-chat-pane="routed"
-          data-chat-pane-focused={companionFocused ? "false" : "true"}
-          style={routedStyle}
-          onPointerDownCapture={focusRoutedPane}
-          onFocusCapture={focusRoutedPane}
-        >
-          {splitActive ? <PaneFocusRule isFocused={!companionFocused} /> : null}
-          <PaneFocusProvider value={!companionFocused}>{children}</PaneFocusProvider>
-        </div>
-        {splitActive && companion ? (
-          <>
-            <PaneDivider leftFraction={clampedLeftFraction} onFractionChange={setLeftFraction} />
-            <CompanionPane
-              companion={companion}
-              isFocused={companionFocused}
-              grow={1 - routedGrow}
-              order={ORDER_BY_SIDE[companionSide]}
-              onClose={closeCompanion}
-              onMakePrimary={handleMakePrimary}
-            />
-          </>
-        ) : null}
-        <PaneDropOverlay canSplit={canSplit} splitActive={splitActive} />
+    <div
+      ref={rowRef}
+      data-chat-panes=""
+      className="relative flex min-w-0 flex-1"
+      style={
+        {
+          "--chat-pane-left-fraction": clampPaneFraction(leftFraction, rowWidthRef.current),
+        } as CSSProperties
+      }
+    >
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: pane focus mirrors pointer focus */}
+      <div
+        className="relative flex min-w-0"
+        data-chat-pane="routed"
+        data-chat-pane-focused={companionFocused ? "false" : "true"}
+        style={routedStyle}
+        onPointerDownCapture={focusRoutedPane}
+        onFocusCapture={focusRoutedPane}
+      >
+        {splitActive ? <PaneFocusRule isFocused={!companionFocused} /> : null}
+        <PaneFocusProvider value={!companionFocused}>{children}</PaneFocusProvider>
       </div>
-    </DiffWorkerPoolProvider>
+      {splitActive && companion ? (
+        <>
+          <PaneDivider leftFraction={leftFraction} onFractionChange={setLeftFraction} />
+          <CompanionPane
+            companion={companion}
+            isFocused={companionFocused}
+            grow={`calc(${routedOnLeft ? "1 - " : ""}var(--chat-pane-left-fraction))`}
+            order={ORDER_BY_SIDE[companionSide]}
+            onClose={closeCompanion}
+            onMakePrimary={handleMakePrimary}
+          />
+        </>
+      ) : null}
+      <PaneDropOverlay
+        canSplit={canSplit}
+        splitActive={splitActive}
+        companionSide={companionSide}
+      />
+    </div>
   );
 }
