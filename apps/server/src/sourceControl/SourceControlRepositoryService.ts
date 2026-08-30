@@ -212,7 +212,10 @@ export const make = Effect.gen(function* () {
       cwd: preparedDestination.parentPath,
       args: ["clone", remoteUrl, preparedDestination.directoryName],
       timeoutMs: null,
+      // Clone output is discarded, so it is capped only to bound memory. The
+      // marker keeps an unexpectedly chatty clone from failing on volume alone.
       maxOutputBytes: 256 * 1024,
+      appendTruncationMarker: true,
     });
 
     return {

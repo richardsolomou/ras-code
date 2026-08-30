@@ -167,6 +167,59 @@ it.effect("uses stable diagnostics for every parsed non-repository command", () 
   }).pipe(Effect.provide(layer));
 });
 
+const makeOversizedOutputLayer = (stdout: string) => {
+  const spawner = ChildProcessSpawner.make(() => Effect.sync(() => makeSuccessfulHandle(stdout)));
+  return GitVcsDriver.layer.pipe(
+    Layer.provide(ServerConfigLayer),
+    Layer.provideMerge(
+      Layer.merge(
+        NodeServices.layer,
+        Layer.succeed(ChildProcessSpawner.ChildProcessSpawner, spawner),
+      ),
+    ),
+  );
+};
+
+// The output limit has two modes. Left unset it means "I need all of this", so
+// exceeding it fails rather than handing back a partial result that reads as
+// complete. Callers that only preview output, or discard it, opt into
+// truncation so output volume can never fail the command.
+it.effect("fails a command whose output exceeds the limit when truncation is not requested", () =>
+  Effect.gen(function* () {
+    const driver = yield* GitVcsDriver.GitVcsDriver;
+
+    const error = yield* driver
+      .execute({
+        operation: "GitVcsDriver.test.oversizedStrict",
+        cwd: "/repo",
+        args: ["show", "HEAD:big-file"],
+        maxOutputBytes: 8,
+      })
+      .pipe(Effect.flip);
+
+    assert.strictEqual(error._tag, "GitCommandError");
+    assert.strictEqual(error.detail, "Git output exceeded 8 bytes.");
+    assert.strictEqual(error.outputLength, 32);
+  }).pipe(Effect.provide(makeOversizedOutputLayer("x".repeat(32)))),
+);
+
+it.effect("truncates oversized output instead of failing when truncation is requested", () =>
+  Effect.gen(function* () {
+    const driver = yield* GitVcsDriver.GitVcsDriver;
+
+    const result = yield* driver.execute({
+      operation: "GitVcsDriver.test.oversizedTruncated",
+      cwd: "/repo",
+      args: ["show", "HEAD:big-file"],
+      maxOutputBytes: 8,
+      appendTruncationMarker: true,
+    });
+
+    assert.strictEqual(result.stdout, "x".repeat(8));
+    assert.strictEqual(result.stdoutTruncated, true);
+  }).pipe(Effect.provide(makeOversizedOutputLayer("x".repeat(32)))),
+);
+
 it.effect("invalidates origin remote cache when a driver mutation adds origin", () =>
   Effect.gen(function* () {
     const driver = yield* GitVcsDriver.GitVcsDriver;
