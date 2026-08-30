@@ -90,7 +90,7 @@ file from the relay directory. Runtime secrets include Clerk and APNs credential
 the configured API and tunnel DNS zones as retained Cloudflare resources. Personal stages reference
 the production-owned zones.
 
-The `prod` Alchemy stage is the shared hosted relay for stable and nightly clients and owns the
+The `prod` Alchemy stage is the shared hosted relay for stable and canary clients and owns the
 database named by `RELAY_DATABASE_NAME`. Every other stage gets its own
 `<RELAY_DATABASE_NAME>-<stage>` database on the same Postgres server, so stages never share tables:
 
@@ -115,7 +115,7 @@ the URL manually.
 ### Deployment CI
 
 The relay is versioned separately from client releases. `.github/workflows/deploy-relay.yml` deploys
-the shared Alchemy `prod` stage on every push to `main`. Stable and nightly release builds both
+the shared Alchemy `prod` stage on every push to `main`. Stable and canary release builds both
 resolve their static public config from the same
 `production` GitHub environment. Pull requests do not deploy relay stages. Developers can
 deploy personal non-production stages locally with any stage name other than `prod`.

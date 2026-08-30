@@ -375,8 +375,8 @@ export function resolveRemoteRasCodeCliPackageSpec(input: {
   }
 
   if (input.isDevelopment) {
-    return "ras-code@nightly";
+    return "ras-code@canary";
   }
 
-  return input.updateChannel === "nightly" ? "ras-code@nightly" : "ras-code@latest";
+  return input.updateChannel === "canary" ? "ras-code@canary" : "ras-code@latest";
 }

@@ -54,8 +54,8 @@ it("treats stable installs as direct invocations", () => {
   assert.isNull(detectCliRunner(""));
 });
 
-it("re-suggests the nightly channel only for nightly builds", () => {
-  assert.equal(suggestedPackageSpec("0.0.31-nightly.20260729"), "ras-code@nightly");
+it("re-suggests the canary channel only for canary builds", () => {
+  assert.equal(suggestedPackageSpec("0.0.31-canary.20260729"), "ras-code@canary");
   assert.equal(suggestedPackageSpec("0.0.31"), "ras-code");
 });
 
@@ -64,9 +64,9 @@ it("formats serve suggestions to match the launching command", () => {
     formatCliCommand({
       subcommand: "serve",
       entryPath: "/home/theo/.npm/_npx/abc/node_modules/ras-code/dist/bin.mjs",
-      version: "0.0.31-nightly.20260729",
+      version: "0.0.31-canary.20260729",
     }),
-    "npx ras-code@nightly serve",
+    "npx ras-code@canary serve",
   );
   assert.equal(
     formatCliCommand({
@@ -80,7 +80,7 @@ it("formats serve suggestions to match the launching command", () => {
     formatCliCommand({
       subcommand: "serve",
       entryPath: "/usr/local/lib/node_modules/ras-code/dist/bin.mjs",
-      version: "0.0.31-nightly.20260729",
+      version: "0.0.31-canary.20260729",
     }),
     "ras serve",
   );

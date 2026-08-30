@@ -1,13 +1,19 @@
 name: Release
 
+# Canary ships every merge to main; stable ships once a day. A stable release
+# derives its version by bumping the patch, so it lands exactly the version the
+# canaries ahead of it were previewing. Tag pushes and workflow_dispatch remain
+# available for a stable release on a version this cadence would not pick, such
+# as a minor or major bump.
 on:
   push:
+    branches: [main]
     tags:
       - "v*.*.*"
-      - "!v*-nightly.*"
+      - "!v*-canary.*"
   schedule:
     # Off minute zero: GitHub delays scheduled runs most at the top of the hour.
-    - cron: "38 */3 * * *"
+    - cron: "3 9 * * *"
   workflow_dispatch:
     inputs:
       channel:
@@ -17,21 +23,20 @@ on:
         type: choice
         options:
           - stable
-          - nightly
+          - canary
       version:
         description: "Release version (for example 1.2.3 or v1.2.3)"
         required: false
         type: string
 
-# Serialize nightlies (scheduled and manual) so overlapping runs cannot build
-# the same commit twice or publish out of order. Stable tag releases get their
-# own group so a nightly never blocks them. Running publishers are never
-# canceled, and queue: max keeps every pending run instead of the default
-# newest-wins single slot, so a queued stable tag can never be silently
-# dropped. Queued nightlies with no new commits skip via check_changes.
+# Canary collapses to the newest commit: a merge landing mid-release supersedes
+# the run in flight, so main ships once rather than once per commit in a burst.
+# Stable is never canceled, and queue: max keeps every pending stable run
+# instead of the default newest-wins single slot, so a queued stable release can
+# never be silently dropped.
 concurrency:
-  group: release-${{ (github.event_name == 'schedule' || inputs.channel == 'nightly') && 'nightly' || 'stable' }}
-  cancel-in-progress: false
+  group: release-${{ ((github.event_name == 'push' && github.ref_type == 'branch') || inputs.channel == 'canary') && 'canary' || 'stable' }}
+  cancel-in-progress: ${{ (github.event_name == 'push' && github.ref_type == 'branch') || inputs.channel == 'canary' }}
   queue: max
 
 permissions:
@@ -39,8 +44,10 @@ permissions:
   id-token: none
 
 jobs:
+  # The daily stable release is the only trigger that can fire with nothing new
+  # on main. Canary is driven by the merge itself, so it always has a change.
   check_changes:
-    name: Check for changes since last nightly
+    name: Check for changes since last stable release
     if: github.event_name == 'schedule'
     runs-on: ubuntu-latest
     outputs:
@@ -56,32 +63,39 @@ jobs:
           sparse-checkout-cone-mode: false
 
       - id: check
-        name: Compare HEAD to last nightly tag
+        name: Compare HEAD to last stable tag
         run: |
-          last_nightly_tag=$(git tag --list 'v*-nightly.*' 'nightly-v*' --sort=-creatordate | head -n 1)
-          if [[ -z "$last_nightly_tag" ]]; then
-            echo "No previous nightly tag found. Proceeding with release."
+          # Canary tags match the same glob, so drop them: the daily release
+          # must compare against the last stable, not the last build of any kind.
+          last_stable_tag=$(git tag --list 'v*.*.*' --sort=-creatordate | grep -v -- '-canary\.' | head -n 1)
+          if [[ -z "$last_stable_tag" ]]; then
+            echo "No previous stable tag found. Proceeding with release."
             echo "has_changes=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          last_nightly_sha=$(git rev-parse "$last_nightly_tag^{commit}")
+          last_stable_sha=$(git rev-parse "$last_stable_tag^{commit}")
           head_sha=$(git rev-parse HEAD)
 
-          if [[ "$last_nightly_sha" == "$head_sha" ]]; then
-            echo "No changes on main since last nightly release ($last_nightly_tag). Skipping."
+          if [[ "$last_stable_sha" == "$head_sha" ]]; then
+            echo "No changes on main since last stable release ($last_stable_tag). Skipping."
             echo "has_changes=false" >> "$GITHUB_OUTPUT"
           else
-            echo "Changes detected on main since $last_nightly_tag ($last_nightly_sha → $head_sha). Proceeding."
+            echo "Changes detected on main since $last_stable_tag ($last_stable_sha → $head_sha). Proceeding."
             echo "has_changes=true" >> "$GITHUB_OUTPUT"
           fi
 
   preflight:
     name: Preflight
     needs: [check_changes]
+    # finalize pushes the stable version bump to main, which would otherwise
+    # come straight back here as a canary release of that commit. Scoped to
+    # branch pushes so a tag pointed at that same commit still releases.
     if: |
       !failure() && !cancelled() &&
-      (github.event_name != 'schedule' || needs.check_changes.outputs.has_changes == 'true')
+      (github.event_name != 'schedule' || needs.check_changes.outputs.has_changes == 'true') &&
+      (github.event_name != 'push' || github.ref_type != 'branch' ||
+       !startsWith(github.event.head_commit.message, 'chore(release): prepare v'))
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -122,51 +136,70 @@ jobs:
         env:
           DISPATCH_CHANNEL: ${{ github.event.inputs.channel }}
           DISPATCH_VERSION: ${{ github.event.inputs.version }}
-          NIGHTLY_SHA: ${{ github.sha }}
-          NIGHTLY_RUN_NUMBER: ${{ github.run_number }}
+          RELEASE_SHA: ${{ github.sha }}
+          RELEASE_RUN_NUMBER: ${{ github.run_number }}
         run: |
-          if [[ "${GITHUB_EVENT_NAME}" == "schedule" || ( "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && "${DISPATCH_CHANNEL:-stable}" == "nightly" ) ]]; then
-            nightly_date="$(date -u +%Y%m%d)"
-
-            node scripts/resolve-nightly-release.ts \
-              --date "$nightly_date" \
-              --run-number "$NIGHTLY_RUN_NUMBER" \
-              --sha "$NIGHTLY_SHA" \
+          # A push to main is a canary; a pushed tag, the daily schedule, and
+          # workflow_dispatch default to stable.
+          if [[ "${GITHUB_EVENT_NAME}" == "push" && "${GITHUB_REF_TYPE}" == "branch" ]] ||
+             [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && "${DISPATCH_CHANNEL:-stable}" == "canary" ]]; then
+            node scripts/resolve-release-version.ts \
+              --channel canary \
+              --date "$(date -u +%Y%m%d)" \
+              --run-number "$RELEASE_RUN_NUMBER" \
+              --sha "$RELEASE_SHA" \
               --github-output
 
-            echo "release_channel=nightly" >> "$GITHUB_OUTPUT"
-            echo "cli_dist_tag=nightly" >> "$GITHUB_OUTPUT"
+            echo "release_channel=canary" >> "$GITHUB_OUTPUT"
+            echo "cli_dist_tag=canary" >> "$GITHUB_OUTPUT"
             echo "is_prerelease=true" >> "$GITHUB_OUTPUT"
             echo "make_latest=false" >> "$GITHUB_OUTPUT"
-          else
-            if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
-              raw="${DISPATCH_VERSION}"
-              if [[ -z "$raw" ]]; then
-                echo "workflow_dispatch stable releases require the version input." >&2
-                exit 1
-              fi
-            else
-              raw="${GITHUB_REF_NAME}"
-            fi
+            exit 0
+          fi
 
-            version="${raw#v}"
-            if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
-              echo "Invalid release version: $raw" >&2
-              exit 1
-            fi
+          # The daily release derives its own version by bumping the patch.
+          # A tag push or a dispatch names the version instead, which is how a
+          # minor or major release gets cut.
+          if [[ "${GITHUB_EVENT_NAME}" == "schedule" ]]; then
+            node scripts/resolve-release-version.ts \
+              --channel stable \
+              --sha "$RELEASE_SHA" \
+              --github-output
 
             echo "release_channel=stable" >> "$GITHUB_OUTPUT"
-            echo "version=$version" >> "$GITHUB_OUTPUT"
-            echo "tag=v$version" >> "$GITHUB_OUTPUT"
-            echo "name=RAS Code v$version" >> "$GITHUB_OUTPUT"
             echo "cli_dist_tag=latest" >> "$GITHUB_OUTPUT"
-            if [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-              echo "is_prerelease=false" >> "$GITHUB_OUTPUT"
-              echo "make_latest=true" >> "$GITHUB_OUTPUT"
-            else
-              echo "is_prerelease=true" >> "$GITHUB_OUTPUT"
-              echo "make_latest=false" >> "$GITHUB_OUTPUT"
+            echo "is_prerelease=false" >> "$GITHUB_OUTPUT"
+            echo "make_latest=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            raw="${DISPATCH_VERSION}"
+            if [[ -z "$raw" ]]; then
+              echo "workflow_dispatch stable releases require the version input." >&2
+              exit 1
             fi
+          else
+            raw="${GITHUB_REF_NAME}"
+          fi
+
+          version="${raw#v}"
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "Invalid release version: $raw" >&2
+            exit 1
+          fi
+
+          echo "release_channel=stable" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+          echo "name=RAS Code v$version" >> "$GITHUB_OUTPUT"
+          echo "cli_dist_tag=latest" >> "$GITHUB_OUTPUT"
+          if [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "is_prerelease=false" >> "$GITHUB_OUTPUT"
+            echo "make_latest=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_prerelease=true" >> "$GITHUB_OUTPUT"
+            echo "make_latest=false" >> "$GITHUB_OUTPUT"
           fi
 
       - id: previous_tag
@@ -754,7 +787,7 @@ jobs:
 
           # Enable if Windows arm64 builds are enabled.
           # Windows updater metadata is channel-specific (for example
-          # "latest.yml" or "nightly.yml"). Suffix each per-arch copy so the
+          # "latest.yml" or "canary.yml"). Suffix each per-arch copy so the
           # release job can merge matching arm64/x64 manifests back into one
           # canonical manifest per channel.
           # if [[ "${{ matrix.platform }}" == "win" ]]; then
@@ -1026,6 +1059,18 @@ jobs:
     secrets:
       AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
 
+  # Mobile stable follows full releases; every merge to main goes to the mobile
+  # canary channel from mobile-eas-production.yml's own push trigger.
+  publish_mobile_ota:
+    name: Publish mobile production OTA
+    needs: [preflight, release]
+    if: ${{ !failure() && !cancelled() && needs.preflight.result == 'success' && needs.release.result == 'success' && needs.preflight.outputs.release_channel == 'stable' }}
+    uses: ./.github/workflows/mobile-eas-production.yml
+    with:
+      mode: release
+      channel: production
+    secrets: inherit
+
   deploy_web:
     name: Deploy hosted web app
     needs: [preflight, relay_public_config, release]
@@ -1040,8 +1085,7 @@ jobs:
       RAS_CODE_RELAY_URL: ${{ needs.relay_public_config.outputs.relay_url }}
       CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
       RAS_CODE_WEB_ROUTER_URL: ${{ vars.RAS_CODE_WEB_ROUTER_URL }}
-      RAS_CODE_WEB_LATEST_DOMAIN: ${{ vars.RAS_CODE_WEB_LATEST_DOMAIN }}
-      RAS_CODE_WEB_NIGHTLY_DOMAIN: ${{ vars.RAS_CODE_WEB_NIGHTLY_DOMAIN }}
+      RAS_CODE_WEB_CANARY_DOMAIN: ${{ vars.RAS_CODE_WEB_CANARY_DOMAIN }}
       ALCHEMY_TELEMETRY_DISABLED: "1"
     steps:
       - name: Checkout
@@ -1105,15 +1149,15 @@ jobs:
             exit 1
           fi
 
-          if [[ -z "${RAS_CODE_WEB_ROUTER_URL:-}" || -z "${RAS_CODE_WEB_LATEST_DOMAIN:-}" || -z "${RAS_CODE_WEB_NIGHTLY_DOMAIN:-}" ]]; then
-            echo "Missing one or more required hosted web variables: RAS_CODE_WEB_ROUTER_URL, RAS_CODE_WEB_LATEST_DOMAIN, RAS_CODE_WEB_NIGHTLY_DOMAIN." >&2
+          if [[ -z "${RAS_CODE_WEB_ROUTER_URL:-}" || -z "${RAS_CODE_WEB_CANARY_DOMAIN:-}" ]]; then
+            echo "Missing one or more required hosted web variables: RAS_CODE_WEB_ROUTER_URL, RAS_CODE_WEB_CANARY_DOMAIN." >&2
             exit 1
           fi
 
           if [[ "${{ needs.preflight.outputs.release_channel }}" == "stable" ]]; then
             channel=latest
           else
-            channel=nightly
+            channel=canary
           fi
 
           echo "Deploying hosted web app for the $channel channel."
@@ -1204,66 +1248,3 @@ jobs:
           git add apps/server/package.json apps/desktop/package.json apps/web/package.json packages/contracts/package.json pnpm-lock.yaml
           git commit -m "chore(release): prepare $RELEASE_TAG"
           git push origin HEAD:main
-
-  announce_discord:
-    name: Announce release on Discord
-    if: |
-      always() && !cancelled() &&
-      needs.preflight.result == 'success' &&
-      needs.relay_public_config.result == 'success' &&
-      needs.release.result == 'success' &&
-      needs.deploy_web.result == 'success' &&
-      (needs.finalize.result == 'success' || needs.finalize.result == 'skipped')
-    needs: [preflight, relay_public_config, release, deploy_web, finalize]
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-        with:
-          ref: ${{ needs.preflight.outputs.ref }}
-          sparse-checkout: |
-            /*
-            !/.repos/
-          sparse-checkout-cone-mode: false
-
-      - name: Setup Vite+
-        uses: voidzero-dev/setup-vp@v1
-        with:
-          node-version-file: package.json
-          # No dependency cache: this job installs a filtered subset of the
-          # workspace, and setup-vp saves whatever store the first job to finish
-          # produced under the lockfile-wide key. A partial store then poisons
-          # every full install after it. Only full-install jobs cache.
-          cache: false
-          run-install: |
-            args:
-              - --filter=@ras-code/scripts...
-
-      - name: Announce prerelease on Discord
-        if: needs.preflight.outputs.is_prerelease == 'true'
-        continue-on-error: true
-        env:
-          DISCORD_MENTION_ROLE_ID: ${{ secrets.DISCORD_RELEASE_NIGHTLY_ROLE_ID }}
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_RELEASE_WEBHOOK_URL }}
-        run: |
-          node scripts/notify-discord-release.ts prerelease \
-            --role-id "$DISCORD_MENTION_ROLE_ID" \
-            --release-name "${{ needs.preflight.outputs.release_name }}" \
-            --release-version "${{ needs.preflight.outputs.version }}" \
-            --tag "${{ needs.preflight.outputs.tag }}" \
-            --release-url "https://github.com/${{ github.repository }}/releases/tag/${{ needs.preflight.outputs.tag }}"
-
-      - name: Announce latest release on Discord
-        if: needs.preflight.outputs.make_latest == 'true'
-        continue-on-error: true
-        env:
-          DISCORD_MENTION_ROLE_ID: ${{ secrets.DISCORD_RELEASE_LATEST_ROLE_ID }}
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_RELEASE_WEBHOOK_URL }}
-        run: |
-          node scripts/notify-discord-release.ts latest \
-            --role-id "$DISCORD_MENTION_ROLE_ID" \
-            --release-name "${{ needs.preflight.outputs.release_name }}" \
-            --release-version "${{ needs.preflight.outputs.version }}" \
-            --tag "${{ needs.preflight.outputs.tag }}" \
-            --release-url "https://github.com/${{ github.repository }}/releases/tag/${{ needs.preflight.outputs.tag }}"

@@ -100,7 +100,7 @@ export const relayUrlConfig = makeRelayUrlConfig();
 
 /**
  * Hosted app origin used for out-of-band OAuth on headless
- * machines. Overridable so staging/nightly builds can point their CLIs at a
+ * machines. Overridable so staging/canary builds can point their CLIs at a
  * matching hosted deployment.
  */
 export const hostedAppUrlConfig = makePublicValueConfig(

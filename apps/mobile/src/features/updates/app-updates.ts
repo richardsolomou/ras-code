@@ -460,7 +460,8 @@ async function defaultConfirmInstallNow(): Promise<boolean> {
   });
 }
 
-async function defaultFlushPendingWrites(): Promise<void> {
+/** Lands drafts and the thread outbox before anything tears down the JS runtime. */
+export async function flushPendingAppWrites(): Promise<void> {
   // Attempt every flush before surfacing the first failure, so one broken
   // store cannot keep the others from landing.
   const results = await Promise.allSettled([
@@ -532,7 +533,7 @@ function defaultOnForegroundStay(apply: () => void): void {
 
 const defaultAppUpdateEnvironment: AppUpdateEnvironment = {
   confirmInstallNow: defaultConfirmInstallNow,
-  flushPendingWrites: defaultFlushPendingWrites,
+  flushPendingWrites: flushPendingAppWrites,
   isSafeToRestartInBackground: defaultIsSafeToRestartInBackground,
   onNextBackground: defaultOnNextBackground,
   onForegroundStay: defaultOnForegroundStay,

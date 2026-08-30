@@ -1,0 +1,63 @@
+<svg width="1080" height="760" viewBox="0 0 540 380" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="canary-sky" x1="28" y1="0" x2="510" y2="112" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F5B417"/>
+      <stop offset="0.52" stop-color="#F79A2B"/>
+      <stop offset="1" stop-color="#EC7A3C"/>
+    </linearGradient>
+    <radialGradient id="canary-glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(420 18) rotate(157) scale(260 126)">
+      <stop stop-color="#FFF2C2" stop-opacity="0.85"/>
+      <stop offset="0.55" stop-color="#FFD672" stop-opacity="0.3"/>
+      <stop offset="1" stop-color="#F7A93C" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="canary-cloud" x1="18" y1="62" x2="260" y2="112" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF6E0" stop-opacity="0.62"/>
+      <stop offset="0.52" stop-color="#FFE1A8" stop-opacity="0.58"/>
+      <stop offset="1" stop-color="#FFC97E" stop-opacity="0.5"/>
+    </linearGradient>
+    <filter id="canary-soft" x="-24" y="35" width="588" height="101" filterUnits="userSpaceOnUse">
+      <feGaussianBlur stdDeviation="4"/>
+    </filter>
+  </defs>
+
+  <rect width="540" height="380" fill="#F7F7F5"/>
+  <rect width="540" height="112" fill="url(#canary-sky)"/>
+  <rect width="540" height="112" fill="url(#canary-glow)"/>
+
+  <g filter="url(#canary-soft)">
+    <path d="M-12 112V101C-12 87 0 76 14 76C18 63 30 54 44 54C58 54 70 62 74 75C79 70 86 67 94 67C110 67 123 79 124 95C132 96 138 101 141 112H-12Z" fill="url(#canary-cloud)"/>
+    <path d="M374 112C375 98 387 87 401 87C405 72 418 62 434 62C450 62 463 72 467 87C478 87 488 94 492 104C506 103 518 106 526 112H374Z" fill="url(#canary-cloud)" opacity="0.82"/>
+  </g>
+
+  <g fill="#5A3306">
+    <g transform="translate(292 20) scale(1.05)">
+      <path d="M2 16C6 13 10 12 14 12L18 12C20 12 22 12.5 24 13.5L28.5 12L25.5 15.2C25 17.6 22 19.2 18 19.2L10 19.2C7 19.2 4 18 2 16Z"/>
+      <path d="M12.5 12.4C13.5 6 17.5 1.6 22.5 0.6C20 4.6 18.5 8.6 18 12.4Z"/>
+      <path d="M11 12.4C9 7 5 3.4 0.4 2.8C3.4 5.8 5.4 9 6.4 12.8Z"/>
+    </g>
+    <g opacity="0.5" stroke="#5A3306" stroke-width="1.1" stroke-linecap="round" fill="none">
+      <path d="M212 34C215 30.5 218 30.5 221 34"/>
+      <path d="M221 34C224 30.5 227 30.5 230 34"/>
+      <path d="M356 66C358.4 63.2 360.8 63.2 363.2 66"/>
+      <path d="M363.2 66C365.6 63.2 368 63.2 370.4 66"/>
+    </g>
+  </g>
+
+  <path d="M0 111.5H540" stroke="#5A3306" stroke-opacity="0.3"/>
+  <path d="M32 28H64" stroke="#4A2A05" stroke-width="2"/>
+
+  <g font-family="-apple-system, BlinkMacSystemFont, sans-serif" fill="#4A2A05">
+    <text x="32" y="50" font-size="12" font-weight="600" letter-spacing="1.4">RAS CODE</text>
+    <text x="32" y="82" font-size="22" font-weight="600" letter-spacing="-0.45">Desktop</text>
+    <text x="508" y="50" text-anchor="end" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" font-weight="600" letter-spacing="1.2" opacity="0.84">CANARY BUILD</text>
+  </g>
+
+  <path d="M196 224C242 239 307 201 362 220" stroke="#71717A" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="1 7" opacity="0.42"/>
+  <circle cx="362" cy="220" r="2" fill="#71717A" opacity="0.55"/>
+  <path d="M176 204V227L182 221L187.5 232L192 229.8L186.5 219H194L176 204Z" fill="#71717A" stroke="#F7F7F5" stroke-width="1.5" stroke-linejoin="round"/>
+
+  <g font-family="-apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle">
+    <text x="270" y="322" font-size="13" font-weight="600" letter-spacing="-0.1" fill="#18181B">Drag RAS Code to Applications</text>
+    <text x="270" y="345" font-size="9.5" fill="#71717A">Open it from Applications when the copy finishes.</text>
+  </g>
+</svg>

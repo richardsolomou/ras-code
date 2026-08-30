@@ -9,55 +9,66 @@ import * as PlatformError from "effect/PlatformError";
 
 import {
   readDesktopBaseVersion,
-  resolveNightlyBaseVersion,
-  resolveNightlyReleaseMetadata,
-  resolveNightlyTargetVersion,
-  writeNightlyReleaseOutput,
-} from "./resolve-nightly-release.ts";
+  resolveStableReleaseMetadata,
+  resolveCanaryBaseVersion,
+  resolveCanaryReleaseMetadata,
+  resolveCanaryTargetVersion,
+  writeReleaseOutput,
+} from "./resolve-release-version.ts";
 
-it("strips prerelease and build metadata when deriving the nightly base version", () => {
-  assert.equal(resolveNightlyBaseVersion("0.0.17"), "0.0.17");
-  assert.equal(resolveNightlyBaseVersion("9.9.9-smoke.0"), "9.9.9");
-  assert.equal(resolveNightlyBaseVersion("1.2.3-beta.4+build.9"), "1.2.3");
+it("strips prerelease and build metadata when deriving the canary base version", () => {
+  assert.equal(resolveCanaryBaseVersion("0.0.17"), "0.0.17");
+  assert.equal(resolveCanaryBaseVersion("9.9.9-smoke.0"), "9.9.9");
+  assert.equal(resolveCanaryBaseVersion("1.2.3-beta.4+build.9"), "1.2.3");
 });
 
-it.effect("bumps the patch version before deriving nightly prerelease versions", () =>
+it.effect("bumps the patch version before deriving canary prerelease versions", () =>
   Effect.gen(function* () {
-    assert.equal(yield* resolveNightlyTargetVersion("0.0.17"), "0.0.18");
-    assert.equal(yield* resolveNightlyTargetVersion("9.9.9-smoke.0"), "9.9.10");
-    assert.equal(yield* resolveNightlyTargetVersion("1.2.3-beta.4+build.9"), "1.2.4");
+    assert.equal(yield* resolveCanaryTargetVersion("0.0.17"), "0.0.18");
+    assert.equal(yield* resolveCanaryTargetVersion("9.9.9-smoke.0"), "9.9.10");
+    assert.equal(yield* resolveCanaryTargetVersion("1.2.3-beta.4+build.9"), "1.2.4");
   }),
 );
 
 it.effect("reports the invalid desktop package version", () =>
   Effect.gen(function* () {
-    const error = yield* resolveNightlyTargetVersion("nightly").pipe(Effect.flip);
+    const error = yield* resolveCanaryTargetVersion("canary").pipe(Effect.flip);
 
     assert.equal(error._tag, "InvalidDesktopPackageVersionError");
-    assert.equal(error.version, "nightly");
-    assert.equal(error.message, "Invalid desktop package version 'nightly'.");
+    assert.equal(error.version, "canary");
+    assert.equal(error.message, "Invalid desktop package version 'canary'.");
   }),
 );
 
-it("derives nightly metadata including the short commit sha in the release name", () => {
+it("names a stable release after the base version alone", () => {
+  assert.deepStrictEqual(resolveStableReleaseMetadata("9.9.10", "abcdef1234567890"), {
+    baseVersion: "9.9.10",
+    version: "9.9.10",
+    tag: "v9.9.10",
+    name: "RAS Code v9.9.10",
+    shortSha: "abcdef123456",
+  });
+});
+
+it("derives canary metadata including the short commit sha in the release name", () => {
   assert.deepStrictEqual(
-    resolveNightlyReleaseMetadata("9.9.10", "20260413", 321, "abcdef1234567890"),
+    resolveCanaryReleaseMetadata("9.9.10", "20260413", 321, "abcdef1234567890"),
     {
       baseVersion: "9.9.10",
-      version: "9.9.10-nightly.20260413.321",
-      tag: "v9.9.10-nightly.20260413.321",
-      name: "RAS Code Nightly 9.9.10-nightly.20260413.321 (abcdef123456)",
+      version: "9.9.10-canary.20260413.321",
+      tag: "v9.9.10-canary.20260413.321",
+      name: "RAS Code Canary 9.9.10-canary.20260413.321 (abcdef123456)",
       shortSha: "abcdef123456",
     },
   );
 });
 
 it.effect("preserves the GITHUB_OUTPUT configuration cause", () => {
-  const metadata = resolveNightlyReleaseMetadata("1.2.4", "20260620", 42, "abcdef1234567890");
+  const metadata = resolveCanaryReleaseMetadata("1.2.4", "20260620", 42, "abcdef1234567890");
   const configCause = new ConfigProvider.SourceError({ message: "environment unavailable" });
 
   return Effect.gen(function* () {
-    const configError = yield* writeNightlyReleaseOutput(metadata, true).pipe(
+    const configError = yield* writeReleaseOutput(metadata, true).pipe(
       Effect.provideService(FileSystem.FileSystem, FileSystem.makeNoop({})),
       Effect.provideService(
         ConfigProvider.ConfigProvider,
@@ -66,7 +77,7 @@ it.effect("preserves the GITHUB_OUTPUT configuration cause", () => {
       Effect.flip,
     );
 
-    if (configError._tag !== "NightlyReleaseGitHubOutputConfigError") {
+    if (configError._tag !== "ReleaseGitHubOutputConfigError") {
       return assert.fail(`Unexpected error: ${configError._tag}`);
     }
     assert.instanceOf(configError.cause, Config.ConfigError);
@@ -81,13 +92,13 @@ it.layer(NodeServices.layer)("readDesktopBaseVersion", (it) => {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const rootDir = yield* fs.makeTempDirectoryScoped({
-        prefix: "resolve-nightly-release-read-",
+        prefix: "resolve-release-version-read-",
       });
       const packageJsonPath = path.join(rootDir, "apps/desktop/package.json");
 
       const error = yield* readDesktopBaseVersion(rootDir).pipe(Effect.flip);
 
-      if (error._tag !== "NightlyReleaseDesktopPackageError") {
+      if (error._tag !== "ReleaseDesktopPackageError") {
         return assert.fail(`Unexpected error: ${error._tag}`);
       }
       assert.equal(error.operation, "read");
@@ -102,7 +113,7 @@ it.layer(NodeServices.layer)("readDesktopBaseVersion", (it) => {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const rootDir = yield* fs.makeTempDirectoryScoped({
-        prefix: "resolve-nightly-release-decode-",
+        prefix: "resolve-release-version-decode-",
       });
       const packageJsonPath = path.join(rootDir, "apps/desktop/package.json");
       yield* fs.makeDirectory(path.dirname(packageJsonPath), { recursive: true });
@@ -110,7 +121,7 @@ it.layer(NodeServices.layer)("readDesktopBaseVersion", (it) => {
 
       const error = yield* readDesktopBaseVersion(rootDir).pipe(Effect.flip);
 
-      if (error._tag !== "NightlyReleaseDesktopPackageError") {
+      if (error._tag !== "ReleaseDesktopPackageError") {
         return assert.fail(`Unexpected error: ${error._tag}`);
       }
       assert.equal(error.operation, "decode");

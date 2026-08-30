@@ -154,9 +154,9 @@ export type DesktopUpdateStatus =
 
 export type DesktopRuntimeArch = "arm64" | "x64" | "other";
 export type DesktopTheme = "light" | "dark" | "system";
-export type DesktopUpdateChannel = "latest" | "nightly";
+export type DesktopUpdateChannel = "latest" | "canary";
 /** Non-shipping build markers. A release build has no stage label. */
-export type DesktopAppStageLabel = "Dev" | "Nightly";
+export type DesktopAppStageLabel = "Dev" | "Canary";
 
 export const DesktopUpdateStatusSchema = Schema.Literals([
   "disabled",
@@ -170,8 +170,8 @@ export const DesktopUpdateStatusSchema = Schema.Literals([
 ]);
 export const DesktopRuntimeArchSchema = Schema.Literals(["arm64", "x64", "other"]);
 export const DesktopThemeSchema = Schema.Literals(["light", "dark", "system"]);
-export const DesktopUpdateChannelSchema = Schema.Literals(["latest", "nightly"]);
-export const DesktopAppStageLabelSchema = Schema.Literals(["Dev", "Nightly"]);
+export const DesktopUpdateChannelSchema = Schema.Literals(["latest", "canary"]);
+export const DesktopAppStageLabelSchema = Schema.Literals(["Dev", "Canary"]);
 
 export interface DesktopAppBranding {
   baseName: string;

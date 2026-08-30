@@ -25,11 +25,10 @@ export default Alchemy.Stack(
     const deployment = yield* deploymentForStage(stage).pipe(Effect.orDie);
 
     const routerUrl = yield* Config.nonEmptyString("RAS_CODE_WEB_ROUTER_URL");
-    const latestDomain = yield* Config.nonEmptyString("RAS_CODE_WEB_LATEST_DOMAIN");
-    const nightlyDomain = yield* Config.nonEmptyString("RAS_CODE_WEB_NIGHTLY_DOMAIN");
+    const canaryDomain = yield* Config.nonEmptyString("RAS_CODE_WEB_CANARY_DOMAIN");
     const routerHost = yield* routerHostname(routerUrl).pipe(Effect.orDie);
 
-    const domains = { routerHost, latestDomain, nightlyDomain };
+    const domains = { routerHost, canaryDomain };
     const domain = webWorkerDomain(deployment, domains);
 
     const site = yield* Cloudflare.Website.StaticSite("ras-code-web", {

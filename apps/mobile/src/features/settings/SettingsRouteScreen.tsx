@@ -2,6 +2,7 @@ import { useAuth, useUser } from "@clerk/expo";
 import { useAtomSet, useAtomValue } from "@effect/atom-react";
 import Constants from "expo-constants";
 import * as Notifications from "expo-notifications";
+import * as Updates from "expo-updates";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackScreenOptions } from "../../native/StackHeader";
 import { SymbolView } from "../../components/AppSymbol";
@@ -41,6 +42,7 @@ import {
   registerHiddenUpdateTap,
   runAppUpdateCheck,
 } from "../updates/app-updates";
+import { mobileUpdateChannelLabel, resolveMobileUpdateChannel } from "../updates/update-channel";
 import { useSavedRemoteConnections } from "../../state/use-remote-environment-registry";
 import { SettingsRow } from "./components/SettingsRow";
 import { SettingsSection } from "./components/SettingsSection";
@@ -553,8 +555,16 @@ function AppSettingsSection() {
   // Fall back to "production" to match resolveAppVariant in app.config.ts, so a
   // missing variant never mislabels a production build as development.
   const variant = (Constants.expoConfig?.extra?.appVariant as string | undefined) ?? "production";
-  const variantLabel = variant === "production" ? "" : capitalize(variant);
-  const versionLabel = variantLabel ? `${version} · ${variantLabel}` : version;
+  // Only store builds follow a switchable track; elsewhere the variant is the
+  // more useful thing to name.
+  const updateChannel = resolveMobileUpdateChannel(Updates.channel);
+  const stageLabel =
+    variant === "production"
+      ? updateChannel === "canary"
+        ? mobileUpdateChannelLabel(updateChannel)
+        : ""
+      : capitalize(variant);
+  const versionLabel = stageLabel ? `${version} · ${stageLabel}` : version;
   const updateCheckAvailable = isAppUpdateCheckAvailable();
   const busy =
     updateState === "checking" || updateState === "downloading" || updateState === "restarting";
@@ -630,6 +640,14 @@ function AppSettingsSection() {
 
   return (
     <SettingsSection title="App">
+      {updateChannel ? (
+        <SettingsRow
+          icon="arrow.clockwise"
+          label="Update Track"
+          value={mobileUpdateChannelLabel(updateChannel)}
+          target="SettingsUpdateTrack"
+        />
+      ) : null}
       <SettingsRow icon="internaldrive" label="Client Storage" target="SettingsClientStorage" />
       <SettingsRow icon="doc.text" label="Legal" fullScreenTarget="SettingsLegal" />
       {updateCheckAvailable ? (

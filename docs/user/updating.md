@@ -78,4 +78,18 @@ messages are saved before the restart. Only if the app stays open long enough th
 gets that chance does it ask whether to install right away; choosing **Later** is safe and keeps the
 automatic install armed.
 
+### Choosing an Update Track
+
+**Settings → App → Update Track** picks which builds the app follows:
+
+- **Stable** follows the daily release.
+- **Canary** follows every change merged to main.
+
+Switching restarts the app and downloads the new track in the background; unsent drafts and queued
+messages are saved first. Switching back to Stable applies immediately — the app leaves the canary
+build behind on the next restart rather than waiting for a stable release to overtake it.
+
+The setting appears only in App Store and TestFlight builds. Development and preview builds follow
+the track they were built with.
+
 For remote connection setup and access troubleshooting, see [Remote Access](./remote-access.md).

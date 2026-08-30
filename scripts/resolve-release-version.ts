@@ -11,7 +11,7 @@ import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 import { Command, Flag } from "effect/unstable/cli";
 
-export interface NightlyReleaseMetadata {
+export interface ReleaseMetadata {
   readonly baseVersion: string;
   readonly version: string;
   readonly tag: string;
@@ -40,8 +40,17 @@ export class InvalidDesktopPackageVersionError extends Schema.TaggedErrorClass<I
   }
 }
 
-export class NightlyReleaseDesktopPackageError extends Schema.TaggedErrorClass<NightlyReleaseDesktopPackageError>()(
-  "NightlyReleaseDesktopPackageError",
+export class MissingCanaryBuildIdentityError extends Schema.TaggedErrorClass<MissingCanaryBuildIdentityError>()(
+  "MissingCanaryBuildIdentityError",
+  {},
+) {
+  override get message(): string {
+    return "Canary releases require --date and --run-number.";
+  }
+}
+
+export class ReleaseDesktopPackageError extends Schema.TaggedErrorClass<ReleaseDesktopPackageError>()(
+  "ReleaseDesktopPackageError",
   {
     operation: Schema.Literals(["read", "decode"]),
     packageJsonPath: Schema.String,
@@ -53,26 +62,26 @@ export class NightlyReleaseDesktopPackageError extends Schema.TaggedErrorClass<N
   }
 }
 
-export class NightlyReleaseGitHubOutputConfigError extends Schema.TaggedErrorClass<NightlyReleaseGitHubOutputConfigError>()(
-  "NightlyReleaseGitHubOutputConfigError",
+export class ReleaseGitHubOutputConfigError extends Schema.TaggedErrorClass<ReleaseGitHubOutputConfigError>()(
+  "ReleaseGitHubOutputConfigError",
   {
     cause: Schema.Defect(),
   },
 ) {
   override get message(): string {
-    return "Failed to resolve the GITHUB_OUTPUT path for nightly release metadata.";
+    return "Failed to resolve the GITHUB_OUTPUT path for release metadata.";
   }
 }
 
-export class NightlyReleaseGitHubOutputAppendError extends Schema.TaggedErrorClass<NightlyReleaseGitHubOutputAppendError>()(
-  "NightlyReleaseGitHubOutputAppendError",
+export class ReleaseGitHubOutputAppendError extends Schema.TaggedErrorClass<ReleaseGitHubOutputAppendError>()(
+  "ReleaseGitHubOutputAppendError",
   {
     outputPath: Schema.String,
     cause: Schema.Defect(),
   },
 ) {
   override get message(): string {
-    return `Failed to append nightly release metadata to ${this.outputPath}.`;
+    return `Failed to append release metadata to ${this.outputPath}.`;
   }
 }
 
@@ -83,10 +92,10 @@ const decodeDesktopPackageJson = Schema.decodeUnknownEffect(
   Schema.fromJsonString(DesktopPackageJsonSchema),
 );
 
-export const resolveNightlyBaseVersion = (version: string) => version.replace(/[-+].*$/, "");
+export const resolveCanaryBaseVersion = (version: string) => version.replace(/[-+].*$/, "");
 
-export const resolveNightlyTargetVersion = (version: string) => {
-  const stableCore = resolveNightlyBaseVersion(version);
+export const resolveCanaryTargetVersion = (version: string) => {
+  const stableCore = resolveCanaryBaseVersion(version);
   const match = /^(\d+)\.(\d+)\.(\d+)$/.exec(stableCore);
   if (!match) {
     return Effect.fail(new InvalidDesktopPackageVersionError({ version }));
@@ -96,19 +105,31 @@ export const resolveNightlyTargetVersion = (version: string) => {
   return Effect.succeed(`${major}.${minor}.${Number(patch) + 1}`);
 };
 
-export const resolveNightlyReleaseMetadata = (
+/** A stable release ships the base version itself; canaries preview it. */
+export const resolveStableReleaseMetadata = (
+  baseVersion: string,
+  sha: string,
+): ReleaseMetadata => ({
+  baseVersion,
+  version: baseVersion,
+  tag: `v${baseVersion}`,
+  name: `RAS Code v${baseVersion}`,
+  shortSha: sha.slice(0, 12),
+});
+
+export const resolveCanaryReleaseMetadata = (
   baseVersion: string,
   date: string,
   runNumber: number,
   sha: string,
 ) => {
   const shortSha = sha.slice(0, 12);
-  const version = `${baseVersion}-nightly.${date}.${runNumber}`;
+  const version = `${baseVersion}-canary.${date}.${runNumber}`;
   return {
     baseVersion,
     version,
     tag: `v${version}`,
-    name: `RAS Code Nightly ${version} (${shortSha})`,
+    name: `RAS Code Canary ${version} (${shortSha})`,
     shortSha,
   };
 };
@@ -123,7 +144,7 @@ export const readDesktopBaseVersion = Effect.fn("readDesktopBaseVersion")(functi
   const packageJsonSource = yield* fs.readFileString(packageJsonPath).pipe(
     Effect.mapError(
       (cause) =>
-        new NightlyReleaseDesktopPackageError({
+        new ReleaseDesktopPackageError({
           operation: "read",
           packageJsonPath,
           cause,
@@ -133,18 +154,18 @@ export const readDesktopBaseVersion = Effect.fn("readDesktopBaseVersion")(functi
   const packageJson = yield* decodeDesktopPackageJson(packageJsonSource).pipe(
     Effect.mapError(
       (cause) =>
-        new NightlyReleaseDesktopPackageError({
+        new ReleaseDesktopPackageError({
           operation: "decode",
           packageJsonPath,
           cause,
         }),
     ),
   );
-  return yield* resolveNightlyTargetVersion(packageJson.version);
+  return yield* resolveCanaryTargetVersion(packageJson.version);
 });
 
-export const writeNightlyReleaseOutput = Effect.fn("writeNightlyReleaseOutput")(function* (
-  metadata: NightlyReleaseMetadata,
+export const writeReleaseOutput = Effect.fn("writeReleaseOutput")(function* (
+  metadata: ReleaseMetadata,
   writeGithubOutput: boolean,
 ) {
   const fs = yield* FileSystem.FileSystem;
@@ -161,7 +182,7 @@ export const writeNightlyReleaseOutput = Effect.fn("writeNightlyReleaseOutput")(
     const githubOutputPath = yield* Config.nonEmptyString("GITHUB_OUTPUT").pipe(
       Effect.mapError(
         (cause) =>
-          new NightlyReleaseGitHubOutputConfigError({
+          new ReleaseGitHubOutputConfigError({
             cause,
           }),
       ),
@@ -170,7 +191,7 @@ export const writeNightlyReleaseOutput = Effect.fn("writeNightlyReleaseOutput")(
     yield* fs.writeFileString(githubOutputPath, serialized, { flag: "a" }).pipe(
       Effect.mapError(
         (cause) =>
-          new NightlyReleaseGitHubOutputAppendError({
+          new ReleaseGitHubOutputAppendError({
             outputPath: githubOutputPath,
             cause,
           }),
@@ -183,20 +204,27 @@ export const writeNightlyReleaseOutput = Effect.fn("writeNightlyReleaseOutput")(
   }
 });
 
+const ReleaseChannel = Schema.Literals(["stable", "canary"]);
+
 const command = Command.make(
-  "resolve-nightly-release",
+  "resolve-release-version",
   {
+    channel: Flag.choice("channel", ReleaseChannel.literals).pipe(
+      Flag.withDescription("Release channel to resolve metadata for."),
+    ),
     date: Flag.string("date").pipe(
       Flag.withSchema(DateSchema),
-      Flag.withDescription("Nightly build date in YYYYMMDD."),
+      Flag.withDescription("Canary build date in YYYYMMDD."),
+      Flag.optional,
     ),
     runNumber: Flag.string("run-number").pipe(
       Flag.withSchema(RunNumberSchema),
       Flag.withDescription("GitHub Actions run number."),
+      Flag.optional,
     ),
     sha: Flag.string("sha").pipe(
       Flag.withSchema(ShaSchema),
-      Flag.withDescription("Commit sha for the nightly build."),
+      Flag.withDescription("Commit sha for the release."),
     ),
     githubOutput: Flag.boolean("github-output").pipe(
       Flag.withDescription("Write values to GITHUB_OUTPUT instead of stdout."),
@@ -207,12 +235,22 @@ const command = Command.make(
       Flag.optional,
     ),
   },
-  ({ date, runNumber, sha, githubOutput, root }) =>
+  ({ channel, date, runNumber, sha, githubOutput, root }) =>
     readDesktopBaseVersion(Option.getOrUndefined(root)).pipe(
-      Effect.map((baseVersion) => resolveNightlyReleaseMetadata(baseVersion, date, runNumber, sha)),
-      Effect.flatMap((metadata) => writeNightlyReleaseOutput(metadata, githubOutput)),
+      Effect.flatMap((baseVersion) => {
+        if (channel === "stable") {
+          return Effect.succeed(resolveStableReleaseMetadata(baseVersion, sha));
+        }
+        if (Option.isNone(date) || Option.isNone(runNumber)) {
+          return Effect.fail(new MissingCanaryBuildIdentityError());
+        }
+        return Effect.succeed(
+          resolveCanaryReleaseMetadata(baseVersion, date.value, runNumber.value, sha),
+        );
+      }),
+      Effect.flatMap((metadata) => writeReleaseOutput(metadata, githubOutput)),
     ),
-).pipe(Command.withDescription("Resolve nightly release version metadata."));
+).pipe(Command.withDescription("Resolve stable or canary release version metadata."));
 
 if (import.meta.main) {
   Command.run(command, { version: "0.0.0" }).pipe(

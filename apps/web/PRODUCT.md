@@ -32,7 +32,7 @@ Name: RAS Code (short id `ras-code`). Contact domain ras.sh. Standalone identity
 
 ## Evidence on Hand
 
-Working product with real data (13 projects) at `~/.ras-code/dev`; brand asset pipeline at `assets/` (Icon Composer projects for dev/nightly/prod, generated icon sets); provider icons in `apps/web/src/components/Icons.tsx`; palette tokens in `apps/web/src/index.css` (dark default: canvas #202020, sidebar #1a1a1a). No testimonials, user counts, or press — none may be invented.
+Working product with real data (13 projects) at `~/.ras-code/dev`; brand asset pipeline at `assets/` (Icon Composer projects for dev/canary/prod, generated icon sets); provider icons in `apps/web/src/components/Icons.tsx`; palette tokens in `apps/web/src/index.css` (dark default: canvas #202020, sidebar #1a1a1a). No testimonials, user counts, or press — none may be invented.
 
 ## Product Principles
 

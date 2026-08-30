@@ -16,15 +16,37 @@ name: Mobile EAS Production
 #      Store approval, Apple closes the release train and `version` must be
 #      bumped before another iOS build can be submitted. Releasing to the App
 #      Store stays a manual App Store Connect step.
-#   2. OTA: publish a production-channel update for each platform where at
+#   2. OTA: publish a canary-channel update for each platform where at
 #      least one finished production build matches the current native
 #      fingerprint. Old-version binaries with a matching fingerprint receive
 #      it too. When native drift means no binary could install the update,
 #      it is skipped and flagged in the job summary instead of published
 #      into the void.
-# workflow_dispatch remains as a manual override for both modes (e.g. to
-# retry an errored build or force an OTA).
+#
+# Store builds embed the `production` channel, and the app switches its own
+# channel request header at runtime (Settings -> Update Track), so one binary
+# serves both tracks:
+#   - canary: this workflow, on every merge to main
+#   - production: release.yml calls this workflow with mode=release after a
+#     stable release publishes, so mobile stable follows the daily release
+# `inputs.mode` is the trigger discriminator, not `github.event_name`: under
+# workflow_call the event name is the caller's, so a stable release would
+# otherwise look like a push to main.
+# workflow_dispatch remains as a manual override for every mode (e.g. to
+# retry an errored build or force an OTA onto a chosen channel).
 on:
+  workflow_call:
+    inputs:
+      mode:
+        description: "release publishes the fingerprint-gated OTA without reconciling store builds"
+        required: false
+        type: string
+        default: release
+      channel:
+        description: "EAS Update channel to publish to"
+        required: false
+        type: string
+        default: production
   workflow_dispatch:
     inputs:
       mode:
@@ -35,6 +57,14 @@ on:
         options:
           - build
           - update
+      channel:
+        description: "EAS Update channel (mode=update only)"
+        required: true
+        type: choice
+        default: canary
+        options:
+          - canary
+          - production
       platform:
         description: "Target platform"
         required: true
@@ -68,20 +98,22 @@ on:
 
 # Serialize runs so OTAs publish in merge order. GitHub keeps at most one
 # queued run per group, so a burst of merges collapses into one run of the
-# newest commit — intermediate commits don't need their own OTA.
+# newest commit — intermediate commits don't need their own OTA. Each channel
+# gets its own group so a release OTA never queues behind the canary stream.
 concurrency:
-  group: mobile-eas-production
+  group: mobile-eas-production-${{ inputs.channel || 'canary' }}
   cancel-in-progress: false
 
 jobs:
   production:
-    name: EAS Production ${{ github.event_name == 'push' && 'auto' || inputs.mode }}
+    name: EAS Production ${{ inputs.mode || 'auto' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
     env:
       APP_VARIANT: production
       NODE_OPTIONS: --max-old-space-size=8192
+      OTA_CHANNEL: ${{ inputs.channel || 'canary' }}
     steps:
       - id: expo-token
         name: Check for EXPO_TOKEN
@@ -224,10 +256,10 @@ jobs:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
           eas update \
-            --channel production \
+            --channel "$OTA_CHANNEL" \
             --environment production \
             --platform ${{ inputs.platform }} \
-            --message "${{ inputs.message || format('Production OTA ({0})', github.sha) }}" \
+            --message "${{ inputs.message || format('Manual OTA ({0})', github.sha) }}" \
             --non-interactive
 
       # No --status filter on build:list: an in-queue/in-progress build must
@@ -236,7 +268,7 @@ jobs:
       # mode=build — pushes won't re-trigger it until the app version changes.
       - id: store_builds
         name: Ensure store builds exist for the current app version
-        if: steps.expo-token.outputs.present == 'true' && github.event_name == 'push'
+        if: steps.expo-token.outputs.present == 'true' && !inputs.mode
         continue-on-error: true
         working-directory: apps/mobile
         env:
@@ -260,12 +292,17 @@ jobs:
           done
           exit "$failed"
 
+      # Both channels are served to the same binaries, so the gate stays the
+      # production build profile no matter which channel is being published.
       - name: Publish fingerprint-gated OTA
-        if: steps.expo-token.outputs.present == 'true' && github.event_name == 'push'
+        if: steps.expo-token.outputs.present == 'true' && (!inputs.mode || inputs.mode == 'release')
         working-directory: apps/mobile
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
+          if ! eas channel:view "$OTA_CHANNEL" --json --non-interactive >/dev/null 2>&1; then
+            eas channel:create "$OTA_CHANNEL" --json --non-interactive
+          fi
           message="$(git log -1 --pretty=%s | head -c 120) ($(git rev-parse --short=9 HEAD))"
           for platform in ios android; do
             # eas-cli prints an environment-loaded notice to stdout before the
@@ -274,12 +311,12 @@ jobs:
             matching="$(eas build:list --platform "$platform" --build-profile production --status finished --fingerprint-hash "$hash" --limit 1 --json --non-interactive | jq 'length')"
             if [ "$matching" -gt 0 ]; then
               eas update \
-                --channel production \
+                --channel "$OTA_CHANNEL" \
                 --environment production \
                 --platform "$platform" \
                 --message "$message" \
                 --non-interactive
-              echo ":white_check_mark: $platform: OTA published to production (fingerprint \`$hash\`)" >> "$GITHUB_STEP_SUMMARY"
+              echo ":white_check_mark: $platform: OTA published to $OTA_CHANNEL (fingerprint \`$hash\`)" >> "$GITHUB_STEP_SUMMARY"
             else
               echo ":warning: $platform: no finished production build matches fingerprint \`$hash\` — OTA skipped; JS changes reach $platform only once a matching build ships" >> "$GITHUB_STEP_SUMMARY"
             fi

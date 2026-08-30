@@ -10,18 +10,18 @@ import {
 
 const ROUTER: WebRouterConfig = {
   routerHost: "code.ras.sh",
-  nightlyOrigin: "https://code-nightly.ras.sh",
+  canaryOrigin: "https://code-canary.ras.sh",
 };
-const NIGHTLY_DEPLOYMENT: WebRouterConfig = {};
+const CANARY_DEPLOYMENT: WebRouterConfig = {};
 
 const route = (url: string, cookie: string | null, config: WebRouterConfig = ROUTER) =>
   routeRequest(new URL(url), cookie, config);
 
 describe("routeRequest", () => {
-  it("opts into the nightly channel", () => {
-    expect(route("https://code.ras.sh/__ras-code/channel?channel=nightly", null)).toEqual({
+  it("opts into the canary channel", () => {
+    expect(route("https://code.ras.sh/__ras-code/channel?channel=canary", null)).toEqual({
       kind: "set-channel",
-      channel: "nightly",
+      channel: "canary",
     });
   });
 
@@ -39,10 +39,10 @@ describe("routeRequest", () => {
     });
   });
 
-  it("hands the router host to nightly when the cookie says so", () => {
-    expect(route("https://code.ras.sh/threads/1", "ras_code_web_channel=nightly")).toEqual({
+  it("hands the router host to canary when the cookie says so", () => {
+    expect(route("https://code.ras.sh/threads/1", "ras_code_web_channel=canary")).toEqual({
       kind: "proxy",
-      origin: "https://code-nightly.ras.sh",
+      origin: "https://code-canary.ras.sh",
     });
   });
 
@@ -56,22 +56,22 @@ describe("routeRequest", () => {
     });
   });
 
-  it("never proxies a channel domain, so a nightly cookie cannot loop", () => {
-    expect(route("https://code-latest.ras.sh/", "ras_code_web_channel=nightly")).toEqual({
+  it("never proxies the canary domain, so a canary cookie cannot loop", () => {
+    expect(route("https://code-canary.ras.sh/", "ras_code_web_channel=canary")).toEqual({
       kind: "assets",
     });
   });
 
-  it("serves assets on the nightly deployment, which has no router config", () => {
+  it("serves assets on the canary deployment, which has no router config", () => {
     expect(
-      route("https://code-nightly.ras.sh/", "ras_code_web_channel=nightly", NIGHTLY_DEPLOYMENT),
+      route("https://code-canary.ras.sh/", "ras_code_web_channel=canary", CANARY_DEPLOYMENT),
     ).toEqual({ kind: "assets" });
   });
 });
 
 describe("readChannelCookie", () => {
   it("finds the channel alongside other cookies", () => {
-    expect(readChannelCookie("foo=1; ras_code_web_channel=nightly; bar=2")).toBe("nightly");
+    expect(readChannelCookie("foo=1; ras_code_web_channel=canary; bar=2")).toBe("canary");
   });
 
   it("ignores a channel value it does not recognize", () => {
@@ -79,7 +79,7 @@ describe("readChannelCookie", () => {
   });
 
   it("ignores a cookie whose name merely ends with the channel name", () => {
-    expect(readChannelCookie("other_ras_code_web_channel=nightly")).toBeNull();
+    expect(readChannelCookie("other_ras_code_web_channel=canary")).toBeNull();
   });
 
   it("returns null when the header is absent", () => {
@@ -89,8 +89,8 @@ describe("readChannelCookie", () => {
 
 describe("channelCookie", () => {
   it("scopes the cookie to the whole site and keeps it off client scripts", () => {
-    expect(channelCookie("nightly")).toBe(
-      "ras_code_web_channel=nightly; Path=/; Max-Age=31536000; HttpOnly; Secure; SameSite=Lax",
+    expect(channelCookie("canary")).toBe(
+      "ras_code_web_channel=canary; Path=/; Max-Age=31536000; HttpOnly; Secure; SameSite=Lax",
     );
   });
 });
@@ -98,7 +98,7 @@ describe("channelCookie", () => {
 describe("proxyUrl", () => {
   it("preserves the path and query against the upstream origin", () => {
     expect(
-      proxyUrl(new URL("https://code.ras.sh/threads/1?tab=diff"), "https://code-nightly.ras.sh"),
-    ).toBe("https://code-nightly.ras.sh/threads/1?tab=diff");
+      proxyUrl(new URL("https://code.ras.sh/threads/1?tab=diff"), "https://code-canary.ras.sh"),
+    ).toBe("https://code-canary.ras.sh/threads/1?tab=diff");
   });
 });

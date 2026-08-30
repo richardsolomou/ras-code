@@ -244,33 +244,33 @@ const makeWindowsPayloadFixture = Effect.fn("test.makeWindowsPayloadFixture")(fu
 });
 
 it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
-  it("resolves the dedicated nightly updater channel from nightly versions", () => {
-    assert.equal(resolveDesktopUpdateChannel("0.0.17-nightly.20260413.42"), "nightly");
+  it("resolves the dedicated canary updater channel from canary versions", () => {
+    assert.equal(resolveDesktopUpdateChannel("0.0.17-canary.20260413.42"), "canary");
     assert.equal(resolveDesktopUpdateChannel("0.0.17"), "latest");
   });
 
-  it("switches desktop packaging product names to nightly for nightly builds", () => {
+  it("switches desktop packaging product names to canary for canary builds", () => {
     assert.equal(resolveDesktopProductName("0.0.17"), "RAS Code");
-    assert.equal(resolveDesktopProductName("0.0.17-nightly.20260413.42"), "RAS Code (Nightly)");
+    assert.equal(resolveDesktopProductName("0.0.17-canary.20260413.42"), "RAS Code (Canary)");
   });
 
-  it("switches desktop packaging icons to the nightly artwork for nightly versions", () => {
+  it("switches desktop packaging icons to the canary artwork for canary versions", () => {
     assert.deepStrictEqual(resolveDesktopBuildIconAssets("0.0.17"), {
       macIconPng: BRAND_ASSET_PATHS.productionMacIconPng,
       linuxIconPng: BRAND_ASSET_PATHS.productionLinuxIconPng,
       windowsIconIco: BRAND_ASSET_PATHS.productionWindowsIconIco,
     });
 
-    assert.deepStrictEqual(resolveDesktopBuildIconAssets("0.0.17-nightly.20260413.42"), {
-      macIconPng: BRAND_ASSET_PATHS.nightlyMacIconPng,
-      linuxIconPng: BRAND_ASSET_PATHS.nightlyLinuxIconPng,
-      windowsIconIco: BRAND_ASSET_PATHS.nightlyWindowsIconIco,
+    assert.deepStrictEqual(resolveDesktopBuildIconAssets("0.0.17-canary.20260413.42"), {
+      macIconPng: BRAND_ASSET_PATHS.canaryMacIconPng,
+      linuxIconPng: BRAND_ASSET_PATHS.canaryLinuxIconPng,
+      windowsIconIco: BRAND_ASSET_PATHS.canaryWindowsIconIco,
     });
   });
 
-  it("switches the bundled splash and favicon branding for nightly versions", () => {
+  it("switches the bundled splash and favicon branding for canary versions", () => {
     assert.equal(resolveDesktopWebAssetBrand("0.0.17"), "production");
-    assert.equal(resolveDesktopWebAssetBrand("0.0.17-nightly.20260413.42"), "nightly");
+    assert.equal(resolveDesktopWebAssetBrand("0.0.17-canary.20260413.42"), "canary");
   });
 
   it.effect("resolves GitHub desktop publish config from Effect config", () =>
@@ -286,7 +286,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
           ),
         ),
       );
-      const nightlyConfig = yield* resolveGitHubPublishConfig("nightly").pipe(
+      const canaryConfig = yield* resolveGitHubPublishConfig("canary").pipe(
         Effect.provide(
           ConfigProvider.layer(
             ConfigProvider.fromEnv({
@@ -304,12 +304,12 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
         repo: "ras-code",
         releaseType: "release",
       });
-      assert.deepStrictEqual(nightlyConfig, {
+      assert.deepStrictEqual(canaryConfig, {
         provider: "github",
         owner: "richardsolomou",
         repo: "ras-code",
         releaseType: "prerelease",
-        channel: "nightly",
+        channel: "canary",
       });
     }),
   );
@@ -1208,12 +1208,12 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
         });
         const dmgDir = path.join(stageResourcesDir, "dmg");
         yield* fs.makeDirectory(dmgDir, { recursive: true });
-        const sourcePath = path.join(dmgDir, "dmg-background-nightly.svg");
+        const sourcePath = path.join(dmgDir, "dmg-background-canary.svg");
         yield* fs.writeFileString(sourcePath, '<svg xmlns="http://www.w3.org/2000/svg"/>');
         const commands: Array<{ readonly command: string; readonly args: ReadonlyArray<string> }> =
           [];
 
-        yield* stageDesktopDmgBackground(stageResourcesDir, "nightly", false).pipe(
+        yield* stageDesktopDmgBackground(stageResourcesDir, "canary", false).pipe(
           Effect.provide(iconResizeSpawnerLayer(commands, [0, 0])),
         );
 
@@ -1230,7 +1230,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
               "540",
               sourcePath,
               "--out",
-              path.join(dmgDir, "dmg-background-nightly.png"),
+              path.join(dmgDir, "dmg-background-canary.png"),
             ],
             [
               "sips",
@@ -1242,7 +1242,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
               "1080",
               sourcePath,
               "--out",
-              path.join(dmgDir, "dmg-background-nightly@2x.png"),
+              path.join(dmgDir, "dmg-background-canary@2x.png"),
             ],
           ],
         );
@@ -1402,12 +1402,12 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
     }).pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: {} })))),
   );
 
-  it.effect("uses the nightly DMG background for nightly macOS builds", () =>
+  it.effect("uses the canary DMG background for canary macOS builds", () =>
     Effect.gen(function* () {
       const config = yield* createBuildConfig(
         "mac",
         "dmg",
-        "1.2.3-nightly.20260815.1",
+        "1.2.3-canary.20260815.1",
         false,
         false,
         undefined,
@@ -1416,7 +1416,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
 
       assert.equal(
         (config.dmg as Record<string, unknown>).background,
-        "dmg/dmg-background-nightly.png",
+        "dmg/dmg-background-canary.png",
       );
     }).pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: {} })))),
   );

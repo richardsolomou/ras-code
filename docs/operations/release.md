@@ -2,14 +2,15 @@
 
 > For maintainers. Using RAS Code? See [docs/user](../user/).
 
-This document covers the unified release workflow for stable and nightly desktop releases.
+This document covers the unified release workflow for stable and canary desktop releases.
 
 ## What the workflow does
 
 - Workflow: `.github/workflows/release.yml`
 - Triggers:
-  - push tag matching `v*.*.*` for stable releases
-  - scheduled nightly check every three hours
+  - push to `main` for canary releases, so every merge ships immediately
+  - a daily schedule at 09:03 UTC for stable releases
+  - push tag matching `v*.*.*` for a stable release on a specific version
   - manual `workflow_dispatch` for either channel
 - Runs lint, typecheck, and tests alongside artifact builds. Publishing waits for every check.
 - Reads the shared production RAS Connect relay URL and Clerk client configuration before packaging clients.
@@ -21,15 +22,15 @@ This document covers the unified release workflow for stable and nightly desktop
 - Publishes one GitHub Release with all produced files.
   - Stable tags with a suffix after `X.Y.Z` (for example `1.2.3-alpha.1`) are published as GitHub prereleases.
   - Only plain stable `X.Y.Z` releases are marked as the repository's latest release.
-  - Nightly runs are always GitHub prereleases and never marked latest.
-  - Automatically generated release notes are pinned to the previous tag in the same channel, so stable compares to the previous stable tag and nightly compares to the previous nightly tag.
-- Includes Electron auto-update metadata (for example `latest*.yml`, `nightly*.yml`, and `*.blockmap`) in release assets.
+  - Canary runs are always GitHub prereleases and never marked latest.
+  - Automatically generated release notes are pinned to the previous tag in the same channel, so stable compares to the previous stable tag and canary compares to the previous canary tag.
+- Includes Electron auto-update metadata (for example `latest*.yml`, `canary*.yml`, and `*.blockmap`) in release assets.
 - Publishes the CLI package (`apps/server`, npm package `ras-code`) with OIDC trusted publishing from the same workflow file:
   - stable releases publish npm dist-tag `latest`
-  - nightly releases publish npm dist-tag `nightly`
+  - canary releases publish npm dist-tag `canary`
 - Deploys the hosted web app to Cloudflare Workers only after a release is published:
   - stable releases deploy the `latest` hosted app channel
-  - nightly releases deploy the `nightly` hosted app channel
+  - canary releases deploy the `canary` hosted app channel
 - Signing is optional and auto-detected per platform from secrets.
 
 ## Required release credentials
@@ -46,7 +47,7 @@ independent from the shared Release App installation.
 
 ## RAS Connect relay deployment
 
-The relay is a shared control plane versioned separately from client releases. Stable and nightly
+The relay is a shared control plane versioned separately from client releases. Stable and canary
 client builds must point at the same relay so users see the same linked environments when switching
 release channels.
 
@@ -115,7 +116,7 @@ vp run --filter ras-code-relay deploy --stage "$USER" --env-file .env.local
 The hosted app is a Cloudflare Worker serving the built SPA as static assets,
 deployed by `.github/workflows/release.yml` after the GitHub Release succeeds.
 The Alchemy stack lives in `infra/web`, and the deployment stage names the
-release channel, so a stage typo cannot publish nightly assets onto the stable
+release channel, so a stage typo cannot publish canary assets onto the stable
 domain.
 
 Required GitHub Actions secrets:
@@ -127,24 +128,24 @@ Required GitHub Actions variables:
 
 - `CLOUDFLARE_ACCOUNT_ID`
 - `RAS_CODE_WEB_ROUTER_URL`: set to `https://code.ras.sh` for the RAS-hosted deployment.
-- `RAS_CODE_WEB_LATEST_DOMAIN`: set to `code-latest.ras.sh` for the RAS-hosted deployment.
-- `RAS_CODE_WEB_NIGHTLY_DOMAIN`: set to `code-nightly.ras.sh` for the RAS-hosted deployment.
+- `RAS_CODE_WEB_CANARY_DOMAIN`: set to `code-canary.ras.sh` for the RAS-hosted deployment.
 
 Worker custom domains, which Alchemy attaches:
 
-- `code.ras.sh`: the router domain users open, served by the `latest` stage.
-- `code-latest.ras.sh`: the stable channel, served by the `latest` stage.
-- `code-nightly.ras.sh`: the nightly channel, served by the `nightly` stage.
+- `code.ras.sh`: the stable channel and the domain users open, served by the `latest` stage.
+- `code-canary.ras.sh`: the canary channel, served by the `canary` stage. Canary
+  needs its own name because the router proxies to it; stable does not, because
+  the router serves stable itself.
 
 Both channels deploy the same Worker entry, `apps/web/worker.ts`. Only the
 `latest` stage receives `RAS_CODE_WEB_ROUTER_HOST` and
-`RAS_CODE_WEB_NIGHTLY_ORIGIN`, so only it routes; the nightly deployment serves
+`RAS_CODE_WEB_CANARY_ORIGIN`, so only it routes; the canary deployment serves
 its own assets unconditionally. Users opt into a channel by visiting
-`/__ras-code/channel?channel=latest` or `/__ras-code/channel?channel=nightly`,
+`/__ras-code/channel?channel=latest` or `/__ras-code/channel?channel=canary`,
 which sets the `ras_code_web_channel` cookie. On the router domain the Worker
-reads that cookie and proxies to the nightly origin when it says `nightly`;
-otherwise it serves its own assets. Requests to a channel domain are never
-proxied, so a stale cookie cannot cause a loop.
+reads that cookie and proxies to the canary origin when it says `canary`;
+otherwise it serves its own assets. The canary domain never routes, so a stale
+cookie cannot cause a loop.
 
 Known limitation: Cloudflare serves static assets before invoking the Worker, so
 the router does not see requests whose path exactly matches a built file. Channel
@@ -155,7 +156,7 @@ reports `raw_run_worker_first: false`.
 
 The release deploy job rewrites release package versions before the build so the
 hosted app's About panel renders the release version. It also passes
-`VITE_HOSTED_APP_CHANNEL=latest|nightly`, which renders the hosted update track
+`VITE_HOSTED_APP_CHANNEL=latest|canary`, which renders the hosted update track
 selector in the About panel. Changing the selector navigates through
 `/__ras-code/channel` on the router domain so the user's channel cookie is
 updated before redirecting to the hosted app root.
@@ -183,21 +184,48 @@ profile; see the Apple signing notes below.
 Trader status must be recorded in App Store Connect before a new app can be submitted in the EU.
 Only an Admin or the Account Holder can provide it.
 
-## Nightly builds
+### Mobile update tracks
+
+Store builds embed the `production` EAS Update channel, and the app overrides its own channel request
+header at runtime (Settings → Update Track), so one binary serves both tracks:
+
+- `canary`: `mobile-eas-production.yml` publishes on every merge to main that touches the mobile app.
+- `production`: `release.yml` calls `mobile-eas-production.yml` with `mode=release` after a stable
+  release publishes, so mobile stable follows full releases like the desktop app does.
+
+Store builds are still cut from main, so a fresh binary embeds newer JavaScript than the production
+channel holds. expo-updates launches the newest update it has, so those users stay on the embedded
+bundle until the next stable release publishes an OTA that overtakes it — no downgrade, just a quiet
+window where stable OTAs are no-ops.
+
+Both publishes are fingerprint-gated against finished `production`-profile builds, because both
+channels are served to the same binaries. `mobile-eas-production.yml` creates the channel on first
+publish if it does not exist yet; to create it by hand, run `eas channel:create canary` from
+`apps/mobile`.
+
+`inputs.mode` discriminates the trigger inside `mobile-eas-production.yml`, not `github.event_name`:
+under `workflow_call` the event name is the caller's, so a stable tag release would otherwise be
+mistaken for a push to main.
+
+## Canary builds
 
 - Workflow: `.github/workflows/release.yml`
 - Triggers:
-  - scheduled check every three hours
-  - manual `workflow_dispatch` with `channel=nightly`
-- Runs the same desktop quality gates and artifact matrix as the tagged release flow.
+  - push to `main`, so a merge ships as a canary release immediately
+  - manual `workflow_dispatch` with `channel=canary`
+- Runs the same desktop quality gates and artifact matrix as the stable flow.
+- Collapses to the newest commit: a merge landing while a canary release is in
+  flight supersedes it, so a burst of merges ships once rather than once per
+  commit. Stable runs are never canceled.
+- Skips the release the finalize job pushes back to `main`, so a stable version
+  bump does not immediately cut a canary of itself.
 - Publishes a GitHub prerelease only:
-  - current tag format: `vX.Y.Z-nightly.YYYYMMDD.<run_number>`
-  - `nightly-v...` is accepted only as a legacy previous-nightly tag
+  - current tag format: `vX.Y.Z-canary.YYYYMMDD.<run_number>`
   - release name includes the short commit SHA
   - `make_latest` is always `false`
-- Uses the next stable patch version as the nightly base. For example, `0.0.17` produces nightlies on `0.0.18-nightly.*`.
-- Publishes Electron auto-update metadata to the dedicated `nightly` updater channel, so desktop users can opt into that track independently from stable.
-- Publishes the CLI package (`apps/server`, npm package `ras-code`) to the `nightly` npm dist-tag using the same nightly version.
+- Uses the next stable patch version as the canary base. For example, `0.0.17` produces canaries on `0.0.18-canary.*` — the version the next daily stable release will carry.
+- Publishes Electron auto-update metadata to the dedicated `canary` updater channel, so desktop users can opt into that track independently from stable.
+- Publishes the CLI package (`apps/server`, npm package `ras-code`) to the `canary` npm dist-tag using the same canary version.
 - Does not commit version bumps back to `main`.
 
 ## Server self-update release invariant
@@ -208,7 +236,7 @@ npm before users can receive that client.
 
 The workflow enforces this ordering:
 
-1. `publish_cli` publishes the exact stable or nightly version to npm.
+1. `publish_cli` publishes the exact stable or canary version to npm.
 2. `release` depends on `publish_cli` before exposing desktop artifacts in GitHub Releases.
 3. `deploy_web` depends on `release` before moving the hosted channel to the new client.
 
@@ -239,10 +267,10 @@ available.
   - otherwise `GITHUB_REPOSITORY` from GitHub Actions.
 - Required release assets for updater:
   - platform installers (`.exe`, `.dmg`, `.AppImage`, plus macOS `.zip` for Squirrel.Mac update payloads)
-  - channel metadata: `latest*.yml` for stable releases, `nightly*.yml` for nightly releases
+  - channel metadata: `latest*.yml` for stable releases, `canary*.yml` for canary releases
   - `*.blockmap` files (used for differential downloads)
 - macOS metadata note:
-  - `electron-updater` reads `latest-mac.yml` on stable and `nightly-mac.yml` on nightly, for both Intel and Apple Silicon.
+  - `electron-updater` reads `latest-mac.yml` on stable and `canary-mac.yml` on canary, for both Intel and Apple Silicon.
   - The workflow merges the per-arch mac manifests into one channel-specific mac manifest before publishing the GitHub Release.
 
 ### Windows payload topology and update validation
@@ -298,25 +326,26 @@ Checklist:
    - Workflow file: `.github/workflows/release.yml`
    - Environment (if used): match your npm trusted publishing config
 3. Ensure npm account and org policies allow trusted publishing for the package.
-4. Create release tag `vX.Y.Z` and push; workflow will:
+4. The daily stable release, or a pushed `vX.Y.Z` tag, will:
    - align the release package versions to `X.Y.Z`
    - build web + server
    - invoke the CLI publish script with npm dist-tag `latest`
-5. Nightly runs invoke the same publish script with npm dist-tag `nightly`.
+5. Canary runs invoke the same publish script with npm dist-tag `canary`.
 
 ## 1) Release validation and unsigned builds
 
-There is no dry-run tag path. Pushing any accepted non-nightly tag, including
+There is no dry-run path, and no branch to experiment on: a merge to `main` is a
+real canary release. Pushing any accepted non-canary tag, including
 `v0.0.0-test.1`, classifies the run as the stable channel. It publishes `ras-code` with npm dist-tag
-`latest`, creates a real GitHub Release, aliases the hosted app to `code-latest.ras.sh` and
-`code.ras.sh`, and can commit a version bump to `main` in the finalize job. Do not push a test tag
+`latest`, creates a real GitHub Release, publishes the hosted app to `code.ras.sh`,
+and can commit a version bump to `main` in the finalize job. Do not push a test tag
 to validate the workflow.
 
 The workflow has no non-publishing `workflow_dispatch` mode. Use normal CI or local quality gates to
 validate checks and builds without shipping. To exercise the complete release graph at lower stable
-risk, manually dispatch `channel=nightly`; this still publishes a real nightly npm package, GitHub
-prerelease, desktop updater release, and hosted nightly alias, but it does not update stable aliases or
-commit a version bump to `main`. Only run it when a real nightly release is acceptable.
+risk, manually dispatch `channel=canary`; this still publishes a real canary npm package, GitHub
+prerelease, desktop updater release, and hosted canary alias, but it does not update stable aliases or
+commit a version bump to `main`. Only run it when a real canary release is acceptable.
 
 Manual `channel=stable` with a version input is also a real stable-channel release. Omitting signing
 secrets only makes platform artifacts unsigned; it does not prevent publication.

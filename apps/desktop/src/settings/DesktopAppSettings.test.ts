@@ -28,7 +28,7 @@ const DesktopSettingsPatch = Schema.Struct({
   serverExposureMode: Schema.optionalKey(Schema.Literals(["local-only", "network-accessible"])),
   tailscaleServeEnabled: Schema.optionalKey(Schema.Boolean),
   tailscaleServePort: Schema.optionalKey(Schema.Number),
-  updateChannel: Schema.optionalKey(Schema.Literals(["latest", "nightly"])),
+  updateChannel: Schema.optionalKey(Schema.Literals(["latest", "canary"])),
   updateChannelConfiguredByUser: Schema.optionalKey(Schema.Boolean),
   wslBackendEnabled: Schema.optionalKey(Schema.Boolean),
   wslMode: Schema.optionalKey(Schema.Literals(["local", "wsl"])),
@@ -101,23 +101,20 @@ describe("DesktopSettings", () => {
     ),
   );
 
-  it("defaults packaged nightly builds to the nightly update channel", () => {
-    assert.deepEqual(
-      DesktopAppSettings.resolveDefaultDesktopSettings("0.0.17-nightly.20260415.1"),
-      {
-        linuxPasswordStore: "auto",
-        mainWindowBounds: null,
-        mainWindowMaximized: false,
-        serverExposureMode: "local-only",
-        tailscaleServeEnabled: false,
-        tailscaleServePort: 443,
-        updateChannel: "nightly",
-        updateChannelConfiguredByUser: false,
-        wslBackendEnabled: false,
-        wslOnly: false,
-        wslDistro: null,
-      } satisfies DesktopAppSettings.DesktopSettings,
-    );
+  it("defaults packaged canary builds to the canary update channel", () => {
+    assert.deepEqual(DesktopAppSettings.resolveDefaultDesktopSettings("0.0.17-canary.20260415.1"), {
+      linuxPasswordStore: "auto",
+      mainWindowBounds: null,
+      mainWindowMaximized: false,
+      serverExposureMode: "local-only",
+      tailscaleServeEnabled: false,
+      tailscaleServePort: 443,
+      updateChannel: "canary",
+      updateChannelConfiguredByUser: false,
+      wslBackendEnabled: false,
+      wslOnly: false,
+      wslDistro: null,
+    } satisfies DesktopAppSettings.DesktopSettings);
   });
 
   it.effect("loads persisted settings and applies semantic updates", () =>
@@ -158,9 +155,9 @@ describe("DesktopSettings", () => {
         assert.isTrue(tailscale.changed);
         assert.equal(tailscale.settings.tailscaleServePort, 9443);
 
-        const updateChannel = yield* settings.setUpdateChannel("nightly");
+        const updateChannel = yield* settings.setUpdateChannel("canary");
         assert.isTrue(updateChannel.changed);
-        assert.equal(updateChannel.settings.updateChannel, "nightly");
+        assert.equal(updateChannel.settings.updateChannel, "canary");
         assert.equal(updateChannel.settings.updateChannelConfiguredByUser, true);
       }),
     ),
@@ -291,7 +288,7 @@ describe("DesktopSettings", () => {
             "serverExposureMode": "network-accessible",
             "tailscaleServeEnabled": true,
             "tailscaleServePort": 8443,
-            "updateChannel": "nightly",
+            "updateChannel": "canary",
             "updateChannelConfiguredByUser": true
           }\n`,
           );
@@ -303,7 +300,7 @@ describe("DesktopSettings", () => {
             serverExposureMode: "network-accessible",
             tailscaleServeEnabled: true,
             tailscaleServePort: 8443,
-            updateChannel: "nightly",
+            updateChannel: "canary",
             updateChannelConfiguredByUser: true,
             wslBackendEnabled: false,
             wslOnly: false,
@@ -311,6 +308,53 @@ describe("DesktopSettings", () => {
           } satisfies DesktopAppSettings.DesktopSettings);
         }),
       ),
+  );
+
+  it.effect("migrates a settings file still naming the canary track `nightly`", () =>
+    withSettings(
+      Effect.gen(function* () {
+        const environment = yield* DesktopEnvironment.DesktopEnvironment;
+        const fileSystem = yield* FileSystem.FileSystem;
+        const settings = yield* DesktopAppSettings.DesktopAppSettings;
+        yield* fileSystem.makeDirectory(environment.stateDir, { recursive: true });
+        yield* fileSystem.writeFileString(
+          environment.desktopSettingsPath,
+          `{
+            "serverExposureMode": "network-accessible",
+            "updateChannel": "nightly",
+            "updateChannelConfiguredByUser": true
+          }\n`,
+        );
+
+        const loaded = yield* settings.load;
+
+        assert.equal(loaded.updateChannel, "canary");
+      }),
+    ),
+  );
+
+  it.effect("keeps unrelated settings when migrating the legacy `nightly` track", () =>
+    withSettings(
+      Effect.gen(function* () {
+        const environment = yield* DesktopEnvironment.DesktopEnvironment;
+        const fileSystem = yield* FileSystem.FileSystem;
+        const settings = yield* DesktopAppSettings.DesktopAppSettings;
+        yield* fileSystem.makeDirectory(environment.stateDir, { recursive: true });
+        yield* fileSystem.writeFileString(
+          environment.desktopSettingsPath,
+          `{
+            "serverExposureMode": "network-accessible",
+            "tailscaleServePort": 8443,
+            "updateChannel": "nightly",
+            "updateChannelConfiguredByUser": true
+          }\n`,
+        );
+
+        const loaded = yield* settings.load;
+
+        assert.equal(loaded.tailscaleServePort, 8443);
+      }),
+    ),
   );
 
   it.effect("persists sparse desktop settings documents", () =>
@@ -351,18 +395,18 @@ describe("DesktopSettings", () => {
           serverExposureMode: "local-only",
           tailscaleServeEnabled: false,
           tailscaleServePort: 443,
-          updateChannel: "nightly",
+          updateChannel: "canary",
           updateChannelConfiguredByUser: false,
           wslBackendEnabled: false,
           wslOnly: false,
           wslDistro: null,
         } satisfies DesktopAppSettings.DesktopSettings);
       }),
-      { appVersion: "0.0.17-nightly.20260415.1" },
+      { appVersion: "0.0.17-canary.20260415.1" },
     ),
   );
 
-  it.effect("preserves explicit stable update channel on nightly builds", () =>
+  it.effect("preserves explicit stable update channel on canary builds", () =>
     withSettings(
       Effect.gen(function* () {
         const settings = yield* DesktopAppSettings.DesktopAppSettings;
@@ -386,7 +430,7 @@ describe("DesktopSettings", () => {
           wslDistro: null,
         } satisfies DesktopAppSettings.DesktopSettings);
       }),
-      { appVersion: "0.0.17-nightly.20260415.1" },
+      { appVersion: "0.0.17-canary.20260415.1" },
     ),
   );
 

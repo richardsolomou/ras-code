@@ -13,9 +13,9 @@ const injectedDesktopAppBranding = readInjectedDesktopAppBranding();
 const hostedAppChannel = import.meta.env.VITE_HOSTED_APP_CHANNEL?.trim().toLowerCase();
 
 export const HOSTED_APP_CHANNEL =
-  hostedAppChannel === "latest" || hostedAppChannel === "nightly" ? hostedAppChannel : null;
+  hostedAppChannel === "latest" || hostedAppChannel === "canary" ? hostedAppChannel : null;
 export const HOSTED_APP_CHANNEL_LABEL =
-  HOSTED_APP_CHANNEL === "nightly" ? "Nightly" : HOSTED_APP_CHANNEL === "latest" ? "Latest" : null;
+  HOSTED_APP_CHANNEL === "canary" ? "Canary" : HOSTED_APP_CHANNEL === "latest" ? "Latest" : null;
 export const APP_BASE_NAME = injectedDesktopAppBranding?.baseName ?? "RAS Code";
 /** Marks a non-shipping build; a release build carries no stage. Desktop
  * branding, once injected, is authoritative — including its explicit null. */

@@ -5,5 +5,5 @@ pkg/
 .SRCINFO
 ras-code-bin-*.png
 ras-code-bin-*-LICENSE
-ras-code-nightly-bin-*.png
-ras-code-nightly-bin-*-LICENSE
+ras-code-canary-bin-*.png
+ras-code-canary-bin-*-LICENSE

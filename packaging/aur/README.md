@@ -1,13 +1,13 @@
 # AUR packaging
 
 This directory maintains the [`ras-code-bin`](https://aur.archlinux.org/packages/ras-code-bin) and
-[`ras-code-nightly-bin`](https://aur.archlinux.org/packages/ras-code-nightly-bin) packages. Both
+[`ras-code-canary-bin`](https://aur.archlinux.org/packages/ras-code-canary-bin) packages. Both
 repackage the official x86_64 AppImage from GitHub Releases.
 
 ## Publishing
 
 The release workflow calls `.github/workflows/publish-aur.yml` after publishing a GitHub release;
-the workflow can also be run manually for a specific tag. It selects the stable or nightly
+the workflow can also be run manually for a specific tag. It selects the stable or canary
 package, then updates its version and checksums, builds it, regenerates `.SRCINFO`, and pushes it
 to the AUR.
 

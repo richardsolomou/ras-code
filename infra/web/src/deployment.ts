@@ -1,7 +1,7 @@
 import * as Data from "effect/Data";
 import * as Effect from "effect/Effect";
 
-export const WEB_CHANNELS = ["latest", "nightly"] as const;
+export const WEB_CHANNELS = ["latest", "canary"] as const;
 
 export type WebChannel = (typeof WEB_CHANNELS)[number];
 
@@ -26,7 +26,7 @@ export class UnknownWebStageError extends Data.TaggedError("UnknownWebStageError
   readonly stage: string;
 }> {
   override get message(): string {
-    return `The hosted web app deploys to stage 'latest', 'nightly', or 'pr-<number>', got '${this.stage}'.`;
+    return `The hosted web app deploys to stage 'latest', 'canary', or 'pr-<number>', got '${this.stage}'.`;
   }
 }
 
@@ -40,12 +40,12 @@ export class InvalidRouterUrlError extends Data.TaggedError("InvalidRouterUrlErr
 
 /**
  * The deployment stage names what is being published, so a stage typo cannot
- * quietly publish nightly or preview assets onto the stable domain.
+ * quietly publish canary or preview assets onto the stable domain.
  */
 export function deploymentForStage(
   stage: string,
 ): Effect.Effect<WebDeployment, UnknownWebStageError> {
-  if (stage === "latest" || stage === "nightly") {
+  if (stage === "latest" || stage === "canary") {
     return Effect.succeed({ kind: "channel", channel: stage });
   }
   const preview = PREVIEW_STAGE.exec(stage);
@@ -69,20 +69,18 @@ export function routerHostname(routerUrl: string): Effect.Effect<string, Invalid
 
 export interface WebDomains {
   readonly routerHost: string;
-  readonly latestDomain: string;
-  readonly nightlyDomain: string;
+  readonly canaryDomain: string;
 }
 
 export interface WebWorkerDomain {
   readonly name: string;
-  readonly aliases?: string[];
 }
 
 /**
  * Previews get no custom domain. Attaching one would take it from whichever
  * channel currently owns it, so previews are reachable only at their
- * `workers.dev` URL. The router domain is an alias of the latest channel's own
- * domain, which is how the hosted app has always been addressed.
+ * `workers.dev` URL. Stable answers on the router domain itself; canary has to
+ * be separately addressable because the router proxies to it.
  */
 export function webWorkerDomain(
   deployment: WebDeployment,
@@ -92,8 +90,8 @@ export function webWorkerDomain(
     return undefined;
   }
   return deployment.channel === "latest"
-    ? { name: domains.latestDomain, aliases: [domains.routerHost] }
-    : { name: domains.nightlyDomain };
+    ? { name: domains.routerHost }
+    : { name: domains.canaryDomain };
 }
 
 /** Only previews are reached over workers.dev; channels use their own domains. */
@@ -111,7 +109,7 @@ export function runsChannelRouter(deployment: WebDeployment): boolean {
 
 /**
  * Only the router receives the routing configuration. Without these the Worker
- * serves its own assets unconditionally, which is what both the nightly channel
+ * serves its own assets unconditionally, which is what both the canary channel
  * and a preview should do.
  */
 export function webWorkerEnv(
@@ -121,7 +119,7 @@ export function webWorkerEnv(
   return runsChannelRouter(deployment)
     ? {
         RAS_CODE_WEB_ROUTER_HOST: domains.routerHost,
-        RAS_CODE_WEB_NIGHTLY_ORIGIN: `https://${domains.nightlyDomain}`,
+        RAS_CODE_WEB_CANARY_ORIGIN: `https://${domains.canaryDomain}`,
       }
     : {};
 }

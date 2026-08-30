@@ -105,13 +105,13 @@ const emptyRecording = (): RecordedRegistration => ({
 describe("DesktopLinuxUrlHandler", () => {
   it("renders a scheme-handler desktop entry with freedesktop Exec quoting", () => {
     const entry = DesktopLinuxUrlHandler.renderUrlHandlerDesktopEntry({
-      displayName: "RAS Code (Nightly)",
+      displayName: "RAS Code (Canary)",
       execTarget: '/home/al ice/Apps/RAS "100%" $HOME\\x.AppImage',
       scheme: "ras-code",
     });
 
     assert.include(entry, "[Desktop Entry]");
-    assert.include(entry, "Name=RAS Code (Nightly)");
+    assert.include(entry, "Name=RAS Code (Canary)");
     // Exec composes both escaping layers: a literal backslash becomes four
     // backslashes in the file, a quote three characters, a dollar sign two
     // backslashes plus the sign.

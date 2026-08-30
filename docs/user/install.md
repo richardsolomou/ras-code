@@ -44,10 +44,10 @@ Stable:
 yay -S ras-code-bin
 ```
 
-Nightly:
+Canary:
 
 ```bash
-yay -S ras-code-nightly-bin
+yay -S ras-code-canary-bin
 ```
 
 ### Windows Subsystem for Linux

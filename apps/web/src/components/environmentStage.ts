@@ -4,14 +4,14 @@ import { APP_STAGE_LABEL } from "../branding";
 import { resolveServerBackedAppStageLabel } from "../branding.logic";
 import { primaryServerConfigAtom } from "../state/server";
 
-export type EnvironmentIdentificationPillLabel = "Dev" | "Nightly";
+export type EnvironmentIdentificationPillLabel = "Dev" | "Canary";
 
 export function resolveEnvironmentIdentificationPillLabel(
   stageLabel: string | null,
 ): EnvironmentIdentificationPillLabel | null {
   const normalized = stageLabel?.trim().toLowerCase();
   if (normalized === "dev") return "Dev";
-  if (normalized === "nightly") return "Nightly";
+  if (normalized === "canary") return "Canary";
   return null;
 }
 

@@ -191,9 +191,9 @@ describe("desktop update UI helpers", () => {
     );
   });
 
-  it("builds the nightly release URL without dropping its version suffix", () => {
-    expect(getDesktopUpdateReleaseUrl("0.0.30-nightly.20260728.931")).toBe(
-      "https://github.com/richardsolomou/ras-code/releases/tag/v0.0.30-nightly.20260728.931",
+  it("builds the canary release URL without dropping its version suffix", () => {
+    expect(getDesktopUpdateReleaseUrl("0.0.30-canary.20260728.931")).toBe(
+      "https://github.com/richardsolomou/ras-code/releases/tag/v0.0.30-canary.20260728.931",
     );
   });
 

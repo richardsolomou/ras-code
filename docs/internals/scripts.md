@@ -78,8 +78,8 @@ authenticated.
 
 - Default build is unsigned/not notarized for local sharing.
 - The DMG build uses `assets/prod/black-macos-1024.png` as the production app icon source.
-- The DMG chrome follows the release channel: neutral for Latest and the Nightly sky artwork for
-  Nightly. Blueprint artwork remains exclusive to Dev builds. Packaging rasterizes the selected
+- The DMG chrome follows the release channel: neutral for Latest and the Canary sky artwork for
+  Canary. Blueprint artwork remains exclusive to Dev builds. Packaging rasterizes the selected
   SVG into standard and Retina PNGs inside the disposable staging directory.
 - The Finder window is 540×412 while its background is 540×380; the extra 32px accounts for the
   title bar included in Finder's window bounds.

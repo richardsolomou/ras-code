@@ -2,7 +2,7 @@ name: Web Preview
 
 # Label a PR `preview:web` to get a hosted-web preview Worker for that push and
 # every subsequent push. The preview deploys to its own Alchemy stage (`pr-<n>`)
-# and carries no custom domain, so the latest/nightly channel domains are never
+# and carries no custom domain, so the latest/canary channel domains are never
 # touched. Closing the PR, or removing the label, destroys the stage.
 #
 # The build intentionally omits the RAS Connect cloud config (Clerk keys, relay
@@ -30,8 +30,7 @@ env:
   CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
   CLOUDFLARE_WORKERS_SUBDOMAIN: ${{ vars.CLOUDFLARE_WORKERS_SUBDOMAIN }}
   RAS_CODE_WEB_ROUTER_URL: ${{ vars.RAS_CODE_WEB_ROUTER_URL }}
-  RAS_CODE_WEB_LATEST_DOMAIN: ${{ vars.RAS_CODE_WEB_LATEST_DOMAIN }}
-  RAS_CODE_WEB_NIGHTLY_DOMAIN: ${{ vars.RAS_CODE_WEB_NIGHTLY_DOMAIN }}
+  RAS_CODE_WEB_CANARY_DOMAIN: ${{ vars.RAS_CODE_WEB_CANARY_DOMAIN }}
   ALCHEMY_TELEMETRY_DISABLED: "1"
 
 jobs:

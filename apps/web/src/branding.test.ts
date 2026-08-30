@@ -25,8 +25,8 @@ describe("branding", () => {
         desktopBridge: {
           getAppBranding: () => ({
             baseName: "RAS Code",
-            stageLabel: "Nightly",
-            displayName: "RAS Code (Nightly)",
+            stageLabel: "Canary",
+            displayName: "RAS Code (Canary)",
           }),
         },
       },
@@ -35,19 +35,19 @@ describe("branding", () => {
     const branding = await import("./branding");
 
     expect(branding.APP_BASE_NAME).toBe("RAS Code");
-    expect(branding.APP_STAGE_LABEL).toBe("Nightly");
-    expect(branding.APP_DISPLAY_NAME).toBe("RAS Code (Nightly)");
+    expect(branding.APP_STAGE_LABEL).toBe("Canary");
+    expect(branding.APP_DISPLAY_NAME).toBe("RAS Code (Canary)");
   });
 
   it("normalizes hosted app channel metadata", async () => {
-    vi.stubEnv("VITE_HOSTED_APP_CHANNEL", "nightly");
+    vi.stubEnv("VITE_HOSTED_APP_CHANNEL", "canary");
 
     const branding = await import("./branding");
 
-    expect(branding.HOSTED_APP_CHANNEL).toBe("nightly");
-    expect(branding.HOSTED_APP_CHANNEL_LABEL).toBe("Nightly");
-    expect(branding.APP_STAGE_LABEL).toBe("Nightly");
-    expect(branding.APP_DISPLAY_NAME).toBe("RAS Code (Nightly)");
+    expect(branding.HOSTED_APP_CHANNEL).toBe("canary");
+    expect(branding.HOSTED_APP_CHANNEL_LABEL).toBe("Canary");
+    expect(branding.APP_STAGE_LABEL).toBe("Canary");
+    expect(branding.APP_DISPLAY_NAME).toBe("RAS Code (Canary)");
   });
 
   it("does not label the latest hosted app channel", async () => {
@@ -103,24 +103,24 @@ describe("branding", () => {
 });
 
 describe("branding logic", () => {
-  it("returns Nightly for nightly primary server versions", () => {
+  it("returns Canary for canary primary server versions", () => {
     expect(
       resolveServerBackedAppStageLabel({
-        primaryServerVersion: "0.0.28-nightly.20260616.12",
+        primaryServerVersion: "0.0.28-canary.20260616.12",
         fallbackStageLabel: null,
       }),
-    ).toBe("Nightly");
+    ).toBe("Canary");
   });
 
-  it("updates the display name for nightly primary server versions", () => {
+  it("updates the display name for canary primary server versions", () => {
     expect(
       resolveServerBackedAppDisplayName({
         baseName: "RAS Code",
         fallbackDisplayName: "RAS Code",
         fallbackStageLabel: null,
-        primaryServerVersion: "0.0.28-nightly.20260616.12",
+        primaryServerVersion: "0.0.28-canary.20260616.12",
       }),
-    ).toBe("RAS Code (Nightly)");
+    ).toBe("RAS Code (Canary)");
   });
 
   it("keeps the fallback display name for stable primary server versions", () => {
@@ -134,13 +134,13 @@ describe("branding logic", () => {
     ).toBe("RAS Code");
   });
 
-  it("keeps the fallback display name for malformed nightly primary server versions", () => {
+  it("keeps the fallback display name for malformed canary primary server versions", () => {
     expect(
       resolveServerBackedAppDisplayName({
         baseName: "RAS Code",
         fallbackDisplayName: "RAS Code",
         fallbackStageLabel: null,
-        primaryServerVersion: "0.0.28-nightly.20260616",
+        primaryServerVersion: "0.0.28-canary.20260616",
       }),
     ).toBe("RAS Code");
   });

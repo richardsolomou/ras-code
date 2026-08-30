@@ -205,7 +205,7 @@ const directoryRenames: ReadonlyArray<readonly [string, string]> = [
   ["apps/mobile/modules/t3-terminal/", "apps/mobile/modules/ras-code-terminal/"],
   ["oxlint-plugin-t3code/", "oxlint-plugin-ras-code/"],
   ["packaging/aur/t3code-bin/", "packaging/aur/ras-code-bin/"],
-  ["packaging/aur/t3code-nightly-bin/", "packaging/aur/ras-code-nightly-bin/"],
+  ["packaging/aur/t3code-nightly-bin/", "packaging/aur/ras-code-canary-bin/"],
 ];
 
 const pathRules: ReadonlyArray<readonly [RegExp, string]> = [
