@@ -1,7 +1,7 @@
 import { useNavigation } from "@react-navigation/native";
 import * as Updates from "expo-updates";
 import { useCallback, useRef, useState } from "react";
-import { Alert, Platform, Pressable, ScrollView, View } from "react-native";
+import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AndroidScreenHeader } from "../../components/AndroidScreenHeader";
@@ -65,7 +65,7 @@ export function SettingsUpdateTrackRouteScreen() {
       };
       Alert.alert(
         `Switch to ${mobileUpdateChannelLabel(channel)}?`,
-        "RAS Code restarts and downloads this track in the background. Unsent drafts and queued messages are saved first.",
+        "RAS Code downloads this track, then restarts. Unsent drafts and queued messages are saved first.",
         [
           { onPress: dismiss, style: "cancel", text: "Cancel" },
           {
@@ -122,7 +122,9 @@ export function SettingsUpdateTrackRouteScreen() {
                   {option.description}
                 </Text>
               </View>
-              {selectedChannel === option.channel ? (
+              {selectedChannel !== option.channel ? null : switching ? (
+                <ActivityIndicator />
+              ) : (
                 <SymbolView
                   name="checkmark"
                   size={18}
@@ -130,7 +132,7 @@ export function SettingsUpdateTrackRouteScreen() {
                   type="monochrome"
                   weight="semibold"
                 />
-              ) : null}
+              )}
             </Pressable>
           ))}
         </SettingsSection>

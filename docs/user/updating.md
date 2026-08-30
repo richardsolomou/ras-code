@@ -85,9 +85,10 @@ automatic install armed.
 - **Stable** follows the daily release.
 - **Canary** follows every change merged to main.
 
-Switching restarts the app and downloads the new track in the background; unsent drafts and queued
-messages are saved first. Switching back to Stable applies immediately — the app leaves the canary
-build behind on the next restart rather than waiting for a stable release to overtake it.
+Switching downloads the new track, then restarts; unsent drafts and queued messages are saved first.
+If the track has no build yet for the version of the app you installed, the app says so and stays
+where it was. Switching back to Stable works offline once the app has run a stable build — it leaves
+the canary build behind rather than waiting for a stable release to overtake it.
 
 The setting appears only in App Store and TestFlight builds. Development and preview builds follow
 the track they were built with.

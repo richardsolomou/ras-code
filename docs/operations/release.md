@@ -211,6 +211,24 @@ publish if it does not exist yet; to create it by hand, run `eas channel:create 
 under `workflow_call` the event name is the caller's, so a stable tag release would otherwise be
 mistaken for a push to main.
 
+Anything the fingerprint covers — native dependencies, config plugins, `patches/`, and the app icons
+and other assets named in `app.config.ts` — stops every OTA the moment it changes, because no
+finished build matches the new fingerprint any more. The run stays green and posts a `warning`
+annotation naming the platform. Store builds are cut on app-version drift, not fingerprint drift, so
+the lever is to bump `version` in `apps/mobile/app.config.ts`: the next merge cuts and submits fresh
+builds, and OTAs resume once those finish. Until then, phones keep whatever bundle they already have.
+
+### Debugging an unavailable track
+
+`switchMobileUpdateChannel` fetches before it reloads. That is not optional. expo-updates stamps the
+channel request headers onto each update as it writes it to disk and refuses to launch one whose
+stamp does not match the current configuration — the embedded bundle included, since it is stamped
+with whatever channel was in force when the binary first ran. Immediately after an override there is
+usually nothing on the device the new channel could launch, and a bare reload fails with
+`UpdatesReloadException`, whose message names an unrelated `appContext` property and says nothing
+about channels. The switch therefore reports a failed restart in terms of what the fetch found: a
+track with no matching build, an unreachable update server, or a genuine restart failure.
+
 ## Canary builds
 
 - Workflow: `.github/workflows/release.yml`
