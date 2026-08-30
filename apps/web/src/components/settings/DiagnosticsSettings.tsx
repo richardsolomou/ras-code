@@ -7,7 +7,6 @@ import {
   InfoIcon,
   RefreshCwIcon,
 } from "lucide-react";
-import { useAtomValue } from "@effect/atom-react";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
@@ -26,19 +25,19 @@ import { ensureLocalApi } from "../../localApi";
 import { resolveAndPersistPreferredEditor } from "../../editorPreferences";
 import { formatRelativeTimeLabel, getRelativeTimeState } from "../../timestampFormat";
 import { useEnvironmentQuery } from "../../state/query";
-import {
-  primaryServerAvailableEditorsAtom,
-  primaryServerObservabilityAtom,
-  serverEnvironment,
-} from "../../state/server";
+import { EMPTY_AVAILABLE_EDITORS, serverEnvironment } from "../../state/server";
 import { shellEnvironment } from "../../state/shell";
-import { usePrimaryEnvironment } from "../../state/environments";
+import {
+  useSettingsEnvironmentConfig,
+  useSettingsEnvironmentScope,
+} from "../../state/settingsEnvironment";
 import { useCopyToClipboard } from "../../hooks/useCopyToClipboard";
 import { Button } from "../ui/button";
 import { ScrollArea } from "../ui/scroll-area";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { toastManager } from "../ui/toast";
 import { ResourceTelemetryDiagnostics } from "./ResourceTelemetryDiagnostics";
+import { SettingsDeviceTabs } from "./SettingsDeviceTabs";
 import { SettingsPageContainer, SettingsSection, useRelativeTimeTick } from "./settingsLayout";
 import { useAtomCommand } from "../../state/use-atom-command";
 
@@ -809,10 +808,14 @@ function DiagnosticsRefreshButton({
 }
 
 export function DiagnosticsSettingsPanel() {
-  const observability = useAtomValue(primaryServerObservabilityAtom);
-  const availableEditors = useAtomValue(primaryServerAvailableEditorsAtom);
-  const primaryEnvironment = usePrimaryEnvironment();
-  const environmentId = primaryEnvironment?.environmentId ?? null;
+  const {
+    options: deviceOptions,
+    environmentId,
+    select: selectSettingsEnvironment,
+  } = useSettingsEnvironmentScope();
+  const serverConfig = useSettingsEnvironmentConfig();
+  const observability = serverConfig?.observability ?? null;
+  const availableEditors = serverConfig?.availableEditors ?? EMPTY_AVAILABLE_EDITORS;
   const signalServerProcess = useAtomCommand(serverEnvironment.signalProcess, {
     reportFailure: false,
   });
@@ -993,6 +996,12 @@ export function DiagnosticsSettingsPanel() {
 
   return (
     <SettingsPageContainer width="expanded" className="gap-10">
+      <SettingsDeviceTabs
+        options={deviceOptions}
+        environmentId={environmentId}
+        onSelect={selectSettingsEnvironment}
+      />
+
       <ResourceTelemetryDiagnostics />
 
       <SettingsSection

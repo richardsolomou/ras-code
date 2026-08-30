@@ -42,10 +42,13 @@ import { Switch } from "../ui/switch";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import {
   useClientSettings,
-  usePrimarySettings,
-  useUpdatePrimarySettings,
+  useDeviceSettings,
+  useUpdateClientSettings,
+  useUpdateDeviceSettings,
 } from "~/hooks/useSettings";
+import { useSettingsEnvironmentScope } from "~/state/settingsEnvironment";
 
+import { SettingsDeviceTabs } from "./SettingsDeviceTabs";
 import {
   SettingResetButton,
   SettingsPageContainer,
@@ -118,7 +121,7 @@ const rotateViewport = (
 
 function BrowserViewportSetting({ disabled }: { readonly disabled: boolean }) {
   const viewport = useClientSettings((settings) => settings.browserDefaultViewport);
-  const updateSettings = useUpdatePrimarySettings();
+  const updateSettings = useUpdateClientSettings();
 
   const sized = viewport._tag === "fill" ? null : viewport;
   const presentedSize = {
@@ -272,7 +275,7 @@ function BrowserViewportSetting({ disabled }: { readonly disabled: boolean }) {
 
 function BrowserZoomSetting({ disabled }: { readonly disabled: boolean }) {
   const zoomFactor = useClientSettings((settings) => settings.browserDefaultZoomFactor);
-  const updateSettings = useUpdatePrimarySettings();
+  const updateSettings = useUpdateClientSettings();
 
   return (
     <SettingsRow
@@ -315,7 +318,7 @@ function BrowserZoomSetting({ disabled }: { readonly disabled: boolean }) {
 
 function BrowserAppearanceSetting({ disabled }: { readonly disabled: boolean }) {
   const appearance = useClientSettings((settings) => settings.browserDefaultAppearance);
-  const updateSettings = useUpdatePrimarySettings();
+  const updateSettings = useUpdateClientSettings();
 
   return (
     <SettingsRow
@@ -356,8 +359,8 @@ function BrowserAppearanceSetting({ disabled }: { readonly disabled: boolean }) 
 }
 
 function AgentBrowserAccessSetting() {
-  const settings = usePrimarySettings();
-  const updateSettings = useUpdatePrimarySettings();
+  const settings = useDeviceSettings();
+  const updateSettings = useUpdateDeviceSettings();
 
   return (
     <SettingsRow
@@ -395,7 +398,7 @@ function AgentBrowserAccessSetting() {
 
 function BrowserAutoShowFloatingPreviewSetting({ disabled }: { readonly disabled: boolean }) {
   const autoShow = useClientSettings((settings) => settings.browserAutoShowFloatingPreview);
-  const updateSettings = useUpdatePrimarySettings();
+  const updateSettings = useUpdateClientSettings();
 
   return (
     <SettingsRow
@@ -456,6 +459,11 @@ function DesktopOnlyBrowserDefaults({ children }: { readonly children: ReactNode
 export function IntegrationsSettingsPanel() {
   // Client-local preview defaults are editable only where the preview exists.
   const previewDefaultsDisabled = !isElectron;
+  const {
+    options: deviceOptions,
+    environmentId: settingsEnvironment,
+    select: selectSettingsEnvironment,
+  } = useSettingsEnvironmentScope();
   const previewDefaults = (
     <>
       <BrowserViewportSetting disabled={previewDefaultsDisabled} />
@@ -467,10 +475,18 @@ export function IntegrationsSettingsPanel() {
 
   return (
     <SettingsPageContainer>
+      {/* Stored on the device that runs the agents, so it names one and stays
+          editable from every client. */}
       <SettingsSection id="browser" title="Browser">
-        {/* Server-authoritative, so it stays editable on every client and sits
-            outside the block covering the desktop-only defaults. */}
+        <SettingsDeviceTabs
+          options={deviceOptions}
+          environmentId={settingsEnvironment}
+          onSelect={selectSettingsEnvironment}
+        />
         <AgentBrowserAccessSetting />
+      </SettingsSection>
+
+      <SettingsSection title="Browser defaults">
         {previewDefaultsDisabled ? (
           <DesktopOnlyBrowserDefaults>{previewDefaults}</DesktopOnlyBrowserDefaults>
         ) : (

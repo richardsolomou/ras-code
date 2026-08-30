@@ -2,7 +2,6 @@ import { ArchiveIcon, ArchiveX, LoaderIcon, SettingsIcon } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useAtomValue } from "@effect/atom-react";
 import {
   type BackgroundActivityProfile,
   type DesktopUpdateChannel,
@@ -60,7 +59,12 @@ import {
   useTheme,
 } from "../../hooks/useTheme";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
-import { usePrimarySettings, useUpdatePrimarySettings } from "../../hooks/useSettings";
+import {
+  useDeviceSettings,
+  usePrimarySettings,
+  useUpdateDeviceSettings,
+  useUpdatePrimarySettings,
+} from "../../hooks/useSettings";
 import { useThreadActions } from "../../hooks/useThreadActions";
 import { useDesktopUpdateState } from "../../state/desktopUpdate";
 import {
@@ -75,7 +79,11 @@ import {
 } from "../../providerInstances";
 import { ensureLocalApi, readLocalApi } from "../../localApi";
 import { isMacPlatform } from "../../lib/utils";
-import { primaryServerObservabilityAtom, primaryServerProvidersAtom } from "../../state/server";
+import { EMPTY_SERVER_PROVIDERS } from "../../state/server";
+import {
+  useSettingsEnvironmentConfig,
+  useSettingsEnvironmentScope,
+} from "../../state/settingsEnvironment";
 import { useProjects } from "../../state/entities";
 import { useArchivedThreadSnapshots } from "../../lib/archivedThreadsState";
 import { formatRelativeTimeLabel } from "../../timestampFormat";
@@ -131,6 +139,7 @@ import {
   resolveBackgroundActivityProfileOption,
 } from "./SettingsPanels.logic";
 import { NotificationsSettingsSection } from "./NotificationsSettings";
+import { SettingsDeviceTabs } from "./SettingsDeviceTabs";
 import {
   PolicyTooltip,
   SettingResetButton,
@@ -460,8 +469,8 @@ export function useSettingsRestore(onRestored?: () => void) {
     clearThemeHalves,
     themeHalves,
   } = useTheme();
-  const settings = usePrimarySettings();
-  const updateSettings = useUpdatePrimarySettings();
+  const settings = useDeviceSettings();
+  const updateSettings = useUpdateDeviceSettings();
 
   const isTextGenerationModelDirty = !Equal.equals(
     settings.textGenerationModelSelection ?? null,
@@ -679,8 +688,8 @@ function BackgroundActivityAdvancedDialog({
   readonly open: boolean;
   readonly onOpenChange: (open: boolean) => void;
 }) {
-  const settings = usePrimarySettings();
-  const updateSettings = useUpdatePrimarySettings();
+  const settings = useDeviceSettings();
+  const updateSettings = useUpdateDeviceSettings();
   const resolvedBackgroundActivity = resolveServerBackgroundActivitySettings(settings);
   const activeProfile = resolvedBackgroundActivity.profile;
   const automaticGitFetchIntervalSeconds = durationToSeconds(
@@ -1582,14 +1591,28 @@ function AutoSettleDaysInput({
 }
 
 export function GeneralSettingsPanel() {
-  const settings = usePrimarySettings();
-  const updateSettings = useUpdatePrimarySettings();
+  const settings = useDeviceSettings();
+  const updateSettings = useUpdateDeviceSettings();
   const [backgroundActivityDialogOpen, setBackgroundActivityDialogOpen] = useState(false);
   const lastEnabledProjectGroupingMode = useRef<SidebarProjectGroupingMode>(
     readLastEnabledProjectGroupingMode(),
   );
-  const observability = useAtomValue(primaryServerObservabilityAtom);
-  const serverProviders = useAtomValue(primaryServerProvidersAtom);
+  const {
+    options: deviceOptions,
+    environmentId: settingsEnvironment,
+    isReady: isEnvironmentCatalogReady,
+    select: selectSettingsEnvironment,
+  } = useSettingsEnvironmentScope();
+  const deviceTabs = (
+    <SettingsDeviceTabs
+      options={deviceOptions}
+      environmentId={settingsEnvironment}
+      onSelect={selectSettingsEnvironment}
+    />
+  );
+  const serverConfig = useSettingsEnvironmentConfig();
+  const observability = serverConfig?.observability ?? null;
+  const serverProviders = serverConfig?.providers ?? EMPTY_SERVER_PROVIDERS;
   const diagnosticsDescription = formatDiagnosticsDescription({
     localTracingEnabled: observability?.localTracingEnabled ?? false,
     otlpTracesEnabled: observability?.otlpTracesEnabled ?? false,
@@ -1844,6 +1867,45 @@ export function GeneralSettingsPanel() {
             />
           }
         />
+
+        {isElectron ? (
+          <SettingsRow
+            {...searchableSetting("quit-confirmation")}
+            description="Require holding the quit shortcut before the desktop app quits. A quick tap shows a hint instead."
+            resetAction={
+              settings.confirmQuit !== DEFAULT_UNIFIED_SETTINGS.confirmQuit ? (
+                <SettingResetButton
+                  label="quit confirmation"
+                  onClick={() =>
+                    updateSettings({ confirmQuit: DEFAULT_UNIFIED_SETTINGS.confirmQuit })
+                  }
+                />
+              ) : null
+            }
+            control={
+              <Switch
+                checked={settings.confirmQuit}
+                onCheckedChange={(checked) => updateSettings({ confirmQuit: Boolean(checked) })}
+                aria-label="Hold to quit"
+              />
+            }
+          />
+        ) : null}
+      </SettingsSection>
+
+      <SettingsSection title="Device">
+        {deviceTabs}
+
+        {settingsEnvironment === null ? (
+          <SettingsRow
+            title={isEnvironmentCatalogReady ? "No connected devices" : "Loading devices"}
+            description={
+              isEnvironmentCatalogReady
+                ? "These settings live on the device that runs your agents. Connect one to change them."
+                : "Reading connected execution environments."
+            }
+          />
+        ) : null}
 
         <SettingsRow
           {...searchableSetting("provider-update-checks")}
@@ -2112,30 +2174,6 @@ export function GeneralSettingsPanel() {
             />
           }
         />
-
-        {isElectron ? (
-          <SettingsRow
-            {...searchableSetting("quit-confirmation")}
-            description="Require holding the quit shortcut before the desktop app quits. A quick tap shows a hint instead."
-            resetAction={
-              settings.confirmQuit !== DEFAULT_UNIFIED_SETTINGS.confirmQuit ? (
-                <SettingResetButton
-                  label="quit confirmation"
-                  onClick={() =>
-                    updateSettings({ confirmQuit: DEFAULT_UNIFIED_SETTINGS.confirmQuit })
-                  }
-                />
-              ) : null
-            }
-            control={
-              <Switch
-                checked={settings.confirmQuit}
-                onCheckedChange={(checked) => updateSettings({ confirmQuit: Boolean(checked) })}
-                aria-label="Hold to quit"
-              />
-            }
-          />
-        ) : null}
 
         <SettingsRow
           {...searchableSetting("text-generation-model")}

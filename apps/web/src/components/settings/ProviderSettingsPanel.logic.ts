@@ -1,51 +1,5 @@
 import type { EnvironmentConnectionPhase } from "@ras-code/client-runtime/connection";
-import {
-  AuthOrchestrationOperateScope,
-  type AuthSessionState,
-  type EnvironmentId,
-} from "@ras-code/contracts";
-
-export interface ProviderEnvironmentOptionLike {
-  readonly environmentId: EnvironmentId;
-  readonly label: string;
-}
-
-export function buildProviderEnvironmentOptions<T extends ProviderEnvironmentOptionLike>(
-  environments: ReadonlyArray<T>,
-  primaryEnvironmentId: EnvironmentId | null,
-): ReadonlyArray<T> {
-  return environments.toSorted((left, right) => {
-    const leftIsPrimary = left.environmentId === primaryEnvironmentId;
-    const rightIsPrimary = right.environmentId === primaryEnvironmentId;
-    if (leftIsPrimary !== rightIsPrimary) {
-      return leftIsPrimary ? -1 : 1;
-    }
-    return (
-      left.label.localeCompare(right.label) ||
-      String(left.environmentId).localeCompare(String(right.environmentId))
-    );
-  });
-}
-
-export function resolveSelectedProviderEnvironmentId(
-  environments: ReadonlyArray<ProviderEnvironmentOptionLike>,
-  selectedEnvironmentId: EnvironmentId | null,
-  primaryEnvironmentId: EnvironmentId | null,
-): EnvironmentId | null {
-  if (
-    selectedEnvironmentId !== null &&
-    environments.some((environment) => environment.environmentId === selectedEnvironmentId)
-  ) {
-    return selectedEnvironmentId;
-  }
-  if (
-    primaryEnvironmentId !== null &&
-    environments.some((environment) => environment.environmentId === primaryEnvironmentId)
-  ) {
-    return primaryEnvironmentId;
-  }
-  return environments[0]?.environmentId ?? null;
-}
+import { AuthOrchestrationOperateScope, type AuthSessionState } from "@ras-code/contracts";
 
 export type ProviderEnvironmentAccess =
   | { readonly kind: "editable" }
