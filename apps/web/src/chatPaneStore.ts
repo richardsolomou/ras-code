@@ -35,7 +35,7 @@ interface PaneRouteOpenIntent {
   routeId: string;
 }
 
-let pendingRouteOpenIntent: PaneRouteOpenIntent | null = null;
+const pendingRouteOpenIntents = new Map<string, PaneRouteOpenIntent>();
 
 export interface ChatPaneLayout {
   /** The thread beside the routed one, or null while the inset holds one pane. */
@@ -80,19 +80,23 @@ export async function openDraftInFocusedPane<T>(
     pane: pane ?? (isCompanionVisible(paneState) ? paneState.focusedPane : "routed"),
     routeId: `draft:${draftId}`,
   } satisfies PaneRouteOpenIntent;
-  pendingRouteOpenIntent = intent;
+  pendingRouteOpenIntents.set(intent.routeId, intent);
   try {
     return await navigate();
   } catch (error) {
-    if (pendingRouteOpenIntent === intent) pendingRouteOpenIntent = null;
+    if (pendingRouteOpenIntents.get(intent.routeId) === intent) {
+      pendingRouteOpenIntents.delete(intent.routeId);
+    }
     throw error;
   }
 }
 
 export function takeRouteOpenPane(routeId: string | null): FocusedPane | null {
-  const intent = pendingRouteOpenIntent;
-  pendingRouteOpenIntent = null;
-  return intent?.routeId === routeId ? intent.pane : null;
+  if (routeId === null) return null;
+  const intent = pendingRouteOpenIntents.get(routeId);
+  if (!intent) return null;
+  pendingRouteOpenIntents.delete(routeId);
+  return intent.pane;
 }
 
 /**

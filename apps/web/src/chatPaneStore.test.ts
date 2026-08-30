@@ -284,14 +284,24 @@ describe("draft route intent", () => {
     useChatPaneStore.setState({ ...INITIAL_CHAT_PANE_LAYOUT, canSplit: false });
   });
 
-  it("discards intent when a different route wins", async () => {
+  it("keeps intent when a different route is observed first", async () => {
     useChatPaneStore.setState(splitLayout({ focusedPane: "companion" }));
 
     await openDraftInFocusedPane("new", async () => undefined);
 
     expect(takeRouteOpenPane("thread:alpha")).toBeNull();
-    expect(takeRouteOpenPane("draft:new")).toBeNull();
+    expect(takeRouteOpenPane("draft:new")).toBe("companion");
     useChatPaneStore.setState({ ...INITIAL_CHAT_PANE_LAYOUT, canSplit: false });
+  });
+
+  it("keeps overlapping draft intents independent", async () => {
+    await Promise.all([
+      openDraftInFocusedPane("alpha", async () => undefined, "companion"),
+      openDraftInFocusedPane("beta", async () => undefined, "routed"),
+    ]);
+
+    expect(takeRouteOpenPane("draft:alpha")).toBe("companion");
+    expect(takeRouteOpenPane("draft:beta")).toBe("routed");
   });
 
   it("keeps the pane captured before asynchronous navigation", async () => {

@@ -4,13 +4,15 @@ import { useCallback, useRef } from "react";
 
 import {
   openDraftInFocusedPane,
+  isCompanionVisible,
   planThreadOpen,
+  planRoutedDraftOpen,
   useChatPaneStore,
   type FocusedPane,
 } from "../chatPaneStore";
 import type { DraftId } from "../composerDraftStore";
 import { buildDraftThreadRouteParams, buildThreadRouteParams } from "../threadRoutes";
-import { useRoutedThreadRef } from "./useRoutedThreadRef";
+import { useRoutedThreadRef, useRouteTargetId } from "./useRoutedThreadRef";
 
 export function useOpenThreadInPane(): (threadRef: ScopedThreadRef) => Promise<void> {
   const navigate = useNavigate();
@@ -44,10 +46,21 @@ export function useOpenDraftInPane(): (
   options?: { replace?: boolean; pane?: FocusedPane },
 ) => Promise<void> {
   const navigate = useNavigate();
+  const routeId = useRouteTargetId();
+  const routeIdRef = useRef(routeId);
+  routeIdRef.current = routeId;
 
   return useCallback(
-    (draftId, options) =>
-      openDraftInFocusedPane(
+    (draftId, options) => {
+      const paneState = useChatPaneStore.getState();
+      const pane =
+        options?.pane ?? (isCompanionVisible(paneState) ? paneState.focusedPane : "routed");
+      if (routeIdRef.current === `draft:${draftId}`) {
+        const nextLayout = planRoutedDraftOpen(paneState, pane);
+        if (nextLayout !== paneState) paneState.applyLayout(nextLayout);
+        return Promise.resolve();
+      }
+      return openDraftInFocusedPane(
         draftId,
         () =>
           navigate({
@@ -55,8 +68,9 @@ export function useOpenDraftInPane(): (
             params: buildDraftThreadRouteParams(draftId),
             ...(options?.replace !== undefined ? { replace: options.replace } : {}),
           }),
-        options?.pane,
-      ),
+        pane,
+      );
+    },
     [navigate],
   );
 }
