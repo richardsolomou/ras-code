@@ -58,7 +58,10 @@ import {
 import { CHAT_LIST_ANCHOR_OFFSET } from "@ras-code/shared/chatList";
 import { projectScriptCwd, projectScriptRuntimeEnv } from "@ras-code/shared/projectScripts";
 import { truncate } from "@ras-code/shared/String";
-import { buildResolveConflictsPrompt } from "@ras-code/shared/sourceControl";
+import {
+  buildBabysitPullRequestPrompt,
+  buildResolveConflictsPrompt,
+} from "@ras-code/shared/sourceControl";
 import {
   getTerminalLabel,
   nextTerminalId,
@@ -186,7 +189,6 @@ import {
   GitBranchIcon,
   Minimize2Icon,
   PaperclipIcon,
-  TriangleAlertIcon,
   WifiOffIcon,
 } from "lucide-react";
 import { cn, randomHex } from "~/lib/utils";
@@ -4586,69 +4588,33 @@ function ChatViewContent(props: ChatViewProps) {
     linkedPullRequestStatus.detail.mergeability === "conflicting"
       ? linkedPullRequestStatus.detail
       : null;
-  const conflictSuggestionKey =
-    activeThreadRef !== null && conflictingPullRequest !== null
-      ? `${scopedThreadKey(activeThreadRef)}:${conflictingPullRequest.number}:${conflictingPullRequest.updatedAt}`
-      : null;
-  const [dismissedConflictSuggestionKey, setDismissedConflictSuggestionKey] = useState<
-    string | null
-  >(null);
+  /** Appends to whatever is already typed rather than replacing it, and leaves sending to the user. */
+  const seedComposerPrompt = useCallback(
+    (seed: string) => {
+      const currentPrompt = promptRef.current.trim();
+      const nextPrompt = currentPrompt.length === 0 ? seed : `${currentPrompt}\n\n${seed}`;
+      promptRef.current = nextPrompt;
+      setComposerDraftPrompt(composerDraftTarget, nextPrompt);
+      composerRef.current?.resetCursorState({
+        cursor: collapseExpandedComposerCursor(nextPrompt, nextPrompt.length),
+        prompt: nextPrompt,
+        detectTrigger: true,
+      });
+      scheduleComposerFocus();
+    },
+    [composerDraftTarget, composerRef, scheduleComposerFocus, setComposerDraftPrompt],
+  );
   const addConflictResolutionPrompt = useCallback(() => {
-    if (conflictingPullRequest === null || conflictSuggestionKey === null) return;
-    const resolutionPrompt = buildResolveConflictsPrompt({
-      number: conflictingPullRequest.number,
-      url: conflictingPullRequest.url,
-      headBranch: conflictingPullRequest.headBranch,
-      baseBranch: conflictingPullRequest.baseBranch,
-    });
-    const currentPrompt = promptRef.current.trim();
-    const nextPrompt =
-      currentPrompt.length === 0 ? resolutionPrompt : `${currentPrompt}\n\n${resolutionPrompt}`;
-    promptRef.current = nextPrompt;
-    setComposerDraftPrompt(composerDraftTarget, nextPrompt);
-    composerRef.current?.resetCursorState({
-      cursor: collapseExpandedComposerCursor(nextPrompt, nextPrompt.length),
-      prompt: nextPrompt,
-      detectTrigger: true,
-    });
-    setDismissedConflictSuggestionKey(conflictSuggestionKey);
-    scheduleComposerFocus();
-  }, [
-    composerDraftTarget,
-    composerRef,
-    conflictSuggestionKey,
-    conflictingPullRequest,
-    scheduleComposerFocus,
-    setComposerDraftPrompt,
-  ]);
-  const conflictResolutionBannerItem = useMemo<ComposerBannerStackItem | null>(() => {
-    if (
-      conflictingPullRequest === null ||
-      conflictSuggestionKey === null ||
-      dismissedConflictSuggestionKey === conflictSuggestionKey
-    ) {
-      return null;
-    }
-    return {
-      id: `pull-request-conflicts:${conflictSuggestionKey}`,
-      variant: "warning",
-      icon: <TriangleAlertIcon />,
-      title: `PR #${conflictingPullRequest.number} has conflicts`,
-      description: `Resolve them against ${conflictingPullRequest.baseBranch} in this thread.`,
-      actions: (
-        <Button size="xs" variant="outline" onClick={addConflictResolutionPrompt}>
-          Resolve conflicts
-        </Button>
-      ),
-      dismissLabel: "Dismiss pull request conflict suggestion",
-      onDismiss: () => setDismissedConflictSuggestionKey(conflictSuggestionKey),
-    };
-  }, [
-    addConflictResolutionPrompt,
-    conflictSuggestionKey,
-    conflictingPullRequest,
-    dismissedConflictSuggestionKey,
-  ]);
+    if (conflictingPullRequest === null) return;
+    seedComposerPrompt(
+      buildResolveConflictsPrompt({
+        number: conflictingPullRequest.number,
+        url: conflictingPullRequest.url,
+        headBranch: conflictingPullRequest.headBranch,
+        baseBranch: conflictingPullRequest.baseBranch,
+      }),
+    );
+  }, [conflictingPullRequest, seedComposerPrompt]);
   const activeThreadPr = resolveDisplayedThreadPr({
     threadBranch: activeThread?.branch ?? null,
     gitStatus: gitStatusQuery.data ?? null,
@@ -4657,6 +4623,21 @@ function ChatViewContent(props: ChatViewProps) {
     linkedPullRequest: linkedThreadPullRequest,
     linkedPullRequestStatus,
   });
+  // Keyed on the same change request the header's view action opens, not on the linked record
+  // alone: a thread sitting on a branch that already has one can hand it over before any turn has
+  // linked it.
+  const babysittablePullRequest = activeThreadPr?.state === "open" ? activeThreadPr : null;
+  const addPullRequestBabysitPrompt = useCallback(() => {
+    if (babysittablePullRequest === null) return;
+    seedComposerPrompt(
+      buildBabysitPullRequestPrompt({
+        number: babysittablePullRequest.number,
+        url: babysittablePullRequest.url,
+        headBranch: babysittablePullRequest.headRef,
+        baseBranch: babysittablePullRequest.baseRef,
+      }),
+    );
+  }, [babysittablePullRequest, seedComposerPrompt]);
   // The right panel offers the thread's own change request, so it can only offer it once the
   // branch has one; until then the picker says so rather than opening an empty panel.
   const addPullRequestSurface = useCallback(() => {
@@ -5169,7 +5150,7 @@ function ChatViewContent(props: ChatViewProps) {
     }
     void handleSwitchCheckoutToThread();
   }, [gitStatusQuery.data?.hasWorkingTreeChanges, handleSwitchCheckoutToThread]);
-  const baseComposerBannerItems = useMemo<ComposerBannerStackItem[]>(() => {
+  const composerBannerItems = useMemo<ComposerBannerStackItem[]>(() => {
     const isUrgentSystemItem = (item: ComposerBannerStackItem) =>
       item.urgent === true || item.variant === "error" || item.variant === "warning";
     const urgentSystemItems = systemComposerBannerItems.filter(isUrgentSystemItem);
@@ -7257,13 +7238,6 @@ function ChatViewContent(props: ChatViewProps) {
     setDragActive: setIsWorkspaceFileDragActive,
     addFiles: (files) => composerRef.current?.addDroppedFiles(files),
   });
-  const composerBannerItems = useMemo(
-    () =>
-      conflictResolutionBannerItem === null
-        ? baseComposerBannerItems
-        : [conflictResolutionBannerItem, ...baseComposerBannerItems],
-    [baseComposerBannerItems, conflictResolutionBannerItem],
-  );
   const externalComposerDrawerAttached =
     composerBannerItems.length > 0 || Boolean(threadSyncPhase && !activeEnvironmentUnavailable);
 
@@ -7313,6 +7287,12 @@ function ChatViewContent(props: ChatViewProps) {
             availableEditors={availableEditors}
             rightPanelOpen={rightPanelOpen}
             gitCwd={gitCwd}
+            {...(conflictingPullRequest === null
+              ? {}
+              : { onResolveConflicts: addConflictResolutionPrompt })}
+            {...(babysittablePullRequest === null
+              ? {}
+              : { onBabysitPullRequest: addPullRequestBabysitPrompt })}
             onNewThreadInProject={handleNewThreadInActiveProject}
             onRunProjectScript={runProjectScript}
             onAddProjectScript={saveProjectScript}

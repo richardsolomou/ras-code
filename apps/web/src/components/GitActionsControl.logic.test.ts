@@ -1153,3 +1153,58 @@ describe("resolveAutoFeatureBranchName", () => {
     assert.equal(ref, "update");
   });
 });
+
+describe("when: the thread's own PR conflicts with its base", () => {
+  const openPr = {
+    number: 12,
+    title: "Conflicting PR",
+    url: "https://example.com/pr/12",
+    baseRef: "main",
+    headRef: "feature/test",
+    state: "open" as const,
+  };
+  const conflicting = { conflicting: true, babysittable: true };
+
+  it("resolveQuickAction offers conflict resolution instead of viewing the PR", () => {
+    const quick = resolveQuickAction(status({ pr: openPr }), false, false, true, conflicting);
+    assert.deepInclude(quick, { kind: "resolve_conflicts", label: "Resolve conflicts" });
+  });
+
+  it("resolveQuickAction still names the step that has to come first", () => {
+    const quick = resolveQuickAction(
+      status({ pr: openPr, hasWorkingTreeChanges: true }),
+      false,
+      false,
+      true,
+      conflicting,
+    );
+    assert.deepInclude(quick, { kind: "run_action", label: "Commit & push" });
+  });
+
+  it("buildMenuItems keeps viewing the PR reachable alongside both helpers", () => {
+    const items = buildMenuItems(status({ pr: openPr }), false, true, conflicting);
+    assert.deepEqual(
+      items.map((item) => item.label),
+      ["Commit", "Push", "View PR", "Resolve conflicts", "Babysit PR"],
+    );
+  });
+
+  it("buildMenuItems offers no PR helpers while the ref has no open PR", () => {
+    const items = buildMenuItems(status({ aheadCount: 1 }), false, true, conflicting);
+    assert.deepEqual(
+      items.map((item) => item.label),
+      ["Commit", "Push", "Create PR"],
+    );
+  });
+
+  it("buildMenuItems offers babysitting on its own for a clean open PR", () => {
+    const items = buildMenuItems(status({ pr: openPr }), false, true, {
+      conflicting: false,
+      babysittable: true,
+    });
+    assert.deepEqual(
+      items.map((item) => item.label),
+      ["Commit", "Push", "View PR", "Babysit PR"],
+    );
+  });
+});
