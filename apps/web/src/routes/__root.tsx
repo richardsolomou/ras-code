@@ -6,6 +6,7 @@ import {
   createRootRoute,
   type ErrorComponentProps,
   useLocation,
+  useMatches,
   useNavigate,
 } from "@tanstack/react-router";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
@@ -136,7 +137,7 @@ function RootRouteView() {
         <DocumentTitleSync />
         <FontAppearanceSync />
         {primaryEnvironmentAuthenticated ? <AuthenticatedTracingBootstrap /> : null}
-        {primaryEnvironmentAuthenticated ? <PostHogBrowserTelemetry /> : null}
+        <PostHogBrowserTelemetry />
         <ConnectOnboardingDialog />
         <SshPasswordPromptDialog />
         <ConfirmDialogHost />
@@ -220,10 +221,23 @@ function HostedStaticEnvironmentBootstrap() {
 function RootRouteErrorView({ error, reset }: ErrorComponentProps) {
   const message = errorMessage(error);
   const details = errorDetails(error);
+  const pathname = useLocation({ select: (location) => location.pathname });
+  const routePattern = useMatches({
+    select: (matches) => matches.at(-1)?.fullPath ?? "/",
+  });
+  const telemetryEnabled =
+    useAtomValue(primaryServerConfigAtom)?.observability.posthogTelemetryEnabled === true;
 
   useEffect(() => {
-    capturePostHogBrowserException(error);
-  }, [error]);
+    let active = true;
+    void configurePostHogBrowserTelemetry(telemetryEnabled, pathname, routePattern).then(() => {
+      if (active) capturePostHogBrowserException(error);
+    });
+    return () => {
+      active = false;
+      void configurePostHogBrowserTelemetry(false, "/", "/");
+    };
+  }, [error, pathname, routePattern, telemetryEnabled]);
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4 py-10 text-foreground sm:px-6">
@@ -266,12 +280,22 @@ function RootRouteErrorView({ error, reset }: ErrorComponentProps) {
 
 function PostHogBrowserTelemetry() {
   const pathname = useLocation({ select: (location) => location.pathname });
+  const routePattern = useMatches({
+    select: (matches) => matches.at(-1)?.fullPath ?? "/",
+  });
   const enabled =
     useAtomValue(primaryServerConfigAtom)?.observability.posthogTelemetryEnabled === true;
 
   useEffect(() => {
-    void configurePostHogBrowserTelemetry(enabled, pathname);
-  }, [enabled, pathname]);
+    void configurePostHogBrowserTelemetry(enabled, pathname, routePattern);
+  }, [enabled, pathname, routePattern]);
+
+  useEffect(
+    () => () => {
+      void configurePostHogBrowserTelemetry(false, "/", "/");
+    },
+    [],
+  );
 
   return null;
 }

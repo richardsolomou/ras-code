@@ -722,6 +722,17 @@ it.effect("ProviderServiceLive writes canonical events to the emitting thread se
       yield* ProviderService.ProviderService;
       yield* advanceTestClock(10);
       codex.emit({
+        eventId: asEventId("evt-canonical-thread-delta"),
+        provider: ProviderDriverKind.make("codex"),
+        threadId: asThreadId("thread-canonical-thread-segment"),
+        createdAt: "2026-01-01T00:00:00.000Z",
+        type: "content.delta",
+        payload: {
+          streamKind: "assistant_text",
+          delta: "private response text",
+        },
+      });
+      codex.emit({
         eventId: asEventId("evt-canonical-thread-segment"),
         provider: ProviderDriverKind.make("codex"),
         threadId: asThreadId("thread-canonical-thread-segment"),
@@ -734,10 +745,13 @@ it.effect("ProviderServiceLive writes canonical events to the emitting thread se
       yield* advanceTestClock(20);
     }).pipe(Effect.provide(providerLayer));
 
-    assert.equal(canonicalEvents.length, 1);
-    assert.equal(canonicalEvents[0]?.threadId, "thread-canonical-thread-segment");
-    assert.deepEqual(canonicalThreadIds, ["thread-canonical-thread-segment"]);
-    assert.deepEqual(telemetryEvents, canonicalEvents);
+    assert.equal(canonicalEvents.length, 2);
+    assert.equal(canonicalEvents[1]?.threadId, "thread-canonical-thread-segment");
+    assert.deepEqual(canonicalThreadIds, [
+      "thread-canonical-thread-segment",
+      "thread-canonical-thread-segment",
+    ]);
+    assert.deepEqual(telemetryEvents, [canonicalEvents[1]]);
   }).pipe(Effect.provide(NodeServices.layer)),
 );
 

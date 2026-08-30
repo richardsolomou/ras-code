@@ -6,30 +6,15 @@ import {
 import type { CaptureResult, PostHog } from "posthog-js";
 
 const TELEMETRY_ORIGIN = "https://app.ras-code.local";
-const STATIC_ROUTE_SEGMENTS = new Set([
-  "appearance",
-  "archived",
-  "callback",
-  "connect",
-  "connections",
-  "diagnostics",
-  "draft",
-  "general",
-  "integrations",
-  "keybindings",
-  "pair",
-  "providers",
-  "pull-requests",
-  "settings",
-  "source-control",
-  "usage",
-]);
+const PUBLIC_ROUTE_SEGMENTS = new Set(["callback", "connect", "pair"]);
+const MAX_REMEMBERED_ROUTES = 100;
 
 let clientPromise: Promise<PostHog> | null = null;
 let client: PostHog | null = null;
 let desiredEnabled = false;
 let capturingEnabled = false;
 let lastPageview: string | null = null;
+const knownTelemetryPaths = new Map<string, string>();
 
 function asRecord(value: unknown): Readonly<Record<string, unknown>> | undefined {
   return typeof value === "object" && value !== null && !Array.isArray(value)
@@ -42,23 +27,68 @@ function basename(path: unknown): string | undefined {
   return path.split(/[\\/]/).at(-1);
 }
 
-export function normalizeTelemetryPath(value: string): string {
-  let pathname: string;
+function parsePathname(value: string): string {
   try {
-    pathname = new URL(value, TELEMETRY_ORIGIN).pathname;
+    return new URL(value, TELEMETRY_ORIGIN).pathname;
   } catch {
     return "/";
   }
-  const segments = pathname
+}
+
+export function normalizeTelemetryPath(routePattern: string): string {
+  const segments = routePattern
     .split("/")
     .filter(Boolean)
-    .map((segment) => (STATIC_ROUTE_SEGMENTS.has(segment) ? segment : ":id"));
+    .map((segment) => (segment.startsWith("$") ? ":id" : segment));
   return segments.length === 0 ? "/" : `/${segments.join("/")}`;
+}
+
+function fallbackTelemetryPath(value: string): string {
+  const segments = parsePathname(value)
+    .split("/")
+    .filter(Boolean)
+    .map((segment) => (PUBLIC_ROUTE_SEGMENTS.has(segment) ? segment : ":id"));
+  return segments.length === 0 ? "/" : `/${segments.join("/")}`;
+}
+
+function rememberTelemetryPath(pathname: string, routePattern: string): string {
+  const sourcePath = parsePathname(pathname);
+  const telemetryPath = normalizeTelemetryPath(routePattern);
+  knownTelemetryPaths.delete(sourcePath);
+  knownTelemetryPaths.set(sourcePath, telemetryPath);
+  while (knownTelemetryPaths.size > MAX_REMEMBERED_ROUTES) {
+    const oldest = knownTelemetryPaths.keys().next().value;
+    if (oldest === undefined) break;
+    knownTelemetryPaths.delete(oldest);
+  }
+  return telemetryPath;
+}
+
+function telemetryPathForUrl(value: string): string {
+  const pathname = parsePathname(value);
+  return knownTelemetryPaths.get(pathname) ?? fallbackTelemetryPath(pathname);
+}
+
+function sanitizeReplayData(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(sanitizeReplayData);
+  const record = asRecord(value);
+  if (record === undefined) return undefined;
+  return Object.fromEntries(
+    Object.entries(record).map(([key, entry]) => {
+      if (
+        typeof entry === "string" &&
+        (key.toLowerCase().includes("url") || ["href", "src"].includes(key.toLowerCase()))
+      ) {
+        return [key, `${TELEMETRY_ORIGIN}${telemetryPathForUrl(entry)}`];
+      }
+      return [key, typeof entry === "object" && entry !== null ? sanitizeReplayData(entry) : entry];
+    }),
+  );
 }
 
 function sanitizedCurrentUrl(value: unknown, pathname: unknown): string {
   const source = typeof value === "string" ? value : typeof pathname === "string" ? pathname : "/";
-  return `${TELEMETRY_ORIGIN}${normalizeTelemetryPath(source)}`;
+  return `${TELEMETRY_ORIGIN}${telemetryPathForUrl(source)}`;
 }
 
 function sanitizeAutocaptureElements(value: unknown): unknown {
@@ -136,7 +166,7 @@ export function sanitizePostHogEvent(event: CaptureResult | null): CaptureResult
     $referring_domain: _referringDomain,
     ...properties
   } = event.properties;
-  const pathname = normalizeTelemetryPath(
+  const pathname = telemetryPathForUrl(
     typeof properties.$current_url === "string"
       ? properties.$current_url
       : typeof properties.$pathname === "string"
@@ -161,7 +191,11 @@ export function sanitizePostHogEvent(event: CaptureResult | null): CaptureResult
     ...(event.event === "$$heatmap"
       ? { $heatmap_data: sanitizeHeatmapData(properties.$heatmap_data) }
       : {}),
+    ...(event.event === "$snapshot"
+      ? { $snapshot_data: sanitizeReplayData(properties.$snapshot_data) }
+      : {}),
   };
+  if (event.event === "$snapshot" && safeProperties.$snapshot_data === undefined) return null;
   return { ...event, properties: safeProperties };
 }
 
@@ -190,6 +224,7 @@ async function loadClient(): Promise<PostHog> {
         blockSelector: ".ph-no-capture",
         captureJsonLd: false,
         collectFonts: false,
+        compress_events: false,
         maskAllElementAttributes: true,
         maskAllInputs: true,
         maskCapturedNetworkRequestFn: () => null,
@@ -207,10 +242,12 @@ async function loadClient(): Promise<PostHog> {
 export async function configurePostHogBrowserTelemetry(
   enabled: boolean,
   pathname: string,
+  routePattern: string,
 ): Promise<void> {
   desiredEnabled = enabled;
   if (!enabled) {
     lastPageview = null;
+    knownTelemetryPaths.clear();
     if (capturingEnabled) {
       client?.stopSessionRecording();
       client?.opt_out_capturing();
@@ -219,6 +256,7 @@ export async function configurePostHogBrowserTelemetry(
     return;
   }
 
+  const normalizedPath = rememberTelemetryPath(pathname, routePattern);
   const posthog = await loadClient();
   if (!desiredEnabled) return;
   if (!capturingEnabled) {
@@ -226,7 +264,6 @@ export async function configurePostHogBrowserTelemetry(
     posthog.startSessionRecording();
     capturingEnabled = true;
   }
-  const normalizedPath = normalizeTelemetryPath(pathname);
   if (lastPageview === normalizedPath) return;
   lastPageview = normalizedPath;
   posthog.capture("$pageview", {

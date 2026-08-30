@@ -1,18 +1,60 @@
 import * as NodeUtil from "node:util";
 
-import { describe, expect, it } from "vite-plus/test";
+import { describe, expect, it, vi } from "vite-plus/test";
 
-import { normalizeTelemetryPath, sanitizePostHogEvent } from "./posthog";
+import {
+  configurePostHogBrowserTelemetry,
+  normalizeTelemetryPath,
+  sanitizePostHogEvent,
+} from "./posthog";
+
+const posthogClient = vi.hoisted(() => ({
+  capture: vi.fn(),
+  captureException: vi.fn(),
+  init: vi.fn(),
+  opt_in_capturing: vi.fn(),
+  opt_out_capturing: vi.fn(),
+  startSessionRecording: vi.fn(),
+  stopSessionRecording: vi.fn(),
+}));
+
+vi.mock("posthog-js", () => ({ default: posthogClient }));
 
 describe("PostHog browser telemetry", () => {
   it.each([
     ["/", "/"],
     ["/settings/providers", "/settings/providers"],
-    ["/pair?token=private", "/pair"],
-    ["/environment-secret/thread-secret", "/:id/:id"],
-    ["/environment-secret/draft/draft-secret", "/:id/draft/:id"],
+    ["/projects/$projectKey", "/projects/:id"],
+    ["/$environmentId/$threadId", "/:id/:id"],
+    ["/draft/$draftId", "/draft/:id"],
   ])("normalizes %s without identifiers", (path, expected) => {
     expect(normalizeTelemetryPath(path)).toBe(expected);
+  });
+
+  it("starts, deduplicates, and stops browser collection", async () => {
+    await configurePostHogBrowserTelemetry(
+      true,
+      "/environment-secret/thread-secret",
+      "/$environmentId/$threadId",
+    );
+    await configurePostHogBrowserTelemetry(
+      true,
+      "/environment-secret/thread-secret",
+      "/$environmentId/$threadId",
+    );
+
+    expect(posthogClient.opt_in_capturing).toHaveBeenCalledOnce();
+    expect(posthogClient.startSessionRecording).toHaveBeenCalledOnce();
+    expect(posthogClient.capture).toHaveBeenCalledOnce();
+    expect(posthogClient.capture).toHaveBeenCalledWith("$pageview", {
+      $current_url: "https://app.ras-code.local/:id/:id",
+      $pathname: "/:id/:id",
+    });
+
+    await configurePostHogBrowserTelemetry(false, "/", "/");
+
+    expect(posthogClient.stopSessionRecording).toHaveBeenCalledOnce();
+    expect(posthogClient.opt_out_capturing).toHaveBeenCalledOnce();
   });
 
   it("removes URLs and element content from autocapture events", () => {
@@ -106,6 +148,36 @@ describe("PostHog browser telemetry", () => {
     expect(capturedText).not.toContain("private prompt");
     expect(sanitized?.properties.$heatmap_data).toEqual({
       "https://app.ras-code.local/:id/:id": [{ x: 120, y: 80, target_fixed: false, type: "click" }],
+    });
+  });
+
+  it("removes raw URLs from replay snapshots", () => {
+    const sanitized = sanitizePostHogEvent({
+      uuid: "event-id",
+      event: "$snapshot",
+      properties: {
+        $snapshot_data: {
+          type: 4,
+          data: {
+            href: "https://code.ras.sh/environment-secret/thread-secret?token=phx_secret#fragment",
+            width: 1200,
+            height: 800,
+          },
+        },
+      },
+    });
+
+    const capturedText = NodeUtil.inspect(sanitized, { depth: null });
+    expect(capturedText).not.toContain("phx_secret");
+    expect(capturedText).not.toContain("environment-secret");
+    expect(capturedText).not.toContain("thread-secret");
+    expect(sanitized?.properties.$snapshot_data).toEqual({
+      type: 4,
+      data: {
+        href: "https://app.ras-code.local/:id/:id",
+        width: 1200,
+        height: 800,
+      },
     });
   });
 });
