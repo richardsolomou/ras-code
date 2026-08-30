@@ -6,7 +6,6 @@ import {
   openDraftInFocusedPane,
   isCompanionVisible,
   planThreadOpen,
-  planRoutedDraftOpen,
   useChatPaneStore,
   type FocusedPane,
 } from "../chatPaneStore";
@@ -56,8 +55,7 @@ export function useOpenDraftInPane(): (
       const pane =
         options?.pane ?? (isCompanionVisible(paneState) ? paneState.focusedPane : "routed");
       if (routeIdRef.current === `draft:${draftId}`) {
-        const nextLayout = planRoutedDraftOpen(paneState, pane);
-        if (nextLayout !== paneState) paneState.applyLayout(nextLayout);
+        paneState.focusPane("routed");
         return Promise.resolve();
       }
       return openDraftInFocusedPane(
