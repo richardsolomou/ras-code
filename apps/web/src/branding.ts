@@ -17,10 +17,12 @@ export const HOSTED_APP_CHANNEL =
 export const HOSTED_APP_CHANNEL_LABEL =
   HOSTED_APP_CHANNEL === "canary" ? "Canary" : HOSTED_APP_CHANNEL === "latest" ? "Latest" : null;
 export const APP_BASE_NAME = injectedDesktopAppBranding?.baseName ?? "RAS Code";
-export const APP_STAGE_LABEL =
-  injectedDesktopAppBranding?.stageLabel ??
-  HOSTED_APP_CHANNEL_LABEL ??
-  (import.meta.env.DEV ? "Dev" : "Alpha");
+/** Marks a non-shipping build; a release build carries no stage. Desktop
+ * branding, once injected, is authoritative — including its explicit null. */
+export const APP_STAGE_LABEL: string | null =
+  injectedDesktopAppBranding !== null
+    ? injectedDesktopAppBranding.stageLabel
+    : (HOSTED_APP_CHANNEL_LABEL ?? (import.meta.env.DEV ? "Dev" : null));
 export const APP_DISPLAY_NAME =
   injectedDesktopAppBranding?.displayName ??
   formatAppDisplayName({ baseName: APP_BASE_NAME, stageLabel: APP_STAGE_LABEL });

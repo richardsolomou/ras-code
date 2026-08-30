@@ -43,6 +43,13 @@ export interface ExecuteGitInput {
   readonly allowNonZeroExit?: boolean;
   readonly timeoutMs?: number | null;
   readonly maxOutputBytes?: number;
+  /**
+   * Selects what happens when output exceeds `maxOutputBytes`. Left unset, the
+   * command fails, which is what a caller wants when a partial result would be
+   * indistinguishable from a complete one (reading a file, enumerating refs).
+   * Set it when the output is a best-effort preview, or is discarded entirely,
+   * so output volume can never fail the command.
+   */
   readonly appendTruncationMarker?: boolean;
   readonly progress?: ExecuteGitProgress;
 }

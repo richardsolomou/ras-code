@@ -247,7 +247,7 @@ binary from another:
 ```sh
 VITE_DEV_SERVER_URL=http://127.0.0.1:5733 \
 RAS_CODE_PORT=13773 \
-  "/Applications/RAS Code (Alpha).app/Contents/MacOS/RAS Code (Alpha)"
+  "/Applications/RAS Code.app/Contents/MacOS/RAS Code"
 ```
 
 After changing Associated Domains, bump the build version before rebuilding; macOS may otherwise
@@ -256,8 +256,8 @@ reuse stale Shared Web Credentials metadata for the same app/version pair.
 Verify the installed bundle before testing:
 
 ```sh
-codesign --verify --deep --strict "/Applications/RAS Code (Alpha).app"
-codesign -d --entitlements :- "/Applications/RAS Code (Alpha).app"
+codesign --verify --deep --strict "/Applications/RAS Code.app"
+codesign -d --entitlements :- "/Applications/RAS Code.app"
 ```
 
 The current mobile UI uses Clerk's native authentication view. If a future mobile browser OAuth

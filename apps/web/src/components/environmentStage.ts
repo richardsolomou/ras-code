@@ -7,16 +7,16 @@ import { primaryServerConfigAtom } from "../state/server";
 export type EnvironmentIdentificationPillLabel = "Dev" | "Canary";
 
 export function resolveEnvironmentIdentificationPillLabel(
-  stageLabel: string,
+  stageLabel: string | null,
 ): EnvironmentIdentificationPillLabel | null {
-  const normalized = stageLabel.trim().toLowerCase();
+  const normalized = stageLabel?.trim().toLowerCase();
   if (normalized === "dev") return "Dev";
   if (normalized === "canary") return "Canary";
   return null;
 }
 
 /** Stage of the primary environment's server, falling back to this client's own build stage. */
-export function useEnvironmentStageLabel(): string {
+export function useEnvironmentStageLabel(): string | null {
   const primaryServerVersion =
     useAtomValue(primaryServerConfigAtom)?.environment.serverVersion ?? null;
 

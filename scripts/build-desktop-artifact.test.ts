@@ -250,7 +250,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
   });
 
   it("switches desktop packaging product names to canary for canary builds", () => {
-    assert.equal(resolveDesktopProductName("0.0.17"), "RAS Code (Alpha)");
+    assert.equal(resolveDesktopProductName("0.0.17"), "RAS Code");
     assert.equal(resolveDesktopProductName("0.0.17-canary.20260413.42"), "RAS Code (Canary)");
   });
 
@@ -636,7 +636,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
         "**/node_modules/.bin/**",
       ]);
       assert.deepStrictEqual(mac.dmg, {
-        title: "RAS Code (Alpha) 1.2.3 Installer",
+        title: "RAS Code 1.2.3 Installer",
         background: "dmg/dmg-background-latest.png",
         window: { width: 540, height: 412 },
         contents: [

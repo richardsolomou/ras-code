@@ -7,6 +7,7 @@ import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 
 import {
+  GitCommandError,
   SourceControlRepositoryError,
   type SourceControlCloneRepositoryInput,
   type SourceControlCloneRepositoryResult,
@@ -23,6 +24,25 @@ import { ServerConfig } from "../config.ts";
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
 import * as SourceControlProviderRegistry from "./SourceControlProviderRegistry.ts";
 const isSourceControlRepositoryError = Schema.is(SourceControlRepositoryError);
+const isGitCommandError = Schema.is(GitCommandError);
+
+// The Git driver classifies a failure into a constant rather than passing its
+// stderr out, because Git's error prose embeds the remote URL and so can carry
+// a credential. These map that constant to something a user can act on.
+const FAILURE_REASON_DETAIL = {
+  "repository-not-found":
+    "Repository not found. Check the name, and that your account has access to it.",
+  "authentication-failed":
+    "Authentication failed. Check your source control credentials in Settings.",
+  "host-unreachable": "Could not reach the remote host. Check your network connection.",
+} as const;
+
+function detailForCause(cause: unknown): string {
+  if (isGitCommandError(cause) && cause.failureReason) {
+    return FAILURE_REASON_DETAIL[cause.failureReason];
+  }
+  return "The source control operation could not be completed.";
+}
 
 export class SourceControlRepositoryService extends Context.Service<
   SourceControlRepositoryService,
@@ -46,7 +66,7 @@ function mapRepositoryError(operation: string, provider: SourceControlProviderKi
       : new SourceControlRepositoryError({
           operation,
           provider,
-          detail: "The source control operation could not be completed.",
+          detail: detailForCause(cause),
           cause,
         }),
   );
@@ -203,12 +223,19 @@ export const make = Effect.gen(function* () {
       });
     }
 
+    // Clone duration scales with repository size and network speed, so there is
+    // no timeout that is both long enough for a large repository and short
+    // enough to be useful. Like push, this runs unbounded and is cancelled by
+    // interrupting the request.
     yield* git.execute({
       operation: "SourceControlRepositoryService.cloneRepository",
       cwd: preparedDestination.parentPath,
       args: ["clone", remoteUrl, preparedDestination.directoryName],
-      timeoutMs: 120_000,
+      timeoutMs: null,
+      // Clone output is discarded, so it is capped only to bound memory. The
+      // marker keeps an unexpectedly chatty clone from failing on volume alone.
       maxOutputBytes: 256 * 1024,
+      appendTruncationMarker: true,
     });
 
     return {

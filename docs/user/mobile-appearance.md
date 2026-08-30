@@ -1,9 +1,9 @@
 # Mobile appearance
 
 RAS Code Mobile wears the same mission control console look as the desktop and web apps: near-black
-violet enamel panels, engraved uppercase legends for section labels and project names, and square
-indicator lamps that report thread state. Colour is reserved for state and for the one amber action
-on a screen, so a glance tells you which threads are working, waiting, or failed.
+violet enamel panels, engraved uppercase legends for section labels and project names, and colour
+coded status labels that report thread state. Colour is reserved for state and for the one amber
+action on a screen, so a glance tells you which threads are working, waiting, or failed.
 
 Text is set in Barlow, with Barlow Semi Condensed in tracked caps for legends.
 

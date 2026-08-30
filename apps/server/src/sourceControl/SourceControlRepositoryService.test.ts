@@ -159,7 +159,12 @@ it.effect("clones a looked-up repository into the requested destination", () =>
       prefix: "ras-code-source-control-clone-parent-",
     });
     const destinationPath = `${parent}/ras-code`;
-    const cloneCalls: Array<{ cwd: string; args: ReadonlyArray<string> }> = [];
+    const cloneCalls: Array<{
+      cwd: string;
+      args: ReadonlyArray<string>;
+      timeoutMs: number | null | undefined;
+      appendTruncationMarker: boolean | undefined;
+    }> = [];
 
     yield* Effect.gen(function* () {
       const service = yield* SourceControlRepositoryService.SourceControlRepositoryService;
@@ -175,10 +180,14 @@ it.effect("clones a looked-up repository into the requested destination", () =>
         remoteUrl: CLONE_URLS.url,
         repository: { provider: "github", ...CLONE_URLS },
       });
+      // A large repository takes far longer than any fixed timeout, so the
+      // clone must run unbounded, and its discarded output must never fail it.
       assert.deepStrictEqual(cloneCalls, [
         {
           cwd: parent,
           args: ["clone", CLONE_URLS.url, "ras-code"],
+          timeoutMs: null,
+          appendTruncationMarker: true,
         },
       ]);
     }).pipe(
@@ -187,13 +196,77 @@ it.effect("clones a looked-up repository into the requested destination", () =>
           git: {
             execute: (input) =>
               Effect.sync(() => {
-                cloneCalls.push({ cwd: input.cwd, args: input.args });
+                cloneCalls.push({
+                  cwd: input.cwd,
+                  args: input.args,
+                  timeoutMs: input.timeoutMs,
+                  appendTruncationMarker: input.appendTruncationMarker,
+                });
                 return processOutput();
               }),
           },
         }),
       ),
     );
+  }).pipe(Effect.provide(NodeServices.layer)),
+);
+
+it.effect("turns a classified clone failure into a detail the user can act on", () =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const parent = yield* fs.makeTempDirectoryScoped({
+      prefix: "ras-code-source-control-clone-reason-",
+    });
+    const gitCause = new GitCommandError({
+      operation: "SourceControlRepositoryService.cloneRepository",
+      command: "git",
+      cwd: parent,
+      detail: "Git command exited with a non-zero status.",
+      failureReason: "repository-not-found",
+    });
+
+    yield* Effect.gen(function* () {
+      const service = yield* SourceControlRepositoryService.SourceControlRepositoryService;
+      const error = yield* Effect.flip(
+        service.cloneRepository({
+          remoteUrl: CLONE_URLS.url,
+          destinationPath: `${parent}/ras-code`,
+        }),
+      );
+
+      assert.strictEqual(
+        error.detail,
+        "Repository not found. Check the name, and that your account has access to it.",
+      );
+      assert.strictEqual(error.cause, gitCause);
+    }).pipe(Effect.provide(makeLayer({ git: { execute: () => Effect.fail(gitCause) } })));
+  }).pipe(Effect.provide(NodeServices.layer)),
+);
+
+it.effect("keeps the generic detail for an unclassified clone failure", () =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const parent = yield* fs.makeTempDirectoryScoped({
+      prefix: "ras-code-source-control-clone-generic-",
+    });
+    const gitCause = new GitCommandError({
+      operation: "SourceControlRepositoryService.cloneRepository",
+      command: "git",
+      cwd: parent,
+      detail: "Git command exited with a non-zero status.",
+    });
+
+    yield* Effect.gen(function* () {
+      const service = yield* SourceControlRepositoryService.SourceControlRepositoryService;
+      const error = yield* Effect.flip(
+        service.cloneRepository({
+          remoteUrl: CLONE_URLS.url,
+          destinationPath: `${parent}/ras-code`,
+        }),
+      );
+
+      assert.strictEqual(error.detail, "The source control operation could not be completed.");
+    }).pipe(Effect.provide(makeLayer({ git: { execute: () => Effect.fail(gitCause) } })));
   }).pipe(Effect.provide(NodeServices.layer)),
 );
 
