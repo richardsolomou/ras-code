@@ -12,6 +12,7 @@ import * as Result from "effect/Result";
 import * as Stream from "effect/Stream";
 import * as Headers from "effect/unstable/http/Headers";
 import * as Etag from "effect/unstable/http/Etag";
+import * as HttpClient from "effect/unstable/http/HttpClient";
 import * as HttpPlatform from "effect/unstable/http/HttpPlatform";
 import * as HttpRouter from "effect/unstable/http/HttpRouter";
 import * as HttpServerRequest from "effect/unstable/http/HttpServerRequest";
@@ -64,6 +65,7 @@ import * as EnvironmentConnector from "./environments/EnvironmentConnector.ts";
 import * as EnvironmentLinker from "./environments/EnvironmentLinker.ts";
 import * as EnvironmentPublishSignatures from "./environments/EnvironmentPublishSignatures.ts";
 import * as ManagedEndpointProvider from "./environments/ManagedEndpointProvider.ts";
+import { makeInternalManagedEndpointHttpClient } from "./environments/internalManagedEndpointHttpClient.ts";
 import { RasRelaySession, RasRelaySessionDirectory } from "./environments/RasRelaySession.ts";
 import * as MobileRegistrations from "./agentActivity/MobileRegistrations.ts";
 import { rasRelayEndpointDigestInput, rasRelayEndpointId } from "./deploymentConfig.ts";
@@ -153,6 +155,14 @@ export const ApiLive = Api.make(
     const db = yield* Drizzle.Postgres(hyperdrive.connectionString);
 
     const rasRelaySessions = yield* RasRelaySession;
+    const internalManagedEndpointHttpClient = makeInternalManagedEndpointHttpClient({
+      gatewayDomain: relayGatewayDomain,
+      fetch: (endpointId, request) =>
+        rasRelaySessions
+          .getByName(endpointId)
+          .fetch(HttpServerRequest.fromWeb(request))
+          .pipe(Effect.map(HttpServerResponse.toWeb), Effect.orDie),
+    });
     // Keep Worker custom-domain reconciliation ordered after zone provisioning.
     yield* yield* relayApiZone.zoneId;
     yield* yield* relayGatewayZone.zoneId;
@@ -214,7 +224,11 @@ export const ApiLive = Api.make(
     const runtimeLayer = Layer.empty.pipe(
       Layer.provideMerge(Layer.mergeAll(rasRelaySessionDirectoryLayer, MobileRegistrations.layer)),
       Layer.provideMerge(AgentActivityPublisher.layer),
-      Layer.provideMerge(EnvironmentConnector.layer),
+      Layer.provideMerge(
+        EnvironmentConnector.layer.pipe(
+          Layer.provide(Layer.succeed(HttpClient.HttpClient, internalManagedEndpointHttpClient)),
+        ),
+      ),
       Layer.provideMerge(
         EnvironmentLinker.layer.pipe(Layer.provideMerge(rasRelaySessionDirectoryLayer)),
       ),
