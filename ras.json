@@ -1,6 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/richardsolomou/ras-code/main/schema/ras.json",
-  "iconPath": "assets/prod/black-universal-1024.png",
+  "iconPath": "assets/dev/blueprint-web-apple-touch-180.png",
   "scripts": [
     {
       "name": "Setup Worktree",
