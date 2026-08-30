@@ -45,27 +45,29 @@ export function CompactBrandTitle(
       }}
     >
       <RasCodeWordmark color={wordmarkColor} height={13} />
-      <View
-        style={{
-          backgroundColor: subtleColor,
-          borderRadius: 999,
-          paddingHorizontal: 6,
-          paddingVertical: 2,
-        }}
-      >
-        <Text
-          allowFontScaling={props.allowFontScaling}
+      {stageLabel ? (
+        <View
           style={{
-            color: mutedColor,
-            fontFamily: "BarlowSemiCondensed-SemiBold",
-            fontSize: 9,
-            letterSpacing: 0.9,
-            textTransform: "uppercase",
+            backgroundColor: subtleColor,
+            borderRadius: 999,
+            paddingHorizontal: 6,
+            paddingVertical: 2,
           }}
         >
-          {stageLabel}
-        </Text>
-      </View>
+          <Text
+            allowFontScaling={props.allowFontScaling}
+            style={{
+              color: mutedColor,
+              fontFamily: "BarlowSemiCondensed-SemiBold",
+              fontSize: 9,
+              letterSpacing: 0.9,
+              textTransform: "uppercase",
+            }}
+          >
+            {stageLabel}
+          </Text>
+        </View>
+      ) : null}
     </View>
   );
 }
