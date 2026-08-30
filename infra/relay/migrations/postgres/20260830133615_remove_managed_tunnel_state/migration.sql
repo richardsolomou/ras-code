@@ -1,3 +1,4 @@
+LOCK TABLE "relay_managed_endpoint_allocations" IN ACCESS EXCLUSIVE MODE;--> statement-breakpoint
 DO $$
 BEGIN
 	IF EXISTS (SELECT 1 FROM "relay_managed_endpoint_allocations") THEN
