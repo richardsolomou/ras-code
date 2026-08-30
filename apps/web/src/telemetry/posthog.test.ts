@@ -65,6 +65,7 @@ describe("PostHog browser telemetry", () => {
         $current_url: "https://code.ras.sh/pair?token=phx_secret",
         $pathname: "/pair",
         $referrer: "https://example.com/private",
+        $prev_pageview_pathname: "/environment-secret/thread-secret",
         $elements_chain: "button.private-text",
         $el_text: "private prompt",
         $external_click_url: "https://example.com/private?token=phx_secret",
@@ -83,7 +84,10 @@ describe("PostHog browser telemetry", () => {
     expect(capturedText).not.toContain("phx_secret");
     expect(capturedText).not.toContain("private prompt");
     expect(capturedText).not.toContain("example.com");
+    expect(capturedText).not.toContain("environment-secret");
+    expect(capturedText).not.toContain("thread-secret");
     expect(capturedText).not.toContain("$external_click_url");
+    expect(capturedText).not.toContain("$prev_pageview_pathname");
     expect(sanitized?.properties.$current_url).toBe("https://app.ras-code.local/pair");
     expect(sanitized?.properties.$elements).toEqual([{ tag_name: "button", nth_child: 2 }]);
   });
@@ -162,6 +166,8 @@ describe("PostHog browser telemetry", () => {
             href: "https://code.ras.sh/environment-secret/thread-secret?token=phx_secret#fragment",
             width: 1200,
             height: 800,
+            styleIds: [4, 7],
+            indexes: [0, 2],
           },
         },
       },
@@ -177,6 +183,8 @@ describe("PostHog browser telemetry", () => {
         href: "https://app.ras-code.local/:id/:id",
         width: 1200,
         height: 800,
+        styleIds: [4, 7],
+        indexes: [0, 2],
       },
     });
   });

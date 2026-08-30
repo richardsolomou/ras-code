@@ -70,13 +70,17 @@ const turnId = (value: string) => TurnId.make(value);
 const makeRuntimeLayer = (
   client: AnalyticsService.TelemetryPostHogClient,
   logSink: AnalyticsService.TelemetryLogSink = AnalyticsService.noOpTelemetryLogSink,
+  config?: {
+    readonly posthogHost?: string;
+    readonly useConfiguredLogSink?: boolean;
+  },
 ) => {
   const serverConfigLayer = ServerConfig.ServerConfig.layerTest(process.cwd(), {
     prefix: "ras-code-telemetry-base-",
   });
   const telemetryLayer = Layer.effect(
     AnalyticsService.AnalyticsService,
-    AnalyticsService.make({ client, logSink }),
+    AnalyticsService.make(config?.useConfiguredLogSink ? { client } : { client, logSink }),
   ).pipe(Layer.provideMerge(serverConfigLayer));
 
   return telemetryLayer.pipe(
@@ -85,7 +89,7 @@ const makeRuntimeLayer = (
         ConfigProvider.fromUnknown({
           RAS_CODE_TELEMETRY_ENABLED: true,
           RAS_CODE_POSTHOG_KEY: "phc_test_key",
-          RAS_CODE_POSTHOG_HOST: "https://example.invalid",
+          RAS_CODE_POSTHOG_HOST: config?.posthogHost ?? "https://example.invalid",
           RAS_CODE_TELEMETRY_FLUSH_BATCH_SIZE: 20,
         }),
       ),
@@ -136,6 +140,24 @@ it.layer(NodeServices.layer)("AnalyticsService test", (it) => {
       }).pipe(Effect.provide(makeRuntimeLayer(client)));
 
       assert.isTrue(true);
+    }),
+  );
+
+  it.effect("starts with log capture disabled when the PostHog host is invalid", () =>
+    Effect.gen(function* () {
+      const client = makeTelemetryPostHogClientTest();
+      yield* Effect.gen(function* () {
+        const analytics = yield* AnalyticsService.AnalyticsService;
+        assert.isTrue(analytics.enabled);
+        yield* analytics.flush;
+      }).pipe(
+        Effect.provide(
+          makeRuntimeLayer(client, AnalyticsService.noOpTelemetryLogSink, {
+            posthogHost: "not a URL",
+            useConfiguredLogSink: true,
+          }),
+        ),
+      );
     }),
   );
 

@@ -5,16 +5,19 @@ import {
 } from "@ras-code/shared/posthog";
 import type { CaptureResult, PostHog } from "posthog-js";
 
+import { LRUCache } from "../lib/lruCache";
+
 const TELEMETRY_ORIGIN = "https://app.ras-code.local";
 const PUBLIC_ROUTE_SEGMENTS = new Set(["callback", "connect", "pair"]);
 const MAX_REMEMBERED_ROUTES = 100;
+const MAX_REMEMBERED_ROUTE_BYTES = 64 * 1024;
 
 let clientPromise: Promise<PostHog> | null = null;
 let client: PostHog | null = null;
 let desiredEnabled = false;
 let capturingEnabled = false;
 let lastPageview: string | null = null;
-const knownTelemetryPaths = new Map<string, string>();
+const knownTelemetryPaths = new LRUCache<string>(MAX_REMEMBERED_ROUTES, MAX_REMEMBERED_ROUTE_BYTES);
 
 function asRecord(value: unknown): Readonly<Record<string, unknown>> | undefined {
   return typeof value === "object" && value !== null && !Array.isArray(value)
@@ -54,13 +57,11 @@ function fallbackTelemetryPath(value: string): string {
 function rememberTelemetryPath(pathname: string, routePattern: string): string {
   const sourcePath = parsePathname(pathname);
   const telemetryPath = normalizeTelemetryPath(routePattern);
-  knownTelemetryPaths.delete(sourcePath);
-  knownTelemetryPaths.set(sourcePath, telemetryPath);
-  while (knownTelemetryPaths.size > MAX_REMEMBERED_ROUTES) {
-    const oldest = knownTelemetryPaths.keys().next().value;
-    if (oldest === undefined) break;
-    knownTelemetryPaths.delete(oldest);
-  }
+  knownTelemetryPaths.set(
+    sourcePath,
+    telemetryPath,
+    (sourcePath.length + telemetryPath.length) * 2,
+  );
   return telemetryPath;
 }
 
@@ -69,21 +70,28 @@ function telemetryPathForUrl(value: string): string {
   return knownTelemetryPaths.get(pathname) ?? fallbackTelemetryPath(pathname);
 }
 
-function sanitizeReplayData(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(sanitizeReplayData);
+function sanitizeReplayData(value: unknown, parentKey?: string): unknown {
+  if (Array.isArray(value)) return value.map((entry) => sanitizeReplayData(entry, parentKey));
   const record = asRecord(value);
-  if (record === undefined) return undefined;
+  if (record === undefined) {
+    if (
+      typeof value === "string" &&
+      parentKey !== undefined &&
+      (parentKey.toLowerCase().includes("url") || ["href", "src"].includes(parentKey.toLowerCase()))
+    ) {
+      return `${TELEMETRY_ORIGIN}${telemetryPathForUrl(value)}`;
+    }
+    return value;
+  }
   return Object.fromEntries(
-    Object.entries(record).map(([key, entry]) => {
-      if (
-        typeof entry === "string" &&
-        (key.toLowerCase().includes("url") || ["href", "src"].includes(key.toLowerCase()))
-      ) {
-        return [key, `${TELEMETRY_ORIGIN}${telemetryPathForUrl(entry)}`];
-      }
-      return [key, typeof entry === "object" && entry !== null ? sanitizeReplayData(entry) : entry];
-    }),
+    Object.entries(record).map(([key, entry]) => [key, sanitizeReplayData(entry, key)]),
   );
+}
+
+function sanitizeReplaySnapshot(value: unknown): unknown {
+  return Array.isArray(value) || asRecord(value) !== undefined
+    ? sanitizeReplayData(value)
+    : undefined;
 }
 
 function sanitizedCurrentUrl(value: unknown, pathname: unknown): string {
@@ -162,6 +170,7 @@ export function sanitizePostHogEvent(event: CaptureResult | null): CaptureResult
     $el_text: _elementText,
     $exception_steps: _exceptionSteps,
     $external_click_url: _externalClickUrl,
+    $prev_pageview_pathname: _previousPageviewPathname,
     $referrer: _referrer,
     $referring_domain: _referringDomain,
     ...properties
@@ -192,7 +201,7 @@ export function sanitizePostHogEvent(event: CaptureResult | null): CaptureResult
       ? { $heatmap_data: sanitizeHeatmapData(properties.$heatmap_data) }
       : {}),
     ...(event.event === "$snapshot"
-      ? { $snapshot_data: sanitizeReplayData(properties.$snapshot_data) }
+      ? { $snapshot_data: sanitizeReplaySnapshot(properties.$snapshot_data) }
       : {}),
   };
   if (event.event === "$snapshot" && safeProperties.$snapshot_data === undefined) return null;

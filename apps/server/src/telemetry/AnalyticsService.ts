@@ -205,12 +205,16 @@ function wrapPostHogClient(client: PostHog): TelemetryPostHogClient {
   };
 }
 
-function deriveLogsUrl(posthogHost: string): string {
-  const url = new URL(posthogHost);
-  url.pathname = "/i/v1/logs";
-  url.search = "";
-  url.hash = "";
-  return url.toString();
+function parseLogsUrl(value: string, derivePath: boolean): string | undefined {
+  try {
+    const url = new URL(value);
+    if (derivePath) url.pathname = "/i/v1/logs";
+    url.search = "";
+    url.hash = "";
+    return url.toString();
+  } catch {
+    return undefined;
+  }
 }
 
 function makeTelemetryLogSink(input: {
@@ -436,14 +440,20 @@ export const make = (options?: {
           },
         }),
       );
+    const configuredLogsUrl = Option.getOrUndefined(telemetryConfig.posthogLogsUrl);
+    const logsUrl = parseLogsUrl(
+      configuredLogsUrl ?? telemetryConfig.posthogHost,
+      configuredLogsUrl === undefined,
+    );
+    if (!disabled && logsUrl === undefined) {
+      yield* Effect.logWarning("PostHog log capture is disabled because its URL is invalid");
+    }
     const logSink =
       options?.logSink ??
-      (disabled
+      (disabled || logsUrl === undefined
         ? noOpTelemetryLogSink
         : makeTelemetryLogSink({
-            url:
-              Option.getOrUndefined(telemetryConfig.posthogLogsUrl) ??
-              deriveLogsUrl(telemetryConfig.posthogHost),
+            url: logsUrl,
             token: telemetryConfig.posthogKey,
             serverMode: serverConfig.mode,
           }));

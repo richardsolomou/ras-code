@@ -55,7 +55,12 @@ import {
   primaryServerConfigEventAtom,
   primaryServerWelcomeAtom,
 } from "../state/server";
-import { readProject, setActiveEnvironmentId, useActiveEnvironmentId } from "../state/entities";
+import {
+  readProject,
+  setActiveEnvironmentId,
+  useActiveEnvironmentId,
+  useServerConfigs,
+} from "../state/entities";
 import {
   createKeybindingsUpdateToastController,
   type KeybindingsUpdateToastController,
@@ -137,7 +142,7 @@ function RootRouteView() {
         <DocumentTitleSync />
         <FontAppearanceSync />
         {primaryEnvironmentAuthenticated ? <AuthenticatedTracingBootstrap /> : null}
-        <PostHogBrowserTelemetry />
+        <PostHogBrowserTelemetry authGateStatus={authGateState.status} />
         <ConnectOnboardingDialog />
         <SshPasswordPromptDialog />
         <ConfirmDialogHost />
@@ -225,8 +230,10 @@ function RootRouteErrorView({ error, reset }: ErrorComponentProps) {
   const routePattern = useMatches({
     select: (matches) => matches.at(-1)?.fullPath ?? "/",
   });
-  const telemetryEnabled =
-    useAtomValue(primaryServerConfigAtom)?.observability.posthogTelemetryEnabled === true;
+  const authGateStatus = useMatches({
+    select: (matches) => matches.at(0)?.context.authGateState?.status ?? null,
+  });
+  const telemetryEnabled = usePostHogTelemetryEnabled(pathname, authGateStatus);
 
   useEffect(() => {
     let active = true;
@@ -278,13 +285,12 @@ function RootRouteErrorView({ error, reset }: ErrorComponentProps) {
   );
 }
 
-function PostHogBrowserTelemetry() {
+function PostHogBrowserTelemetry({ authGateStatus }: { readonly authGateStatus: string }) {
   const pathname = useLocation({ select: (location) => location.pathname });
   const routePattern = useMatches({
     select: (matches) => matches.at(-1)?.fullPath ?? "/",
   });
-  const enabled =
-    useAtomValue(primaryServerConfigAtom)?.observability.posthogTelemetryEnabled === true;
+  const enabled = usePostHogTelemetryEnabled(pathname, authGateStatus);
 
   useEffect(() => {
     void configurePostHogBrowserTelemetry(enabled, pathname, routePattern);
@@ -298,6 +304,23 @@ function PostHogBrowserTelemetry() {
   );
 
   return null;
+}
+
+function usePostHogTelemetryEnabled(pathname: string, authGateStatus: string | null): boolean {
+  const primaryConfig = useAtomValue(primaryServerConfigAtom);
+  const activeEnvironmentId = useActiveEnvironmentId();
+  const serverConfigs = useServerConfigs();
+  const serverConfig =
+    authGateStatus === "hosted-static" && activeEnvironmentId !== null
+      ? serverConfigs.get(activeEnvironmentId)
+      : primaryConfig;
+  const appRoute =
+    pathname !== "/pair" && pathname !== "/connect" && !pathname.startsWith("/connect/");
+  return (
+    appRoute &&
+    (authGateStatus === "authenticated" || authGateStatus === "hosted-static") &&
+    serverConfig?.observability.posthogTelemetryEnabled === true
+  );
 }
 
 function errorMessage(error: unknown): string {
