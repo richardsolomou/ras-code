@@ -22,9 +22,9 @@ const sections = [
 
 <LegalPage
   title="Privacy Policy — RAS Code"
-  description="What RAS Connect processes and stores, and how to exercise your data protection rights."
+  description="What RAS Code and RAS Connect process and store, and how to exercise your data protection rights."
   heading="RAS Code Privacy Policy"
-  lede="RAS Code is open-source software that runs on your own machines. RAS Connect is an optional hosted service, operated by Richard Solomou as an individual, that links your devices to your own RAS Code server and delivers mobile notifications. This policy describes the information RAS Connect processes."
+  lede="RAS Code is open-source software that runs on your own machines and sends opt-out anonymous telemetry. RAS Connect is an optional hosted service, operated by Richard Solomou as an individual, that links your devices to your own RAS Code server and delivers mobile notifications. This policy describes both."
   effectiveDate="2026-08-28"
   lastUpdated="2026-08-30"
   sections={sections}
@@ -34,13 +34,14 @@ const sections = [
     <h2>Introduction</h2>
     <p>
       This Privacy Policy explains how Richard Solomou (“I”, “me”) collects, uses, and shares
-      personal information in connection with RAS Connect and the RAS Code website. RAS Connect is
+      information in connection with RAS Code, RAS Connect, and the RAS Code website. RAS Connect is
       run by one person, not a company.
     </p>
     <p>
-      RAS Code itself is MIT-licensed software that you download and run. When you run it without
-      signing in to RAS Connect, no information reaches me at all. Signing in to RAS Connect is
-      optional, and this policy applies from the moment you do.
+      RAS Code itself is MIT-licensed software that you download and run. Its server sends anonymous
+      product and reliability telemetry to PostHog by default, whether or not you sign in to RAS
+      Connect. You can disable it completely with <code>RAS_CODE_TELEMETRY_ENABLED=false</code>.
+      Signing in to RAS Connect is optional.
     </p>
   </section>
 
@@ -51,13 +52,15 @@ const sections = [
       This policy covers RAS Connect: the hosted relay that links RAS Code environments to your
       account, issues short-lived connection credentials, provisions managed network endpoints, and
       delivers push notifications and Live Activities to the RAS Code mobile app. It also covers the
-      RAS Code marketing website.
+      RAS Code marketing website, and anonymous telemetry sent by the RAS Code server and its
+      authenticated web and desktop clients.
     </p>
     <p>
       This policy does not cover the coding agents, model providers, repositories, or operating
       systems you connect RAS Code to. Those are chosen and configured by you, and they process
       information under their own terms and privacy policies. It also does not cover a RAS Code
-      server running on your own machine, which you operate yourself.
+      server running on your own machine, which you operate yourself, except for the anonymous
+      telemetry described below.
     </p>
   </section>
 
@@ -129,6 +132,22 @@ const sections = [
       response status, duration, and your account identifier. Authorization credentials are not
       recorded in traces.
     </p>
+
+    <h3>Anonymous RAS Code Telemetry</h3>
+    <p>
+      The RAS Code server sends anonymous product events, provider turn timing and token totals,
+      low-cardinality metrics, a small allowlist of operational logs, and redacted server exceptions
+      to PostHog. It uses a hashed coding-provider account identifier when one is available, or an
+      installation-scoped anonymous identifier. It does not create a PostHog person profile.
+    </p>
+    <p>
+      After authentication, the web and desktop clients send normalized pageviews, structural
+      interaction events, Web Vitals, pointer coordinates for heatmaps, redacted browser
+      exceptions, and layout-only session replays. Replay text, inputs, and element attributes are
+      masked. Network bodies, network headers, console logs, referrers, query strings, fragments,
+      JSON-LD, and fonts are not recorded. The mobile client does not load the browser telemetry
+      SDK.
+    </p>
   </section>
 
   <section id="not-collected">
@@ -149,6 +168,11 @@ const sections = [
     <p>
       The short agent activity record described above is persisted only when you enable
       notifications. Nothing here is used to train artificial-intelligence models.
+    </p>
+    <p>
+      Anonymous RAS Code telemetry does not contain prompts, agent responses, repository contents,
+      terminal output, raw URLs, IP address properties, secrets, provider error text, abort reasons,
+      local variables, source context, or absolute source paths.
     </p>
   </section>
 
@@ -188,6 +212,7 @@ const sections = [
       <li>To provision and tear down managed endpoints you request;</li>
       <li>To compose and deliver the notifications and Live Activities you enable;</li>
       <li>To diagnose failures, keep the service reliable, and investigate abuse or security issues;</li>
+      <li>To understand which RAS Code clients and provider features are used;</li>
       <li>To respond to you when you get in touch; and</li>
       <li>To comply with legal obligations.</li>
     </ul>
@@ -224,7 +249,7 @@ const sections = [
       </li>
       <li>
         <strong>PostHog</strong> <em>(PostHog, Inc.)</em>.<br />
-        Stores the operational request traces described above.<br />
+        Stores the operational request traces and anonymous RAS Code telemetry described above.<br />
         <a href="https://posthog.com/privacy">https://posthog.com/privacy</a>
       </li>
       <li>
@@ -261,6 +286,10 @@ const sections = [
       one waiting on you. Replay-protection records are removed once they expire. Operational traces
       are retained by PostHog for 14 days and then deleted. Notification delivery records are retained
       for diagnostics and are not currently deleted on a schedule; they can be deleted on request.
+    </p>
+    <p>
+      Anonymous RAS Code telemetry follows the retention configured for the PostHog project. You can
+      stop future collection by disabling telemetry before starting the server.
     </p>
     <p>
       To delete your RAS Connect account and everything associated with it, email

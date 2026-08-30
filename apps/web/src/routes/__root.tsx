@@ -39,6 +39,10 @@ import {
 import { useUiStateStore } from "../uiStateStore";
 import { syncBrowserChromeTheme } from "../hooks/useTheme";
 import { configureClientTracing } from "../observability/clientTracing";
+import {
+  capturePostHogBrowserException,
+  configurePostHogBrowserTelemetry,
+} from "../telemetry/posthog";
 import { resolveInitialServerAuthGateState } from "../environments/primary";
 import { hasHostedPairingRequest, isHostedStaticApp } from "../hostedPairing";
 import { shellEnvironment } from "../state/shell";
@@ -132,6 +136,7 @@ function RootRouteView() {
         <DocumentTitleSync />
         <FontAppearanceSync />
         {primaryEnvironmentAuthenticated ? <AuthenticatedTracingBootstrap /> : null}
+        {primaryEnvironmentAuthenticated ? <PostHogBrowserTelemetry /> : null}
         <ConnectOnboardingDialog />
         <SshPasswordPromptDialog />
         <ConfirmDialogHost />
@@ -216,6 +221,10 @@ function RootRouteErrorView({ error, reset }: ErrorComponentProps) {
   const message = errorMessage(error);
   const details = errorDetails(error);
 
+  useEffect(() => {
+    capturePostHogBrowserException(error);
+  }, [error]);
+
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4 py-10 text-foreground sm:px-6">
       <div className="pointer-events-none absolute inset-0 opacity-80">
@@ -253,6 +262,18 @@ function RootRouteErrorView({ error, reset }: ErrorComponentProps) {
       </section>
     </div>
   );
+}
+
+function PostHogBrowserTelemetry() {
+  const pathname = useLocation({ select: (location) => location.pathname });
+  const enabled =
+    useAtomValue(primaryServerConfigAtom)?.observability.posthogTelemetryEnabled === true;
+
+  useEffect(() => {
+    void configurePostHogBrowserTelemetry(enabled, pathname);
+  }, [enabled, pathname]);
+
+  return null;
 }
 
 function errorMessage(error: unknown): string {

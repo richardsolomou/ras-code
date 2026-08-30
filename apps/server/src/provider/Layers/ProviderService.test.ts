@@ -672,6 +672,7 @@ it.effect("ProviderServiceLive writes canonical events to the emitting thread se
     const codex = makeFakeCodexAdapter();
     const canonicalEvents: ProviderRuntimeEvent[] = [];
     const canonicalThreadIds: Array<string | null> = [];
+    const telemetryEvents: ProviderRuntimeEvent[] = [];
     const registry = makeAdapterRegistryMock({
       [ProviderDriverKind.make("codex")]: codex.adapter,
     });
@@ -694,7 +695,21 @@ it.effect("ProviderServiceLive writes canonical events to the emitting thread se
       Layer.provide(directoryLayer),
       Layer.provide(defaultServerSettingsLayer),
       Layer.provide(serverConfigTestLayer),
-      Layer.provide(AnalyticsService.layerTest),
+      Layer.provide(
+        Layer.succeed(
+          AnalyticsService.AnalyticsService,
+          AnalyticsService.AnalyticsService.of({
+            enabled: true,
+            record: () => Effect.void,
+            recordProviderRuntimeEvent: (event) =>
+              Effect.sync(() => {
+                telemetryEvents.push(event);
+              }),
+            refreshFeatureFlags: Effect.void,
+            flush: Effect.void,
+          }),
+        ),
+      ),
       Layer.provide(
         Layer.succeed(
           ProviderEventLoggers.ProviderEventLoggers,
@@ -722,6 +737,7 @@ it.effect("ProviderServiceLive writes canonical events to the emitting thread se
     assert.equal(canonicalEvents.length, 1);
     assert.equal(canonicalEvents[0]?.threadId, "thread-canonical-thread-segment");
     assert.deepEqual(canonicalThreadIds, ["thread-canonical-thread-segment"]);
+    assert.deepEqual(telemetryEvents, canonicalEvents);
   }).pipe(Effect.provide(NodeServices.layer)),
 );
 

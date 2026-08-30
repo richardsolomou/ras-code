@@ -1316,6 +1316,7 @@ const makeWsRpcLayer = (
           observability: {
             logsDirectoryPath: config.logsDir,
             localTracingEnabled: true,
+            posthogTelemetryEnabled: analytics.enabled,
             ...(config.otlpTracesUrl !== undefined ? { otlpTracesUrl: config.otlpTracesUrl } : {}),
             otlpTracesEnabled: config.otlpTracesUrl !== undefined,
             ...(config.otlpMetricsUrl !== undefined

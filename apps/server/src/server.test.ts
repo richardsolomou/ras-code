@@ -879,6 +879,7 @@ const buildAppUnderTest = (options?: {
       Layer.provide(UsageService.layerTest),
       Layer.provide(
         Layer.mock(AnalyticsService.AnalyticsService)({
+          enabled: false,
           record: () => Effect.void,
           flush: Effect.void,
           ...options?.layers?.analyticsService,

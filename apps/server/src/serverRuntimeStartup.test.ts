@@ -100,7 +100,10 @@ it.effect("launchStartupHeartbeat does not block the caller while counts are loa
           searchThreads: () => Effect.succeed({ matches: [] }),
         }),
         Effect.provideService(AnalyticsService.AnalyticsService, {
+          enabled: false,
           record: () => Effect.void,
+          recordProviderRuntimeEvent: () => Effect.void,
+          refreshFeatureFlags: Effect.void,
           flush: Effect.void,
         }),
       );
