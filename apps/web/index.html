@@ -105,6 +105,9 @@
           aria-label="RAS Code splash screen"
         >
           <defs>
+            <clipPath id="boot-icon-boundary">
+              <rect x="0.5" y="0.5" width="127" height="127" rx="12" />
+            </clipPath>
             <pattern
               id="boot-empty-cells"
               x="8"
@@ -125,8 +128,8 @@
             fill="var(--brand-background)"
             stroke="var(--brand-border)"
           />
-          <g transform="translate(2 2)">
-            <rect x="8" y="8" width="108" height="108" fill="url(#boot-empty-cells)" />
+          <g clip-path="url(#boot-icon-boundary)" transform="translate(2 2)">
+            <rect x="0" y="0" width="124" height="124" fill="url(#boot-empty-cells)" />
             <rect x="40" y="24" width="12" height="12" rx="2" fill="var(--brand-high)" />
             <rect x="56" y="24" width="12" height="12" rx="2" fill="var(--brand-medium)" />
             <rect x="40" y="40" width="12" height="12" rx="2" fill="var(--brand-medium)" />

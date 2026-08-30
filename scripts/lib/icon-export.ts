@@ -76,6 +76,11 @@ export interface IconArtwork {
   readonly layers: ReadonlyArray<string>;
 }
 
+interface IconRenderOptions {
+  readonly opaque: boolean;
+  readonly maskMacosCorners?: boolean;
+}
+
 /** `full-bleed` covers iOS, Linux, Windows and the web; the platform masks it. */
 export type IconShape = "full-bleed" | "macos";
 
@@ -144,13 +149,22 @@ export function composeIconSvg(artwork: IconArtwork, shape: IconShape): string {
  * renditions are re-encoded without an alpha channel: the App Store rejects an
  * iOS app icon that carries one, and full-bleed art covers the canvas anyway.
  */
-export function renderIconPng(
-  svg: string,
-  size: number,
-  options: { readonly opaque: boolean },
-): Buffer {
-  const rendered = Buffer.from(
+export function renderIconPng(svg: string, size: number, options: IconRenderOptions): Buffer {
+  const rendered = PNG.sync.read(
     new Resvg(svg, { fitTo: { mode: "width", value: size } }).render().asPng(),
   );
-  return options.opaque ? PNG.sync.write(PNG.sync.read(rendered), { colorType: 2 }) : rendered;
+  if (options.maskMacosCorners) {
+    const inset = (MACOS_ICON_BODY_INSET / MACOS_ICON_CANVAS) * size;
+    const body = size - inset * 2;
+    const radius = (MACOS_ICON_BODY_RADIUS / MACOS_ICON_CANVAS) * size;
+    for (let y = 0; y < size; y += 1) {
+      for (let x = 0; x < size; x += 1) {
+        const nearestX = Math.max(inset + radius, Math.min(x + 0.5, inset + body - radius));
+        const nearestY = Math.max(inset + radius, Math.min(y + 0.5, inset + body - radius));
+        if (Math.hypot(x + 0.5 - nearestX, y + 0.5 - nearestY) <= radius) continue;
+        rendered.data[(y * size + x) * 4 + 3] = 0;
+      }
+    }
+  }
+  return PNG.sync.write(rendered, { colorType: options.opaque ? 2 : 6 });
 }
