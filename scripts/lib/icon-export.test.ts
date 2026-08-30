@@ -1,4 +1,5 @@
 import { assert, describe, it } from "@effect/vitest";
+import { PNG } from "pngjs";
 
 import {
   composeIconSvg,
@@ -112,5 +113,17 @@ describe("icon export", () => {
 
     assert.deepEqual(opaque, { width: 32, height: 32, colorType: 2 });
     assert.deepEqual(masked, { width: 64, height: 64, colorType: 6 });
+  });
+
+  it("keeps macOS corners transparent while preserving the icon body", () => {
+    const icon = PNG.sync.read(
+      renderIconPng(composeIconSvg(artwork, "macos"), 64, {
+        opaque: false,
+        maskMacosCorners: true,
+      }),
+    );
+
+    assert.equal(icon.data[3], 0);
+    assert.equal(icon.data[(32 * 64 + 32) * 4 + 3], 255);
   });
 });

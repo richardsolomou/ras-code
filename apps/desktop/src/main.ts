@@ -119,7 +119,7 @@ const electronLayer = Layer.mergeAll(
   ElectronApp.layer,
   ElectronDialog.layer,
   ElectronMenu.layer,
-  ElectronNotification.layer,
+  ElectronNotification.layer.pipe(Layer.provide(DesktopAssets.layer)),
   ElectronPowerMonitor.layer,
   ElectronProtocol.layer,
   ElectronSafeStorage.layer,

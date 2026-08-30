@@ -5,7 +5,7 @@
         <rect width="12" height="12" rx="2" fill="#EBEDF0" />
       </pattern>
     </defs>
-    <rect x="8" y="8" width="108" height="108" fill="url(#empty-cells)" />
+    <rect x="0" y="0" width="124" height="124" fill="url(#empty-cells)" />
     <rect x="40" y="24" width="12" height="12" rx="2" fill="#40C463" />
     <rect x="56" y="24" width="12" height="12" rx="2" fill="#30A14E" />
     <rect x="40" y="40" width="12" height="12" rx="2" fill="#30A14E" />

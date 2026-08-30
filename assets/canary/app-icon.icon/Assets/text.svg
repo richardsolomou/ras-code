@@ -1,18 +1,18 @@
 <svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <pattern id="empty-cells" x="10" y="10" width="16" height="16" patternUnits="userSpaceOnUse">
-      <rect width="12" height="12" rx="2" fill="#EBEDF0" />
+      <rect width="12" height="12" rx="2" fill="#21262D" />
     </pattern>
   </defs>
-  <rect x="10" y="10" width="108" height="108" fill="url(#empty-cells)" />
-  <rect x="42" y="26" width="12" height="12" rx="2" fill="#40C463" />
-  <rect x="58" y="26" width="12" height="12" rx="2" fill="#30A14E" />
-  <rect x="42" y="42" width="12" height="12" rx="2" fill="#30A14E" />
-  <rect x="74" y="42" width="12" height="12" rx="2" fill="#40C463" />
-  <rect x="42" y="58" width="12" height="12" rx="2" fill="#40C463" />
-  <rect x="58" y="58" width="12" height="12" rx="2" fill="#30A14E" />
-  <rect x="42" y="74" width="12" height="12" rx="2" fill="#216E39" />
-  <rect x="74" y="74" width="12" height="12" rx="2" fill="#40C463" />
-  <rect x="42" y="90" width="12" height="12" rx="2" fill="#30A14E" />
-  <rect x="74" y="90" width="12" height="12" rx="2" fill="#216E39" />
+  <rect x="2" y="2" width="124" height="124" fill="url(#empty-cells)" />
+  <rect x="42" y="26" width="12" height="12" rx="2" fill="#39D353" />
+  <rect x="58" y="26" width="12" height="12" rx="2" fill="#26A641" />
+  <rect x="42" y="42" width="12" height="12" rx="2" fill="#26A641" />
+  <rect x="74" y="42" width="12" height="12" rx="2" fill="#39D353" />
+  <rect x="42" y="58" width="12" height="12" rx="2" fill="#39D353" />
+  <rect x="58" y="58" width="12" height="12" rx="2" fill="#26A641" />
+  <rect x="42" y="74" width="12" height="12" rx="2" fill="#006D32" />
+  <rect x="74" y="74" width="12" height="12" rx="2" fill="#39D353" />
+  <rect x="42" y="90" width="12" height="12" rx="2" fill="#26A641" />
+  <rect x="74" y="90" width="12" height="12" rx="2" fill="#006D32" />
 </svg>

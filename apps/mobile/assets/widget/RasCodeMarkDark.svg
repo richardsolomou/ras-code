@@ -1,12 +1,15 @@
 <svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
+    <clipPath id="icon-boundary">
+      <rect x="0.5" y="0.5" width="127" height="127" rx="12" />
+    </clipPath>
     <pattern id="empty-cells" x="8" y="8" width="16" height="16" patternUnits="userSpaceOnUse">
       <rect width="12" height="12" rx="2" fill="#21262D" />
     </pattern>
   </defs>
   <rect x="0.5" y="0.5" width="127" height="127" rx="12" fill="#0D1117" stroke="#30363D" />
-  <g transform="translate(2 2)">
-  <rect x="8" y="8" width="108" height="108" fill="url(#empty-cells)" />
+  <g clip-path="url(#icon-boundary)" transform="translate(2 2)">
+  <rect x="0" y="0" width="124" height="124" fill="url(#empty-cells)" />
   <rect x="40" y="24" width="12" height="12" rx="2" fill="#39D353" />
   <rect x="56" y="24" width="12" height="12" rx="2" fill="#26A641" />
   <rect x="40" y="40" width="12" height="12" rx="2" fill="#26A641" />

@@ -1,6 +1,6 @@
 import Constants from "expo-constants";
 import { View } from "react-native";
-import Svg, { Rect } from "react-native-svg";
+import Svg, { ClipPath, Defs, G, Rect } from "react-native-svg";
 
 import { useAppearancePreferences } from "../features/settings/appearance/AppearancePreferencesProvider";
 import { resolveMobileStageLabel } from "../lib/mobileBranding";
@@ -22,8 +22,8 @@ const ACTIVE_CELLS = new Map(
   ].map(([column, row, level]) => [`${column},${row}`, level]),
 );
 
-const CELLS = Array.from({ length: 7 }, (_, row) =>
-  Array.from({ length: 7 }, (_, column) => ({ column, row })),
+const CELLS = Array.from({ length: 9 }, (_, row) =>
+  Array.from({ length: 9 }, (_, column) => ({ column: column - 1, row: row - 1 })),
 ).flat();
 
 const appVariant = Constants.expoConfig?.extra?.appVariant;
@@ -47,20 +47,27 @@ export function BrandMark(props: { readonly compact?: boolean }) {
           x={0.5}
           y={0.5}
         />
-        {CELLS.map(({ column, row }) => {
-          const level = ACTIVE_CELLS.get(`${column},${row}`);
-          return (
-            <Rect
-              fill={level === undefined ? palette.empty : palette.levels[level - 1]}
-              height={12}
-              key={`${column},${row}`}
-              rx={2}
-              width={12}
-              x={10 + column * 16}
-              y={10 + row * 16}
-            />
-          );
-        })}
+        <Defs>
+          <ClipPath id="brand-mark-boundary">
+            <Rect height={127} rx={12} width={127} x={0.5} y={0.5} />
+          </ClipPath>
+        </Defs>
+        <G clipPath="url(#brand-mark-boundary)">
+          {CELLS.map(({ column, row }) => {
+            const level = ACTIVE_CELLS.get(`${column},${row}`);
+            return (
+              <Rect
+                fill={level === undefined ? palette.empty : palette.levels[level - 1]}
+                height={12}
+                key={`${column},${row}`}
+                rx={2}
+                width={12}
+                x={10 + column * 16}
+                y={10 + row * 16}
+              />
+            );
+          })}
+        </G>
       </Svg>
       <View className="gap-1">
         <View className="flex-row items-center gap-2">

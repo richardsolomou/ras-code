@@ -238,7 +238,11 @@ const renderVariant = Effect.fn("iconExport.renderVariant")(function* (
   } satisfies Record<IconShape, string>;
   const render = (shape: IconShape, size: number) =>
     Effect.try({
-      try: () => renderIconPng(documents[shape], size, { opaque: shape === "full-bleed" }),
+      try: () =>
+        renderIconPng(documents[shape], size, {
+          opaque: shape === "full-bleed",
+          maskMacosCorners: shape === "macos",
+        }),
       catch: (cause) => new IconExportRenderError({ variant: variant.label, cause }),
     });
 
