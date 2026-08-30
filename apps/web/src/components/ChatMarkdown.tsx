@@ -25,6 +25,10 @@ import {
   type AtomCommandResult,
 } from "@ras-code/client-runtime/state/runtime";
 import { classifyMarkdownImageSource } from "@ras-code/client-runtime/markdown-images";
+import {
+  assetUrlFailureLabel,
+  type AssetUrlFailureReason,
+} from "@ras-code/client-runtime/state/assets";
 import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/unstable/reactivity";
 import React, {
@@ -1055,12 +1059,30 @@ const CHAT_MARKDOWN_WORKSPACE_IMAGE_CLASS_NAME = cn(
   "my-1 block! rounded-lg border border-border/40",
 );
 
-function ChatMarkdownImageFallback(props: { readonly alt: string }) {
-  return (
-    <span className="my-1 inline-flex items-center gap-1.5 rounded-md border border-border/40 bg-muted/40 px-2 py-1 text-xs text-muted-foreground">
+/**
+ * Names the reason the image did not load and the path it was read from, so a
+ * reader can act on it instead of guessing. A path outside the project folder
+ * is the usual cause and cannot be inferred from the rendered chat.
+ */
+function ChatMarkdownImageFallback(props: {
+  readonly alt: string;
+  readonly reason?: AssetUrlFailureReason;
+  readonly path?: string;
+}) {
+  const label = assetUrlFailureLabel(props.reason ?? "unavailable");
+  const detail = props.path ?? (props.alt.length > 0 ? props.alt : null);
+  const chip = (
+    <span className="my-1 inline-flex max-w-full items-center gap-1.5 rounded-md border border-border/40 bg-muted/40 px-2 py-1 text-muted-foreground text-xs">
       <TriangleAlertIcon aria-hidden className="size-3.5 shrink-0" />
-      {props.alt.length > 0 ? `Image unavailable · ${props.alt}` : "Image unavailable"}
+      <span className="min-w-0 truncate">{detail === null ? label : `${label} · ${detail}`}</span>
     </span>
+  );
+  if (props.path === undefined) return chip;
+  return (
+    <Tooltip>
+      <TooltipTrigger render={chip} />
+      <TooltipPopup side="top">{props.path}</TooltipPopup>
+    </Tooltip>
   );
 }
 
@@ -1078,7 +1100,13 @@ const ChatMarkdownWorkspaceImage = memo(function ChatMarkdownWorkspaceImage(prop
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
 
   if (assetUrl._tag === "Failure" || (assetUrl._tag === "Success" && failedUrl === assetUrl.url)) {
-    return <ChatMarkdownImageFallback alt={props.alt} />;
+    return (
+      <ChatMarkdownImageFallback
+        alt={props.alt}
+        path={props.path}
+        reason={assetUrl._tag === "Failure" ? assetUrl.reason : "unavailable"}
+      />
+    );
   }
   if (assetUrl._tag !== "Success") {
     return (
