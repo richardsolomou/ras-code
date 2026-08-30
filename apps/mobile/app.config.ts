@@ -176,7 +176,7 @@ const config: ExpoConfig = {
   slug: "ras-code",
   platforms: ["ios", "android"],
   scheme: variant.scheme,
-  version: "1.0.5",
+  version: "1.0.6",
   runtimeVersion: {
     // Fingerprint (not appVersion) so an OTA only reaches binaries whose native
     // project — native deps, config plugins, AND patches/ — matches the update.

@@ -318,6 +318,10 @@ jobs:
                 --non-interactive
               echo ":white_check_mark: $platform: OTA published to $OTA_CHANNEL (fingerprint \`$hash\`)" >> "$GITHUB_STEP_SUMMARY"
             else
+              # An annotation, not just a summary line: a native change stops
+              # every OTA until the app version is bumped and a new store build
+              # ships, and that is invisible from the green check alone.
+              echo "::warning title=$platform OTA skipped::No finished production build matches fingerprint $hash. Bump \`version\` in apps/mobile/app.config.ts to cut a build; until one ships, $platform receives no updates."
               echo ":warning: $platform: no finished production build matches fingerprint \`$hash\` — OTA skipped; JS changes reach $platform only once a matching build ships" >> "$GITHUB_STEP_SUMMARY"
             fi
           done
