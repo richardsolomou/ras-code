@@ -757,7 +757,7 @@ function ProjectDetail({ group }: { group: SidebarProjectSnapshot }) {
             environmentId: member.environmentId,
             input: {
               projectId: member.id,
-              ...(memberThreads.length > 0 ? { force: true } : {}),
+              force: true,
             },
           }),
           () => undefined,
