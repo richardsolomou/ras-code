@@ -3,6 +3,7 @@ import {
   type OrchestrationCommand,
   type OrchestrationEvent,
   type OrchestrationReadModel,
+  type ThreadLinkedPullRequest,
 } from "@ras-code/contracts";
 import * as DateTime from "effect/DateTime";
 import * as Crypto from "effect/Crypto";
@@ -28,6 +29,21 @@ const nowIso = Effect.map(DateTime.now, DateTime.formatIso);
 // window is a failed/stale start, not pending work. Mirrors the client's
 // QUEUED_TURN_START_GRACE_MS in client-runtime threadSettled.ts.
 const QUEUED_TURN_START_GRACE_MS = 2 * 60 * 1_000;
+
+function linkedPullRequestsEqual(
+  left: ThreadLinkedPullRequest | null | undefined,
+  right: ThreadLinkedPullRequest | null | undefined,
+): boolean {
+  if (left == null || right == null) {
+    return left == null && right == null;
+  }
+  return (
+    left.projectId === right.projectId &&
+    left.repository === right.repository &&
+    left.number === right.number &&
+    left.url === right.url
+  );
+}
 
 /**
  * Blocked-on-you work derived from the thread's retained activities: an
@@ -819,6 +835,12 @@ export const decideOrchestrationCommand = Effect.fn("decideOrchestrationCommand"
         thread.branch !== command.expectedBranch
           ? thread.branch
           : command.branch;
+      const linkedPullRequest =
+        command.linkedPullRequest !== undefined &&
+        command.expectedLinkedPullRequest !== undefined &&
+        !linkedPullRequestsEqual(thread.linkedPullRequest, command.expectedLinkedPullRequest)
+          ? undefined
+          : command.linkedPullRequest;
       const occurredAt = yield* nowIso;
       return {
         ...(yield* withEventBase({
@@ -849,9 +871,7 @@ export const decideOrchestrationCommand = Effect.fn("decideOrchestrationCommand"
             : {}),
           ...(branch !== undefined ? { branch } : {}),
           ...(command.worktreePath !== undefined ? { worktreePath: command.worktreePath } : {}),
-          ...(command.linkedPullRequest !== undefined
-            ? { linkedPullRequest: command.linkedPullRequest }
-            : {}),
+          ...(linkedPullRequest !== undefined ? { linkedPullRequest } : {}),
           updatedAt: occurredAt,
         },
       };

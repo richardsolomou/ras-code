@@ -57,6 +57,7 @@ import {
 import { CHAT_LIST_ANCHOR_OFFSET } from "@ras-code/shared/chatList";
 import { projectScriptCwd, projectScriptRuntimeEnv } from "@ras-code/shared/projectScripts";
 import { truncate } from "@ras-code/shared/String";
+import { buildResolveConflictsPrompt } from "@ras-code/shared/sourceControl";
 import {
   getTerminalLabel,
   nextTerminalId,
@@ -184,6 +185,7 @@ import {
   GitBranchIcon,
   Minimize2Icon,
   PaperclipIcon,
+  TriangleAlertIcon,
   WifiOffIcon,
 } from "lucide-react";
 import { cn, randomHex } from "~/lib/utils";
@@ -4475,6 +4477,74 @@ function ChatViewContent(props: ChatViewProps) {
     activeThreadRef?.environmentId ?? null,
     linkedThreadPullRequest,
   );
+  const conflictingPullRequest =
+    linkedPullRequestStatus?.detail?.state === "open" &&
+    linkedPullRequestStatus.detail.mergeability === "conflicting"
+      ? linkedPullRequestStatus.detail
+      : null;
+  const conflictSuggestionKey =
+    activeThreadRef !== null && conflictingPullRequest !== null
+      ? `${scopedThreadKey(activeThreadRef)}:${conflictingPullRequest.number}:${conflictingPullRequest.updatedAt}`
+      : null;
+  const [dismissedConflictSuggestionKey, setDismissedConflictSuggestionKey] = useState<
+    string | null
+  >(null);
+  const addConflictResolutionPrompt = useCallback(() => {
+    if (conflictingPullRequest === null || conflictSuggestionKey === null) return;
+    const resolutionPrompt = buildResolveConflictsPrompt({
+      number: conflictingPullRequest.number,
+      url: conflictingPullRequest.url,
+      headBranch: conflictingPullRequest.headBranch,
+      baseBranch: conflictingPullRequest.baseBranch,
+    });
+    const currentPrompt = promptRef.current.trim();
+    const nextPrompt =
+      currentPrompt.length === 0 ? resolutionPrompt : `${currentPrompt}\n\n${resolutionPrompt}`;
+    promptRef.current = nextPrompt;
+    setComposerDraftPrompt(composerDraftTarget, nextPrompt);
+    composerRef.current?.resetCursorState({
+      cursor: collapseExpandedComposerCursor(nextPrompt, nextPrompt.length),
+      prompt: nextPrompt,
+      detectTrigger: true,
+    });
+    setDismissedConflictSuggestionKey(conflictSuggestionKey);
+    scheduleComposerFocus();
+  }, [
+    composerDraftTarget,
+    composerRef,
+    conflictSuggestionKey,
+    conflictingPullRequest,
+    scheduleComposerFocus,
+    setComposerDraftPrompt,
+  ]);
+  const conflictResolutionBannerItem = useMemo<ComposerBannerStackItem | null>(() => {
+    if (
+      conflictingPullRequest === null ||
+      conflictSuggestionKey === null ||
+      dismissedConflictSuggestionKey === conflictSuggestionKey
+    ) {
+      return null;
+    }
+    return {
+      id: `pull-request-conflicts:${conflictSuggestionKey}`,
+      variant: "warning",
+      icon: <TriangleAlertIcon />,
+      title: `PR #${conflictingPullRequest.number} has conflicts`,
+      description: `Resolve them against ${conflictingPullRequest.baseBranch} in this thread.`,
+      actions: (
+        <Button size="xs" variant="outline" onClick={addConflictResolutionPrompt}>
+          Resolve conflicts
+        </Button>
+      ),
+      dismissLabel: "Dismiss pull request conflict suggestion",
+      onDismiss: () => setDismissedConflictSuggestionKey(conflictSuggestionKey),
+    };
+  }, [
+    addConflictResolutionPrompt,
+    conflictSuggestionKey,
+    conflictingPullRequest,
+    dismissedConflictSuggestionKey,
+  ]);
   const activeThreadPr = resolveDisplayedThreadPr({
     threadBranch: activeThread?.branch ?? null,
     gitStatus: gitStatusQuery.data ?? null,
@@ -4995,7 +5065,7 @@ function ChatViewContent(props: ChatViewProps) {
     }
     void handleSwitchCheckoutToThread();
   }, [gitStatusQuery.data?.hasWorkingTreeChanges, handleSwitchCheckoutToThread]);
-  const composerBannerItems = useMemo<ComposerBannerStackItem[]>(() => {
+  const baseComposerBannerItems = useMemo<ComposerBannerStackItem[]>(() => {
     const isUrgentSystemItem = (item: ComposerBannerStackItem) =>
       item.urgent === true || item.variant === "error" || item.variant === "warning";
     const urgentSystemItems = systemComposerBannerItems.filter(isUrgentSystemItem);
@@ -7025,6 +7095,13 @@ function ChatViewContent(props: ChatViewProps) {
     setDragActive: setIsWorkspaceFileDragActive,
     addFiles: (files) => composerRef.current?.addDroppedFiles(files),
   });
+  const composerBannerItems = useMemo(
+    () =>
+      conflictResolutionBannerItem === null
+        ? baseComposerBannerItems
+        : [conflictResolutionBannerItem, ...baseComposerBannerItems],
+    [baseComposerBannerItems, conflictResolutionBannerItem],
+  );
   const externalComposerDrawerAttached =
     composerBannerItems.length > 0 || Boolean(threadSyncPhase && !activeEnvironmentUnavailable);
 

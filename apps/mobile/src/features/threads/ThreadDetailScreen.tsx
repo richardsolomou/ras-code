@@ -59,6 +59,7 @@ import type { DraftComposerImageAttachment } from "../../lib/composerImages";
 import { CHAT_CONTENT_MAX_WIDTH, type LayoutVariant } from "../../lib/layout";
 import { IOS_NAV_BAR_HEIGHT } from "../../lib/layoutMetrics";
 import { scopedThreadKey } from "../../lib/scopedEntities";
+import { buildResolveConflictsPrompt } from "@ras-code/shared/sourceControl";
 import type {
   PendingApproval,
   PendingUserInput,
@@ -80,6 +81,7 @@ import {
 import { ThreadFeed } from "./ThreadFeed";
 import type { ThreadContentPresentation } from "./threadContentPresentation";
 import { resolveThreadFeedSubmissionAnchor } from "./thread-feed-live-follow";
+import { useLinkedPullRequestDetail } from "../../state/use-thread-pr";
 
 export interface ThreadDetailScreenProps {
   readonly selectedThread: OrchestrationThreadShell;
@@ -253,6 +255,22 @@ export const ThreadDetailScreen = memo(function ThreadDetailScreen(props: Thread
   const navigationHeaderHeight = useContext(HeaderHeightContext) || insets.top + IOS_NAV_BAR_HEIGHT;
   const agentLabel = `${props.selectedThread.modelSelection.instanceId} agent`;
   const selectedThreadKey = scopedThreadKey(props.environmentId, props.selectedThread.id);
+  const linkedPullRequestDetail = useLinkedPullRequestDetail(
+    props.selectedThread,
+    props.environmentId,
+  );
+  const conflictingPullRequest =
+    linkedPullRequestDetail?.state === "open" &&
+    linkedPullRequestDetail.mergeability === "conflicting"
+      ? linkedPullRequestDetail
+      : null;
+  const conflictSuggestionKey =
+    conflictingPullRequest === null
+      ? null
+      : `${selectedThreadKey}:${conflictingPullRequest.number}:${conflictingPullRequest.updatedAt}`;
+  const [dismissedConflictSuggestionKey, setDismissedConflictSuggestionKey] = useState<
+    string | null
+  >(null);
   const composerEditorRef = useRef<ComposerEditorHandle>(null);
   const composerOverlayRef = useRef<View>(null);
   const listRef = useRef<LegendListRef>(null);
@@ -555,6 +573,27 @@ export const ThreadDetailScreen = memo(function ThreadDetailScreen(props: Thread
     composerEditorRef.current?.blur();
   }, []);
 
+  const addConflictResolutionPrompt = useCallback(() => {
+    if (conflictingPullRequest === null || conflictSuggestionKey === null) return;
+    const resolutionPrompt = buildResolveConflictsPrompt({
+      number: conflictingPullRequest.number,
+      url: conflictingPullRequest.url,
+      headBranch: conflictingPullRequest.headBranch,
+      baseBranch: conflictingPullRequest.baseBranch,
+    });
+    const currentPrompt = props.draftMessage.trim();
+    props.onChangeDraftMessage(
+      currentPrompt.length === 0 ? resolutionPrompt : `${currentPrompt}\n\n${resolutionPrompt}`,
+    );
+    setDismissedConflictSuggestionKey(conflictSuggestionKey);
+    composerEditorRef.current?.focus();
+  }, [
+    conflictSuggestionKey,
+    conflictingPullRequest,
+    props.draftMessage,
+    props.onChangeDraftMessage,
+  ]);
+
   const handleScrollToEnd = useCallback(() => {
     void Haptics.selectionAsync();
     void scrollMessageToEnd({ animated: true, closeKeyboard: false }).catch(() => {
@@ -767,6 +806,18 @@ export const ThreadDetailScreen = memo(function ThreadDetailScreen(props: Thread
                 onUpdateInteractionMode={props.onUpdateThreadInteractionMode}
                 onExpandedChange={setComposerExpanded}
                 onEditorFocusChange={handleOwnedInputFocusChange}
+                conflictSuggestion={
+                  conflictingPullRequest === null ||
+                  conflictSuggestionKey === null ||
+                  dismissedConflictSuggestionKey === conflictSuggestionKey
+                    ? null
+                    : {
+                        number: conflictingPullRequest.number,
+                        baseBranch: conflictingPullRequest.baseBranch,
+                        onResolve: addConflictResolutionPrompt,
+                        onDismiss: () => setDismissedConflictSuggestionKey(conflictSuggestionKey),
+                      }
+                }
               />
             </View>
           </View>

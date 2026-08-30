@@ -1,4 +1,5 @@
 import type { EnvironmentThreadShell } from "@ras-code/client-runtime/state/shell";
+import type { EnvironmentId, OrchestrationThreadShell } from "@ras-code/contracts";
 import {
   createLinkedPullRequestDetailAtomFamily,
   pullRequestDetailToVcsStatus,
@@ -16,6 +17,24 @@ export {
   type ThreadPr,
   type ThreadPrPresentation,
 } from "./thread-pr-presentation";
+
+export function useLinkedPullRequestDetail(
+  thread: Pick<OrchestrationThreadShell, "linkedPullRequest">,
+  environmentId: EnvironmentId,
+) {
+  return useEnvironmentQuery(
+    thread.linkedPullRequest == null
+      ? null
+      : linkedPullRequestDetailAtom({
+          environmentId,
+          input: {
+            projectId: thread.linkedPullRequest.projectId,
+            repository: thread.linkedPullRequest.repository,
+            number: thread.linkedPullRequest.number,
+          },
+        }),
+  ).data;
+}
 
 /**
  * Live PR status for a thread's branch. Subscriptions are deduplicated per
@@ -36,21 +55,10 @@ export function useThreadPr(
         })
       : null,
   );
-  const linkedPullRequest = useEnvironmentQuery(
-    thread.linkedPullRequest == null
-      ? null
-      : linkedPullRequestDetailAtom({
-          environmentId: thread.environmentId,
-          input: {
-            projectId: thread.linkedPullRequest.projectId,
-            repository: thread.linkedPullRequest.repository,
-            number: thread.linkedPullRequest.number,
-          },
-        }),
-  );
+  const linkedPullRequest = useLinkedPullRequestDetail(thread, thread.environmentId);
 
   if (thread.linkedPullRequest != null) {
-    const detail = linkedPullRequest.data;
+    const detail = linkedPullRequest;
     return detail === null
       ? null
       : presentThreadPr(pullRequestDetailToVcsStatus(detail), {
