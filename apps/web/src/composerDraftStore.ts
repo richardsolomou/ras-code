@@ -3,7 +3,9 @@ import {
   DEFAULT_MODEL_BY_PROVIDER,
   defaultInstanceIdForDriver,
   EnvironmentId,
+  MessageId,
   ModelSelection,
+  NonNegativeInt,
   ProjectId,
   ProviderInstanceId,
   ProviderInteractionMode,
@@ -16,6 +18,7 @@ import {
   type ServerProvider,
   type ScopedProjectRef,
   type ScopedThreadRef,
+  ThreadForkWorkspaceMode,
   ThreadId,
 } from "@ras-code/contracts";
 import {
@@ -271,6 +274,19 @@ const PersistedDraftThreadState = Schema.Struct({
   worktreePath: Schema.NullOr(Schema.String),
   envMode: DraftThreadEnvModeSchema,
   startFromOrigin: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(false))),
+  // Present only on a fork draft: what this draft will branch from when it is
+  // sent. Optional so drafts stored before forking still decode.
+  forkedFrom: Schema.optionalKey(
+    Schema.NullOr(
+      Schema.Struct({
+        threadId: ThreadId,
+        messageId: MessageId,
+        turnCount: NonNegativeInt,
+        workspaceMode: ThreadForkWorkspaceMode,
+        sourceTitle: Schema.String,
+      }),
+    ),
+  ),
   promotedTo: Schema.optionalKey(
     Schema.NullOr(
       Schema.Struct({
@@ -371,6 +387,16 @@ export function composerDraftHasUserContent(
  * Unlike a real server thread, a draft session can still change target
  * environment/worktree configuration before the first send.
  */
+/** The fork a draft will perform on send. */
+export interface DraftThreadForkSpec {
+  threadId: ThreadId;
+  messageId: MessageId;
+  turnCount: number;
+  workspaceMode: ThreadForkWorkspaceMode;
+  /** The parent's title at fork time, for the draft's own title and header. */
+  sourceTitle: string;
+}
+
 export interface DraftSessionState {
   threadId: ThreadId;
   environmentId: EnvironmentId;
@@ -383,6 +409,11 @@ export interface DraftSessionState {
   worktreePath: string | null;
   envMode: DraftThreadEnvMode;
   startFromOrigin: boolean;
+  /**
+   * Set on a fork draft: the point in another thread this draft will be cut
+   * from when the user sends it. Until then the fork exists only here.
+   */
+  forkedFrom?: DraftThreadForkSpec | null;
   promotedTo?: ScopedThreadRef | null;
 }
 
@@ -448,6 +479,7 @@ interface ComposerDraftStoreState {
       startFromOrigin?: boolean;
       runtimeMode?: RuntimeMode;
       interactionMode?: ProviderInteractionMode;
+      forkedFrom?: DraftThreadForkSpec | null;
     },
   ) => void;
   /** Creates or updates the draft session tracked for a concrete project ref. */
@@ -1459,6 +1491,7 @@ function createDraftThreadState(
     startFromOrigin?: boolean;
     runtimeMode?: RuntimeMode;
     interactionMode?: ProviderInteractionMode;
+    forkedFrom?: DraftThreadForkSpec | null;
   },
 ): DraftThreadState {
   // A project change (including switching environments within a logical
@@ -1499,6 +1532,10 @@ function createDraftThreadState(
     envMode:
       options?.envMode ?? (nextWorktreePath ? "worktree" : (existingThread?.envMode ?? "local")),
     startFromOrigin: nextStartFromOrigin,
+    // A fork target is set once, when the fork draft is minted. Nothing else
+    // may quietly turn a plain draft into a fork or vice versa.
+    forkedFrom:
+      options?.forkedFrom === undefined ? (existingThread?.forkedFrom ?? null) : options.forkedFrom,
     promotedTo: null,
   };
 }
@@ -1531,7 +1568,24 @@ function draftThreadsEqual(left: DraftThreadState | undefined, right: DraftThrea
     left.worktreePath === right.worktreePath &&
     left.envMode === right.envMode &&
     left.startFromOrigin === right.startFromOrigin &&
+    draftThreadForksEqual(left.forkedFrom, right.forkedFrom) &&
     scopedThreadRefsEqual(left.promotedTo, right.promotedTo)
+  );
+}
+
+function draftThreadForksEqual(
+  left: DraftThreadForkSpec | null | undefined,
+  right: DraftThreadForkSpec | null | undefined,
+): boolean {
+  if (!left || !right) {
+    return (left ?? null) === (right ?? null);
+  }
+  return (
+    left.threadId === right.threadId &&
+    left.messageId === right.messageId &&
+    left.turnCount === right.turnCount &&
+    left.workspaceMode === right.workspaceMode &&
+    left.sourceTitle === right.sourceTitle
   );
 }
 
@@ -1562,6 +1616,37 @@ function removeDraftThreadReferences(
     draftsByThreadKey: restDraftsByThreadKey,
     draftThreadsByThreadKey: restDraftThreadsByThreadKey,
     logicalProjectDraftThreadKeyByLogicalProjectKey: nextLogicalMappings,
+  };
+}
+
+/**
+ * A stored fork target is only usable if every field survived: a half-decoded
+ * fork would send a turn that the server rejects.
+ */
+function normalizePersistedDraftThreadFork(raw: unknown): DraftThreadForkSpec | null {
+  if (!raw || typeof raw !== "object") {
+    return null;
+  }
+  const candidate = raw as Record<string, unknown>;
+  const { threadId, messageId, turnCount, workspaceMode, sourceTitle } = candidate;
+  if (
+    typeof threadId !== "string" ||
+    threadId.length === 0 ||
+    typeof messageId !== "string" ||
+    messageId.length === 0 ||
+    typeof turnCount !== "number" ||
+    !Number.isInteger(turnCount) ||
+    turnCount < 0 ||
+    (workspaceMode !== "worktree" && workspaceMode !== "in-place")
+  ) {
+    return null;
+  }
+  return {
+    threadId: ThreadId.make(threadId),
+    messageId: MessageId.make(messageId),
+    turnCount,
+    workspaceMode,
+    sourceTitle: typeof sourceTitle === "string" ? sourceTitle : "",
   };
 }
 
@@ -1646,6 +1731,7 @@ function normalizePersistedDraftThreads(
       if (typeof projectId !== "string" || projectId.length === 0 || environmentId === undefined) {
         continue;
       }
+      const forkedFrom = normalizePersistedDraftThreadFork(candidateDraftThread.forkedFrom);
       const normalizedEnvironmentId = environmentId as EnvironmentId;
       draftThreadsByThreadKey[threadKey] = {
         threadId,
@@ -1674,6 +1760,7 @@ function normalizePersistedDraftThreads(
         worktreePath: normalizedWorktreePath,
         envMode: normalizeDraftThreadEnvMode(candidateDraftThread.envMode, normalizedWorktreePath),
         startFromOrigin,
+        ...(forkedFrom ? { forkedFrom } : {}),
         promotedTo,
       };
     }
@@ -2372,6 +2459,7 @@ function toHydratedDraftThreadState(
     worktreePath: persistedDraftThread.worktreePath,
     envMode: persistedDraftThread.envMode,
     startFromOrigin: persistedDraftThread.startFromOrigin,
+    forkedFrom: persistedDraftThread.forkedFrom ?? null,
     promotedTo: persistedDraftThread.promotedTo
       ? scopeThreadRef(
           persistedDraftThread.promotedTo.environmentId as EnvironmentId,
@@ -2607,6 +2695,9 @@ const composerDraftStore = create<ComposerDraftStoreState>()(
               envMode:
                 options.envMode ?? (nextWorktreePath ? "worktree" : (existing.envMode ?? "local")),
               startFromOrigin: nextStartFromOrigin,
+              // Context edits (branch, env mode, project) never change what a
+              // draft forks from.
+              forkedFrom: existing.forkedFrom ?? null,
               promotedTo: existing.promotedTo ?? null,
             };
             const isUnchanged =

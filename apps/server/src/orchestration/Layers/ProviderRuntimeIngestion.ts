@@ -1660,6 +1660,22 @@ const make = Effect.gen(function* () {
         }
       }
 
+      // Stamp the completed turn with the provider's own address for it, so a
+      // later fork can ask the provider to branch at exactly this point.
+      if (event.type === "turn.completed" && eventTurnId !== undefined) {
+        const resumeAnchor = event.payload.resumeAnchor;
+        if (resumeAnchor !== undefined && resumeAnchor.length > 0) {
+          yield* orchestrationEngine.dispatch({
+            type: "thread.turn.resume-anchor.set",
+            commandId: yield* providerCommandId(event, "turn-resume-anchor-set"),
+            threadId: thread.id,
+            turnId: eventTurnId,
+            resumeAnchor,
+            createdAt: now,
+          });
+        }
+      }
+
       const assistantDelta =
         event.type === "content.delta" && event.payload.streamKind === "assistant_text"
           ? event.payload.delta

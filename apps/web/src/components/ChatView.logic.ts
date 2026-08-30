@@ -4,6 +4,7 @@ import {
   ProjectId,
   type MessageId,
   type ModelSelection,
+  NonNegativeInt,
   type ProviderInteractionMode,
   type ProviderDriverKind,
   type ServerProvider,
@@ -18,6 +19,7 @@ import {
   type SessionPhase,
   type Thread,
   type ThreadShell,
+  type TurnDiffSummary,
 } from "../types";
 import { type ComposerImageAttachment, type DraftThreadState } from "../composerDraftStore";
 import * as Schema from "effect/Schema";
@@ -165,6 +167,52 @@ export function resolveThreadMetadataUpdateForNextTurn(input: {
   };
 }
 
+/**
+ * The checkpoint turn count each user message can be rewound or forked to:
+ * the state of the workspace just before that message ran.
+ *
+ * A user message maps to the checkpoint of the turn it started, minus one —
+ * the turn's checkpoint records the state *after* it. Messages whose turn
+ * never produced a checkpoint are absent, so callers naturally offer neither
+ * revert nor fork on them.
+ */
+export function deriveForkTurnCountByUserMessageId(input: {
+  readonly messages: ReadonlyArray<{ readonly id: MessageId; readonly role: string }>;
+  readonly turnDiffSummaryByAssistantMessageId: ReadonlyMap<MessageId, TurnDiffSummary>;
+  readonly inferredCheckpointTurnCountByTurnId: Readonly<Record<string, number>>;
+}): Map<MessageId, number> {
+  const byUserMessageId = new Map<MessageId, number>();
+  for (let index = 0; index < input.messages.length; index += 1) {
+    const entry = input.messages[index];
+    if (!entry || entry.role !== "user") {
+      continue;
+    }
+
+    for (let nextIndex = index + 1; nextIndex < input.messages.length; nextIndex += 1) {
+      const nextEntry = input.messages[nextIndex];
+      if (!nextEntry) {
+        continue;
+      }
+      if (nextEntry.role === "user") {
+        break;
+      }
+      const summary = input.turnDiffSummaryByAssistantMessageId.get(nextEntry.id);
+      if (!summary) {
+        continue;
+      }
+      const turnCount =
+        summary.checkpointTurnCount ?? input.inferredCheckpointTurnCountByTurnId[summary.turnId];
+      if (typeof turnCount !== "number") {
+        break;
+      }
+      byUserMessageId.set(entry.id, Math.max(0, turnCount - 1));
+      break;
+    }
+  }
+
+  return byUserMessageId;
+}
+
 export function buildLocalDraftThread(
   threadId: ThreadId,
   draftThread: DraftThreadState,
@@ -174,7 +222,9 @@ export function buildLocalDraftThread(
     id: threadId,
     environmentId: draftThread.environmentId,
     projectId: draftThread.projectId,
-    title: "New thread",
+    title: draftThread.forkedFrom
+      ? `Fork of ${draftThread.forkedFrom.sourceTitle || "thread"}`
+      : "New thread",
     modelSelection: fallbackModelSelection,
     runtimeMode: draftThread.runtimeMode,
     interactionMode: draftThread.interactionMode,
@@ -189,6 +239,15 @@ export function buildLocalDraftThread(
     latestTurn: null,
     branch: draftThread.branch,
     worktreePath: draftThread.worktreePath,
+    ...(draftThread.forkedFrom
+      ? {
+          forkedFrom: {
+            threadId: draftThread.forkedFrom.threadId,
+            messageId: draftThread.forkedFrom.messageId,
+            turnCount: NonNegativeInt.make(draftThread.forkedFrom.turnCount),
+          },
+        }
+      : {}),
     checkpoints: [],
     activities: [],
     proposedPlans: [],

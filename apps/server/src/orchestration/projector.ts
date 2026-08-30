@@ -17,6 +17,7 @@ import {
   ThreadActivityAppendedPayload,
   ThreadArchivedPayload,
   ThreadCreatedPayload,
+  ThreadForkedPayload,
   ThreadDeletedPayload,
   ThreadInteractionModeSetPayload,
   ThreadMetaUpdatedPayload,
@@ -93,8 +94,11 @@ function retainThreadMessagesAfterRevert(
   turnCount: number,
 ): ReadonlyArray<OrchestrationMessage> {
   const retainedMessageIds = new Set<string>();
+  // Inherited messages are the parent thread's history: this thread never ran
+  // them, so no revert of this thread's turns can take them away.
+  const isInherited = (message: OrchestrationMessage) => message.inherited === true;
   for (const message of messages) {
-    if (message.role === "system") {
+    if (message.role === "system" || isInherited(message)) {
       retainedMessageIds.add(message.id);
       continue;
     }
@@ -104,7 +108,8 @@ function retainThreadMessagesAfterRevert(
   }
 
   const retainedUserCount = messages.filter(
-    (message) => message.role === "user" && retainedMessageIds.has(message.id),
+    (message) =>
+      message.role === "user" && !isInherited(message) && retainedMessageIds.has(message.id),
   ).length;
   const missingUserCount = Math.max(0, turnCount - retainedUserCount);
   if (missingUserCount > 0) {
@@ -112,6 +117,7 @@ function retainThreadMessagesAfterRevert(
       .filter(
         (message) =>
           message.role === "user" &&
+          !isInherited(message) &&
           !retainedMessageIds.has(message.id) &&
           (message.turnId === null || retainedTurnIds.has(message.turnId)),
       )
@@ -126,7 +132,8 @@ function retainThreadMessagesAfterRevert(
   }
 
   const retainedAssistantCount = messages.filter(
-    (message) => message.role === "assistant" && retainedMessageIds.has(message.id),
+    (message) =>
+      message.role === "assistant" && !isInherited(message) && retainedMessageIds.has(message.id),
   ).length;
   const missingAssistantCount = Math.max(0, turnCount - retainedAssistantCount);
   if (missingAssistantCount > 0) {
@@ -134,6 +141,7 @@ function retainThreadMessagesAfterRevert(
       .filter(
         (message) =>
           message.role === "assistant" &&
+          !isInherited(message) &&
           !retainedMessageIds.has(message.id) &&
           (message.turnId === null || retainedTurnIds.has(message.turnId)),
       )
@@ -325,6 +333,71 @@ export function projectEvent(
             : [...nextBase.threads, thread],
         };
       });
+
+    case "thread.forked":
+      return Effect.gen(function* () {
+        const payload = yield* decodeForEvent(
+          ThreadForkedPayload,
+          event.payload,
+          event.type,
+          "payload",
+        );
+        const thread: OrchestrationThread = yield* decodeForEvent(
+          OrchestrationThread,
+          {
+            id: payload.threadId,
+            projectId: payload.projectId,
+            title: payload.title,
+            modelSelection: payload.modelSelection,
+            runtimeMode: payload.runtimeMode,
+            interactionMode: payload.interactionMode,
+            branch: payload.branch,
+            worktreePath: payload.worktreePath,
+            forkedFrom: {
+              threadId: payload.sourceThreadId,
+              messageId: payload.sourceMessageId,
+              turnCount: payload.turnCount,
+            },
+            latestTurn: null,
+            createdAt: payload.createdAt,
+            updatedAt: payload.updatedAt,
+            archivedAt: null,
+            settledOverride: null,
+            settledAt: null,
+            unsettledAt: null,
+            snoozedUntil: null,
+            snoozedAt: null,
+            deletedAt: null,
+            messages: payload.inheritedMessages.map((message) => ({
+              id: message.messageId,
+              role: message.role,
+              text: message.text,
+              turnId: null,
+              streaming: false,
+              inherited: true,
+              createdAt: message.createdAt,
+              updatedAt: message.createdAt,
+            })),
+            activities: [],
+            checkpoints: [],
+            session: null,
+          },
+          event.type,
+          "thread",
+        );
+        const existing = nextBase.threads.find((entry) => entry.id === thread.id);
+        return {
+          ...nextBase,
+          threads: existing
+            ? nextBase.threads.map((entry) => (entry.id === thread.id ? thread : entry))
+            : [...nextBase.threads, thread],
+        };
+      });
+
+    // Per-turn resume anchors live only in the turn projection: the in-memory
+    // read model exposes turns through latestTurn, which never needed one.
+    case "thread.turn-resume-anchor-set":
+      return Effect.succeed(nextBase);
 
     case "thread.deleted":
       return decodeForEvent(ThreadDeletedPayload, event.payload, event.type, "payload").pipe(

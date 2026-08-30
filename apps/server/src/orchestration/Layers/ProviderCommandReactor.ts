@@ -40,6 +40,11 @@ import * as Stream from "effect/Stream";
 import { makeDrainableWorker } from "@ras-code/shared/DrainableWorker";
 
 import { resolveThreadWorkspaceCwd } from "../../checkpointing/Utils.ts";
+import { ProjectionTurnRepository } from "../../persistence/Services/ProjectionTurns.ts";
+import { ProjectionTurnRepositoryLive } from "../../persistence/Layers/ProjectionTurns.ts";
+import * as ProviderSessionRuntime from "../../persistence/ProviderSessionRuntime.ts";
+import { resolveForkResumeCursor } from "../forkResume.ts";
+import { withForkTranscript } from "../forkTranscript.ts";
 import { increment, orchestrationEventsProcessedTotal } from "../../observability/Metrics.ts";
 import { ProviderAdapterRequestError } from "../../provider/Errors.ts";
 import type { ProviderServiceError } from "../../provider/Errors.ts";
@@ -362,6 +367,9 @@ const make = Effect.gen(function* () {
   const vcsStatusBroadcaster = yield* VcsStatusBroadcaster;
   const textGeneration = yield* TextGeneration;
   const serverSettingsService = yield* ServerSettingsService;
+  const projectionTurnRepository = yield* ProjectionTurnRepository;
+  const providerSessionRuntimeRepository =
+    yield* ProviderSessionRuntime.ProviderSessionRuntimeRepository;
   const serverCommandId = (tag: string) =>
     crypto.randomUUIDv4.pipe(Effect.map((uuid) => CommandId.make(`server:${tag}:${uuid}`)));
   const serverEventId = () => crypto.randomUUIDv4.pipe(Effect.map(EventId.make));
@@ -794,6 +802,52 @@ const make = Effect.gen(function* () {
     } as const;
   });
 
+  /**
+   * Gathers the persisted state `resolveForkResumeCursor` decides from: the
+   * parent's provider runtime row, both continuation identities, and the
+   * parent's turn projection. Every read degrades to "cannot branch", which
+   * the caller answers with a transcript handoff.
+   */
+  const resolveForkResumeCursorForThread = Effect.fnUntraced(function* (input: {
+    readonly forkedFrom: { readonly threadId: ThreadId; readonly turnCount: number } | null;
+    readonly desiredInstanceId: ProviderInstanceId;
+  }) {
+    const forkedFrom = input.forkedFrom;
+    if (!forkedFrom || forkedFrom.turnCount === 0) {
+      return undefined;
+    }
+
+    const parentRuntime = yield* providerSessionRuntimeRepository
+      .getByThreadId({ threadId: forkedFrom.threadId })
+      .pipe(
+        Effect.orElseSucceed(() => Option.none<ProviderSessionRuntime.ProviderSessionRuntime>()),
+      );
+    if (Option.isNone(parentRuntime) || parentRuntime.value.providerInstanceId === null) {
+      return undefined;
+    }
+    const parentInstanceId = parentRuntime.value.providerInstanceId;
+
+    const [parentInfo, desiredInfo] = yield* Effect.all(
+      [
+        providerService.getInstanceInfo(parentInstanceId),
+        providerService.getInstanceInfo(input.desiredInstanceId),
+      ],
+      { concurrency: 2 },
+    ).pipe(Effect.orElseSucceed(() => [undefined, undefined] as const));
+
+    const parentTurns = yield* projectionTurnRepository
+      .listByThreadId({ threadId: forkedFrom.threadId })
+      .pipe(Effect.orElseSucceed(() => []));
+
+    return resolveForkResumeCursor({
+      forkedFrom,
+      parentResumeCursor: parentRuntime.value.resumeCursor,
+      parentContinuationKey: parentInfo?.continuationIdentity.continuationKey,
+      desiredContinuationKey: desiredInfo?.continuationIdentity.continuationKey,
+      parentTurns,
+    });
+  });
+
   const ensureSessionForThread = Effect.fn("ensureSessionForThread")(function* (
     threadId: ThreadId,
     createdAt: string,
@@ -1040,7 +1094,23 @@ const make = Effect.gen(function* () {
       return restartedSession.threadId;
     }
 
-    const startedSession = yield* startProviderSession(undefined);
+    // Cold start. A fork gets one chance to become a real branch of its
+    // parent's provider conversation; after this session exists, later
+    // restarts resume the fork's own session like any other thread.
+    const forkResumeCursor = yield* resolveForkResumeCursorForThread({
+      forkedFrom: thread.forkedFrom ?? null,
+      desiredInstanceId,
+    });
+    if (forkResumeCursor !== undefined) {
+      yield* Effect.logInfo("provider command reactor forking provider session", {
+        threadId,
+        sourceThreadId: thread.forkedFrom?.threadId,
+        turnCount: thread.forkedFrom?.turnCount,
+      });
+    }
+    const startedSession = yield* startProviderSession(
+      forkResumeCursor !== undefined ? { resumeCursor: forkResumeCursor } : undefined,
+    );
     yield* bindSessionToThread(startedSession);
     return startedSession.threadId;
   });
@@ -1066,7 +1136,30 @@ const make = Effect.gen(function* () {
     if (input.modelSelection !== undefined) {
       threadModelSelections.set(input.threadId, input.modelSelection);
     }
-    const normalizedInput = toNonEmptyProviderInput(input.messageText);
+    // A fork that could not branch its parent's provider conversation carries
+    // the parent's transcript into its opening prompt instead.
+    //
+    // "Has this fork's provider seen the context yet" is read from the thread's
+    // own assistant messages rather than its turn count: a first turn that
+    // failed leaves a turn behind but no answer, and the retry still needs the
+    // handoff.
+    const forkedFrom = thread.forkedFrom ?? null;
+    const forkContextDelivered =
+      forkedFrom === null ||
+      thread.messages.some((message) => message.role === "assistant" && message.inherited !== true);
+    const messageText =
+      forkedFrom !== null &&
+      !forkContextDelivered &&
+      (yield* resolveForkResumeCursorForThread({
+        forkedFrom,
+        desiredInstanceId: (input.modelSelection ?? thread.modelSelection).instanceId,
+      })) === undefined
+        ? withForkTranscript({
+            messageText: input.messageText,
+            inheritedMessages: thread.messages.filter((message) => message.inherited === true),
+          })
+        : input.messageText;
+    const normalizedInput = toNonEmptyProviderInput(messageText);
     const normalizedAttachments = input.attachments ?? [];
     const activeSession = yield* providerService
       .listSessions()
@@ -2218,4 +2311,7 @@ const make = Effect.gen(function* () {
   } satisfies ProviderCommandReactorShape;
 });
 
-export const ProviderCommandReactorLive = Layer.effect(ProviderCommandReactor, make);
+export const ProviderCommandReactorLive = Layer.effect(ProviderCommandReactor, make).pipe(
+  Layer.provide(ProjectionTurnRepositoryLive),
+  Layer.provide(ProviderSessionRuntime.layer),
+);

@@ -39,6 +39,7 @@ import { useThreadActionMenu } from "~/hooks/useThreadActionMenu";
 import { threadEnvironment } from "../../state/threads";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { ProjectFavicon } from "../ProjectFavicon";
+import { ThreadForkLineage } from "./ThreadForkLineage";
 import {
   WorkspaceBreadcrumb,
   WorkspaceBreadcrumbItem,
@@ -375,6 +376,9 @@ export const ChatHeader = memo(function ChatHeader({
             </Tooltip>
           )}
         </WorkspaceBreadcrumbItem>
+        {isServerThread && (
+          <ThreadForkLineage environmentId={activeThreadEnvironmentId} threadId={activeThreadId} />
+        )}
       </WorkspaceBreadcrumb>
       <div
         data-chat-header-actions

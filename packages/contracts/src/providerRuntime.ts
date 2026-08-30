@@ -366,6 +366,11 @@ export type TurnStartedPayload = typeof TurnStartedPayload.Type;
 
 const TurnCompletedPayload = Schema.Struct({
   state: RuntimeTurnState,
+  // Provider-opaque token identifying this turn inside the provider's own
+  // conversation, for resuming or forking at exactly this point later. Only
+  // the adapter that emitted it knows how to read it; adapters whose runtime
+  // has no such addressing leave it absent.
+  resumeAnchor: Schema.optional(TrimmedNonEmptyStringSchema),
   stopReason: Schema.optional(Schema.NullOr(TrimmedNonEmptyStringSchema)),
   usage: Schema.optional(Schema.Unknown),
   modelUsage: Schema.optional(UnknownRecordSchema),

@@ -44,6 +44,18 @@ A single user-to-assistant work cycle inside a thread. It starts with user input
 
 A user-visible log item attached to a thread. In [the contracts][1], activities cover important non-message events like approvals, tool actions, and failures. They are projected into thread state in [projector.ts][4].
 
+#### Fork
+
+A thread cut from a point in another thread's past. `thread.fork` is a server-dispatched command (clients ask through a `thread.turn.start` bootstrap; [ws.ts][29] resolves the inherited prefix) and produces one `thread.forked` event carrying everything a replay needs. The fork records its origin in `forkedFrom` on both the thread and its shell. See [decider.ts][8], [projector.ts][4], and [forking-threads.md][30].
+
+#### Inherited message
+
+A message copied from a fork's parent, flagged `inherited` in [the contracts][1]. It carries no turn id, is never revertable, and survives every revert in the fork — it is the parent's history, not work this thread did. Attachments are not copied.
+
+#### Resume anchor
+
+A provider-opaque token identifying a completed turn inside the provider's own conversation, emitted on `turn.completed` and stamped onto the turn projection. Only the adapter that wrote it can read it. A fork uses it to ask the provider to branch at exactly that point; providers with no such addressing leave it absent and their forks fall back to a transcript handoff ([forkTranscript.ts][31]). See [ProviderRuntimeIngestion.ts][5] and [ProviderCommandReactor.ts][12].
+
 ### Orchestration
 
 Orchestration is the server-side domain layer that turns runtime activity into stable app state. The main entry point is [OrchestrationEngine.ts][7], with core logic in [decider.ts][8] and [projector.ts][4].
@@ -239,5 +251,8 @@ ships RAS Code already matching it.
 [26]: ./upstream-sync.md
 [27]: ../../scripts/lib/upstreamSync.ts
 [28]: ../../scripts/lib/upstreamRebrandMap.ts
+[29]: ../../apps/server/src/ws.ts
+[30]: ../user/forking-threads.md
+[31]: ../../apps/server/src/orchestration/forkTranscript.ts
 [25]: ../../apps/server/src/environmentTheme.ts
 [26]: ../user/environment-theme.md

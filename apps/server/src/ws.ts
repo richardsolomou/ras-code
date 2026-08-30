@@ -25,6 +25,7 @@ import {
   EventId,
   type EditorId,
   type FileManagerRevealKind,
+  MessageId,
   type OrchestrationClientOrigin,
   type OrchestrationCommand,
   type GitActionProgressEvent,
@@ -32,6 +33,7 @@ import {
   OrchestrationDispatchCommandError,
   type OrchestrationEvent,
   type OrchestrationShellStreamEvent,
+  type OrchestrationThreadActivityTone,
   type OrchestrationShellStreamItem,
   type OrchestrationThreadStreamItem,
   OrchestrationGetFullThreadDiffError,
@@ -85,6 +87,8 @@ import {
   normalizeDispatchCommand,
 } from "./orchestration/Normalizer.ts";
 import * as OrchestrationEngine from "./orchestration/Services/OrchestrationEngine.ts";
+import * as CheckpointStore from "./checkpointing/CheckpointStore.ts";
+import { checkpointRefForThreadTurn } from "./checkpointing/Utils.ts";
 import * as ProjectionSnapshotQuery from "./orchestration/Services/ProjectionSnapshotQuery.ts";
 import { ThreadDeletionReactor } from "./orchestration/Services/ThreadDeletionReactor.ts";
 import {
@@ -464,6 +468,7 @@ const makeWsRpcLayer = (
       const projectionSnapshotQuery = yield* ProjectionSnapshotQuery.ProjectionSnapshotQuery;
       const orchestrationEngine = yield* OrchestrationEngine.OrchestrationEngineService;
       const threadDeletionReactor = yield* ThreadDeletionReactor;
+      const checkpointStore = yield* CheckpointStore.CheckpointStore;
       const analytics = yield* AnalyticsService.AnalyticsService;
       // Every command dispatched on this connection carries the connecting
       // client's origin, including server-generated bootstrap sub-commands:
@@ -636,16 +641,21 @@ const makeWsRpcLayer = (
           ),
         );
 
-      const appendSetupScriptActivity = (input: {
+      /** Timeline note for work the bootstrap path does before the first turn. */
+      const appendBootstrapActivity = (input: {
         readonly threadId: ThreadId;
-        readonly kind: "setup-script.requested" | "setup-script.started" | "setup-script.failed";
+        readonly kind:
+          | "setup-script.requested"
+          | "setup-script.started"
+          | "setup-script.failed"
+          | "fork.checkpoint-unavailable";
         readonly summary: string;
         readonly createdAt: string;
         readonly payload: Record<string, unknown>;
-        readonly tone: "info" | "error";
+        readonly tone: OrchestrationThreadActivityTone;
       }) =>
         Effect.all({
-          commandId: serverCommandId("setup-script-activity"),
+          commandId: serverCommandId("bootstrap-activity"),
           activityId: serverEventId,
         }).pipe(
           Effect.flatMap(({ commandId, activityId }) =>
@@ -920,7 +930,7 @@ const makeWsRpcLayer = (
             readonly worktreePath: string;
           }) => {
             const detail = projectSetupScriptCompatibilityDetail(input.error);
-            return appendSetupScriptActivity({
+            return appendBootstrapActivity({
               threadId: command.threadId,
               kind: "setup-script.failed",
               summary: "Setup script failed to start",
@@ -958,7 +968,7 @@ const makeWsRpcLayer = (
                 worktreePath: input.worktreePath,
               };
               yield* Effect.all([
-                appendSetupScriptActivity({
+                appendBootstrapActivity({
                   threadId: command.threadId,
                   kind: "setup-script.requested",
                   summary: "Starting setup script",
@@ -966,7 +976,7 @@ const makeWsRpcLayer = (
                   payload,
                   tone: "info",
                 }),
-                appendSetupScriptActivity({
+                appendBootstrapActivity({
                   threadId: command.threadId,
                   kind: "setup-script.started",
                   summary: "Setup script started",
@@ -1030,6 +1040,72 @@ const makeWsRpcLayer = (
             });
 
           const bootstrapProgram = Effect.gen(function* () {
+            if (bootstrap?.forkThread) {
+              const fork = bootstrap.forkThread;
+              const sourceThread = yield* projectionSnapshotQuery
+                .getThreadDetailById(fork.sourceThreadId)
+                .pipe(
+                  Effect.mapError((cause) =>
+                    toDispatchCommandError(cause, "Failed to read the thread being forked."),
+                  ),
+                );
+              if (Option.isNone(sourceThread)) {
+                return yield* new OrchestrationDispatchCommandError({
+                  message: `Thread '${fork.sourceThreadId}' cannot be forked because it no longer exists.`,
+                });
+              }
+              // The fork is cut *before* the message the user forked from, so
+              // the inherited prefix is everything strictly earlier. Ordering
+              // matches the timeline the user was looking at.
+              const orderedMessages = [...sourceThread.value.messages].sort(
+                (left, right) =>
+                  left.createdAt.localeCompare(right.createdAt) || left.id.localeCompare(right.id),
+              );
+              const forkIndex = orderedMessages.findIndex(
+                (message) => message.id === fork.sourceMessageId,
+              );
+              if (forkIndex < 0) {
+                return yield* new OrchestrationDispatchCommandError({
+                  message: `Message '${fork.sourceMessageId}' is no longer part of thread '${fork.sourceThreadId}'.`,
+                });
+              }
+              const inheritedMessages = yield* Effect.forEach(
+                orderedMessages.slice(0, forkIndex).filter((message) => !message.streaming),
+                (message) =>
+                  randomUUID.pipe(
+                    Effect.map((uuid) => ({
+                      messageId: MessageId.make(`fork:${uuid}`),
+                      role: message.role,
+                      text: message.text,
+                      createdAt: message.createdAt,
+                    })),
+                  ),
+                { concurrency: 1 },
+              );
+
+              const created = yield* dispatchFromClient({
+                type: "thread.fork",
+                commandId: yield* serverCommandId("bootstrap-thread-fork"),
+                threadId: command.threadId,
+                projectId: fork.projectId,
+                sourceThreadId: fork.sourceThreadId,
+                sourceMessageId: fork.sourceMessageId,
+                turnCount: fork.turnCount,
+                title: fork.title,
+                modelSelection: fork.modelSelection,
+                runtimeMode: fork.runtimeMode,
+                interactionMode: fork.interactionMode,
+                branch: fork.branch,
+                worktreePath: fork.worktreePath,
+                inheritedMessages,
+                createdAt: fork.createdAt,
+              });
+              yield* threadDeletionReactor.drainThrough(created.sequence);
+              createdThread = true;
+              targetProjectId = fork.projectId;
+              targetWorktreePath = fork.worktreePath;
+            }
+
             if (bootstrap?.createThread) {
               const created = yield* dispatchFromClient({
                 type: "thread.create",
@@ -1083,6 +1159,40 @@ const makeWsRpcLayer = (
                 path: null,
               });
               targetWorktreePath = worktree.worktree.path;
+              // A fresh worktree starts at the base branch tip, which is the
+              // parent's *committed* state — not the working tree the fork was
+              // cut from. The parent's checkpoint holds that, and checkpoint
+              // refs live in the shared git dir, so it restores from here.
+              if (bootstrap.forkThread?.workspaceMode === "worktree") {
+                const forkPoint = bootstrap.forkThread;
+                const restored = yield* checkpointStore
+                  .restoreCheckpoint({
+                    cwd: targetWorktreePath,
+                    checkpointRef: checkpointRefForThreadTurn(
+                      forkPoint.sourceThreadId,
+                      forkPoint.turnCount,
+                    ),
+                    fallbackToHead: forkPoint.turnCount === 0,
+                  })
+                  .pipe(Effect.orElseSucceed(() => false));
+                if (!restored) {
+                  // The branch tip is still a coherent workspace, so the fork
+                  // runs; it just starts from committed state. Say so rather
+                  // than failing a fork the user already committed to.
+                  yield* appendBootstrapActivity({
+                    threadId: command.threadId,
+                    kind: "fork.checkpoint-unavailable",
+                    summary: "Fork started from the branch, not the fork point",
+                    createdAt: yield* nowIso,
+                    payload: {
+                      sourceThreadId: forkPoint.sourceThreadId,
+                      turnCount: forkPoint.turnCount,
+                      worktreePath: targetWorktreePath,
+                    },
+                    tone: "info",
+                  }).pipe(Effect.ignoreCause({ log: false }));
+                }
+              }
               yield* dispatchFromClient({
                 type: "thread.meta.update",
                 commandId: yield* serverCommandId("bootstrap-thread-meta-update"),

@@ -6,6 +6,7 @@
 - [Permission modes](./user/permission-modes.md)
 - [Keyboard shortcuts](./user/keybindings.md)
 - [Organizing threads](./user/thread-sidebar.md)
+- [Forking threads](./user/forking-threads.md)
 - [Notifications](./user/notifications.md)
 - [Review usage](./user/usage.md)
 - [Project settings](./user/project-settings.md)

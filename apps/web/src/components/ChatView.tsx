@@ -6,6 +6,7 @@ import {
   type EnvironmentId,
   type MessageId,
   type ModelSelection,
+  NonNegativeInt,
   type ProjectScript,
   type ProjectId,
   type ProviderApprovalDecision,
@@ -14,6 +15,7 @@ import {
   ProviderInstanceId,
   type ServerProvider,
   type ResolvedKeybindingsConfig,
+  type ThreadForkWorkspaceMode,
   type ScopedThreadRef,
   type ThreadId,
   type TurnId,
@@ -211,6 +213,7 @@ import {
   useEnvironmentSettings,
 } from "../hooks/useSettings";
 import { useNowMinute } from "../hooks/useNowMinute";
+import { useForkThreadHandler } from "../hooks/useForkThread";
 import { useNewThreadHandler } from "../hooks/useHandleNewThread";
 import { useThreadActions } from "../hooks/useThreadActions";
 import { resolveAppModelSelectionForInstance } from "../modelSelection";
@@ -357,6 +360,7 @@ import {
   type LocalDispatchSnapshot,
   PullRequestDialogState,
   cloneComposerImageForRetry,
+  deriveForkTurnCountByUserMessageId,
   deriveLockedProvider,
   readFileAsDataUrl,
   reconcileMountedTerminalThreadIds,
@@ -2788,38 +2792,17 @@ function ChatViewContent(props: ChatViewProps) {
     }
     return byMessageId;
   }, [turnDiffSummaries]);
-  const revertTurnCountByUserMessageId = useMemo(() => {
-    const byUserMessageId = new Map<MessageId, number>();
-    for (let index = 0; index < timelineEntries.length; index += 1) {
-      const entry = timelineEntries[index];
-      if (!entry || entry.kind !== "message" || entry.message.role !== "user") {
-        continue;
-      }
-
-      for (let nextIndex = index + 1; nextIndex < timelineEntries.length; nextIndex += 1) {
-        const nextEntry = timelineEntries[nextIndex];
-        if (!nextEntry || nextEntry.kind !== "message") {
-          continue;
-        }
-        if (nextEntry.message.role === "user") {
-          break;
-        }
-        const summary = turnDiffSummaryByAssistantMessageId.get(nextEntry.message.id);
-        if (!summary) {
-          continue;
-        }
-        const turnCount =
-          summary.checkpointTurnCount ?? inferredCheckpointTurnCountByTurnId[summary.turnId];
-        if (typeof turnCount !== "number") {
-          break;
-        }
-        byUserMessageId.set(entry.message.id, Math.max(0, turnCount - 1));
-        break;
-      }
-    }
-
-    return byUserMessageId;
-  }, [inferredCheckpointTurnCountByTurnId, timelineEntries, turnDiffSummaryByAssistantMessageId]);
+  const revertTurnCountByUserMessageId = useMemo(
+    () =>
+      deriveForkTurnCountByUserMessageId({
+        messages: timelineEntries.flatMap((entry) =>
+          entry.kind === "message" ? [entry.message] : [],
+        ),
+        turnDiffSummaryByAssistantMessageId,
+        inferredCheckpointTurnCountByTurnId,
+      }),
+    [inferredCheckpointTurnCountByTurnId, timelineEntries, turnDiffSummaryByAssistantMessageId],
+  );
 
   const gitCwd = activeProject
     ? projectScriptCwd({
@@ -5995,10 +5978,32 @@ function ChatViewContent(props: ChatViewProps) {
 
     let turnStartSucceeded = false;
     if (failure === null && turnAttachmentsResult._tag === "Success") {
+      // A fork draft creates its thread through forkThread instead of
+      // createThread: same handoff, but the server carries the parent's
+      // history and fork point across with it.
+      const forkSpec = isLocalDraftThread ? (draftThread?.forkedFrom ?? null) : null;
       const bootstrap =
         isLocalDraftThread || baseBranchForWorktree
           ? {
-              ...(isLocalDraftThread
+              ...(isLocalDraftThread && forkSpec
+                ? {
+                    forkThread: {
+                      projectId: activeProject.id,
+                      sourceThreadId: forkSpec.threadId,
+                      sourceMessageId: forkSpec.messageId,
+                      turnCount: NonNegativeInt.make(forkSpec.turnCount),
+                      workspaceMode: forkSpec.workspaceMode,
+                      title,
+                      modelSelection: threadCreateModelSelection,
+                      runtimeMode,
+                      interactionMode,
+                      branch: activeThreadBranch,
+                      worktreePath: activeThread.worktreePath,
+                      createdAt: activeThread.createdAt,
+                    },
+                  }
+                : {}),
+              ...(isLocalDraftThread && !forkSpec
                 ? {
                     createThread: {
                       projectId: activeProject.id,
@@ -6867,6 +6872,31 @@ function ChatViewContent(props: ChatViewProps) {
     }
     void onRevertToTurnCountRef.current(targetTurnCount);
   }, []);
+  // Forking reads the same map revert does: the checkpoint turn count before
+  // this message is exactly the state a fork should start from.
+  const activeServerThreadRef = useRef(activeServerThread);
+  activeServerThreadRef.current = activeServerThread;
+  const forkThread = useForkThreadHandler();
+  const forkThreadRef = useRef(forkThread);
+  forkThreadRef.current = forkThread;
+  const onForkFromUserMessage = useCallback(
+    (messageId: MessageId, workspaceMode: ThreadForkWorkspaceMode) => {
+      const sourceThread = activeServerThreadRef.current;
+      const targetTurnCount = revertTurnCountRef.current.get(messageId);
+      if (!sourceThread || typeof targetTurnCount !== "number") {
+        return;
+      }
+      const message = sourceThread.messages.find((entry) => entry.id === messageId);
+      void forkThreadRef.current({
+        sourceThread,
+        messageId,
+        turnCount: targetTurnCount,
+        promptSeed: message?.text ?? "",
+        workspaceMode,
+      });
+    },
+    [],
+  );
 
   // Empty state: no active thread
   if (!activeThread) {
@@ -7137,6 +7167,7 @@ function ChatViewContent(props: ChatViewProps) {
                 onOpenTurnDiff={onOpenTurnDiff}
                 revertTurnCountByUserMessageId={revertTurnCountByUserMessageId}
                 onRevertUserMessage={onRevertUserMessage}
+                onForkFromUserMessage={onForkFromUserMessage}
                 isRevertingCheckpoint={isRevertingCheckpoint}
                 onImageExpand={onExpandTimelineImage}
                 onFileDownload={downloadFileAttachment}
