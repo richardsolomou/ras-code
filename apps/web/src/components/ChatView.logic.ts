@@ -620,7 +620,7 @@ export function threadHasStarted(thread: Thread | null | undefined): boolean {
   );
 }
 
-// `threadProvider` is the open branded driver kind carried by the session.
+// `threadProvider` is the open branded driver kind selected for the thread.
 // Unknown driver kinds degrade to `null` (i.e. "unlocked"), which is the safe
 // rollback / fork behavior — the routing layer is the right place to surface
 // "driver not installed" errors, not the lock state.
@@ -640,10 +640,6 @@ export function deriveLockedProvider(input: {
   if (!threadHasStarted(input.thread)) {
     return null;
   }
-  const sessionProvider = input.thread?.session?.providerName ?? null;
-  if (sessionProvider && isProviderDriverKind(sessionProvider)) {
-    return sessionProvider;
-  }
   const narrowedThreadProvider =
     input.threadProvider && isProviderDriverKind(input.threadProvider)
       ? input.threadProvider
@@ -652,7 +648,10 @@ export function deriveLockedProvider(input: {
     input.selectedProvider && isProviderDriverKind(input.selectedProvider)
       ? input.selectedProvider
       : null;
-  return narrowedThreadProvider ?? narrowedSelectedProvider ?? null;
+  const sessionProvider = input.thread?.session?.providerName ?? null;
+  const narrowedSessionProvider =
+    sessionProvider && isProviderDriverKind(sessionProvider) ? sessionProvider : null;
+  return narrowedThreadProvider ?? narrowedSelectedProvider ?? narrowedSessionProvider ?? null;
 }
 
 export function getStartedThreadModelChangeBlockReason(input: {

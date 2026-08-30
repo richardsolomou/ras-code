@@ -1,6 +1,8 @@
 import { PROVIDER_DISPLAY_NAMES, type ProviderInstanceId } from "@ras-code/contracts";
+import { useAtomValue } from "@effect/atom-react";
 import { memo } from "react";
 import { useClientSettings, usePrimarySettings } from "../../hooks/useSettings";
+import { primaryServerProvidersAtom } from "../../state/server";
 import { formatShortTimestamp } from "../../timestampFormat";
 import type { PendingFallbackOffer } from "../../session-logic";
 import { cn } from "~/lib/utils";
@@ -16,10 +18,14 @@ export const ComposerPendingFallbackOfferPanel = memo(function ComposerPendingFa
 }: ComposerPendingFallbackOfferPanelProps) {
   const timestampFormat = useClientSettings((settings) => settings.timestampFormat);
   const providerInstances = usePrimarySettings((settings) => settings.providerInstances);
+  const serverProviders = useAtomValue(primaryServerProvidersAtom);
   const instanceName = (instanceId: string) => {
     const instance = providerInstances[instanceId as ProviderInstanceId];
+    const provider = serverProviders.find((entry) => String(entry.instanceId) === instanceId);
     return (
+      provider?.displayName?.trim() ||
       instance?.displayName?.trim() ||
+      (provider ? PROVIDER_DISPLAY_NAMES[provider.driver] : undefined) ||
       (instance ? PROVIDER_DISPLAY_NAMES[instance.driver] : undefined) ||
       instanceId
     );
@@ -38,7 +44,7 @@ export const ComposerPendingFallbackOfferPanel = memo(function ComposerPendingFa
         {primaryName} hit its usage limit
       </span>
       <span className="text-sm text-foreground/85">
-        Continue on {fallbackName} ({offer.model}) with usage-based tokens
+        Continue with {offer.modelLabel ?? offer.model} via {fallbackName} using usage-based tokens
         {resetsAt ? `, or wait until ${resetsAt}` : ""}?
       </span>
     </div>

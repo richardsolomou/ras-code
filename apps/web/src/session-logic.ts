@@ -151,6 +151,7 @@ export interface PendingFallbackOffer {
   primaryInstanceId: string;
   fallbackInstanceId: string;
   model: string;
+  modelLabel?: string;
   resetsAt: string | null;
   createdAt: string;
 }
@@ -533,6 +534,7 @@ export function derivePendingFallbackOffers(
         primaryInstanceId: offer.primaryInstanceId,
         fallbackInstanceId: offer.fallbackInstanceId,
         model: offer.model,
+        ...(offer.modelLabel !== undefined ? { modelLabel: offer.modelLabel } : {}),
         resetsAt: offer.resetsAt,
         createdAt: activity.createdAt,
       });

@@ -279,11 +279,7 @@ import {
 } from "../../providerInstances";
 import { type AppModelOption, getAppModelOptionsForInstance } from "../../modelSelection";
 import type { UnifiedSettings } from "@ras-code/contracts/settings";
-import {
-  activeFallbackNotice,
-  latestFallbackNotice,
-  usageLimitPill,
-} from "../settings/providerUsageLimit.logic";
+import { latestFallbackNotice, usageLimitPill } from "../settings/providerUsageLimit.logic";
 import { formatShortTimestamp } from "../../timestampFormat";
 import type { SessionPhase, Thread } from "../../types";
 import type { PendingUserInputDraftAnswer } from "../../pendingUserInput";
@@ -905,8 +901,8 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
   );
   const selectedProviderByThreadId = composerDraft.activeProvider ?? null;
   const threadProvider =
-    activeThread?.session?.providerInstanceId ??
     activeThreadModelSelection?.instanceId ??
+    activeThread?.session?.providerInstanceId ??
     activeDefaultModelSelection?.instanceId ??
     null;
   const explicitSelectedInstanceId = selectedProviderByThreadId ?? threadProvider;
@@ -923,7 +919,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
   const lockedContinuationGroupKey = useMemo((): string | null => {
     if (!lockedProvider || !activeThread) return null;
     const lockedInstanceId =
-      activeThread.session?.providerInstanceId ?? activeThreadModelSelection?.instanceId;
+      activeThreadModelSelection?.instanceId ?? activeThread.session?.providerInstanceId;
     if (!lockedInstanceId) return null;
     return (
       providerInstanceEntries.find((entry) => entry.instanceId === lockedInstanceId)
@@ -949,8 +945,8 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
   const selectedInstanceId = useMemo<ProviderInstanceId>(() => {
     const candidates: Array<string | null | undefined> = [
       composerDraft.activeProvider,
-      activeThread?.session?.providerInstanceId,
       activeThreadModelSelection?.instanceId,
+      activeThread?.session?.providerInstanceId,
       activeDefaultModelSelection?.instanceId,
     ];
     for (const candidate of candidates) {
@@ -1092,16 +1088,23 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     [providerStatuses, selectedInstanceId, settings.timestampFormat],
   );
   const engagedFallback = useMemo(() => {
-    const notice = latestFallbackNotice(activeThread?.activities ?? []);
-    return activeFallbackNotice({ payload: notice, now: Date.now() });
+    return latestFallbackNotice(activeThread?.activities ?? []);
   }, [activeThread?.activities]);
   const engagedFallbackLabel = useMemo(() => {
     if (engagedFallback === null) return null;
-    const entry = providerInstanceEntries.find(
+    const fallbackEntry = providerInstanceEntries.find(
       (candidate) => String(candidate.instanceId) === engagedFallback.fallbackInstanceId,
     );
-    return `Using ${entry?.displayName ?? engagedFallback.fallbackInstanceId} (${engagedFallback.model})`;
-  }, [engagedFallback, providerInstanceEntries]);
+    const primaryOptions = modelOptionsByInstance.get(
+      ProviderInstanceId.make(engagedFallback.primaryInstanceId),
+    );
+    const modelLabel =
+      engagedFallback.modelLabel ??
+      primaryOptions?.find((model) => model.slug === engagedFallback.model)?.shortName ??
+      primaryOptions?.find((model) => model.slug === engagedFallback.model)?.name ??
+      engagedFallback.model;
+    return `Using ${modelLabel} via ${fallbackEntry?.displayName ?? engagedFallback.fallbackInstanceId}`;
+  }, [engagedFallback, modelOptionsByInstance, providerInstanceEntries]);
 
   const selectedModelForPickerWithCustomFallback = useMemo(() => {
     const currentOptions = modelOptionsByInstance.get(selectedInstanceId) ?? [];

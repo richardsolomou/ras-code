@@ -36,7 +36,7 @@ harness speaks both. `PostHogGatewayDriver.create` therefore calls `ClaudeDriver
   every five minutes with the last good list kept), each model taking its capabilities from the
   child that will serve it. Status is "ready" when the child needed for at least one catalog model
   is ready, so a missing Codex install does not hide the Claude half of the catalog. The usage limit
-  is the worse of the two children's, so the composite can be a fallback primary too.
+  is the worse of the two children's.
 - **Adapter.** Every call routes on `gatewayModelShape(model)`. A thread's shape is recorded at
   `startSession`; a `sendTurn` that asks for a model on the other shape is refused, because the two
   harnesses hold no shared resume state. Sessions and runtime events are rewritten to carry the
@@ -67,16 +67,10 @@ directory to route session and turn operations for a thread, so callers name a t
 Adding a driver means writing the driver plus adapter and adding it to `BUILT_IN_DRIVERS`. No
 orchestration, contract, or client change is required for the common case.
 
-## Usage limits and fallback providers
+## Usage limits and gateway fallback
 
-A provider instance can name a **fallback provider**: another configured instance that takes new
-turns while the first one is out of quota. The intended shape is "subscription first, gateway as
-fallback" — a Claude instance on a personal subscription with a second Claude-driver instance
-pointed at an API gateway through `ANTHROPIC_BASE_URL` and a bearer token.
-
-The binding lives on `ProviderInstanceConfig.fallback` in `ServerSettings`
-(`{ instanceId, model? }`). An absent or null `model` keeps whatever model the turn already asked
-for, which is right when the gateway proxies the same catalog.
+The PostHog AI Gateway is the only usage fallback. Once a gateway instance is enabled, subscription
+providers discover it automatically. There is no fallback setting or provider graph.
 
 Quota state is derived from the `account.rate-limits.updated` runtime event, which both the Claude
 and Codex adapters forward with their native payload. `providerUsageLimit.ts` normalises those two
@@ -87,20 +81,18 @@ volatile: it is never written to the provider status cache, and an exhausted win
 `ok` once `resetsAt` has passed. A turn that fails with a usage-limit message also marks its
 instance exhausted, with a 30-minute cooldown because that path carries no reset instant.
 
-`ProviderCommandReactor` owns the routing. When a turn's instance is exhausted and names a
-fallback, the turn runs on the fallback instead and the thread gets a `provider.fallback.engaged`
-activity naming both instances. Substitution is skipped — and the provider's own error surfaces
-unchanged — when the fallback is missing, disabled, unavailable, or itself exhausted, and when a
-started thread could not move between the two instances anyway (either driver requires a new thread
-for a model change, or the instances do not share a continuation key). Fallbacks are never
-chained: at most one hop is followed, so an exhausted fallback ends the search rather than
-consulting its own. A turn that fails with a usage-limit error before producing any assistant
-output is retried once on the fallback; a turn already running on a fallback is not retried again.
+`ProviderCommandReactor` owns the routing. It offers the gateway only when the subscription is
+exhausted, the gateway advertises the exact requested model, the gateway is available and not
+exhausted, and a started thread can preserve its continuation state. The current composite driver
+shares Claude's continuation identity, so started Claude threads can move across; other harness
+shapes need their own compatible continuation identity before they can do the same.
 
-Gateway-backed instances have a catalog the driver's own probe cannot see. The
-`provider.listRemoteModels` RPC reads the instance's materialised environment and fetches
-`GET {ANTHROPIC_BASE_URL}/v1/models`, parsing the OpenRouter-shaped `{ data: [{ id, name? }] }`
-envelope. See `apps/server/src/provider/remoteModels.ts`.
+The user confirms the switch once for an exhaustion episode. The saved thread selection remains
+the subscription provider and model while the provider session records the gateway that actually
+runs the turn. This keeps thread identity stable and lets the next turn try the subscription again
+after its reset. A successful primary turn emits `provider.fallback.returned`; another usage-limit
+failure before output resumes the already-approved gateway without another prompt. The gateway
+never falls back to itself, no alternative model is selected, and no fallback chain is traversed.
 
 ## OpenCode server ownership and catalog
 

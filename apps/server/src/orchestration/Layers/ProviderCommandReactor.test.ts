@@ -3163,9 +3163,7 @@ describe("ProviderCommandReactor", () => {
 
   describe("usage-limit fallback routing", () => {
     const PRIMARY = ProviderInstanceId.make("claude_subscription");
-    const FALLBACK = ProviderInstanceId.make("claude_gateway");
-    const CODEX_FALLBACK = ProviderInstanceId.make("codex_posthog_gateway");
-    const COMPOSITE_FALLBACK = ProviderInstanceId.make("posthog_gateway");
+    const FALLBACK = ProviderInstanceId.make("posthog_gateway");
     const PRIMARY_SELECTION = { instanceId: PRIMARY, model: "claude-sonnet-4-5" } as const;
     const EXHAUSTED: ProviderUsageLimit = {
       status: "exhausted",
@@ -3175,27 +3173,25 @@ describe("ProviderCommandReactor", () => {
     };
 
     const fallbackHarnessInput = (overrides?: {
-      readonly fallbackModel?: string;
       readonly usageLimits?: Map<ProviderInstanceId, ProviderUsageLimit>;
       readonly requiresNewThreadForModelChange?: boolean;
     }) => ({
       threadModelSelection: PRIMARY_SELECTION,
-      providerInstances: {
-        [PRIMARY]: {
-          driver: "claudeAgent",
-          fallback: {
-            instanceId: FALLBACK,
-            ...(overrides?.fallbackModel !== undefined ? { model: overrides.fallbackModel } : {}),
-          },
-        },
-        [FALLBACK]: { driver: "claudeAgent" },
-      },
       usageLimits: overrides?.usageLimits ?? new Map([[PRIMARY, EXHAUSTED]]),
       extraProviderSnapshots: [
         {
           instanceId: FALLBACK,
+          driver: "posthogGateway",
           enabled: true,
-          displayName: "Claude (gateway)",
+          displayName: "PostHog AI Gateway",
+          models: [
+            {
+              slug: PRIMARY_SELECTION.model,
+              name: "Claude Sonnet 4.5",
+              isCustom: false,
+              capabilities: null,
+            },
+          ],
           ...(overrides?.requiresNewThreadForModelChange === true
             ? { requiresNewThreadForModelChange: true }
             : {}),
@@ -3268,6 +3264,17 @@ describe("ProviderCommandReactor", () => {
       return thread?.activities.find((activity) => activity.kind === kind);
     };
 
+    const fallbackRequestId = (activity: { readonly payload: unknown } | undefined): string => {
+      if (activity?.payload === null || typeof activity?.payload !== "object") {
+        throw new Error("Fallback offer has no payload.");
+      }
+      const requestId = (activity.payload as Record<string, unknown>).requestId;
+      if (typeof requestId !== "string") {
+        throw new Error("Fallback offer has no request id.");
+      }
+      return requestId;
+    };
+
     const respondToFallbackOffer = (
       harness: Awaited<ReturnType<typeof createHarness>>,
       commandId: string,
@@ -3293,9 +3300,192 @@ describe("ProviderCommandReactor", () => {
           findActivity(await harness.readModel(), "provider.fallback.offered") !== undefined,
       );
       const offer = findActivity(await harness.readModel(), "provider.fallback.offered");
-      const requestId = (offer?.payload as Record<string, unknown>).requestId as string;
+      const requestId = fallbackRequestId(offer);
       await respondToFallbackOffer(harness, commandId, requestId, "switch");
     };
+
+    it("discovers a PostHog gateway with the same model without a fallback setting", async () => {
+      const harness = await createHarness({
+        threadModelSelection: PRIMARY_SELECTION,
+        usageLimits: new Map([[PRIMARY, EXHAUSTED]]),
+        extraProviderSnapshots: [
+          {
+            instanceId: FALLBACK,
+            driver: "posthogGateway",
+            enabled: true,
+            displayName: "PostHog AI Gateway",
+            models: [
+              {
+                slug: `anthropic/${PRIMARY_SELECTION.model}`,
+                name: "Claude Sonnet 4.5",
+                isCustom: false,
+                capabilities: null,
+              },
+            ],
+          },
+        ],
+      });
+      await dispatchTurn(harness, "cmd-fallback-implicit");
+
+      await waitFor(
+        async () =>
+          findActivity(await harness.readModel(), "provider.fallback.offered") !== undefined,
+      );
+      const offer = findActivity(await harness.readModel(), "provider.fallback.offered");
+      expect(offer?.payload).toMatchObject({
+        primaryInstanceId: PRIMARY,
+        fallbackInstanceId: FALLBACK,
+        model: PRIMARY_SELECTION.model,
+        modelLabel: "Claude Sonnet 4.5",
+      });
+      const requestId = fallbackRequestId(offer);
+      await respondToFallbackOffer(harness, "cmd-fallback-implicit-confirm", requestId, "switch");
+      await waitFor(() => harness.startSession.mock.calls.length === 1);
+      expect(harness.startSession.mock.calls[0]?.[1]).toMatchObject({
+        providerInstanceId: FALLBACK,
+        modelSelection: {
+          instanceId: FALLBACK,
+          model: `anthropic/${PRIMARY_SELECTION.model}`,
+        },
+      });
+    });
+
+    it("does not offer a gateway that lacks the requested model", async () => {
+      const harness = await createHarness({
+        threadModelSelection: PRIMARY_SELECTION,
+        usageLimits: new Map([[PRIMARY, EXHAUSTED]]),
+        extraProviderSnapshots: [
+          {
+            instanceId: FALLBACK,
+            driver: "posthogGateway",
+            enabled: true,
+            displayName: "PostHog AI Gateway",
+            models: [
+              {
+                slug: "claude-haiku-4-5",
+                name: "Claude Haiku 4.5",
+                isCustom: false,
+                capabilities: null,
+              },
+            ],
+          },
+        ],
+      });
+      await dispatchTurn(harness, "cmd-fallback-model-missing");
+
+      await waitFor(() => harness.startSession.mock.calls.length === 1);
+      expect(harness.startSession.mock.calls[0]?.[1]).toMatchObject({
+        providerInstanceId: PRIMARY,
+      });
+      expect(findActivity(await harness.readModel(), "provider.fallback.offered")).toBeUndefined();
+    });
+
+    it("returns to the requested provider after its usage limit clears", async () => {
+      const usageLimits = new Map<ProviderInstanceId, ProviderUsageLimit>([[PRIMARY, EXHAUSTED]]);
+      const harness = await createHarness({
+        threadModelSelection: PRIMARY_SELECTION,
+        usageLimits,
+        extraProviderSnapshots: [
+          {
+            instanceId: FALLBACK,
+            driver: "posthogGateway",
+            enabled: true,
+            displayName: "PostHog AI Gateway",
+            models: [
+              {
+                slug: PRIMARY_SELECTION.model,
+                name: "Claude Sonnet 4.5",
+                isCustom: false,
+                capabilities: null,
+              },
+            ],
+          },
+        ],
+      });
+      await dispatchTurn(harness, "cmd-fallback-return-1");
+      await confirmSwitchOnce(harness, "cmd-fallback-return-confirm");
+      await waitFor(() => harness.startSession.mock.calls.length === 1);
+      expect(harness.startSession.mock.calls[0]?.[1]).toMatchObject({
+        providerInstanceId: FALLBACK,
+      });
+
+      usageLimits.delete(PRIMARY);
+      await dispatchCommand(harness, {
+        type: "thread.turn.start",
+        commandId: CommandId.make("cmd-fallback-return-2"),
+        threadId: ThreadId.make("thread-1"),
+        message: {
+          messageId: asMessageId("user-message-2"),
+          role: "user",
+          text: "second turn",
+          attachments: [],
+        },
+        interactionMode: DEFAULT_PROVIDER_INTERACTION_MODE,
+        runtimeMode: "approval-required",
+        createdAt: "2026-01-01T00:00:05.000Z",
+      });
+
+      await waitFor(() => harness.startSession.mock.calls.length === 2);
+      expect(harness.startSession.mock.calls[1]?.[1]).toMatchObject({
+        providerInstanceId: PRIMARY,
+        modelSelection: PRIMARY_SELECTION,
+      });
+      await harness.publishRuntimeEvent({
+        eventId: EventId.make("runtime-event-returned"),
+        provider: ProviderDriverKind.make("claudeAgent"),
+        providerInstanceId: PRIMARY,
+        threadId: ThreadId.make("thread-1"),
+        createdAt: "2026-01-01T00:00:06.000Z",
+        type: "turn.completed",
+        payload: { state: "completed" },
+      });
+      await waitFor(
+        async () =>
+          findActivity(await harness.readModel(), "provider.fallback.returned") !== undefined,
+      );
+    });
+
+    it("resumes the approved gateway without another prompt when the return attempt is still exhausted", async () => {
+      const usageLimits = new Map<ProviderInstanceId, ProviderUsageLimit>([[PRIMARY, EXHAUSTED]]);
+      const harness = await createHarness(fallbackHarnessInput({ usageLimits }));
+      await dispatchTurn(harness, "cmd-fallback-resume-1");
+      await confirmSwitchOnce(harness, "cmd-fallback-resume-confirm");
+      await waitFor(() => harness.startSession.mock.calls.length === 1);
+
+      usageLimits.delete(PRIMARY);
+      await dispatchCommand(harness, {
+        type: "thread.turn.start",
+        commandId: CommandId.make("cmd-fallback-resume-2"),
+        threadId: ThreadId.make("thread-1"),
+        message: {
+          messageId: asMessageId("user-message-2"),
+          role: "user",
+          text: "second turn",
+          attachments: [],
+        },
+        interactionMode: DEFAULT_PROVIDER_INTERACTION_MODE,
+        runtimeMode: "approval-required",
+        createdAt: "2026-01-01T00:00:05.000Z",
+      });
+      await waitFor(() => harness.startSession.mock.calls.length === 2);
+      await publishUsageLimitFailure(
+        harness,
+        "runtime-event-return-still-exhausted",
+        "2026-01-01T00:00:06.000Z",
+      );
+
+      await waitFor(() => usageLimits.get(PRIMARY)?.status === "exhausted");
+      await waitFor(() => harness.sendTurn.mock.calls.length === 3);
+      expect(harness.sendTurn.mock.calls).toHaveLength(3);
+      expect(harness.sendTurn.mock.calls[2]?.[0]).toMatchObject({
+        modelSelection: { instanceId: FALLBACK, model: PRIMARY_SELECTION.model },
+      });
+      const readModel = await harness.readModel();
+      const thread = readModel.threads.find((entry) => entry.id === ThreadId.make("thread-1"));
+      expect(
+        thread?.activities.filter((activity) => activity.kind === "provider.fallback.offered"),
+      ).toHaveLength(1);
+    });
 
     it("offers instead of routing silently when a fresh turn starts with the primary already exhausted", async () => {
       const harness = await createHarness(fallbackHarnessInput());
@@ -3327,19 +3517,6 @@ describe("ProviderCommandReactor", () => {
       });
     });
 
-    it("uses the fallback binding's model override", async () => {
-      const harness = await createHarness(
-        fallbackHarnessInput({ fallbackModel: "anthropic/claude-sonnet-4.5" }),
-      );
-      await dispatchTurn(harness, "cmd-fallback-2");
-      await confirmSwitchOnce(harness, "cmd-fallback-2-confirm");
-
-      await waitFor(() => harness.startSession.mock.calls.length === 1);
-      expect(harness.startSession.mock.calls[0]?.[1]).toMatchObject({
-        modelSelection: { instanceId: FALLBACK, model: "anthropic/claude-sonnet-4.5" },
-      });
-    });
-
     it("announces the substitution on the thread once confirmed", async () => {
       const harness = await createHarness(fallbackHarnessInput());
       await dispatchTurn(harness, "cmd-fallback-3");
@@ -3351,48 +3528,8 @@ describe("ProviderCommandReactor", () => {
       );
       const notice = findActivity(await harness.readModel(), "provider.fallback.engaged");
       expect(notice?.summary).toBe(
-        "Usage limit reached on claude_subscription; using Claude (gateway) (claude-sonnet-4-5) until 2099-01-01T00:00:00.000Z.",
+        "Usage limit reached on claude_subscription; continuing with Claude Sonnet 4.5 via PostHog AI Gateway until 2099-01-01T00:00:00.000Z.",
       );
-    });
-
-    const crossDriverHarnessInput = (fallbackModel?: string) => ({
-      threadModelSelection: PRIMARY_SELECTION,
-      providerInstances: {
-        [PRIMARY]: {
-          driver: "claudeAgent",
-          fallback: {
-            instanceId: CODEX_FALLBACK,
-            ...(fallbackModel !== undefined ? { model: fallbackModel } : {}),
-          },
-        },
-        [CODEX_FALLBACK]: { driver: "codex" },
-      },
-      usageLimits: new Map([[PRIMARY, EXHAUSTED]]),
-      extraProviderSnapshots: [
-        { instanceId: CODEX_FALLBACK, enabled: true, displayName: "PostHog gateway (Codex)" },
-      ],
-    });
-
-    it("routes a fresh thread to a fallback on another driver when the binding names a model", async () => {
-      const harness = await createHarness(crossDriverHarnessInput("zai-org/glm-5.2"));
-      await dispatchTurn(harness, "cmd-fallback-cross-1");
-      await confirmSwitchOnce(harness, "cmd-fallback-cross-1-confirm");
-
-      await waitFor(() => harness.startSession.mock.calls.length === 1);
-      expect(harness.startSession.mock.calls[0]?.[1]).toMatchObject({
-        providerInstanceId: CODEX_FALLBACK,
-        modelSelection: { instanceId: CODEX_FALLBACK, model: "zai-org/glm-5.2" },
-      });
-    });
-
-    it("keeps the primary instance when a cross-driver binding names no model", async () => {
-      const harness = await createHarness(crossDriverHarnessInput());
-      await dispatchTurn(harness, "cmd-fallback-cross-2");
-
-      await waitFor(() => harness.startSession.mock.calls.length === 1);
-      expect(harness.startSession.mock.calls[0]?.[1]).toMatchObject({
-        providerInstanceId: PRIMARY,
-      });
     });
 
     it("keeps the primary instance when it is not exhausted", async () => {
@@ -3486,7 +3623,7 @@ describe("ProviderCommandReactor", () => {
           findActivity(await harness.readModel(), "provider.fallback.offered") !== undefined,
       );
       const offer = findActivity(await harness.readModel(), "provider.fallback.offered");
-      const requestId = (offer?.payload as Record<string, unknown>).requestId as string;
+      const requestId = fallbackRequestId(offer);
 
       await respondToFallbackOffer(harness, "cmd-fallback-respond-switch", requestId, "switch");
 
@@ -3516,7 +3653,7 @@ describe("ProviderCommandReactor", () => {
           findActivity(await harness.readModel(), "provider.fallback.offered") !== undefined,
       );
       const offer = findActivity(await harness.readModel(), "provider.fallback.offered");
-      const requestId = (offer?.payload as Record<string, unknown>).requestId as string;
+      const requestId = fallbackRequestId(offer);
 
       await respondToFallbackOffer(harness, "cmd-fallback-respond-wait", requestId, "wait");
 
@@ -3525,6 +3662,27 @@ describe("ProviderCommandReactor", () => {
           findActivity(await harness.readModel(), "provider.fallback.declined") !== undefined,
       );
       expect(harness.sendTurn.mock.calls.length).toBe(1);
+
+      await dispatchCommand(harness, {
+        type: "thread.turn.start",
+        commandId: CommandId.make("cmd-fallback-after-wait"),
+        threadId: ThreadId.make("thread-1"),
+        message: {
+          messageId: asMessageId("user-message-after-wait"),
+          role: "user",
+          text: "try the subscription again",
+          attachments: [],
+        },
+        interactionMode: DEFAULT_PROVIDER_INTERACTION_MODE,
+        runtimeMode: "approval-required",
+        createdAt: "2026-01-01T00:00:03.000Z",
+      });
+      await waitFor(() => harness.sendTurn.mock.calls.length === 2);
+      const readModel = await harness.readModel();
+      const thread = readModel.threads.find((entry) => entry.id === ThreadId.make("thread-1"));
+      expect(
+        thread?.activities.filter((activity) => activity.kind === "provider.fallback.offered"),
+      ).toHaveLength(1);
     });
 
     it("reports the offer as expired for a stale or already-answered request id", async () => {
@@ -3556,19 +3714,9 @@ describe("ProviderCommandReactor", () => {
       expect(harness.sendTurn.mock.calls.length).toBe(1);
     });
 
-    it("moves a started thread to a fallback on another driver that shares its continuation key", async () => {
+    it("moves a started thread to the gateway when it shares its continuation key", async () => {
       const usageLimits = new Map<ProviderInstanceId, ProviderUsageLimit>();
-      const harness = await createHarness({
-        threadModelSelection: PRIMARY_SELECTION,
-        providerInstances: {
-          [PRIMARY]: { driver: "claudeAgent", fallback: { instanceId: COMPOSITE_FALLBACK } },
-          [COMPOSITE_FALLBACK]: { driver: "posthogGateway" },
-        },
-        usageLimits,
-        extraProviderSnapshots: [
-          { instanceId: COMPOSITE_FALLBACK, enabled: true, displayName: "PostHog AI Gateway" },
-        ],
-      });
+      const harness = await createHarness(fallbackHarnessInput({ usageLimits }));
       await dispatchTurn(harness, "cmd-fallback-composite-1");
       await waitFor(() => harness.startSession.mock.calls.length === 1);
 
@@ -3594,7 +3742,7 @@ describe("ProviderCommandReactor", () => {
         harness.startSession.mock.calls.some(
           (call) =>
             (call[1] as { readonly providerInstanceId?: ProviderInstanceId }).providerInstanceId ===
-            COMPOSITE_FALLBACK,
+            FALLBACK,
         ),
       ).toBe(true);
     });
@@ -3704,7 +3852,7 @@ describe("ProviderCommandReactor", () => {
           findActivity(await harness.readModel(), "provider.fallback.offered") !== undefined,
       );
       const offer = findActivity(await harness.readModel(), "provider.fallback.offered");
-      const requestId = (offer?.payload as Record<string, unknown>).requestId as string;
+      const requestId = fallbackRequestId(offer);
       await respondToFallbackOffer(harness, "cmd-fallback-respond-echo", requestId, "switch");
 
       await waitFor(() => harness.sendTurn.mock.calls.length === 2);

@@ -9,6 +9,7 @@ import {
   type TurnId,
 } from "@ras-code/contracts";
 import { parseScopedThreadKey } from "@ras-code/client-runtime/environment";
+import { useAtomValue } from "@effect/atom-react";
 import type { AgentPanelModel } from "@ras-code/client-runtime/state/subagentRuntime";
 import {
   emptyAgentPanelModel,
@@ -133,6 +134,7 @@ import {
   type FallbackNoticePayload,
 } from "../settings/providerUsageLimit.logic";
 import { useClientSettings, usePrimarySettings } from "../../hooks/useSettings";
+import { primaryServerProvidersAtom } from "../../state/server";
 
 import {
   buildInlineTerminalContextText,
@@ -2705,10 +2707,14 @@ const FallbackNoticeRow = memo(function FallbackNoticeRow(props: {
 }) {
   const timestampFormat = useClientSettings((settings) => settings.timestampFormat);
   const providerInstances = usePrimarySettings((settings) => settings.providerInstances);
+  const serverProviders = useAtomValue(primaryServerProvidersAtom);
   const instanceName = (instanceId: string) => {
     const instance = providerInstances[instanceId as ProviderInstanceId];
+    const provider = serverProviders.find((entry) => String(entry.instanceId) === instanceId);
     return (
+      provider?.displayName?.trim() ||
       instance?.displayName?.trim() ||
+      (provider ? PROVIDER_DISPLAY_NAMES[provider.driver] : undefined) ||
       (instance ? PROVIDER_DISPLAY_NAMES[instance.driver] : undefined) ||
       instanceId
     );

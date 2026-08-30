@@ -559,6 +559,35 @@ describe("fork response state", () => {
       }),
     ).toBeNull();
   });
+
+  it("locks a started fallback session to the thread's logical provider", () => {
+    const thread = makeThread({
+      messages: [
+        {
+          id: MessageId.make("assistant-1"),
+          role: "assistant",
+          text: "Continuing through the gateway",
+          turnId: null,
+          streaming: false,
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+      session: {
+        ...readySession,
+        providerName: "posthogGateway",
+        providerInstanceId: ProviderInstanceId.make("posthog_gateway"),
+      },
+    });
+
+    expect(
+      deriveLockedProvider({
+        thread,
+        selectedProvider: null,
+        threadProvider: "claudeAgent",
+      }),
+    ).toBe("claudeAgent");
+  });
 });
 
 describe("resolveThreadMetadataUpdateForNextTurn", () => {

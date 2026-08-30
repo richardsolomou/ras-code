@@ -18,7 +18,6 @@ import {
   resolveProviderInstanceEnabled,
   type EnvironmentId,
   type ProviderInstanceConfig,
-  type ProviderInstanceConfigMap,
   type ProviderInstanceEnvironmentVariable,
   type ProviderInstanceId,
   type ProviderDriverKind,
@@ -43,8 +42,6 @@ import type { DriverOption } from "./providerDriverMeta";
 import { providerSettingsTabClassName } from "./providerSettingsTabs";
 import { ProviderSettingsForm } from "./ProviderSettingsForm";
 import { ProviderModelsSection } from "./ProviderModelsSection";
-import { ProviderFallbackSection } from "./ProviderFallbackSection";
-import { instancesFallingBackTo } from "./providerFallback.logic";
 import {
   instanceUsesGateway,
   LEGACY_POSTHOG_GATEWAY_INSTANCE_ID,
@@ -369,10 +366,6 @@ interface ProviderInstanceCardProps {
   readonly environmentId: EnvironmentId;
   readonly instanceId: ProviderInstanceId;
   readonly instance: ProviderInstanceConfig;
-  /** Every configured instance, for the fallback picker's candidate list. */
-  readonly instances: ProviderInstanceConfigMap;
-  /** Live snapshots, for the fallback picker's model list. */
-  readonly serverProviders: ReadonlyArray<ServerProvider>;
   readonly driverOption: DriverOption | undefined;
   readonly liveProvider: ServerProvider | undefined;
   readonly mode: "list" | "editor";
@@ -428,8 +421,6 @@ export function ProviderInstanceCard({
   environmentId,
   instanceId,
   instance,
-  instances,
-  serverProviders,
   driverOption,
   liveProvider,
   mode,
@@ -499,7 +490,6 @@ export function ProviderInstanceCard({
     ? instance.driver
     : null;
   const visibleTab = driverOption === undefined ? "configuration" : activeTab;
-  const fallbackFor = instancesFallingBackTo({ instanceId, instances });
 
   const customModels = readConfigStringArray(instance.config, "customModels");
   // Server-returned models may lag behind settings writes. Treat probe
@@ -914,30 +904,9 @@ export function ProviderInstanceCard({
             />
           </div>
 
-          {fallbackFor.length > 0 ? (
-            <p className="text-xs text-muted-foreground">
-              Used as the fallback for{" "}
-              {fallbackFor.map((candidate, index) => (
-                <span key={candidate.instanceId}>
-                  {index > 0 ? ", " : ""}
-                  <span className="text-foreground">{candidate.displayName}</span>
-                </span>
-              ))}
-              .
-            </p>
-          ) : driverOption?.purpose ? (
+          {driverOption?.purpose ? (
             <p className="text-xs text-muted-foreground">{driverOption.purpose}</p>
           ) : null}
-
-          <div>
-            <ProviderFallbackSection
-              instanceId={instanceId}
-              instance={instance}
-              instances={instances}
-              serverProviders={serverProviders}
-              onUpdate={onUpdate}
-            />
-          </div>
 
           {driverOption ? (
             <ProviderSettingsForm

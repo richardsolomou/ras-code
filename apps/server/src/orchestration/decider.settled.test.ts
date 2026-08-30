@@ -267,6 +267,34 @@ it.layer(NodeServices.layer)("settled thread decider", (it) => {
         ]),
       }).pipe(Effect.flip);
       expect(inputError._tag).toBe("OrchestrationCommandInvariantError");
+
+      const fallbackError = yield* decideOrchestrationCommand({
+        command: {
+          type: "thread.settle",
+          commandId: CommandId.make("cmd-settle-pending-fallback"),
+          threadId: ThreadId.make("thread-1"),
+        },
+        readModel: makeReadModel(null, null, null, [
+          requestActivity("provider.fallback.offered", "req-3", NOW),
+        ]),
+      }).pipe(Effect.flip);
+      expect(fallbackError._tag).toBe("OrchestrationCommandInvariantError");
+
+      const settledAfterFallback = yield* decideOrchestrationCommand({
+        command: {
+          type: "thread.settle",
+          commandId: CommandId.make("cmd-settle-resolved-fallback"),
+          threadId: ThreadId.make("thread-1"),
+        },
+        readModel: makeReadModel(null, null, null, [
+          requestActivity("provider.fallback.offered", "req-3", NOW),
+          requestActivity("provider.fallback.engaged", "req-3", NOW),
+        ]),
+      });
+      const settledAfterFallbackEvents = Array.isArray(settledAfterFallback)
+        ? settledAfterFallback
+        : [settledAfterFallback];
+      expect(settledAfterFallbackEvents[0]?.type).toBe("thread.settled");
     }),
   );
 

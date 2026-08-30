@@ -63,9 +63,7 @@ describe("deriveProviderModelsForDisplay", () => {
       createElement(ProviderInstanceCard, {
         instanceId,
         instance: { driver },
-        instances: { [instanceId]: { driver } },
         environmentId: EnvironmentId.make("env-1"),
-        serverProviders: [liveProvider],
         driverOption: undefined,
         liveProvider,
         mode: "editor",

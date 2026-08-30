@@ -17,7 +17,8 @@ Each kind can be turned on or off on its own:
 - **Agent failed** — a turn ended with an error.
 - **Approval needed** — the agent is waiting for you to approve an action.
 - **Input needed** — the agent asked you a question.
-- **Provider fallback** — a thread switched to a fallback provider. Off unless you turn it on.
+- **Provider fallback** — a thread continued through the PostHog AI Gateway. Off unless you turn it
+  on.
 
 Selecting a notification brings RAS Code forward and opens the thread.
 

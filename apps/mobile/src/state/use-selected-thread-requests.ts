@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 import {
   ApprovalRequestId,
   type ProviderApprovalDecision,
+  type ProviderFallbackOfferDecision,
   type UserInputQuestion,
 } from "@ras-code/contracts";
 import { Atom } from "effect/unstable/reactivity";
@@ -13,6 +14,7 @@ import { scopedRequestKey } from "../lib/scopedEntities";
 import {
   buildPendingUserInputAnswers,
   derivePendingApprovals,
+  derivePendingFallbackOffers,
   derivePendingUserInputs,
   setPendingUserInputCustomAnswer,
   sortThreadActivities,
@@ -74,10 +76,15 @@ export function useSelectedThreadRequests() {
     threadEnvironment.respondToUserInput,
     "thread user input response",
   );
+  const respondToFallback = useAtomCommand(
+    threadEnvironment.respondToFallback,
+    "thread fallback response",
+  );
   const { selectedThread: selectedThreadShell } = useThreadSelection();
   const selectedThread = useSelectedThreadDetail();
   const userInputDraftsByRequestKey = useAtomValue(userInputDraftsByRequestKeyAtom);
   const [respondingApprovalId, setRespondingApprovalId] = useState<ApprovalRequestId | null>(null);
+  const [respondingFallbackId, setRespondingFallbackId] = useState<ApprovalRequestId | null>(null);
   const [respondingUserInputId, setRespondingUserInputId] = useState<ApprovalRequestId | null>(
     null,
   );
@@ -92,6 +99,11 @@ export function useSelectedThreadRequests() {
     [sortedActivities],
   );
   const activePendingApproval = activePendingApprovals[0] ?? null;
+  const activePendingFallbackOffers = useMemo(
+    () => derivePendingFallbackOffers(sortedActivities),
+    [sortedActivities],
+  );
+  const activePendingFallbackOffer = activePendingFallbackOffers[0] ?? null;
   const activePendingUserInputs = useMemo(
     () => derivePendingUserInputs(sortedActivities),
     [sortedActivities],
@@ -152,6 +164,25 @@ export function useSelectedThreadRequests() {
     [respondToApproval, selectedThreadShell],
   );
 
+  const onRespondToFallback = useCallback(
+    async (requestId: ApprovalRequestId, decision: ProviderFallbackOfferDecision) => {
+      if (!selectedThreadShell) return;
+
+      setRespondingFallbackId(requestId);
+      const result = await respondToFallback({
+        environmentId: selectedThreadShell.environmentId,
+        input: {
+          threadId: selectedThreadShell.id,
+          requestId,
+          decision,
+        },
+      });
+      setRespondingFallbackId((current) => (current === requestId ? null : current));
+      return result;
+    },
+    [respondToFallback, selectedThreadShell],
+  );
+
   const onSubmitUserInput = useCallback(async () => {
     if (!selectedThreadShell || !activePendingUserInput || !activePendingUserInputAnswers) {
       return;
@@ -179,12 +210,15 @@ export function useSelectedThreadRequests() {
 
   return {
     activePendingApproval,
+    activePendingFallbackOffer,
     activePendingUserInput,
     activePendingUserInputDrafts,
     activePendingUserInputAnswers,
     respondingApprovalId,
+    respondingFallbackId,
     respondingUserInputId,
     onRespondToApproval,
+    onRespondToFallback,
     onSelectUserInputOption,
     onChangeUserInputCustomAnswer,
     onSubmitUserInput,
