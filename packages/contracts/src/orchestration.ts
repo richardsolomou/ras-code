@@ -458,10 +458,8 @@ export const ThreadTitleRegeneration = Schema.Struct({
 export type ThreadTitleRegeneration = typeof ThreadTitleRegeneration.Type;
 
 /**
- * Where a forked thread was cut from its parent. `turnCount` is the parent's
- * checkpoint turn count at the fork point, so it addresses both the parent's
- * filesystem checkpoint (`refs/t3/checkpoints/<parent>/turn/<n>`) and the
- * parent turn whose provider resume anchor a native fork resumes from.
+ * A fork's parent boundary. `messageId` is the last inherited response;
+ * `turnCount` addresses its filesystem checkpoint and provider resume anchor.
  */
 export const ThreadForkPoint = Schema.Struct({
   threadId: ThreadId,
@@ -988,8 +986,8 @@ const ThreadTurnStartBootstrapCreateThread = Schema.Struct({
 });
 
 /**
- * Fork bootstrap. Creates `threadId` as a fork of `sourceThreadId` cut before
- * `sourceMessageId`, carrying the parent's messages up to that point as
+ * Fork bootstrap. Creates `threadId` as a fork of `sourceThreadId` after
+ * `sourceMessageId`, carrying the parent's messages through that point as
  * inherited history. The server resolves the inherited prefix itself — clients
  * send the fork point, not the transcript — and pairs this with
  * `prepareWorktree` when `workspaceMode` is "worktree".

@@ -167,56 +167,55 @@ export function resolveThreadMetadataUpdateForNextTurn(input: {
   };
 }
 
-/**
- * The checkpoint turn count each user message can be rewound or forked to:
- * the state of the workspace just before that message ran.
- *
- * A user message maps to the checkpoint of the turn it started, minus one —
- * the turn's checkpoint records the state *after* it. Messages whose turn
- * never produced a checkpoint are absent, so callers naturally offer neither
- * revert nor fork on them.
- */
-export function deriveForkTurnCountByUserMessageId(input: {
-  readonly messages: ReadonlyArray<{ readonly id: MessageId; readonly role: string }>;
+export function deriveCheckpointTurnCountByAssistantMessageId(input: {
   readonly turnDiffSummaryByAssistantMessageId: ReadonlyMap<MessageId, TurnDiffSummary>;
   readonly inferredCheckpointTurnCountByTurnId: Readonly<Record<string, number>>;
 }): Map<MessageId, number> {
-  const byUserMessageId = new Map<MessageId, number>();
-  for (let index = 0; index < input.messages.length; index += 1) {
-    const entry = input.messages[index];
-    if (!entry || entry.role !== "user") {
-      continue;
-    }
-
-    for (let nextIndex = index + 1; nextIndex < input.messages.length; nextIndex += 1) {
-      const nextEntry = input.messages[nextIndex];
-      if (!nextEntry) {
-        continue;
-      }
-      if (nextEntry.role === "user") {
-        break;
-      }
-      const summary = input.turnDiffSummaryByAssistantMessageId.get(nextEntry.id);
-      if (!summary) {
-        continue;
-      }
-      const turnCount =
-        summary.checkpointTurnCount ?? input.inferredCheckpointTurnCountByTurnId[summary.turnId];
-      if (typeof turnCount !== "number") {
-        break;
-      }
-      byUserMessageId.set(entry.id, Math.max(0, turnCount - 1));
-      break;
+  const result = new Map<MessageId, number>();
+  for (const [messageId, summary] of input.turnDiffSummaryByAssistantMessageId) {
+    const turnCount =
+      summary.checkpointTurnCount ?? input.inferredCheckpointTurnCountByTurnId[summary.turnId];
+    if (typeof turnCount === "number") {
+      result.set(messageId, turnCount);
     }
   }
+  return result;
+}
 
-  return byUserMessageId;
+export function deriveForkInheritedMessages(
+  messages: ReadonlyArray<ChatMessage>,
+  sourceMessageId: MessageId,
+): ChatMessage[] {
+  const orderedMessages = messages.toSorted(
+    (left, right) =>
+      left.createdAt.localeCompare(right.createdAt) || left.id.localeCompare(right.id),
+  );
+  const forkIndex = orderedMessages.findIndex((message) => message.id === sourceMessageId);
+  if (forkIndex < 0) return [];
+
+  return orderedMessages.slice(0, forkIndex + 1).flatMap((message) =>
+    message.streaming
+      ? []
+      : [
+          {
+            id: message.id,
+            role: message.role,
+            text: message.text,
+            turnId: null,
+            streaming: false,
+            inherited: true,
+            createdAt: message.createdAt,
+            updatedAt: message.updatedAt,
+          },
+        ],
+  );
 }
 
 export function buildLocalDraftThread(
   threadId: ThreadId,
   draftThread: DraftThreadState,
   fallbackModelSelection: ModelSelection,
+  inheritedMessages: ReadonlyArray<ChatMessage> = [],
 ): Thread {
   return {
     id: threadId,
@@ -229,7 +228,7 @@ export function buildLocalDraftThread(
     runtimeMode: draftThread.runtimeMode,
     interactionMode: draftThread.interactionMode,
     session: null,
-    messages: [],
+    messages: inheritedMessages,
     createdAt: draftThread.createdAt,
     updatedAt: draftThread.createdAt,
     archivedAt: null,
@@ -546,7 +545,10 @@ export function isBranchMismatchDismissedForSession(key: string | null): boolean
 
 export function threadHasStarted(thread: Thread | null | undefined): boolean {
   return Boolean(
-    thread && (thread.latestTurn !== null || thread.messages.length > 0 || thread.session !== null),
+    thread &&
+    (thread.latestTurn !== null ||
+      thread.messages.some((message) => !message.inherited) ||
+      thread.session !== null),
   );
 }
 

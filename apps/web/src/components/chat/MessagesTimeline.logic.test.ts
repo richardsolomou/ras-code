@@ -323,7 +323,7 @@ describe("deriveMessagesTimelineRows", () => {
       isWorking: false,
       activeTurnStartedAt: null,
       turnDiffSummaryByAssistantMessageId: new Map(),
-      revertTurnCountByUserMessageId: new Map(),
+      checkpointTurnCountByAssistantMessageId: new Map(),
     });
 
     const assistantRows = rows.filter(
@@ -377,7 +377,7 @@ describe("deriveMessagesTimelineRows", () => {
       isWorking: false,
       activeTurnStartedAt: null,
       turnDiffSummaryByAssistantMessageId: new Map(),
-      revertTurnCountByUserMessageId: new Map(),
+      checkpointTurnCountByAssistantMessageId: new Map(),
     });
 
     const assistantRows = rows.filter(
@@ -436,7 +436,7 @@ describe("deriveMessagesTimelineRows", () => {
       turnDiffSummaryByAssistantMessageId: new Map([
         ["assistant-1" as never, assistantTurnDiffSummary],
       ]),
-      revertTurnCountByUserMessageId: new Map([["user-1" as never, 1]]),
+      checkpointTurnCountByAssistantMessageId: new Map([["assistant-1" as never, 1]]),
     });
 
     const userRow = rows.find(
@@ -448,7 +448,8 @@ describe("deriveMessagesTimelineRows", () => {
         row.kind === "message" && row.message.role === "assistant",
     );
 
-    expect(userRow?.revertTurnCount).toBe(1);
+    expect(userRow?.revertTurnCount).toBeUndefined();
+    expect(assistantRow?.revertTurnCount).toBe(1);
     expect(assistantRow?.assistantTurnDiffSummary).toBe(assistantTurnDiffSummary);
   });
 
@@ -515,7 +516,7 @@ describe("deriveMessagesTimelineRows", () => {
       isWorking: false,
       activeTurnStartedAt: null,
       turnDiffSummaryByAssistantMessageId: new Map(),
-      revertTurnCountByUserMessageId: new Map(),
+      checkpointTurnCountByAssistantMessageId: new Map(),
     });
 
     const foldRow = collapsedRows.find(
@@ -539,7 +540,7 @@ describe("deriveMessagesTimelineRows", () => {
       isWorking: false,
       activeTurnStartedAt: null,
       turnDiffSummaryByAssistantMessageId: new Map(),
-      revertTurnCountByUserMessageId: new Map(),
+      checkpointTurnCountByAssistantMessageId: new Map(),
     });
 
     expect(expandedRows.map((row) => row.id)).toEqual([
@@ -605,7 +606,7 @@ describe("deriveMessagesTimelineRows", () => {
       isWorking: false,
       activeTurnStartedAt: null,
       turnDiffSummaryByAssistantMessageId: new Map(),
-      revertTurnCountByUserMessageId: new Map(),
+      checkpointTurnCountByAssistantMessageId: new Map(),
     });
 
     expect(rows.map((row) => row.id)).toEqual([
@@ -700,7 +701,7 @@ describe("deriveMessagesTimelineRows", () => {
       isWorking: true,
       activeTurnStartedAt: "2026-01-01T00:00:14Z",
       turnDiffSummaryByAssistantMessageId: new Map(),
-      revertTurnCountByUserMessageId: new Map(),
+      checkpointTurnCountByAssistantMessageId: new Map(),
     });
 
     const foldRow = rows.find(
@@ -737,7 +738,7 @@ describe("deriveMessagesTimelineRows", () => {
       isWorking: false,
       activeTurnStartedAt: null,
       turnDiffSummaryByAssistantMessageId: new Map(),
-      revertTurnCountByUserMessageId: new Map(),
+      checkpointTurnCountByAssistantMessageId: new Map(),
     });
 
     expect(rows).toEqual([
@@ -805,7 +806,7 @@ describe("deriveMessagesTimelineRows", () => {
       isWorking: true,
       activeTurnStartedAt: "2026-01-01T00:01:00Z",
       turnDiffSummaryByAssistantMessageId: new Map(),
-      revertTurnCountByUserMessageId: new Map(),
+      checkpointTurnCountByAssistantMessageId: new Map(),
     });
 
     expect(rows.map((row) => row.id)).toEqual([
@@ -857,7 +858,7 @@ describe("deriveMessagesTimelineRows", () => {
       isWorking: true,
       activeTurnStartedAt: "2026-01-01T00:00:00Z",
       turnDiffSummaryByAssistantMessageId: new Map(),
-      revertTurnCountByUserMessageId: new Map(),
+      checkpointTurnCountByAssistantMessageId: new Map(),
     });
 
     expect(rows.some((row) => row.kind === "turn-fold")).toBe(false);
@@ -926,7 +927,7 @@ describe("deriveMessagesTimelineRows", () => {
       isWorking: true,
       activeTurnStartedAt: "2026-01-01T00:00:00Z",
       turnDiffSummaryByAssistantMessageId: new Map(),
-      revertTurnCountByUserMessageId: new Map(),
+      checkpointTurnCountByAssistantMessageId: new Map(),
     });
 
     expect(rows.map((row) => row.kind)).toEqual(["working", "work-live"]);
@@ -997,7 +998,7 @@ describe("deriveMessagesTimelineRows", () => {
       isWorking: true,
       activeTurnStartedAt: "2026-01-01T00:00:00Z",
       turnDiffSummaryByAssistantMessageId: new Map(),
-      revertTurnCountByUserMessageId: new Map(),
+      checkpointTurnCountByAssistantMessageId: new Map(),
     });
 
     expect(rows.map((row) => row.kind)).toEqual(["working", "work-toggle", "message", "work-live"]);
@@ -1064,7 +1065,7 @@ describe("deriveMessagesTimelineRows", () => {
       isWorking: true,
       activeTurnStartedAt: "2026-01-01T00:00:00Z",
       turnDiffSummaryByAssistantMessageId: new Map(),
-      revertTurnCountByUserMessageId: new Map(),
+      checkpointTurnCountByAssistantMessageId: new Map(),
     });
 
     expect(rows.map((row) => row.kind)).toEqual(["working", "work-live", "message", "work-live"]);
@@ -1111,7 +1112,7 @@ describe("deriveMessagesTimelineRows", () => {
       isWorking: true,
       activeTurnStartedAt: "2026-01-01T00:01:00Z",
       turnDiffSummaryByAssistantMessageId: new Map(),
-      revertTurnCountByUserMessageId: new Map(),
+      checkpointTurnCountByAssistantMessageId: new Map(),
     });
 
     expect(rows.some((row) => row.kind === "work-live")).toBe(false);
@@ -1172,7 +1173,7 @@ describe("deriveMessagesTimelineRows", () => {
       isWorking: true,
       activeTurnStartedAt: "2026-01-01T00:00:00Z",
       turnDiffSummaryByAssistantMessageId: new Map(),
-      revertTurnCountByUserMessageId: new Map(),
+      checkpointTurnCountByAssistantMessageId: new Map(),
     });
 
     expect(rows.filter((row) => row.kind === "work-live").map((row) => row.entry.id)).toEqual([
@@ -1208,7 +1209,7 @@ describe("deriveMessagesTimelineRows", () => {
       isWorking: true,
       activeTurnStartedAt: "2026-01-01T00:00:00Z",
       turnDiffSummaryByAssistantMessageId: new Map(),
-      revertTurnCountByUserMessageId: new Map(),
+      checkpointTurnCountByAssistantMessageId: new Map(),
     });
 
     expect(rows.map((row) => row.kind)).toEqual(["working", "work-live"]);
@@ -1270,7 +1271,7 @@ describe("deriveMessagesTimelineRows", () => {
       isWorking: true,
       activeTurnStartedAt: "2026-01-01T00:01:00Z",
       turnDiffSummaryByAssistantMessageId: new Map(),
-      revertTurnCountByUserMessageId: new Map(),
+      checkpointTurnCountByAssistantMessageId: new Map(),
     });
 
     expect(rows.filter((row) => row.kind === "turn-fold").map((row) => row.turnId)).toEqual([
@@ -1315,7 +1316,7 @@ describe("deriveMessagesTimelineRows", () => {
       isWorking: false,
       activeTurnStartedAt: null,
       turnDiffSummaryByAssistantMessageId: new Map(),
-      revertTurnCountByUserMessageId: new Map(),
+      checkpointTurnCountByAssistantMessageId: new Map(),
     });
 
     const assistantRows = rows.filter(
@@ -1353,7 +1354,7 @@ describe("deriveMessagesTimelineRows", () => {
       isWorking: true,
       activeTurnStartedAt: "2026-01-01T00:00:00Z",
       turnDiffSummaryByAssistantMessageId: new Map(),
-      revertTurnCountByUserMessageId: new Map(),
+      checkpointTurnCountByAssistantMessageId: new Map(),
     });
 
     const assistantRow = rows.find(
@@ -1410,7 +1411,7 @@ describe("deriveMessagesTimelineRows", () => {
       isWorking: false,
       activeTurnStartedAt: null,
       turnDiffSummaryByAssistantMessageId: new Map(),
-      revertTurnCountByUserMessageId: new Map(),
+      checkpointTurnCountByAssistantMessageId: new Map(),
     };
     const collapsedRows = deriveMessagesTimelineRows(baseInput);
     const expandedRows = deriveMessagesTimelineRows({
@@ -1461,7 +1462,7 @@ describe("deriveMessagesTimelineRows", () => {
       isWorking: false,
       activeTurnStartedAt: null,
       turnDiffSummaryByAssistantMessageId: new Map(),
-      revertTurnCountByUserMessageId: new Map(),
+      checkpointTurnCountByAssistantMessageId: new Map(),
     });
 
     expect(rows.find((row) => row.kind === "work-toggle")).toMatchObject({
@@ -1508,7 +1509,7 @@ describe("deriveMessagesTimelineRows", () => {
         isWorking: false,
         activeTurnStartedAt: null,
         turnDiffSummaryByAssistantMessageId: new Map(),
-        revertTurnCountByUserMessageId: new Map(),
+        checkpointTurnCountByAssistantMessageId: new Map(),
       });
 
       expect(rows.find((row) => row.kind === "work-toggle")).toMatchObject({
@@ -1559,7 +1560,7 @@ describe("computeStableMessagesTimelineRows", () => {
       isWorking: false,
       activeTurnStartedAt: null,
       turnDiffSummaryByAssistantMessageId: new Map(),
-      revertTurnCountByUserMessageId: new Map(),
+      checkpointTurnCountByAssistantMessageId: new Map(),
     });
 
     const initial = computeStableMessagesTimelineRows(rows, {
@@ -1608,7 +1609,7 @@ describe("computeStableMessagesTimelineRows", () => {
         isWorking: false,
         activeTurnStartedAt: null,
         turnDiffSummaryByAssistantMessageId: new Map(),
-        revertTurnCountByUserMessageId: new Map(),
+        checkpointTurnCountByAssistantMessageId: new Map(),
       });
 
     const firstRows = createRows();
@@ -1664,7 +1665,7 @@ describe("computeStableMessagesTimelineRows", () => {
       isWorking: false,
       activeTurnStartedAt: null,
       turnDiffSummaryByAssistantMessageId: new Map(),
-      revertTurnCountByUserMessageId: new Map(),
+      checkpointTurnCountByAssistantMessageId: new Map(),
     });
 
     const initial = computeStableMessagesTimelineRows(firstRows, {

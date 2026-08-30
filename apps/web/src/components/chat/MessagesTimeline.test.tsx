@@ -184,9 +184,9 @@ function buildProps() {
     turnDiffSummaryByAssistantMessageId: new Map(),
     routeThreadKey: "environment-local:thread-1",
     onOpenTurnDiff: () => {},
-    revertTurnCountByUserMessageId: new Map(),
-    onRevertUserMessage: () => {},
-    onForkFromUserMessage: () => {},
+    checkpointTurnCountByAssistantMessageId: new Map(),
+    onRevertAssistantMessage: () => {},
+    onForkFromAssistantMessage: () => {},
     isRevertingCheckpoint: false,
     onImageExpand: () => {},
     activeThreadEnvironmentId: ACTIVE_THREAD_ENVIRONMENT_ID,
@@ -993,6 +993,37 @@ describe("MessagesTimeline", () => {
     expect(markup).toContain('aria-label="Copy link"');
     expect(markup).toContain('data-user-message-collapsed="true"');
     expect(markup).toContain('data-user-message-footer="true"');
+  });
+
+  it("keeps user actions to copy and puts response actions in a three-dot menu", () => {
+    const userEntry = buildUserTimelineEntry("Try another approach.");
+    const assistantEntry = {
+      ...buildAssistantTimelineEntry("Here is one approach."),
+      id: "entry-2",
+      message: {
+        ...buildAssistantTimelineEntry("Here is one approach.").message,
+        id: MessageId.make("message-2"),
+      },
+    };
+    const markup = renderToStaticMarkup(
+      <MessagesTimeline
+        {...buildProps()}
+        timelineEntries={[userEntry, assistantEntry]}
+        checkpointTurnCountByAssistantMessageId={new Map([[assistantEntry.message.id, 1]])}
+      />,
+    );
+
+    const userMarkup = markup.slice(
+      markup.indexOf('data-message-role="user"'),
+      markup.indexOf('data-message-role="assistant"'),
+    );
+    expect(userMarkup).toContain('aria-label="Copy link"');
+    expect(userMarkup).not.toContain('aria-label="More message actions"');
+    expect(markup.indexOf('aria-label="Copy link"')).toBeLessThan(
+      markup.indexOf('aria-label="More message actions"'),
+    );
+    expect(markup).toContain("lucide-ellipsis");
+    expect(markup).not.toContain("lucide-undo-2");
   });
 
   it("renders context compaction entries in the normal work log", () => {

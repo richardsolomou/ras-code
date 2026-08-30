@@ -111,6 +111,7 @@ import * as PortScanner from "./preview/PortScanner.ts";
 import * as WorkspaceEntries from "./workspace/WorkspaceEntries.ts";
 import * as WorkspaceFileSystem from "./workspace/WorkspaceFileSystem.ts";
 import { readWorkflowScript } from "./orchestration/workflowScriptQuery.ts";
+import { selectForkInheritedPrefix } from "./orchestration/forkHistory.ts";
 import * as WorkspacePaths from "./workspace/WorkspacePaths.ts";
 import * as VcsStatusBroadcaster from "./vcs/VcsStatusBroadcaster.ts";
 import * as VcsProvisioningService from "./vcs/VcsProvisioningService.ts";
@@ -1050,23 +1051,17 @@ const makeWsRpcLayer = (
                   message: `Thread '${fork.sourceThreadId}' cannot be forked because it no longer exists.`,
                 });
               }
-              // The fork is cut *before* the message the user forked from, so
-              // the inherited prefix is everything strictly earlier. Ordering
-              // matches the timeline the user was looking at.
-              const orderedMessages = [...sourceThread.value.messages].sort(
-                (left, right) =>
-                  left.createdAt.localeCompare(right.createdAt) || left.id.localeCompare(right.id),
+              const inheritedPrefix = selectForkInheritedPrefix(
+                sourceThread.value.messages,
+                fork.sourceMessageId,
               );
-              const forkIndex = orderedMessages.findIndex(
-                (message) => message.id === fork.sourceMessageId,
-              );
-              if (forkIndex < 0) {
+              if (inheritedPrefix === null) {
                 return yield* new OrchestrationDispatchCommandError({
                   message: `Message '${fork.sourceMessageId}' is no longer part of thread '${fork.sourceThreadId}'.`,
                 });
               }
               const inheritedMessages = yield* Effect.forEach(
-                orderedMessages.slice(0, forkIndex).filter((message) => !message.streaming),
+                inheritedPrefix,
                 (message) =>
                   randomUUID.pipe(
                     Effect.map((uuid) => ({
