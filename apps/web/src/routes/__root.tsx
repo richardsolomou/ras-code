@@ -51,16 +51,12 @@ import { useAtomValue } from "@effect/atom-react";
 import { useAtomCommand } from "../state/use-atom-command";
 import { useEnvironments, usePrimaryEnvironment } from "../state/environments";
 import {
+  liveServerConfigAtom,
   primaryServerConfigAtom,
   primaryServerConfigEventAtom,
   primaryServerWelcomeAtom,
 } from "../state/server";
-import {
-  readProject,
-  setActiveEnvironmentId,
-  useActiveEnvironmentId,
-  useServerConfigs,
-} from "../state/entities";
+import { readProject, setActiveEnvironmentId, useActiveEnvironmentId } from "../state/entities";
 import {
   createKeybindingsUpdateToastController,
   type KeybindingsUpdateToastController,
@@ -309,11 +305,8 @@ function PostHogBrowserTelemetry({ authGateStatus }: { readonly authGateStatus: 
 function usePostHogTelemetryEnabled(pathname: string, authGateStatus: string | null): boolean {
   const primaryConfig = useAtomValue(primaryServerConfigAtom);
   const activeEnvironmentId = useActiveEnvironmentId();
-  const serverConfigs = useServerConfigs();
-  const serverConfig =
-    authGateStatus === "hosted-static" && activeEnvironmentId !== null
-      ? serverConfigs.get(activeEnvironmentId)
-      : primaryConfig;
+  const liveServerConfig = useAtomValue(liveServerConfigAtom(activeEnvironmentId));
+  const serverConfig = authGateStatus === "hosted-static" ? liveServerConfig : primaryConfig;
   const appRoute =
     pathname !== "/pair" && pathname !== "/connect" && !pathname.startsWith("/connect/");
   return (

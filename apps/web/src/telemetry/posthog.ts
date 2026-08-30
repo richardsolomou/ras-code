@@ -70,8 +70,8 @@ function telemetryPathForUrl(value: string): string {
   return knownTelemetryPaths.get(pathname) ?? fallbackTelemetryPath(pathname);
 }
 
-function sanitizeReplayData(value: unknown, parentKey?: string): unknown {
-  if (Array.isArray(value)) return value.map((entry) => sanitizeReplayData(entry, parentKey));
+function sanitizeUrlBearingData(value: unknown, parentKey?: string): unknown {
+  if (Array.isArray(value)) return value.map((entry) => sanitizeUrlBearingData(entry, parentKey));
   const record = asRecord(value);
   if (record === undefined) {
     if (
@@ -84,13 +84,13 @@ function sanitizeReplayData(value: unknown, parentKey?: string): unknown {
     return value;
   }
   return Object.fromEntries(
-    Object.entries(record).map(([key, entry]) => [key, sanitizeReplayData(entry, key)]),
+    Object.entries(record).map(([key, entry]) => [key, sanitizeUrlBearingData(entry, key)]),
   );
 }
 
 function sanitizeReplaySnapshot(value: unknown): unknown {
   return Array.isArray(value) || asRecord(value) !== undefined
-    ? sanitizeReplayData(value)
+    ? sanitizeUrlBearingData(value)
     : undefined;
 }
 
@@ -182,8 +182,12 @@ export function sanitizePostHogEvent(event: CaptureResult | null): CaptureResult
         ? properties.$pathname
         : "/",
   );
+  const sanitizedProperties =
+    event.event === "$web_vitals"
+      ? (asRecord(sanitizeUrlBearingData(properties)) ?? {})
+      : properties;
   const safeProperties = {
-    ...properties,
+    ...sanitizedProperties,
     $geoip_disable: true,
     $current_url: sanitizedCurrentUrl(properties.$current_url, properties.$pathname),
     $pathname: pathname,
@@ -267,7 +271,12 @@ export async function configurePostHogBrowserTelemetry(
 
   const normalizedPath = rememberTelemetryPath(pathname, routePattern);
   const posthog = await loadClient();
-  if (!desiredEnabled) return;
+  if (!desiredEnabled) {
+    posthog.stopSessionRecording();
+    posthog.opt_out_capturing();
+    capturingEnabled = false;
+    return;
+  }
   if (!capturingEnabled) {
     posthog.opt_in_capturing({ captureEventName: false });
     posthog.startSessionRecording();

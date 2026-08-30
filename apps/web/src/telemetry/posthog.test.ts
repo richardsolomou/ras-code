@@ -31,6 +31,24 @@ describe("PostHog browser telemetry", () => {
     expect(normalizeTelemetryPath(path)).toBe(expected);
   });
 
+  it("opts out if telemetry is disabled while the browser client loads", async () => {
+    const enabling = configurePostHogBrowserTelemetry(
+      true,
+      "/environment-secret/thread-secret",
+      "/$environmentId/$threadId",
+    );
+    await configurePostHogBrowserTelemetry(false, "/", "/");
+    await enabling;
+
+    expect(posthogClient.opt_in_capturing).not.toHaveBeenCalled();
+    expect(posthogClient.startSessionRecording).not.toHaveBeenCalled();
+    expect(posthogClient.capture).not.toHaveBeenCalled();
+    expect(posthogClient.stopSessionRecording).toHaveBeenCalledOnce();
+    expect(posthogClient.opt_out_capturing).toHaveBeenCalledOnce();
+
+    vi.clearAllMocks();
+  });
+
   it("starts, deduplicates, and stops browser collection", async () => {
     await configurePostHogBrowserTelemetry(
       true,
@@ -152,6 +170,34 @@ describe("PostHog browser telemetry", () => {
     expect(capturedText).not.toContain("private prompt");
     expect(sanitized?.properties.$heatmap_data).toEqual({
       "https://app.ras-code.local/:id/:id": [{ x: 120, y: 80, target_fixed: false, type: "click" }],
+    });
+  });
+
+  it("normalizes nested Web Vitals URLs", () => {
+    const sanitized = sanitizePostHogEvent({
+      uuid: "event-id",
+      event: "$web_vitals",
+      properties: {
+        $current_url: "https://code.ras.sh/environment-secret/thread-secret?token=phx_secret",
+        $web_vitals_LCP_event: {
+          name: "LCP",
+          value: 1_200,
+          navigationURL: "https://code.ras.sh/environment-secret/thread-secret?token=phx_secret",
+          $current_url: "https://code.ras.sh/environment-secret/thread-secret?token=phx_secret",
+        },
+        $web_vitals_LCP_value: 1_200,
+      },
+    });
+
+    const capturedText = NodeUtil.inspect(sanitized, { depth: null });
+    expect(capturedText).not.toContain("environment-secret");
+    expect(capturedText).not.toContain("thread-secret");
+    expect(capturedText).not.toContain("phx_secret");
+    expect(sanitized?.properties.$web_vitals_LCP_event).toEqual({
+      name: "LCP",
+      value: 1_200,
+      navigationURL: "https://app.ras-code.local/:id/:id",
+      $current_url: "https://app.ras-code.local/:id/:id",
     });
   });
 
