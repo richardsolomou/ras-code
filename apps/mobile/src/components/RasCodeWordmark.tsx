@@ -1,4 +1,5 @@
 import Svg, { Rect } from "react-native-svg";
+import { memo } from "react";
 
 import { useAppearancePreferences } from "../features/settings/appearance/AppearancePreferencesProvider";
 import { BRAND_PALETTES } from "./brandPalette";
@@ -43,7 +44,7 @@ const CELLS = Array.from({ length: 7 }, (_, row) =>
   Array.from({ length: 13 }, (_, column) => ({ column, row })),
 ).flat();
 
-export function RasCodeWordmark(props: { readonly height: number }) {
+export const RasCodeWordmark = memo(function RasCodeWordmark(props: { readonly height: number }) {
   const { themeAppearance } = useAppearancePreferences();
   const palette = BRAND_PALETTES[themeAppearance];
 
@@ -79,4 +80,4 @@ export function RasCodeWordmark(props: { readonly height: number }) {
       })}
     </Svg>
   );
-}
+});

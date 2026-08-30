@@ -4,6 +4,7 @@ import {
   createDockIconSync,
   DOCK_ICON_SIZE,
   drawDockIcon,
+  resolveDockIconColors,
   type DockIconColors,
   type DockIconContext,
 } from "./dockIcon";
@@ -168,5 +169,29 @@ describe("createDockIconSync", () => {
     createDockIconSync({ readBridge: () => null, resolveColors: () => COLORS, render })();
 
     expect(render).not.toHaveBeenCalled();
+  });
+});
+
+describe("resolveDockIconColors", () => {
+  it("reads the shared brand tokens", () => {
+    const values = new Map([
+      ["--brand-background", "#101010"],
+      ["--brand-empty", "#202020"],
+      ["--brand-low", "#303030"],
+      ["--brand-medium", "#404040"],
+      ["--brand-high", "#505050"],
+    ]);
+    vi.stubGlobal("document", { body: {} });
+    vi.stubGlobal("getComputedStyle", () => ({
+      getPropertyValue: (name: string) => values.get(name) ?? "",
+    }));
+
+    expect(resolveDockIconColors()).toEqual({
+      plate: "#101010",
+      empty: "#202020",
+      low: "#303030",
+      medium: "#404040",
+      high: "#505050",
+    });
   });
 });

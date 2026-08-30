@@ -203,4 +203,71 @@ describe("theme failure handling", () => {
       expect(JSON.stringify(attributes)).not.toContain(cause.message);
     }
   });
+
+  it("stores a consolidated appearance mode and clears the legacy theme mix", async () => {
+    const storage = createStorage();
+    storage.setItem("ras-code:theme", "ocean");
+    storage.setItem("ras-code:theme-appearance-mode", "system");
+    storage.setItem(
+      "ras-code:theme-halves:v1",
+      JSON.stringify({ light: "ocean", dark: "graphite" }),
+    );
+    vi.doMock("react", () => ({
+      useCallback: <A>(callback: A) => callback,
+      useEffect: () => undefined,
+      useSyncExternalStore: (_subscribe: unknown, getSnapshot: () => unknown) => getSnapshot(),
+    }));
+    vi.stubGlobal("window", {
+      localStorage: storage,
+      matchMedia: () => ({ matches: false }),
+    });
+
+    const { useTheme } = await import("./useTheme");
+
+    expect(useTheme().setAppearanceMode("dark")).toBe(true);
+    expect(storage.getItem("ras-code:theme")).toBe("system");
+    expect(storage.getItem("ras-code:theme-appearance-mode")).toBe("dark");
+    expect(storage.getItem("ras-code:theme-halves:v1")).toBeNull();
+  });
+
+  it("rolls back every theme key when storing the appearance mode fails", async () => {
+    const values = new Map<string, string>([
+      ["ras-code:theme", "ocean"],
+      ["ras-code:theme-appearance-mode", "system"],
+      ["ras-code:theme-halves:v1", JSON.stringify({ light: "ocean", dark: "graphite" })],
+    ]);
+    let failAppearanceWrite = true;
+    const storage = createStorage({
+      getItem: (key) => values.get(key) ?? null,
+      removeItem: (key) => {
+        values.delete(key);
+      },
+      setItem: (key, value) => {
+        if (key === "ras-code:theme-appearance-mode" && failAppearanceWrite) {
+          failAppearanceWrite = false;
+          throw new Error("storage unavailable");
+        }
+        values.set(key, value);
+      },
+    });
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.doMock("react", () => ({
+      useCallback: <A>(callback: A) => callback,
+      useEffect: () => undefined,
+      useSyncExternalStore: (_subscribe: unknown, getSnapshot: () => unknown) => getSnapshot(),
+    }));
+    vi.stubGlobal("window", {
+      localStorage: storage,
+      matchMedia: () => ({ matches: false }),
+    });
+
+    const { useTheme } = await import("./useTheme");
+
+    expect(useTheme().setAppearanceMode("dark")).toBe(false);
+    expect(Object.fromEntries(values)).toEqual({
+      "ras-code:theme": "ocean",
+      "ras-code:theme-appearance-mode": "system",
+      "ras-code:theme-halves:v1": JSON.stringify({ light: "ocean", dark: "graphite" }),
+    });
+  });
 });
