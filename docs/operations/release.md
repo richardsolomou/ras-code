@@ -430,7 +430,7 @@ gh run cancel <run-id>
 4. Push tag.
 5. Verify workflow steps:
    - preflight passes
-   - release quality checks pass
+   - release quality checks pass (or are skipped because CI is already green on the tagged commit)
    - all matrix builds pass
    - `publish_cli` publishes the exact release version before the release job
    - release job uploads expected files

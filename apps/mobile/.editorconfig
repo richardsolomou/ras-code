@@ -8,5 +8,8 @@ ktlint_standard_class-signature = disabled
 ktlint_standard_function-signature = disabled
 ktlint_standard_import-ordering = disabled
 ktlint_standard_multiline-expression-wrapping = disabled
+# The Expo module packages are expo.modules.ras_code.*; renaming them changes the
+# native fingerprint and every module config for a cosmetic win.
+ktlint_standard_package-name = disabled
 ktlint_standard_trailing-comma-on-call-site = disabled
 ktlint_standard_when-entry-bracing = disabled

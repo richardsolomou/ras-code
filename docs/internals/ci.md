@@ -10,7 +10,10 @@ and pushes to `main`:
   builds the desktop pipeline (`vp run build:desktop`) and verifies the preload bundle exists and
   uses only imports that Electron's sandbox can load. The verifier parses imports, then executes the
   trusted artifact with controlled bridge stubs to confirm that its required APIs are callable.
-- **Test**: `vp run test` across the workspace.
+- **Test**: the workspace test suites, spread over separate runners so no package waits on
+  another's CPU: **Test** runs every package except `apps/web` and `apps/server`, **Test Web** runs
+  the web suite in two shards, and **Test Server** runs the server suite in three shards (the server
+  disables file parallelism, so sharding across runners is the only way to spread it).
 - **Mobile Native Static Analysis**: `vp run lint:mobile` on macOS, wrapping
   `scripts/mobile-native-static-check.ts`. A cheap Linux **Mobile Native Changes** job gates it:
   the macOS runner only boots when the diff touches `apps/mobile` Swift/Kotlin sources, the
@@ -27,5 +30,14 @@ desktop artifacts from a single `v*.*.*` tag and publishes one GitHub release. I
 signing only when platform credentials are present. macOS passkey builds additionally require
 `APPLE_TEAM_ID` and the `MACOS_PROVISIONING_PROFILE` secret; Windows uses Azure Trusted Signing.
 Without the core signing credentials, it still releases unsigned artifacts.
+
+Releases are cut from commits on `main`, so the release workflow first looks for a completed, green
+CI run on the exact commit and skips its own quality job when it finds one. Otherwise (no run yet,
+still running, or failed) it runs the same gates itself, split the same way as CI.
+
+Only jobs that install the full workspace enable the `setup-vp` dependency cache. The cache is
+keyed on the lockfile alone and saved by whichever job finishes first, so a filtered install
+(`--filter=...`) would save a partial store that every later full install restores and then
+re-downloads around. Keep `cache: false` on filtered-install jobs.
 
 See [Release Checklist](../operations/release.md) for the full release/signing setup checklist.
