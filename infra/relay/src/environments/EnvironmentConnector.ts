@@ -223,7 +223,7 @@ function verifyEnvironmentResponse(input: {
   return verifyWithEnvironmentKeys({
     token: input.response.proof,
     typ: RELAY_MINT_RESPONSE_TYP,
-    issuer: `t3-env:${input.environmentId}`,
+    issuer: `ras-env:${input.environmentId}`,
     audience: normalizeRelayIssuer(input.relayIssuer),
     nowEpochSeconds: input.nowEpochSeconds,
     environmentPublicKeys: input.environmentPublicKeys,
@@ -256,7 +256,7 @@ function verifyEnvironmentHealthResponse(input: {
   return verifyWithEnvironmentKeys({
     token: input.response.proof,
     typ: RELAY_HEALTH_RESPONSE_TYP,
-    issuer: `t3-env:${input.environmentId}`,
+    issuer: `ras-env:${input.environmentId}`,
     audience: normalizeRelayIssuer(input.relayIssuer),
     nowEpochSeconds: Math.floor(input.now.epochMilliseconds / 1_000),
     environmentPublicKeys: input.environmentPublicKeys,
@@ -436,7 +436,7 @@ const make = Effect.gen(function* () {
       );
       const payload = {
         iss: relayIssuer,
-        aud: `t3-env:${link.environmentId}`,
+        aud: `ras-env:${link.environmentId}`,
         sub: input.userId,
         jti: yield* crypto.randomUUIDv4.pipe(
           Effect.mapError(
@@ -591,7 +591,7 @@ const make = Effect.gen(function* () {
       );
       const payload = {
         iss: relayIssuer,
-        aud: `t3-env:${link.environmentId}`,
+        aud: `ras-env:${link.environmentId}`,
         sub: input.userId,
         jti: yield* crypto.randomUUIDv4.pipe(
           Effect.mapError(
@@ -627,32 +627,30 @@ const make = Effect.gen(function* () {
         ),
       );
       const environmentClient = yield* makeEnvironmentClient(requestBaseUrl);
-      const decoded = yield* environmentClient.connect
-        .t3MintCredential({ payload: { proof } })
-        .pipe(
-          withoutRedirects,
-          Effect.mapError(
-            (cause) =>
-              new EnvironmentMintRequestFailed({
-                environmentId: input.environmentId,
-                operation: "connect",
-                cause,
-              }),
-          ),
-          Effect.timeoutOption(Duration.millis(ENVIRONMENT_MINT_REQUEST_TIMEOUT_MS)),
-          Effect.flatMap(
-            Option.match({
-              onNone: () =>
-                Effect.fail(
-                  new EnvironmentMintRequestTimedOut({
-                    environmentId: input.environmentId,
-                    timeoutMs: ENVIRONMENT_MINT_REQUEST_TIMEOUT_MS,
-                  }),
-                ),
-              onSome: Effect.succeed,
+      const decoded = yield* environmentClient.connect.mintCredential({ payload: { proof } }).pipe(
+        withoutRedirects,
+        Effect.mapError(
+          (cause) =>
+            new EnvironmentMintRequestFailed({
+              environmentId: input.environmentId,
+              operation: "connect",
+              cause,
             }),
-          ),
-        );
+        ),
+        Effect.timeoutOption(Duration.millis(ENVIRONMENT_MINT_REQUEST_TIMEOUT_MS)),
+        Effect.flatMap(
+          Option.match({
+            onNone: () =>
+              Effect.fail(
+                new EnvironmentMintRequestTimedOut({
+                  environmentId: input.environmentId,
+                  timeoutMs: ENVIRONMENT_MINT_REQUEST_TIMEOUT_MS,
+                }),
+              ),
+            onSome: Effect.succeed,
+          }),
+        ),
+      );
       const verified = yield* verifyEnvironmentResponse({
         response: decoded,
         environmentId: input.environmentId,

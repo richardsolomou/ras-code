@@ -132,7 +132,7 @@ describe("relay request tracing", () => {
         },
       });
       const request = HttpServerRequest.fromWeb(
-        new Request("https://environment.example.test/api/t3-cloud/mint-credential", {
+        new Request("https://environment.example.test/api/ras-connect/mint-credential", {
           headers: {
             traceparent: "00-0123456789abcdef0123456789abcdef-0123456789abcdef-01",
           },
@@ -162,7 +162,7 @@ describe("relay request tracing", () => {
         },
       });
       const request = HttpServerRequest.fromWeb(
-        new Request("https://environment.example.test/api/t3-cloud/mint-credential", {
+        new Request("https://environment.example.test/api/ras-connect/mint-credential", {
           headers: {
             traceparent: "00-0123456789abcdef0123456789abcdef-0123456789abcdef-01",
           },
@@ -595,10 +595,10 @@ describe("link proof provider kinds", () => {
     origin: { localHttpHost: "127.0.0.1", localHttpPort: 7331 },
   });
 
-  it("accepts managed and manual endpoints but not t3_relay", () => {
+  it("accepts managed and manual endpoints but not ras_relay", () => {
     expect(isSupportedLinkProviderKind(proofRequest("cloudflare_tunnel"))).toBe(true);
     expect(isSupportedLinkProviderKind(proofRequest("manual"))).toBe(true);
-    expect(isSupportedLinkProviderKind(proofRequest("t3_relay"))).toBe(false);
+    expect(isSupportedLinkProviderKind(proofRequest("ras_relay"))).toBe(false);
   });
 
   it("only claims the managed-tunnel scope for tunnel links", () => {

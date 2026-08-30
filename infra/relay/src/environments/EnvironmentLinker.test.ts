@@ -71,7 +71,7 @@ const makeRequest = Effect.gen(function* () {
     expiresAtEpochSeconds: Math.floor(expiresAt.epochMilliseconds / 1_000),
   });
   const payload = {
-    iss: "t3-env:env-link-test",
+    iss: "ras-env:env-link-test",
     aud: "https://relay.example.test",
     sub: "env-link-test",
     jti: "link-proof-jti",
@@ -195,7 +195,7 @@ describe("EnvironmentLinker", () => {
         expiresAtEpochSeconds: Math.floor(expiresAt.epochMilliseconds / 1_000),
       });
       const payload = {
-        iss: "t3-env:env-link-test",
+        iss: "ras-env:env-link-test",
         aud: "https://relay.example.test",
         sub: "env-link-test",
         jti: "publish-only-proof-jti",

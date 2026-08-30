@@ -4,22 +4,22 @@ import { LogInIcon, ServerIcon, SmartphoneIcon } from "lucide-react";
 import { hasCloudPublicConfig } from "../../cloud/publicConfig";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "../ui/sidebar";
 import { MobileClientsUserProfilePage } from "./MobileClientsUserProfilePage";
-import { T3ConnectUserProfilePage } from "./T3ConnectUserProfilePage";
-import { useT3ConnectAuthPrompt } from "./useT3ConnectAuthPrompt";
+import { RasConnectUserProfilePage } from "./RasConnectUserProfilePage";
+import { useRasConnectAuthPrompt } from "./useRasConnectAuthPrompt";
 
-export function T3ConnectSidebarSignIn() {
+export function RasConnectSidebarSignIn() {
   if (!hasCloudPublicConfig()) return null;
 
-  return <ConfiguredT3ConnectSidebarSignIn />;
+  return <ConfiguredRasConnectSidebarSignIn />;
 }
 
-export function T3ConnectSidebarAvatar() {
+export function RasConnectSidebarAvatar() {
   if (!hasCloudPublicConfig()) return null;
 
-  return <ConfiguredT3ConnectSidebarAvatar />;
+  return <ConfiguredRasConnectSidebarAvatar />;
 }
 
-function ConfiguredT3ConnectSidebarAvatar() {
+function ConfiguredRasConnectSidebarAvatar() {
   const { isLoaded, isSignedIn } = useAuth();
 
   if (!isLoaded || !isSignedIn) return null;
@@ -43,17 +43,17 @@ function ConfiguredT3ConnectSidebarAvatar() {
       <UserButton.UserProfilePage
         label="RAS Connect"
         labelIcon={<ServerIcon className="size-4" />}
-        url="t3-connect"
+        url="ras-connect"
       >
-        <T3ConnectUserProfilePage />
+        <RasConnectUserProfilePage />
       </UserButton.UserProfilePage>
     </UserButton>
   );
 }
 
-function ConfiguredT3ConnectSidebarSignIn() {
+function ConfiguredRasConnectSidebarSignIn() {
   const { isLoaded, isSignedIn } = useAuth();
-  const { authPrompt, openAuthPrompt } = useT3ConnectAuthPrompt();
+  const { authPrompt, openAuthPrompt } = useRasConnectAuthPrompt();
 
   if (!isLoaded || isSignedIn) return null;
 
