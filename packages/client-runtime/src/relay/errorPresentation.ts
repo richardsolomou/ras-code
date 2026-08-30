@@ -38,14 +38,10 @@ export function relayProtectedErrorMessage(error: RelayProtectedError): string {
     case "RelayEnvironmentLinkProofInvalidError":
       return `Relay rejected the environment link proof (${error.reason}).`;
     case "RelayEnvironmentConnectNotAuthorizedError":
-      // "Not authorized" covers non-auth causes too; surface the reason so a
-      // missing link does not read as a credential problem.
       if (error.reason === "environment_link_not_found") {
         return "Relay has no active link for this environment. The environment server may not have re-established its link yet.";
       }
-      return error.reason
-        ? `Relay rejected the environment connection request (${error.reason}).`
-        : "Relay rejected the environment connection request.";
+      return `Relay rejected the environment connection request (${error.reason}).`;
     case "RelayEnvironmentEndpointUnavailableError":
       return `Relay could not reach the environment endpoint (${error.reason}).`;
     case "RelayEnvironmentEndpointTimedOutError":

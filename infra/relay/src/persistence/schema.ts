@@ -71,7 +71,7 @@ export const relayEnvironmentLinks = pgTable(
     endpointProviderKind: varchar("endpoint_provider_kind", { length: 32 }).notNull(),
     notificationsEnabled: boolean("notifications_enabled").notNull().default(true),
     liveActivitiesEnabled: boolean("live_activities_enabled").notNull().default(true),
-    managedRelayEnabled: boolean("managed_tunnels_enabled").notNull().default(false),
+    managedRelayEnabled: boolean("managed_relay_enabled").notNull().default(false),
     createdByDeviceId: varchar("created_by_device_id", { length: 191 }),
     revokedAt: varchar("revoked_at", { length: 64 }),
     createdAt: varchar("created_at", { length: 64 }).notNull(),

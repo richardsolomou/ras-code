@@ -332,10 +332,7 @@ export const ApiLive = Api.make(
               ),
             )
             .pipe(Effect.map(Encoding.encodeHex));
-          return {
-            endpointId: rasRelayEndpointId(hash),
-            principal: principal.value,
-          };
+          return rasRelayEndpointId(hash);
         }).pipe(Effect.provide(runtimeLayer), Effect.result);
         if (Result.isFailure(authorization)) {
           yield* Effect.logError("RAS relay connector authorization failed", {
@@ -343,7 +340,7 @@ export const ApiLive = Api.make(
           });
           return HttpServerResponse.empty({ status: 503 });
         }
-        if (!authorization.success || authorization.success.endpointId !== connectorMatch[1]) {
+        if (!authorization.success || authorization.success !== connectorMatch[1]) {
           return HttpServerResponse.empty({ status: 403 });
         }
         const connectorRequest = request.modify({
@@ -354,7 +351,7 @@ export const ApiLive = Api.make(
           ),
         });
         return yield* rasRelaySessions
-          .getByName(authorization.success.endpointId)
+          .getByName(authorization.success)
           .fetch(connectorRequest)
           .pipe(Effect.orDie);
       }

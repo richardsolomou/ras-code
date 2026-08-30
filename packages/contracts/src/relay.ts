@@ -155,10 +155,11 @@ export type RelayManagedEndpointOrigin = typeof RelayManagedEndpointOrigin.Type;
 export const RelayManagedEndpointRuntimeConfig = Schema.Struct({
   providerKind: Schema.Literal("ras_relay"),
   connectorToken: TrimmedNonEmptyString,
-  connectorUrl: Schema.optional(TrimmedNonEmptyString),
-  localHttpHost: Schema.optional(TrimmedNonEmptyString),
-  localHttpPort: Schema.optional(
-    Schema.Int.check(Schema.isGreaterThanOrEqualTo(1), Schema.isLessThanOrEqualTo(65_535)),
+  connectorUrl: TrimmedNonEmptyString,
+  localHttpHost: TrimmedNonEmptyString,
+  localHttpPort: Schema.Int.check(
+    Schema.isGreaterThanOrEqualTo(1),
+    Schema.isLessThanOrEqualTo(65_535),
   ),
 });
 export type RelayManagedEndpointRuntimeConfig = typeof RelayManagedEndpointRuntimeConfig.Type;
@@ -398,9 +399,7 @@ export class RelayEnvironmentConnectNotAuthorizedError extends Schema.TaggedErro
   { httpApiStatus: 403 },
 ) {
   override get message(): string {
-    return this.reason
-      ? `Relay environment connection is not authorized: ${this.reason}`
-      : "Relay environment connection is not authorized";
+    return `Relay environment connection is not authorized: ${this.reason}`;
   }
 }
 

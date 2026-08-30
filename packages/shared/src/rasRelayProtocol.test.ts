@@ -5,6 +5,8 @@ import {
   encodeRasRelayBatch,
   RAS_RELAY_MAX_BATCH_BYTES,
   parseRasRelayPublicOrigin,
+  rasRelayClose,
+  rasRelayPayloadFrames,
   type RasRelayFrame,
 } from "./rasRelayProtocol.ts";
 
@@ -73,5 +75,22 @@ describe("rasRelayProtocol", () => {
         },
       ]),
     ).toThrow("control frame");
+  });
+
+  it("normalizes unsendable WebSocket close codes and UTF-8 reasons", () => {
+    const close = rasRelayClose(1_006, "🚀".repeat(40));
+
+    expect(close.code).toBe(1_001);
+    expect(new TextEncoder().encode(close.reason).byteLength).toBeLessThanOrEqual(123);
+    expect(close.reason.endsWith("�")).toBe(false);
+  });
+
+  it("splits payloads without exceeding the frame limit", () => {
+    const frames = rasRelayPayloadFrames(
+      { type: "http_request_body", id: "request-1" },
+      new Uint8Array(262_145),
+    );
+
+    expect(frames.map(({ payload }) => payload.byteLength)).toEqual([262_144, 1]);
   });
 });

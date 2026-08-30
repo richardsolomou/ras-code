@@ -5,7 +5,7 @@ const sections = [
   ["introduction", "Introduction"],
   ["scope", "What this policy covers"],
   ["information", "Information RAS Connect processes"],
-  ["not-collected", "What RAS Connect does not receive"],
+  ["not-collected", "What RAS Connect does not store"],
   ["traffic", "How your traffic reaches your server"],
   ["site", "The RAS Code website"],
   ["uses", "How the information is used"],
@@ -22,11 +22,11 @@ const sections = [
 
 <LegalPage
   title="Privacy Policy — RAS Code"
-  description="What RAS Connect stores, what it never receives, and how to exercise your data protection rights."
+  description="What RAS Connect processes and stores, and how to exercise your data protection rights."
   heading="RAS Code Privacy Policy"
   lede="RAS Code is open-source software that runs on your own machines. RAS Connect is an optional hosted service, operated by Richard Solomou as an individual, that links your devices to your own RAS Code server and delivers mobile notifications. This policy describes the information RAS Connect processes."
   effectiveDate="2026-08-28"
-  lastUpdated="2026-08-28"
+  lastUpdated="2026-08-30"
   sections={sections}
 >
   <section id="introduction">
@@ -92,9 +92,9 @@ const sections = [
 
     <h3>Managed Endpoints</h3>
     <p>
-      If you enable a managed endpoint, RAS Connect provisions a Cloudflare Tunnel and a hostname for
-      your environment, and stores the hostname, tunnel identifier and name, DNS record identifier,
-      and readiness timestamp, plus any per-account limit on how many tunnels you may create.
+      If you enable a managed endpoint, RAS Connect derives a hostname for your environment and
+      routes traffic through a shared Cloudflare Worker and a per-environment Durable Object. The
+      environment link and connection credential described above are the persisted routing state.
     </p>
 
     <h3>Mobile Devices and Push Tokens</h3>
@@ -133,22 +133,22 @@ const sections = [
 
   <section id="not-collected">
     <p class="section-number">04</p>
-    <h2>What RAS Connect Does Not Receive</h2>
+    <h2>What RAS Connect Does Not Store</h2>
     <p>
-      RAS Connect is a control plane. It is not in the path of your normal RAS Code traffic. It does
-      not receive, and does not store:
+      When you use a managed endpoint, the relay temporarily processes the API and WebSocket payloads
+      needed to carry traffic between your client and server. It does not persist normal traffic
+      payloads, including:
     </p>
     <ul>
       <li>Your prompts, or the responses your coding agent returns;</li>
       <li>Your source code, files, attachments, diffs, patches, or commits;</li>
       <li>Command output, terminal contents, or thread history;</li>
-      <li>Your provider or model API keys, or your repository credentials;</li>
-      <li>The contents of the environment your RAS Code server runs on.</li>
+      <li>Your provider or model API keys, or your repository credentials; or</li>
+      <li>Other contents of the environment your RAS Code server runs on.</li>
     </ul>
     <p>
-      The one exception is the short agent activity record described above, which exists only to
-      populate a notification, and only when you enable notifications. Nothing here is used to train
-      artificial-intelligence models.
+      The short agent activity record described above is persisted only when you enable
+      notifications. Nothing here is used to train artificial-intelligence models.
     </p>
   </section>
 
@@ -156,17 +156,15 @@ const sections = [
     <p class="section-number">05</p>
     <h2>How Your Traffic Reaches Your Server</h2>
     <p>
-      After a client has obtained a credential, its API and WebSocket traffic goes directly to your
-      RAS Code server. It does not pass through the RAS Connect application.
+      Local-network connections and tunnels you operate yourself bypass RAS Connect. A managed
+      endpoint sends API and WebSocket traffic through the shared RAS Connect relay to the outbound
+      connector running with your RAS Code server.
     </p>
     <p>
-      Be aware of what “directly” means for each connection mode. If you connect over your local
-      network, or through a tunnel you operate yourself, no traffic touches RAS Connect
-      infrastructure. If you enable a managed endpoint, your traffic travels over a Cloudflare Tunnel
-      through Cloudflare's network, and Cloudflare terminates TLS at its edge, so that traffic is not
-      end-to-end encrypted between your client and your server. RAS Connect does not store it, but it
-      is technically visible to Cloudflare in transit. Choose a self-operated connection if that
-      matters for your work.
+      Cloudflare terminates TLS at its edge for managed endpoints, so traffic is not end-to-end
+      encrypted between your client and server and is technically visible to Cloudflare in transit.
+      RAS Connect does not persist the payloads. Choose a local network or self-operated connection
+      if that matters for your work.
     </p>
   </section>
 
@@ -212,8 +210,8 @@ const sections = [
       </li>
       <li>
         <strong>Cloudflare</strong> <em>(Cloudflare, Inc.)</em>.<br />
-        Hosts the relay worker, the RAS Code website, and the relay's queues, and provides the
-        tunnels and DNS used for managed endpoints and for reaching the database.<br />
+        Hosts the relay Worker, Durable Objects, the RAS Code website, and the relay's queues, and
+        provides DNS for managed endpoints and the tunnel used to reach the database.<br />
         <a href="https://www.cloudflare.com/policies/privacy/"
           >https://www.cloudflare.com/policies/privacy/</a
         >

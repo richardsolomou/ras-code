@@ -107,7 +107,7 @@ Personal stages reference the production-owned zones.
 
 ### Built-in relay cutover
 
-The built-in relay release is a hard cutover from the previous per-environment Cloudflare Tunnel transport. Before deploying it, unlink every environment through the old relay so that deployment removes its tunnel and DNS record. Then replace the production environment variables `RELAY_TUNNEL_ZONE_NAME`, `RELAY_TUNNEL_GATEWAY_DOMAIN`, and `RELAY_TUNNEL_NAMESPACE` with `RELAY_GATEWAY_ZONE_NAME`, `RELAY_GATEWAY_DOMAIN`, and `RELAY_ENDPOINT_NAMESPACE`. Deploy the relay before releasing clients, then relink each environment after its server is running the new build. Mixed old and new relay transports are not supported.
+The built-in relay release is a hard cutover from the previous per-environment Cloudflare Tunnel transport. Before merging, run `ras connect unlink` on each linked environment so the old relay removes its tunnel and DNS record. Replace the production environment variables `RELAY_TUNNEL_ZONE_NAME`, `RELAY_TUNNEL_GATEWAY_DOMAIN`, and `RELAY_TUNNEL_NAMESPACE` with `RELAY_GATEWAY_ZONE_NAME`, `RELAY_GATEWAY_DOMAIN`, and `RELAY_ENDPOINT_NAMESPACE`. Deployment deletes any remaining legacy links, and the release workflow waits for the production relay deployment on the same commit before publishing clients. Update each server and link it again after the relay is live. Mixed old and new relay transports are not supported.
 
 Developers deploy personal stages locally rather than through pull-request automation:
 

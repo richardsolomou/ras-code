@@ -1,10 +1,12 @@
 // @effect-diagnostics nodeBuiltinImport:off - Connector integration exercises the Node HTTP boundary.
 import * as NodeHttp from "node:http";
+import * as NodeZlib from "node:zlib";
 
 import * as NodeSocket from "@effect/platform-node-shared/NodeSocket";
 import {
   decodeRasRelayBatch,
   encodeRasRelayBatch,
+  RAS_RELAY_MAX_SOCKET_BUFFER_BYTES,
   type RasRelayFrame,
 } from "@ras-code/shared/rasRelayProtocol";
 import { describe, expect, it } from "@effect/vitest";
@@ -96,6 +98,7 @@ describe("RasRelayConnector", () => {
       const observedRequest = promiseLatch<{
         readonly path: string;
         readonly body: string;
+        readonly acceptEncoding: string | undefined;
         readonly publicOrigin: string | undefined;
       }>();
       const localServer = yield* listenHttp(
@@ -106,6 +109,7 @@ describe("RasRelayConnector", () => {
             observedRequest.resolve({
               path: request.url ?? "",
               body: textDecoder.decode(Buffer.concat(chunks)),
+              acceptEncoding: request.headers["accept-encoding"],
               publicOrigin: request.headers["x-ras-relay-public-origin"] as string | undefined,
             });
             response.writeHead(201, { "content-type": "text/plain", "x-relayed": "yes" });
@@ -197,6 +201,7 @@ describe("RasRelayConnector", () => {
       expect(yield* awaitTest(observedRequest, "the local HTTP request")).toEqual({
         path: "/e/abcdef0123456789/echo?source=relay",
         body: "request body",
+        acceptEncoding: "identity",
         publicOrigin: "https://code-tunnels.ras.sh",
       });
       const frames = yield* awaitTest(responseFrames, "the relay HTTP response");
@@ -272,4 +277,82 @@ describe("RasRelayConnector", () => {
       local.socket.close();
     }).pipe(Effect.scoped),
   );
+
+  it.live("decodes compressed local responses without forwarding stale encoding headers", () =>
+    Effect.gen(function* () {
+      const localRequest = promiseLatch<string | undefined>();
+      const localServer = yield* listenHttp(
+        NodeHttp.createServer((request, response) => {
+          localRequest.resolve(request.headers["accept-encoding"]);
+          response.writeHead(200, {
+            "content-encoding": "gzip",
+            "content-type": "text/plain",
+          });
+          response.end(NodeZlib.gzipSync("decoded response"));
+        }),
+      );
+      yield* Effect.addFinalizer(() => closeHttp(localServer));
+      const relayServer = yield* listenWebSocketServer();
+      yield* Effect.addFinalizer(() => closeWebSocketServer(relayServer));
+      const connected = promiseLatch<NodeSocket.NodeWS.WebSocket>();
+      relayServer.once("connection", (socket) => connected.resolve(socket));
+
+      const connector = yield* RasRelayConnector.start({
+        providerKind: "ras_relay",
+        connectorToken: "connector-token",
+        connectorUrl: `ws://127.0.0.1:${portOf(relayServer)}/v1/ras-relay/connect/endpoint`,
+        localHttpHost: "127.0.0.1",
+        localHttpPort: portOf(localServer),
+      });
+      yield* Effect.addFinalizer(() => connector.close);
+      const relay = yield* awaitTest(connected, "the connector WebSocket");
+      const completed = promiseLatch<ReadonlyArray<RasRelayFrame>>();
+      const frames: Array<RasRelayFrame> = [];
+      relay.on("message", (data) => {
+        const next = decodeRasRelayBatch(bytes(data));
+        if (!next) return;
+        frames.push(...next);
+        if (next.some(({ message }) => message.type === "http_response_end")) {
+          completed.resolve(frames);
+        }
+      });
+      relay.send(
+        encodeRasRelayBatch([
+          {
+            message: {
+              type: "http_request_start",
+              id: "compressed-request",
+              method: "GET",
+              origin: "https://code-tunnels.ras.sh",
+              path: "/e/abcdef0123456789/compressed",
+              headers: [["accept-encoding", "gzip"]],
+            },
+            payload: new Uint8Array(),
+          },
+          {
+            message: { type: "http_request_end", id: "compressed-request" },
+            payload: new Uint8Array(),
+          },
+        ]),
+      );
+
+      expect(yield* awaitTest(localRequest, "the compressed local request")).toBe("identity");
+      const response = yield* awaitTest(completed, "the decoded response");
+      const start = response.find(({ message }) => message.type === "http_response_start");
+      expect(start?.message).toMatchObject({
+        headers: expect.not.arrayContaining([["content-encoding", "gzip"]]),
+      });
+      expect(
+        textDecoder.decode(
+          response.find(({ message }) => message.type === "http_response_body")?.payload,
+        ),
+      ).toBe("decoded response");
+    }).pipe(Effect.scoped),
+  );
+
+  it("rejects a batch that would exceed the connector socket buffer", () => {
+    expect(
+      RasRelayConnector.rasRelaySocketBufferHasCapacity(RAS_RELAY_MAX_SOCKET_BUFFER_BYTES, 1),
+    ).toBe(false);
+  });
 });

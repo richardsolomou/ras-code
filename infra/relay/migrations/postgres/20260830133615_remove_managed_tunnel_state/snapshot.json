@@ -574,7 +574,7 @@
       "default": "false",
       "generated": null,
       "identity": null,
-      "name": "managed_tunnels_enabled",
+      "name": "managed_relay_enabled",
       "entityType": "columns",
       "schema": "public",
       "table": "relay_environment_links"

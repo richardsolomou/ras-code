@@ -120,22 +120,26 @@ jobs:
           fi
 
       - name: Publish relay deploy commit status
+        if: always()
         uses: actions/github-script@v8
         with:
           script: |
+            const succeeded = "${{ steps.deploy.outcome }}" === "success";
             const result = "${{ steps.deploy.outputs.result }}";
             const changed = "${{ steps.deploy.outputs.changed }}" === "true";
-            const description = changed
-              ? "Relay production deploy applied infrastructure changes."
-              : result === "noop"
-                ? "Relay production deploy was a no-op."
-                : `Relay production deploy completed with result: ${result}.`;
+            const description = succeeded
+              ? changed
+                ? "Relay production deploy applied infrastructure changes."
+                : result === "noop"
+                  ? "Relay production deploy was a no-op."
+                  : `Relay production deploy completed with result: ${result}.`
+              : "Relay production deployment failed.";
 
             await github.rest.repos.createCommitStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,
               sha: context.sha,
-              state: "success",
+              state: succeeded ? "success" : "error",
               context: "Relay deploy / production",
               description,
               target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,

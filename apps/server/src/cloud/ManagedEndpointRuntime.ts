@@ -61,9 +61,9 @@ interface ActiveConnector {
 function runtimeConfigKey(config: RelayManagedEndpointRuntimeConfig): string {
   return JSON.stringify({
     connectorToken: config.connectorToken,
-    connectorUrl: config.connectorUrl ?? null,
-    localHttpHost: config.localHttpHost ?? null,
-    localHttpPort: config.localHttpPort ?? null,
+    connectorUrl: config.connectorUrl,
+    localHttpHost: config.localHttpHost,
+    localHttpPort: config.localHttpPort,
   });
 }
 

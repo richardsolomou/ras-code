@@ -7,10 +7,14 @@ import {
   RAS_RELAY_MAX_BATCH_FRAMES,
   RAS_RELAY_MAX_FRAME_PAYLOAD_BYTES,
   RAS_RELAY_MAX_HTTP_REQUESTS,
+  RAS_RELAY_MAX_SOCKET_BUFFER_BYTES,
   RAS_RELAY_PUBLIC_ORIGIN_HEADER,
   RAS_RELAY_MAX_STREAM_BYTES,
   RAS_RELAY_MAX_WEBSOCKETS,
   parseRasRelayPublicOrigin,
+  rasRelayClose,
+  rasRelayFrameByteLength,
+  rasRelayPayloadFrames,
   type RasRelayFrame,
   type RasRelayMessage,
 } from "@ras-code/shared/rasRelayProtocol";
@@ -59,7 +63,6 @@ function frame(message: RasRelayMessage, payload = emptyPayload): RasRelayFrame 
 }
 
 function localOrigin(config: RelayManagedEndpointRuntimeConfig): URL | null {
-  if (!config.localHttpHost || !config.localHttpPort) return null;
   const host = config.localHttpHost.includes(":")
     ? `[${config.localHttpHost.replace(/^\[|\]$/gu, "")}]`
     : config.localHttpHost;
@@ -83,6 +86,7 @@ function forwardedHeaders(
 ): Record<string, string> {
   const blocked = new Set([
     "connection",
+    "content-encoding",
     "content-length",
     "host",
     "keep-alive",
@@ -104,42 +108,29 @@ function forwardedHeaders(
 }
 
 function concatChunks(chunks: ReadonlyArray<Uint8Array>, byteLength: number): Uint8Array {
-  const output = new Uint8Array(byteLength);
-  let offset = 0;
-  for (const chunk of chunks) {
-    output.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
-  return output;
+  return Buffer.concat(chunks, byteLength);
 }
 
 function rawDataBytes(data: NodeSocket.NodeWS.RawData): Uint8Array {
   if (data instanceof ArrayBuffer) return new Uint8Array(data);
   if (Array.isArray(data)) {
-    return concatChunks(
-      data.map((chunk) => new Uint8Array(chunk.buffer, chunk.byteOffset, chunk.byteLength)),
-      data.reduce((total, chunk) => total + chunk.byteLength, 0),
-    );
+    return Buffer.concat(data);
   }
   return new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
 }
 
-function payloadFrames(
-  message: Extract<RasRelayMessage, { readonly type: "http_response_body" }>,
-  payload: Uint8Array,
-): ReadonlyArray<RasRelayFrame> {
-  const frames: Array<RasRelayFrame> = [];
-  for (let offset = 0; offset < payload.byteLength; offset += RAS_RELAY_MAX_FRAME_PAYLOAD_BYTES) {
-    frames.push(frame(message, payload.slice(offset, offset + RAS_RELAY_MAX_FRAME_PAYLOAD_BYTES)));
-  }
-  return frames;
+export function rasRelaySocketBufferHasCapacity(
+  bufferedAmount: number,
+  nextBatchBytes: number,
+): boolean {
+  return bufferedAmount + nextBatchBytes <= RAS_RELAY_MAX_SOCKET_BUFFER_BYTES;
 }
 
 export const start = Effect.fn("RasRelayConnector.start")(function* (
   config: RelayManagedEndpointRuntimeConfig,
 ) {
   const origin = localOrigin(config);
-  if (config.providerKind !== "ras_relay" || !config.connectorUrl || !origin) {
+  if (config.providerKind !== "ras_relay" || !origin) {
     return yield* new RasRelayConnectorStartError({
       stage: "validate-config",
       cause: "RAS relay runtime config is incomplete",
@@ -172,12 +163,17 @@ export const start = Effect.fn("RasRelayConnector.start")(function* (
     const batch = outgoing;
     outgoing = [];
     outgoingBytes = 6;
-    connector.send(encodeRasRelayBatch(batch));
+    const encoded = encodeRasRelayBatch(batch);
+    if (!rasRelaySocketBufferHasCapacity(connector.bufferedAmount, encoded.byteLength)) {
+      connector.close(1_013, "Relay connection is too slow");
+      return;
+    }
+    connector.send(encoded);
   };
 
   const send = (next: RasRelayFrame) =>
     Effect.sync(() => {
-      const estimated = encodeRasRelayBatch([next]).byteLength - 6;
+      const estimated = rasRelayFrameByteLength(next);
       if (
         outgoing.length > 0 &&
         (outgoing.length >= RAS_RELAY_MAX_BATCH_FRAMES ||
@@ -215,6 +211,7 @@ export const start = Effect.fn("RasRelayConnector.start")(function* (
       const body = concatChunks(request.chunks, request.byteLength);
       const headers: Record<string, string> = {
         ...forwardedHeaders(request.headers, false),
+        "accept-encoding": "identity",
         [RAS_RELAY_PUBLIC_ORIGIN_HEADER]: request.origin,
       };
       let localRequest = HttpClientRequest.make(request.method)(url, { headers });
@@ -251,9 +248,11 @@ export const start = Effect.fn("RasRelayConnector.start")(function* (
             responseTooLarge = true;
             return Effect.succeed(false);
           }
-          return Effect.forEach(payloadFrames({ type: "http_response_body", id }, part), send, {
-            discard: true,
-          }).pipe(Effect.as(true));
+          return Effect.forEach(
+            rasRelayPayloadFrames({ type: "http_response_body", id }, part),
+            send,
+            { discard: true },
+          ).pipe(Effect.as(true));
         }),
       );
       if (responseTooLarge) {
@@ -362,8 +361,7 @@ export const start = Effect.fn("RasRelayConnector.start")(function* (
           frame({
             type: "websocket_close",
             id: message.id,
-            code: code >= 1_000 && code <= 4_999 ? code : 1001,
-            reason: reason.toString().slice(0, 123),
+            ...rasRelayClose(code, reason.toString()),
           }),
         ),
       );
@@ -448,6 +446,10 @@ export const start = Effect.fn("RasRelayConnector.start")(function* (
       case "websocket_message": {
         const local = localSockets.get(message.id);
         if (!local || local.socket.readyState !== NodeSocket.NodeWS.WebSocket.OPEN) return;
+        if (!rasRelaySocketBufferHasCapacity(local.socket.bufferedAmount, payload.byteLength)) {
+          local.socket.close(1_013, "Relay client is too slow");
+          return;
+        }
         local.socket.send(message.binary ? payload : textDecoder.decode(payload), {
           binary: message.binary,
         });
@@ -457,7 +459,8 @@ export const start = Effect.fn("RasRelayConnector.start")(function* (
         const local = localSockets.get(message.id);
         if (!local) return;
         localSockets.delete(message.id);
-        local.socket.close(message.code, message.reason);
+        const close = rasRelayClose(message.code, message.reason);
+        local.socket.close(close.code, close.reason);
         return;
       }
       default:
