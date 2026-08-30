@@ -30,6 +30,7 @@ import { Command, Flag, Prompt } from "effect/unstable/cli";
 import * as FetchHttpClient from "effect/unstable/http/FetchHttpClient";
 
 import RelayStack from "../alchemy.run.ts";
+import { cleanupLegacyManagedEndpoints } from "../src/legacyManagedEndpointCleanup.ts";
 
 const relayDeployOutputFields = [
   "url",
@@ -347,6 +348,9 @@ const runRelayDeploy = Effect.fn("relay.deploy.run")(
     _configProvider: ConfigProvider.ConfigProvider,
     stage: string,
   ) {
+    if (stage === "prod" && options.yes && !options.dryRun) {
+      yield* cleanupLegacyManagedEndpoints();
+    }
     const stack = yield* RelayStack;
     const cli = yield* Cli;
     const plan = yield* Plan.make(stack, { force: options.force }).pipe(
