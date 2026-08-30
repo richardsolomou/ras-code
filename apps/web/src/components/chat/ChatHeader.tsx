@@ -68,6 +68,10 @@ interface ChatHeaderProps {
   rightPanelOpen: boolean;
   gitCwd: string | null;
   readonly onOpenPullRequest?: ((number: number) => void) | undefined;
+  /** Present only while the thread's own change request conflicts with its base. */
+  readonly onResolveConflicts?: (() => void) | undefined;
+  /** Present only while the thread's own change request is open. */
+  readonly onBabysitPullRequest?: (() => void) | undefined;
   onNewThreadInProject: () => void;
   onRunProjectScript: (script: ProjectScript) => void;
   onAddProjectScript: (input: NewProjectScriptInput) => Promise<ProjectScriptActionResult>;
@@ -138,6 +142,8 @@ export const ChatHeader = memo(function ChatHeader({
   rightPanelOpen,
   gitCwd,
   onOpenPullRequest,
+  onResolveConflicts,
+  onBabysitPullRequest,
   onNewThreadInProject,
   onRunProjectScript,
   onAddProjectScript,
@@ -412,6 +418,8 @@ export const ChatHeader = memo(function ChatHeader({
             gitCwd={gitCwd}
             activeThreadRef={scopeThreadRef(activeThreadEnvironmentId, activeThreadId)}
             onOpenPullRequest={onOpenPullRequest}
+            onResolveConflicts={onResolveConflicts}
+            onBabysitPullRequest={onBabysitPullRequest}
             {...(draftId ? { draftId } : {})}
           />
         )}

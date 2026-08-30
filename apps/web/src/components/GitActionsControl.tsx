@@ -25,11 +25,13 @@ import {
   CloudDownloadIcon,
   CloudUploadIcon,
   ExternalLinkIcon,
+  EyeIcon,
   GitBranchPlusIcon,
   GitCommitIcon,
   InfoIcon,
   LockIcon,
   GlobeIcon,
+  TriangleAlertIcon,
 } from "lucide-react";
 import { Radio as RadioPrimitive } from "@base-ui/react/radio";
 import { AzureDevOpsIcon, BitbucketIcon, GitHubIcon, GitLabIcon } from "~/components/Icons";
@@ -102,6 +104,14 @@ interface GitActionsControlProps {
    * place it against, in which case it still opens in the browser.
    */
   onOpenPullRequest?: ((number: number) => void) | undefined;
+  /**
+   * Seeds the composer with a conflict-resolution prompt for the thread's own change request.
+   * Present only while that change request collides with its base, which is what promotes it over
+   * the view action.
+   */
+  onResolveConflicts?: (() => void) | undefined;
+  /** Seeds the composer with a babysit prompt. Present while the thread's change request is open. */
+  onBabysitPullRequest?: (() => void) | undefined;
 }
 
 interface PendingDefaultBranchAction {
@@ -312,6 +322,10 @@ function getMenuActionDisabledReason({
     return "Push is currently unavailable.";
   }
 
+  if (item.id !== "pr") {
+    return `${item.label} is currently unavailable.`;
+  }
+
   if (hasOpenPr) {
     return `View ${terminology.singular} is currently unavailable.`;
   }
@@ -346,6 +360,8 @@ function GitActionItemIcon({
 }) {
   if (icon === "commit") return <GitCommitIcon />;
   if (icon === "push") return <CloudUploadIcon />;
+  if (icon === "conflicts") return <TriangleAlertIcon />;
+  if (icon === "babysit") return <EyeIcon />;
   return <SourceControlIcon />;
 }
 
@@ -358,6 +374,9 @@ function GitQuickActionIcon({
 }) {
   const iconClassName = "size-3.5";
   if (quickAction.kind === "open_pr") return <SourceControlIcon className={iconClassName} />;
+  if (quickAction.kind === "resolve_conflicts") {
+    return <TriangleAlertIcon className={iconClassName} />;
+  }
   if (quickAction.kind === "open_publish") return <CloudUploadIcon className={iconClassName} />;
   if (quickAction.kind === "run_pull") return <CloudDownloadIcon className={iconClassName} />;
   if (quickAction.kind === "run_action") {
@@ -980,6 +999,8 @@ export default function GitActionsControl({
   activeThreadRef,
   draftId,
   onOpenPullRequest,
+  onResolveConflicts,
+  onBabysitPullRequest,
 }: GitActionsControlProps) {
   const updateThreadMetadata = useAtomCommand(
     threadEnvironment.updateMetadata,
@@ -1154,14 +1175,40 @@ export default function GitActionsControl({
     return gitStatusForActions?.isDefaultRef ?? false;
   }, [gitStatusForActions?.isDefaultRef]);
 
+  // Keyed on availability rather than on the callbacks themselves: their identity turns over with
+  // every change-request poll, and the menu has no reason to rebuild for that.
+  const canResolveConflicts = onResolveConflicts !== undefined;
+  const canBabysitPullRequest = onBabysitPullRequest !== undefined;
+  const changeRequestAssistance = useMemo(
+    () => ({ conflicting: canResolveConflicts, babysittable: canBabysitPullRequest }),
+    [canBabysitPullRequest, canResolveConflicts],
+  );
   const gitActionMenuItems = useMemo(
-    () => buildMenuItems(gitStatusForActions, isGitActionRunning, hasPrimaryRemote),
-    [gitStatusForActions, hasPrimaryRemote, isGitActionRunning],
+    () =>
+      buildMenuItems(
+        gitStatusForActions,
+        isGitActionRunning,
+        hasPrimaryRemote,
+        changeRequestAssistance,
+      ),
+    [changeRequestAssistance, gitStatusForActions, hasPrimaryRemote, isGitActionRunning],
   );
   const quickAction = useMemo(
     () =>
-      resolveQuickAction(gitStatusForActions, isGitActionRunning, isDefaultRef, hasPrimaryRemote),
-    [gitStatusForActions, hasPrimaryRemote, isDefaultRef, isGitActionRunning],
+      resolveQuickAction(
+        gitStatusForActions,
+        isGitActionRunning,
+        isDefaultRef,
+        hasPrimaryRemote,
+        changeRequestAssistance,
+      ),
+    [
+      changeRequestAssistance,
+      gitStatusForActions,
+      hasPrimaryRemote,
+      isDefaultRef,
+      isGitActionRunning,
+    ],
   );
   const quickActionDisabledReason = quickAction.disabled
     ? (quickAction.hint ?? "This action is currently unavailable.")
@@ -1545,6 +1592,10 @@ export default function GitActionsControl({
       void openExistingPr();
       return;
     }
+    if (quickAction.kind === "resolve_conflicts") {
+      onResolveConflicts?.();
+      return;
+    }
     if (quickAction.kind === "open_publish") {
       setIsPublishDialogOpen(true);
       return;
@@ -1607,6 +1658,14 @@ export default function GitActionsControl({
     if (item.disabled) return;
     if (item.kind === "open_pr") {
       void openExistingPr();
+      return;
+    }
+    if (item.kind === "resolve_conflicts") {
+      onResolveConflicts?.();
+      return;
+    }
+    if (item.kind === "babysit_pr") {
+      onBabysitPullRequest?.();
       return;
     }
     if (item.dialogAction === "push") {

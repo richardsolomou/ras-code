@@ -10,26 +10,43 @@ import {
   type ChangeRequestTerminology,
 } from "../sourceControlPresentation";
 
-export type GitActionIconName = "commit" | "push" | "pr";
+export type GitActionIconName = "commit" | "push" | "pr" | "conflicts" | "babysit";
 
 export type GitDialogAction = "commit" | "push" | "create_pr";
 
 export interface GitActionMenuItem {
-  id: "commit" | "push" | "pr";
+  id: "commit" | "push" | "pr" | "resolve_conflicts" | "babysit_pr";
   label: string;
   disabled: boolean;
   icon: GitActionIconName;
-  kind: "open_dialog" | "open_pr";
+  kind: "open_dialog" | "open_pr" | "resolve_conflicts" | "babysit_pr";
   dialogAction?: GitDialogAction;
 }
 
 export interface GitQuickAction {
   label: string;
   disabled: boolean;
-  kind: "run_action" | "run_pull" | "open_pr" | "open_publish" | "show_hint";
+  kind: "run_action" | "run_pull" | "open_pr" | "open_publish" | "resolve_conflicts" | "show_hint";
   action?: GitStackedAction;
   hint?: string;
 }
+
+/**
+ * What the thread's own change request asks for beyond what git can see locally: a conflict verdict
+ * and a review cycle both live on the host. Absent for every thread whose change request has not
+ * been resolved yet, which is why both flags default to false rather than blocking the menu.
+ */
+export interface ThreadChangeRequestAssistance {
+  /** The change request collides with its base ref, so the branch needs updating before anything else lands. */
+  readonly conflicting: boolean;
+  /** The change request is open, so the wait-on-checks-and-review loop has something to watch. */
+  readonly babysittable: boolean;
+}
+
+export const NO_THREAD_CHANGE_REQUEST_ASSISTANCE: ThreadChangeRequestAssistance = {
+  conflicting: false,
+  babysittable: false,
+};
 
 export interface DefaultBranchActionDialogCopy {
   title: string;
@@ -95,6 +112,7 @@ export function buildMenuItems(
   gitStatus: VcsStatusResult | null,
   isBusy: boolean,
   hasPrimaryRemote = true,
+  assistance: ThreadChangeRequestAssistance = NO_THREAD_CHANGE_REQUEST_ASSISTANCE,
 ): GitActionMenuItem[] {
   if (!gitStatus) return [];
   const terminology = resolveChangeRequestTerminology(gitStatus);
@@ -135,6 +153,35 @@ export function buildMenuItems(
     return [commitItem];
   }
 
+  // Both change-request helpers stay in the menu even when one of them is the quick action, so
+  // viewing the change request never becomes unreachable and neither helper moves as state changes.
+  const assistanceItems: GitActionMenuItem[] = !hasOpenPr
+    ? []
+    : [
+        ...(assistance.conflicting
+          ? [
+              {
+                id: "resolve_conflicts",
+                label: "Resolve conflicts",
+                disabled: isBusy,
+                icon: "conflicts",
+                kind: "resolve_conflicts",
+              } satisfies GitActionMenuItem,
+            ]
+          : []),
+        ...(assistance.babysittable
+          ? [
+              {
+                id: "babysit_pr",
+                label: `Babysit ${terminology.shortLabel}`,
+                disabled: isBusy,
+                icon: "babysit",
+                kind: "babysit_pr",
+              } satisfies GitActionMenuItem,
+            ]
+          : []),
+      ];
+
   return [
     commitItem,
     {
@@ -161,14 +208,33 @@ export function buildMenuItems(
           kind: "open_dialog",
           dialogAction: "create_pr",
         },
+    ...assistanceItems,
   ];
 }
 
+/**
+ * The one-press action for the current branch state. A conflicting change request replaces the
+ * "view" action only: every other state names a step that has to happen first anyway, and burying
+ * "commit your changes" behind a conflict the branch cannot resolve dirty helps nobody. The menu
+ * keeps both.
+ */
 export function resolveQuickAction(
   gitStatus: VcsStatusResult | null,
   isBusy: boolean,
   isDefaultRef = false,
   hasPrimaryRemote = true,
+  assistance: ThreadChangeRequestAssistance = NO_THREAD_CHANGE_REQUEST_ASSISTANCE,
+): GitQuickAction {
+  const action = resolveBranchQuickAction(gitStatus, isBusy, isDefaultRef, hasPrimaryRemote);
+  if (action.kind !== "open_pr" || !assistance.conflicting) return action;
+  return { label: "Resolve conflicts", disabled: false, kind: "resolve_conflicts" };
+}
+
+function resolveBranchQuickAction(
+  gitStatus: VcsStatusResult | null,
+  isBusy: boolean,
+  isDefaultRef: boolean,
+  hasPrimaryRemote: boolean,
 ): GitQuickAction {
   if (isBusy) {
     return { label: "Commit", disabled: true, kind: "show_hint", hint: "Git action in progress." };
