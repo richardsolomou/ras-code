@@ -35,6 +35,8 @@ RAS Code works with the platforms your team already uses:
 - Pull requests created by an agent or custom skill are linked to their thread automatically after
   the turn finishes
 - RAS Code can suggest titles and descriptions based on your commits
+- With **Repository conventions** selected, generated source control text follows the project's
+  `AGENTS.md` along with recent commit subjects. Claude writers also follow `CLAUDE.md`
 - Supports GitHub Pull Requests, GitLab Merge Requests, Bitbucket Pull Requests, and Azure DevOps Pull Requests
 
 **Stay on top of open reviews**
