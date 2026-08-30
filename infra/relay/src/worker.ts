@@ -68,6 +68,7 @@ import { RasRelaySession, RasRelaySessionDirectory } from "./environments/RasRel
 import * as MobileRegistrations from "./agentActivity/MobileRegistrations.ts";
 import { rasRelayEndpointDigestInput, rasRelayEndpointId } from "./deploymentConfig.ts";
 import { authorizeConnectorIngress, forwardRelayRequest } from "./connectorIngress.ts";
+import { prepareRelaySessionResponse } from "./relaySessionResponse.ts";
 import { layer as webcryptoLayer } from "./webcrypto.ts";
 
 function bearerToken(authorization: string | undefined): string | null {
@@ -367,7 +368,7 @@ export const ApiLive = Api.make(
           yield* session.disconnect().pipe(Effect.orDie);
           return HttpServerResponse.empty({ status: 403 });
         }
-        return response;
+        return yield* prepareRelaySessionResponse(response);
       }
       if (requestUrl._tag === "None" || requestUrl.value.hostname !== relayGatewayDomain) {
         return yield* relayApiFetch;
@@ -385,7 +386,7 @@ export const ApiLive = Api.make(
             Headers.remove(request.headers, "x-ras-relay-connector"),
           ),
         )
-        .pipe(Effect.orDie);
+        .pipe(Effect.orDie, Effect.flatMap(prepareRelaySessionResponse));
     }).pipe(withoutCapturedParentSpan, (httpEffect) =>
       traceRelayHttpRequestWith(httpEffect, relayTraceLayer),
     );
