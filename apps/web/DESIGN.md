@@ -2,15 +2,15 @@
 name: RAS Code
 description: A flight-control console for coding agents — lamps for state, legends for labels, one amber action.
 colors:
-  enamel-canvas: "#16141c"
-  enamel-desk: "#100f15"
-  enamel-raised: "#1f1c26"
-  enamel-popover: "#1c1a24"
-  enamel-hover: "#2a2733"
-  enamel-rule: "#332f3d"
-  legend-ink: "#e6e2ee"
-  legend-muted: "#9b96a9"
-  lamp-unlit: "#3a3646"
+  enamel-canvas: "#151515"
+  enamel-desk: "#101010"
+  enamel-raised: "#1e1e1e"
+  enamel-popover: "#1c1c1c"
+  enamel-hover: "#292929"
+  enamel-rule: "#323232"
+  legend-ink: "#e4e4e4"
+  legend-muted: "#999999"
+  lamp-unlit: "#393939"
   lamp-amber: "#f0c24b"
   lamp-green: "#52c46f"
   lamp-red: "#e5645a"
@@ -78,13 +78,13 @@ components:
 
 **Creative North Star: "Mission Control Console"**
 
-RAS Code is the room where many agents run at once. The interface borrows the discipline of an Apollo-era flight-control console: enamel panels, engraved legends, and square indicator lamps that tell you a station's state from across the room. Colour is not decoration — it is state. Everything that is not state sits in near-black violet enamel so that the few lit lamps and the one amber action carry the eye.
+RAS Code is the room where many agents run at once. The interface borrows the discipline of an Apollo-era flight-control console: enamel panels, engraved legends, and square indicator lamps that tell you a station's state from across the room. Colour is not decoration — it is state. Everything that is not state sits in near-black graphite enamel so that the few lit lamps and the one amber action carry the eye.
 
 The system is dense but calm. Threads are stations; projects are engraved section legends; the composer is the station's control block. The rejected defaults are explicit: no near-black-plus-neon-glow developer-tool look, no glass or blur panels, no cream-paper opposite, and no teal or emerald greens anywhere.
 
 **Key Characteristics:**
 
-- Near-black violet enamel ground with tonal layering, no shadows for depth.
+- Near-black graphite enamel ground with tonal layering, no shadows for depth.
 - State is a lamp _and_ a mark: colour plus glyph, so status survives colour-blindness.
 - One amber element per view: the primary action, or a waiting lamp.
 - Two type voices: Barlow for reading, Barlow Semi Condensed in tracked caps for legends.
@@ -92,7 +92,7 @@ The system is dense but calm. Threads are stations; projects are engraved sectio
 
 ## Colors
 
-Near-black violet enamel carries the surface; lamps and the single action carry the colour.
+Near-black graphite enamel carries the surface; lamps and the single action carry the colour.
 
 ### Primary
 
@@ -105,22 +105,22 @@ Near-black violet enamel carries the surface; lamps and the single action carry 
 
 ### Neutral
 
-- **Enamel Canvas** (#16141c): the main pane.
-- **Enamel Desk** (#100f15): the sidebar and other chrome one step behind the canvas.
-- **Enamel Raised** (#1f1c26): cards, the composer, selector caps.
-- **Enamel Popover** (#1c1a24): menus and popovers.
-- **Enamel Hover** (#2a2733): hovered and selected rows; also the light-mode primary button.
-- **Enamel Rule** (#332f3d): 1px dividers and control rims.
-- **Legend Ink** (#e6e2ee): body text.
-- **Legend Muted** (#9b96a9): secondary text and legends.
-- **Unlit Lamp** (#3a3646): an idle station; also the scrollbar thumb.
+- **Enamel Canvas** (#151515): the main pane.
+- **Enamel Desk** (#101010): the sidebar and other chrome one step behind the canvas.
+- **Enamel Raised** (#1e1e1e): cards, the composer, selector caps.
+- **Enamel Popover** (#1c1c1c): menus and popovers.
+- **Enamel Hover** (#292929): hovered and selected rows.
+- **Enamel Rule** (#323232): 1px dividers and control rims.
+- **Legend Ink** (#e4e4e4): body text.
+- **Legend Muted** (#999999): secondary text and legends.
+- **Unlit Lamp** (#393939): an idle station; also the scrollbar thumb.
 - **Info Blue** (#8fb8e8): informational text only (never fills).
 
 ### Named Rules
 
 **The One Amber Rule.** Exactly one amber element per view outside the lamps: the primary action. A second amber control means one of them is wrong.
 **The Lamp-and-Mark Rule.** Every state colour is paired with its glyph (◌ working, ⚑ waiting, ✕ failed, ✓ settled). Colour alone never carries state.
-**The Violet Neutral Rule.** Every grey in the system is violet-tinted (#2a2733 / #3a3646 family). Green-tinted or blue-tinted greys are defects.
+**The Graphite Neutral Rule.** Every dark-mode grey is a true neutral: equal channels, zero chroma. Violet-, green- or blue-tinted greys are defects. Light mode keeps its near-black violet primary (#2a2733), which is the only tinted neutral in the system.
 
 ## Typography
 
@@ -147,7 +147,7 @@ A fixed 256px console rail (the sidebar) on the left, the selected station's pan
 
 ## Elevation & Depth
 
-Flat by construction. Depth is tonal: desk (#100f15) behind canvas (#16141c) behind raised panels (#1f1c26) behind popovers (#1c1a24). Rims are 1px enamel-rule lines or 1px inset shadows on lamps and caps; drop shadows appear only under floating popovers and toasts. There is no glass, no backdrop blur, and no coloured glow.
+Flat by construction. Depth is tonal: desk (#101010) behind canvas (#151515) behind raised panels (#1e1e1e) behind popovers (#1c1c1c). Rims are 1px enamel-rule lines or 1px inset shadows on lamps and caps; drop shadows appear only under floating popovers and toasts. There is no glass, no backdrop blur, and no coloured glow.
 
 ### Named Rules
 
@@ -197,7 +197,7 @@ Small, precise radii: lamps 2px, selector caps and rows 0.625rem, the transport 
 - **Do** pair every status colour with its glyph.
 - **Do** set region and control labels in the legend face, uppercase, 0.08em tracking.
 - **Do** keep every control's box identical across rest, hover, pressed and active.
-- **Do** use violet-tinted neutrals (#2a2733 / #3a3646) for anything that is not text or state.
+- **Do** use true-neutral greys (#292929 / #393939) for anything that is not text or state.
 
 ### Don't:
 
