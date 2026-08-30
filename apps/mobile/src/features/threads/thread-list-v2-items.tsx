@@ -32,7 +32,6 @@ import {
   type ThreadListV2Status,
 } from "./threadListV2";
 import { ThreadSearchMatchExcerpt } from "./thread-search-match";
-import { StatusLamp, type LampState } from "../../components/StatusLamp";
 
 /**
  * Thread List v2 renders one flat native list: rich edge-to-edge rows for
@@ -47,15 +46,15 @@ const MONO_FONT = Platform.select({
   default: "monospace",
 });
 
-// Console lamp semantics, matching sidebar v1 and the web status lamps: amber
+// Console state hues, matching sidebar v1 and the web status labels: amber
 // waits on the user, green is in flight, red failed.
 const STATUS_LABEL_BY_STATUS: Partial<
-  Record<ThreadListV2Status, { label: string; className: string; lamp: LampState }>
+  Record<ThreadListV2Status, { label: string; className: string }>
 > = {
-  approval: { label: "Approval", className: "text-[#8a6a12] dark:text-[#f0c24b]", lamp: "waiting" },
-  input: { label: "Input", className: "text-[#8a6a12] dark:text-[#f0c24b]", lamp: "waiting" },
-  working: { label: "Working", className: "text-[#2f8f4a] dark:text-[#52c46f]", lamp: "working" },
-  failed: { label: "Failed", className: "text-[#b33a2f] dark:text-[#e5645a]", lamp: "failed" },
+  approval: { label: "Approval", className: "text-[#8a6a12] dark:text-[#f0c24b]" },
+  input: { label: "Input", className: "text-[#8a6a12] dark:text-[#f0c24b]" },
+  working: { label: "Working", className: "text-[#2f8f4a] dark:text-[#52c46f]" },
+  failed: { label: "Failed", className: "text-[#b33a2f] dark:text-[#e5645a]" },
 };
 
 function threadTimeLabel(thread: EnvironmentThreadShell): string {
@@ -706,20 +705,17 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
         {pinnedRow ? (
           <SymbolView name="pin" size={11} tintColor={pinTintColor} type="monochrome" />
         ) : null}
-        <View className="flex-row items-center gap-1.5">
-          {statusLabel ? <StatusLamp size={8} state={statusLabel.lamp} /> : null}
-          <Text
-            className={cn(
-              "text-xs tabular-nums",
-              statusLabel ? "font-ras-code-legend" : null,
-              selected
-                ? "text-user-bubble-foreground"
-                : (statusLabel?.className ?? "text-foreground-tertiary"),
-            )}
-          >
-            {statusLabel?.label ?? timeLabel}
-          </Text>
-        </View>
+        <Text
+          className={cn(
+            "text-xs tabular-nums",
+            statusLabel ? "font-ras-code-legend" : null,
+            selected
+              ? "text-user-bubble-foreground"
+              : (statusLabel?.className ?? "text-foreground-tertiary"),
+          )}
+        >
+          {statusLabel?.label ?? timeLabel}
+        </Text>
       </View>
       <Text
         className={cn(
