@@ -67,7 +67,7 @@ import * as ManagedEndpointProvider from "./environments/ManagedEndpointProvider
 import { RasRelaySession, RasRelaySessionDirectory } from "./environments/RasRelaySession.ts";
 import * as MobileRegistrations from "./agentActivity/MobileRegistrations.ts";
 import { rasRelayEndpointDigestInput, rasRelayEndpointId } from "./deploymentConfig.ts";
-import { authorizeConnectorIngress } from "./connectorIngress.ts";
+import { authorizeConnectorIngress, forwardRelayRequest } from "./connectorIngress.ts";
 import { layer as webcryptoLayer } from "./webcrypto.ts";
 
 function bearerToken(authorization: string | undefined): string | null {
@@ -352,7 +352,7 @@ export const ApiLive = Api.make(
         if (!route) {
           return HttpServerResponse.empty({ status: 403 });
         }
-        const connectorRequest = request.modify({ headers: route.headers });
+        const connectorRequest = yield* forwardRelayRequest(request, route.headers);
         const session = rasRelaySessions.getByName(route.endpointId);
         const response = yield* session.fetch(connectorRequest).pipe(Effect.orDie);
         const confirmed = yield* authenticateConnector;
@@ -380,9 +380,10 @@ export const ApiLive = Api.make(
       return yield* rasRelaySessions
         .getByName(route.endpointId)
         .fetch(
-          request.modify({
-            headers: Headers.remove(request.headers, "x-ras-relay-connector"),
-          }),
+          yield* forwardRelayRequest(
+            request,
+            Headers.remove(request.headers, "x-ras-relay-connector"),
+          ),
         )
         .pipe(Effect.orDie);
     }).pipe(withoutCapturedParentSpan, (httpEffect) =>
