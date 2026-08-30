@@ -3,6 +3,7 @@ import * as Effect from "effect/Effect";
 
 import {
   LegacyManagedEndpointCleanupError,
+  cloudflareTunnelDeletePath,
   cleanupLegacyManagedEndpointRows,
   type LegacyManagedEndpointAllocation,
 } from "./legacyManagedEndpointCleanup.ts";
@@ -16,6 +17,12 @@ const allocation = {
 } satisfies LegacyManagedEndpointAllocation;
 
 describe("legacy managed endpoint cleanup", () => {
+  it("force-deletes tunnels and their active connections", () => {
+    expect(cloudflareTunnelDeletePath("account/1", "tunnel/1")).toBe(
+      "/accounts/account%2F1/cfd_tunnel/tunnel%2F1?cascade=true",
+    );
+  });
+
   it.effect("removes a claimed allocation after its external resources", () => {
     const calls: Array<string> = [];
     return Effect.gen(function* () {

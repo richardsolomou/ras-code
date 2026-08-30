@@ -97,6 +97,10 @@ function cloudflareErrorMessage(
   );
 }
 
+export function cloudflareTunnelDeletePath(accountId: string, tunnelId: string): string {
+  return `/accounts/${encodeURIComponent(accountId)}/cfd_tunnel/${encodeURIComponent(tunnelId)}?cascade=true`;
+}
+
 function cloudflareRequest(input: {
   readonly token: string;
   readonly path: string;
@@ -296,7 +300,7 @@ export const cleanupLegacyManagedEndpoints = Effect.fn("relay.legacy_managed_end
         deleteTunnel: (tunnelId) =>
           deleteCloudflareResource({
             token,
-            path: `/accounts/${encodeURIComponent(accountId)}/cfd_tunnel/${encodeURIComponent(tunnelId)}`,
+            path: cloudflareTunnelDeletePath(accountId, tunnelId),
             stage: "delete-tunnel",
           }).pipe(Effect.provideService(HttpClient.HttpClient, httpClient)),
         removeClaimed: (allocation, claimedAt) =>
