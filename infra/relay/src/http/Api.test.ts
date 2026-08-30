@@ -188,7 +188,7 @@ function relayUnlinkTestLayer(input?: {
   readonly revokeForUser?: EnvironmentLinks.EnvironmentLinks["Service"]["revokeForUser"];
   readonly revokeCredential?: EnvironmentCredentials.EnvironmentCredentials["Service"]["revokeForEnvironmentPublicKey"];
   readonly disconnect?: RasRelaySession.RasRelaySessionDirectory["Service"]["disconnect"];
-  readonly listManagedRelayPublicKeysForEnvironment?: EnvironmentLinks.EnvironmentLinks["Service"]["listManagedRelayPublicKeysForEnvironment"];
+  readonly isManagedRelayPublicKeyActive?: EnvironmentLinks.EnvironmentLinks["Service"]["isManagedRelayPublicKeyActive"];
 }) {
   return Layer.mergeAll(
     Layer.succeed(
@@ -203,8 +203,8 @@ function relayUnlinkTestLayer(input?: {
         upsert: () => Effect.die("unused upsert"),
         listUsersForEnvironment: () => Effect.die("unused listUsersForEnvironment"),
         listDeliveryUsersForEnvironment: () => Effect.die("unused listDeliveryUsersForEnvironment"),
-        listManagedRelayPublicKeysForEnvironment:
-          input?.listManagedRelayPublicKeysForEnvironment ?? (() => Effect.succeed([])),
+        isManagedRelayPublicKeyActive:
+          input?.isManagedRelayPublicKeyActive ?? (() => Effect.succeed(false)),
         listForUser: () => Effect.die("unused listForUser"),
         getForUser: input?.getForUser ?? (() => Effect.succeed(null)),
         revokeForUser: input?.revokeForUser ?? (() => Effect.succeed(false)),
@@ -312,10 +312,10 @@ describe("relay environment unlink", () => {
               calls.push("credential");
               return true;
             }),
-          listManagedRelayPublicKeysForEnvironment: () =>
+          isManagedRelayPublicKeyActive: () =>
             Effect.sync(() => {
               calls.push("remaining-links");
-              return [];
+              return false;
             }),
           disconnect: () =>
             Effect.sync(() => {
@@ -363,10 +363,10 @@ describe("relay environment unlink", () => {
         relayUnlinkTestLayer({
           getForUser: () => Effect.succeed(linkedEnvironmentRecord),
           revokeForUser: () => Effect.succeed(true),
-          listManagedRelayPublicKeysForEnvironment: () =>
+          isManagedRelayPublicKeyActive: () =>
             Effect.sync(() => {
               calls.push("remaining-links");
-              return ["public-key"];
+              return true;
             }),
           disconnect: () =>
             Effect.sync(() => {
@@ -397,7 +397,7 @@ describe("relay environment unlink", () => {
         relayUnlinkTestLayer({
           getForUser: () => Effect.succeed(linkedEnvironmentRecord),
           revokeForUser: () => Effect.succeed(true),
-          listManagedRelayPublicKeysForEnvironment: () => Effect.succeed(["public-key-2"]),
+          isManagedRelayPublicKeyActive: () => Effect.succeed(false),
           disconnect: (input) =>
             Effect.sync(() => {
               disconnected.push(input);
@@ -422,7 +422,7 @@ describe("relay environment unlink", () => {
         relayUnlinkTestLayer({
           getForUser: ({ includeRevoked }) =>
             Effect.succeed(includeRevoked ? linkedEnvironmentRecord : null),
-          listManagedRelayPublicKeysForEnvironment: () => Effect.succeed([]),
+          isManagedRelayPublicKeyActive: () => Effect.succeed(false),
           disconnect: () =>
             Effect.sync(() => {
               calls.push("disconnect");

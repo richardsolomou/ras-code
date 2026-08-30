@@ -385,6 +385,7 @@ export const RelayEnvironmentConnectNotAuthorizedReason = Schema.Literals([
   "client_proof_key_thumbprint_missing",
   "environment_link_not_found",
   "endpoint_provider_not_managed",
+  "managed_endpoint_mismatch",
 ]);
 export type RelayEnvironmentConnectNotAuthorizedReason =
   typeof RelayEnvironmentConnectNotAuthorizedReason.Type;

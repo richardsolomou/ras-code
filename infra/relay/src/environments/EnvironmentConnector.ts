@@ -32,6 +32,7 @@ import * as Crypto from "effect/Crypto";
 import * as DateTime from "effect/DateTime";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
+import * as Encoding from "effect/Encoding";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Redacted from "effect/Redacted";
@@ -42,6 +43,11 @@ import * as HttpClientError from "effect/unstable/http/HttpClientError";
 
 import * as EnvironmentLinks from "./EnvironmentLinks.ts";
 import * as RelayConfiguration from "../Config.ts";
+import {
+  rasRelayEndpointDigestInput,
+  rasRelayEndpointForId,
+  rasRelayEndpointId,
+} from "../deploymentConfig.ts";
 
 function environmentConnectNotAuthorizedReasonMessage(
   reason: RelayEnvironmentConnectNotAuthorizedReason,
@@ -53,6 +59,8 @@ function environmentConnectNotAuthorizedReasonMessage(
       return "no active environment link was found";
     case "endpoint_provider_not_managed":
       return "the linked endpoint is not relay-managed";
+    case "managed_endpoint_mismatch":
+      return "the linked endpoint does not match the managed relay allocation";
   }
 }
 
@@ -300,9 +308,51 @@ const make = Effect.gen(function* () {
           reason: "endpoint_provider_not_managed",
         });
       }
+      if (!settings.relayGatewayDomain || !settings.relayEndpointNamespace) {
+        return yield* new EnvironmentConnectNotAuthorized({
+          environmentId: input.link.environmentId,
+          operation: input.operation,
+          reason: "endpoint_provider_not_managed",
+        });
+      }
+      const hash = yield* crypto
+        .digest(
+          "SHA-256",
+          new TextEncoder().encode(
+            rasRelayEndpointDigestInput(
+              settings.relayEndpointNamespace,
+              input.link.environmentId,
+              input.link.environmentPublicKey,
+            ),
+          ),
+        )
+        .pipe(
+          Effect.mapError(
+            (cause) =>
+              new EnvironmentMintRequestFailed({
+                environmentId: input.link.environmentId,
+                operation: input.operation,
+                cause,
+              }),
+          ),
+        );
+      const endpoint = rasRelayEndpointForId(
+        settings.relayGatewayDomain,
+        rasRelayEndpointId(Encoding.encodeHex(hash)),
+      );
+      if (
+        input.link.endpoint.httpBaseUrl !== endpoint.httpBaseUrl ||
+        input.link.endpoint.wsBaseUrl !== endpoint.wsBaseUrl
+      ) {
+        return yield* new EnvironmentConnectNotAuthorized({
+          environmentId: input.link.environmentId,
+          operation: input.operation,
+          reason: "managed_endpoint_mismatch",
+        });
+      }
       return {
-        endpoint: input.link.endpoint,
-        requestBaseUrl: input.link.endpoint.httpBaseUrl,
+        endpoint,
+        requestBaseUrl: endpoint.httpBaseUrl,
       };
     },
   );

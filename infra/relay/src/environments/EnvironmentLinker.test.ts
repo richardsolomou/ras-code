@@ -19,6 +19,7 @@ import * as EnvironmentLinks from "./EnvironmentLinks.ts";
 import * as RelayConfiguration from "../Config.ts";
 import * as EnvironmentLinker from "./EnvironmentLinker.ts";
 import * as ManagedEndpointProvider from "./ManagedEndpointProvider.ts";
+import * as RasRelaySession from "./RasRelaySession.ts";
 
 const relayKeyPair = NodeCrypto.generateKeyPairSync("ed25519", {
   privateKeyEncoding: { format: "pem", type: "pkcs8" },
@@ -108,6 +109,9 @@ const makeRequest = Effect.gen(function* () {
 function testLayer(input?: {
   readonly upsert?: EnvironmentLinks.EnvironmentLinks["Service"]["upsert"];
   readonly consume?: DpopProofs.DpopProofReplay["Service"]["consume"];
+  readonly getForUser?: EnvironmentLinks.EnvironmentLinks["Service"]["getForUser"];
+  readonly isManagedRelayPublicKeyActive?: EnvironmentLinks.EnvironmentLinks["Service"]["isManagedRelayPublicKeyActive"];
+  readonly disconnect?: RasRelaySession.RasRelaySessionDirectory["Service"]["disconnect"];
 }) {
   return EnvironmentLinker.layer.pipe(
     Layer.provideMerge(RelayTokens.layer),
@@ -123,10 +127,14 @@ function testLayer(input?: {
           upsert: input?.upsert ?? (() => Effect.void),
           listUsersForEnvironment: () => Effect.succeed([]),
           listDeliveryUsersForEnvironment: () => Effect.succeed([]),
-          listManagedRelayPublicKeysForEnvironment: () => Effect.succeed([]),
+          isManagedRelayPublicKeyActive:
+            input?.isManagedRelayPublicKeyActive ?? (() => Effect.succeed(false)),
           listForUser: () => Effect.succeed([]),
-          getForUser: () => Effect.succeed(null),
+          getForUser: input?.getForUser ?? (() => Effect.succeed(null)),
           revokeForUser: () => Effect.succeed(false),
+        }),
+        Layer.succeed(RasRelaySession.RasRelaySessionDirectory, {
+          disconnect: input?.disconnect ?? (() => Effect.void),
         }),
         Layer.succeed(EnvironmentCredentials.EnvironmentCredentials, {
           create: () => Effect.succeed("t3env_credential_secret"),
@@ -235,6 +243,44 @@ describe("EnvironmentLinker", () => {
           upsert: (input) =>
             Effect.sync(() => {
               persistedEndpoint = input.endpoint.httpBaseUrl;
+            }),
+        }),
+      ),
+    );
+  });
+
+  it.effect("disconnects a replaced managed relay key", () => {
+    const disconnected: Array<{
+      readonly environmentId: string;
+      readonly environmentPublicKey: string;
+    }> = [];
+    return Effect.gen(function* () {
+      const { request } = yield* makeRequest;
+      const linker = yield* EnvironmentLinker.EnvironmentLinker;
+      yield* linker.link({ userId: "user_123", request });
+
+      expect(disconnected).toEqual([
+        { environmentId: "env-link-test", environmentPublicKey: "replaced-public-key" },
+      ]);
+    }).pipe(
+      Effect.provide(
+        testLayer({
+          getForUser: () =>
+            Effect.succeed({
+              environmentId: "env-link-test" as never,
+              label: "Link Test Environment",
+              endpoint: {
+                httpBaseUrl: "https://code-tunnels.example.test/e/old-endpoint/",
+                wsBaseUrl: "wss://code-tunnels.example.test/e/old-endpoint/ws",
+                providerKind: "ras_relay",
+              },
+              linkedAt: "2026-08-30T00:00:00.000Z",
+              environmentPublicKey: "replaced-public-key",
+            }),
+          isManagedRelayPublicKeyActive: () => Effect.succeed(false),
+          disconnect: (input) =>
+            Effect.sync(() => {
+              disconnected.push(input);
             }),
         }),
       ),

@@ -184,40 +184,39 @@ export const ApiLive = Api.make(
 
     const relayTraceLayer = makeRelayTraceLayer(tracing);
 
-    const runtimeLayer = Layer.empty.pipe(
-      Layer.provideMerge(
-        Layer.mergeAll(
-          Layer.effect(
-            RasRelaySessionDirectory,
+    const rasRelaySessionDirectoryLayer = Layer.effect(
+      RasRelaySessionDirectory,
+      Effect.gen(function* () {
+        const crypto = yield* Crypto.Crypto;
+        return RasRelaySessionDirectory.of({
+          disconnect: ({ environmentId, environmentPublicKey }) =>
             Effect.gen(function* () {
-              const crypto = yield* Crypto.Crypto;
-              return RasRelaySessionDirectory.of({
-                disconnect: ({ environmentId, environmentPublicKey }) =>
-                  Effect.gen(function* () {
-                    if (!relayEndpointNamespace) return;
-                    const hash = yield* crypto.digest(
-                      "SHA-256",
-                      new TextEncoder().encode(
-                        rasRelayEndpointDigestInput(
-                          relayEndpointNamespace,
-                          environmentId,
-                          environmentPublicKey,
-                        ),
-                      ),
-                    );
-                    yield* rasRelaySessions
-                      .getByName(rasRelayEndpointId(Encoding.encodeHex(hash)))
-                      .disconnect();
-                  }).pipe(Effect.orDie),
-              });
-            }),
-          ),
-          MobileRegistrations.layer,
-        ),
-      ),
+              if (!relayEndpointNamespace) return;
+              const hash = yield* crypto.digest(
+                "SHA-256",
+                new TextEncoder().encode(
+                  rasRelayEndpointDigestInput(
+                    relayEndpointNamespace,
+                    environmentId,
+                    environmentPublicKey,
+                  ),
+                ),
+              );
+              yield* rasRelaySessions
+                .getByName(rasRelayEndpointId(Encoding.encodeHex(hash)))
+                .disconnect();
+            }).pipe(Effect.orDie),
+        });
+      }),
+    );
+
+    const runtimeLayer = Layer.empty.pipe(
+      Layer.provideMerge(Layer.mergeAll(rasRelaySessionDirectoryLayer, MobileRegistrations.layer)),
       Layer.provideMerge(AgentActivityPublisher.layer),
       Layer.provideMerge(EnvironmentConnector.layer),
-      Layer.provideMerge(EnvironmentLinker.layer),
+      Layer.provideMerge(
+        EnvironmentLinker.layer.pipe(Layer.provideMerge(rasRelaySessionDirectoryLayer)),
+      ),
       Layer.provideMerge(EnvironmentPublishSignatures.layer),
       Layer.provideMerge(ManagedEndpointProvider.layer),
       Layer.provideMerge(DpopProofs.layer),
@@ -319,10 +318,11 @@ export const ApiLive = Api.make(
           const crypto = yield* Crypto.Crypto;
           const principal = yield* credentials.authenticate(token);
           if (Option.isNone(principal)) return null;
-          const managedRelayPublicKeys = yield* links.listManagedRelayPublicKeysForEnvironment({
+          const managedRelayKeyActive = yield* links.isManagedRelayPublicKeyActive({
             environmentId: principal.value.environmentId,
+            environmentPublicKey: principal.value.environmentPublicKey,
           });
-          if (!managedRelayPublicKeys.includes(principal.value.environmentPublicKey)) return null;
+          if (!managedRelayKeyActive) return null;
           const hash = yield* crypto
             .digest(
               "SHA-256",

@@ -12,6 +12,7 @@ import { describe, expect, it } from "@effect/vitest";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
 import * as Fiber from "effect/Fiber";
+import * as TestClock from "effect/testing/TestClock";
 import * as HttpServerRequest from "effect/unstable/http/HttpServerRequest";
 import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse";
 
@@ -244,6 +245,37 @@ describe("RasRelaySession", () => {
       const response = HttpServerResponse.toWeb(yield* fetchSession(session, state, request));
 
       expect(response.status).toBe(413);
+      expect(connector.sent.at(-1)?.message.type).toBe("http_request_cancel");
+    }),
+  );
+
+  it.effect("times out while a public request body is still uploading", () =>
+    Effect.gen(function* () {
+      const requestStarted = yield* Deferred.make<void>();
+      let bodyCanceled = false;
+      const connector = fakeSocket({ role: "connector" }, (frames) =>
+        frames.some(({ message }) => message.type === "http_request_start")
+          ? Deferred.succeed(requestStarted, undefined).pipe(Effect.asVoid)
+          : Effect.void,
+      );
+      const state = relayState([connector.socket]);
+      const session = yield* makeSession(state);
+      const request = new Request("https://code-tunnels.ras.sh/e/abcdef0123456789/api/upload", {
+        method: "POST",
+        body: new ReadableStream({
+          cancel() {
+            bodyCanceled = true;
+          },
+        }),
+        duplex: "half",
+      } as RequestInit & { duplex: "half" });
+      const responseFiber = yield* fetchSession(session, state, request).pipe(Effect.forkChild);
+      yield* Deferred.await(requestStarted);
+      yield* TestClock.adjust("30 seconds");
+
+      const response = HttpServerResponse.toWeb(yield* Fiber.join(responseFiber));
+      expect(response.status).toBe(504);
+      expect(bodyCanceled).toBe(true);
       expect(connector.sent.at(-1)?.message.type).toBe("http_request_cancel");
     }),
   );

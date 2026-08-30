@@ -452,10 +452,11 @@ export const unlinkEnvironmentRecord = Effect.fn("relay.api.client.unlinkEnviron
           environmentPublicKey: link.environmentPublicKey,
         })
       : false;
-    const remainingPublicKeys = yield* links.listManagedRelayPublicKeysForEnvironment({
+    const publicKeyStillActive = yield* links.isManagedRelayPublicKeyActive({
       environmentId: input.environmentId,
+      environmentPublicKey: link.environmentPublicKey,
     });
-    if (!remainingPublicKeys.includes(link.environmentPublicKey)) {
+    if (!publicKeyStillActive) {
       yield* rasRelaySessions.disconnect({
         environmentId: input.environmentId,
         environmentPublicKey: link.environmentPublicKey,
@@ -987,7 +988,7 @@ const RelayCommonPersistenceError = Schema.Union([
   Devices.DeviceListPersistenceError,
   LiveActivities.LiveActivityRegistrationPersistenceError,
   EnvironmentLinks.EnvironmentLinkUserListPersistenceError,
-  EnvironmentLinks.EnvironmentPublicKeyListPersistenceError,
+  EnvironmentLinks.EnvironmentManagedRelayKeyLookupPersistenceError,
   EnvironmentLinks.EnvironmentLinkListPersistenceError,
   EnvironmentLinks.EnvironmentLinkLookupPersistenceError,
   EnvironmentLinks.EnvironmentLinkRevokePersistenceError,

@@ -21,6 +21,7 @@ import * as RelayTokens from "../auth/RelayTokens.ts";
 import * as EnvironmentCredentials from "./EnvironmentCredentials.ts";
 import * as EnvironmentLinks from "./EnvironmentLinks.ts";
 import * as ManagedEndpointProvider from "./ManagedEndpointProvider.ts";
+import * as RasRelaySession from "./RasRelaySession.ts";
 import * as RelayConfiguration from "../Config.ts";
 
 export class EnvironmentLinkProofExpired extends Schema.TaggedErrorClass<EnvironmentLinkProofExpired>()(
@@ -68,6 +69,7 @@ export type EnvironmentLinkError =
   | EnvironmentLinkProofInvalid
   | DpopProofs.DpopProofReplayPersistenceError
   | EnvironmentLinks.EnvironmentLinkUpsertPersistenceError
+  | EnvironmentLinks.EnvironmentLinkLookupPersistenceError
   | EnvironmentCredentials.EnvironmentCredentialCreatePersistenceError
   | ManagedEndpointProvider.ManagedEndpointProviderError;
 
@@ -138,6 +140,7 @@ const make = Effect.gen(function* () {
   const managedEndpointProvider = yield* ManagedEndpointProvider.ManagedEndpointProvider;
   const proofReplay = yield* DpopProofs.DpopProofReplay;
   const relayTokens = yield* RelayTokens.RelayTokens;
+  const rasRelaySessions = yield* RasRelaySession.RasRelaySessionDirectory;
   const config = yield* RelayConfiguration.RelayConfiguration;
 
   return EnvironmentLinker.of({
@@ -305,7 +308,33 @@ const make = Effect.gen(function* () {
           stage: "validate_endpoint",
         });
       }
+      const replacedLink = yield* links.getForUser({
+        userId: input.userId,
+        environmentId: verified.environmentId,
+      });
       yield* links.upsert({ ...input, proof: verified, endpoint });
+      if (replacedLink?.endpoint.providerKind === "ras_relay") {
+        const replacedKeyStillActive = yield* links
+          .isManagedRelayPublicKeyActive({
+            environmentId: verified.environmentId,
+            environmentPublicKey: replacedLink.environmentPublicKey,
+          })
+          .pipe(
+            Effect.tapError((cause) =>
+              Effect.logWarning("Could not verify whether a replaced relay key remains active", {
+                environmentId: verified.environmentId,
+                cause,
+              }),
+            ),
+            Effect.orElseSucceed(() => false),
+          );
+        if (!replacedKeyStillActive) {
+          yield* rasRelaySessions.disconnect({
+            environmentId: verified.environmentId,
+            environmentPublicKey: replacedLink.environmentPublicKey,
+          });
+        }
+      }
       const environmentCredential = yield* credentials.create({
         environmentId: verified.environmentId,
         environmentPublicKey: verified.environmentPublicKey,

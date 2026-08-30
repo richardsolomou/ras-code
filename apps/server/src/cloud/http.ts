@@ -68,6 +68,7 @@ import {
   CLOUD_MINT_PUBLIC_KEY,
   decodeRuntimeConfig,
   encodeEndpointRuntimeConfigJson,
+  isStaleManagedEndpointRuntimeConfig,
   PUBLISH_AGENT_ACTIVITY_SECRET,
   RELAY_ENVIRONMENT_CREDENTIAL_SECRET,
   RELAY_ISSUER_SECRET,
@@ -631,19 +632,23 @@ const readCloudLinkState = Effect.fn("environment.cloud.readLinkState")(function
       ],
       { concurrency: 5 },
     );
+  const endpointRuntimeValue = Option.isSome(endpointRuntimeConfig)
+    ? bytesToString(endpointRuntimeConfig.value)
+    : null;
+  const staleManagedRuntime = isStaleManagedEndpointRuntimeConfig(endpointRuntimeValue);
   return {
-    linked: Option.isSome(cloudUserId),
+    linked: Option.isSome(cloudUserId) && !staleManagedRuntime,
     cloudUserId: Option.isSome(cloudUserId) ? bytesToString(cloudUserId.value) : null,
     relayUrl: Option.isSome(relayUrl) ? bytesToString(relayUrl.value) : null,
     relayIssuer: Option.isSome(relayIssuer) ? bytesToString(relayIssuer.value) : null,
     // The managed relay runtime config is only stored for managed links; a
     // publish-only link leaves it absent.
     managedRelayActive:
-      Option.isSome(endpointRuntimeConfig) &&
-      Option.isSome(decodeRuntimeConfig(bytesToString(endpointRuntimeConfig.value))),
-    publishAgentActivity: Option.isSome(publishAgentActivity)
-      ? bytesToString(publishAgentActivity.value) === "true"
-      : false,
+      endpointRuntimeValue !== null && Option.isSome(decodeRuntimeConfig(endpointRuntimeValue)),
+    publishAgentActivity:
+      !staleManagedRuntime && Option.isSome(publishAgentActivity)
+        ? bytesToString(publishAgentActivity.value) === "true"
+        : false,
   } satisfies EnvironmentCloudLinkStateResult;
 });
 

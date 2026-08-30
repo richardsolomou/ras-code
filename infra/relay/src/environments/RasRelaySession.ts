@@ -56,6 +56,7 @@ function pendingWebSocketClose(pending: PendingWebSocket): PendingWebSocket["clo
 }
 
 const emptyPayload = new Uint8Array();
+const HTTP_REQUEST_TIMEOUT = "30 seconds";
 function frame(message: RasRelayMessage, payload = emptyPayload): RasRelayFrame {
   return { message, payload };
 }
@@ -349,6 +350,22 @@ export const makeRasRelaySession = Effect.all({
           response: { _tag: "awaiting" },
           responseBytes: 0,
         });
+        let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
+        let requestStarted = false;
+        const cancelRelayRequest = Effect.gen(function* () {
+          cancelHttp(id);
+          const activeReader = reader;
+          if (activeReader) {
+            yield* Effect.sync(() => {
+              void activeReader.cancel().catch(() => undefined);
+            });
+          }
+          if (requestStarted && socketEquals(connector, targetConnector)) {
+            yield* send(targetConnector, [frame({ type: "http_request_cancel", id })]).pipe(
+              Effect.ignore,
+            );
+          }
+        });
         return yield* Effect.gen(function* () {
           const startedSent = yield* send(targetConnector, [
             frame({
@@ -364,7 +381,8 @@ export const makeRasRelaySession = Effect.all({
             pendingHttp.delete(id);
             return HttpServerResponse.text("Environment is offline.", { status: 503 });
           }
-          const reader = request.body?.getReader();
+          requestStarted = true;
+          reader = request.body?.getReader();
           let requestBodyFrames: Array<RasRelayFrame> = [];
           let requestBodyBytes = RAS_RELAY_BATCH_HEADER_BYTES;
           const flushRequestBodyFrames = () => {
@@ -378,9 +396,10 @@ export const makeRasRelaySession = Effect.all({
             );
           };
           let requestBytes = 0;
-          if (reader) {
+          const bodyReader = reader;
+          if (bodyReader) {
             while (true) {
-              const chunk = yield* Effect.promise(() => reader.read()).pipe(Effect.result);
+              const chunk = yield* Effect.promise(() => bodyReader.read()).pipe(Effect.result);
               if (chunk._tag === "Failure") {
                 cancelHttp(id);
                 yield* send(targetConnector, [frame({ type: "http_request_cancel", id })]).pipe(
@@ -391,11 +410,7 @@ export const makeRasRelaySession = Effect.all({
               if (chunk.success.done) break;
               requestBytes += chunk.success.value.byteLength;
               if (requestBytes > RAS_RELAY_MAX_STREAM_BYTES) {
-                cancelHttp(id);
-                yield* Effect.promise(() => reader.cancel()).pipe(Effect.ignore);
-                yield* send(targetConnector, [frame({ type: "http_request_cancel", id })]).pipe(
-                  Effect.ignore,
-                );
+                yield* cancelRelayRequest;
                 return HttpServerResponse.text("Request body is too large.", { status: 413 });
               }
               for (const bodyFrame of rasRelayPayloadFrames(
@@ -435,32 +450,16 @@ export const makeRasRelaySession = Effect.all({
             pendingHttp.delete(id);
             return HttpServerResponse.text("Environment is offline.", { status: 503 });
           }
-          return yield* Deferred.await(started).pipe(
-            Effect.timeoutOrElse({
-              duration: "30 seconds",
-              orElse: () =>
-                Effect.gen(function* () {
-                  cancelHttp(id);
-                  if (socketEquals(connector, targetConnector)) {
-                    yield* send(targetConnector, [frame({ type: "http_request_cancel", id })]).pipe(
-                      Effect.ignore,
-                    );
-                  }
-                  return HttpServerResponse.text("Environment request timed out.", { status: 504 });
-                }),
-            }),
-          );
+          return yield* Deferred.await(started);
         }).pipe(
-          Effect.onInterrupt(() =>
-            Effect.gen(function* () {
-              cancelHttp(id);
-              if (socketEquals(connector, targetConnector)) {
-                yield* send(targetConnector, [frame({ type: "http_request_cancel", id })]).pipe(
-                  Effect.ignore,
-                );
-              }
-            }),
-          ),
+          Effect.onInterrupt(() => cancelRelayRequest),
+          Effect.timeoutOrElse({
+            duration: HTTP_REQUEST_TIMEOUT,
+            orElse: () =>
+              Effect.succeed(
+                HttpServerResponse.text("Environment request timed out.", { status: 504 }),
+              ),
+          }),
         );
       });
 
