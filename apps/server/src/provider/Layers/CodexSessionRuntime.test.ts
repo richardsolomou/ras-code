@@ -475,6 +475,18 @@ describe("buildCodexDeveloperInstructions", () => {
     NodeAssert.match(instructions, /as gpt-5\.3-codex with medium reasoning effort/);
   });
 
+  it("tells the agent where a shared image has to live, in both modes", () => {
+    for (const mode of ["default", "plan"] as const) {
+      const instructions = buildCodexDeveloperInstructions(mode, {
+        model: "gpt-5.3-codex",
+        reasoningEffort: "high",
+      });
+
+      NodeAssert.match(instructions, /## Sharing images with the user/);
+      NodeAssert.match(instructions, /inside the project directory/);
+    }
+  });
+
   it("varies with the model and effort of each turn", () => {
     const first = buildCodexDeveloperInstructions("default", {
       model: "gpt-5.3-codex",

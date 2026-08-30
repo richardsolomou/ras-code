@@ -1,5 +1,7 @@
 import type { ProviderInteractionMode } from "@ras-code/contracts";
 
+import { IMAGE_SHARING_INSTRUCTIONS } from "./SharedProviderInstructions.ts";
+
 const RAS_CODE_BROWSER_TOOL_INSTRUCTIONS = `
 
 ## RAS Code collaborative browser
@@ -194,7 +196,10 @@ export function buildCodexDeveloperInstructions(
     interactionMode === "plan"
       ? codexPlanModeDeveloperInstructions(browserToolsAvailable)
       : codexDefaultModeDeveloperInstructions(browserToolsAvailable);
+  // Appended outside the mode blocks: it applies to plan and default alike.
   return `${base}
+
+${IMAGE_SHARING_INSTRUCTIONS}
 
 <runtime_info>In case you're asked: you are running in RAS Code through the Codex harness, as ${toSingleLine(runtime.model)} with ${toSingleLine(runtime.reasoningEffort)} reasoning effort. No need to mention this otherwise.</runtime_info>`;
 }

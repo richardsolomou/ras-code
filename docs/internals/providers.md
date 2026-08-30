@@ -186,6 +186,27 @@ Do not run an old image-only server against state that contains file attachments
 each persisted event before projection. A file-bearing event can make `ProjectionPipeline` bootstrap
 and `OrchestrationEngine` startup fail for the entire environment, not only the affected thread.
 
+## RAS Code instructions in the system prompt
+
+`SharedProviderInstructions.ts` holds the guidance RAS Code adds to an agent's prompt regardless of
+provider. Today that is one section: where to write an image so the reader can see it. A client
+often runs on a different machine than the environment, and the asset layer only serves markdown
+images that resolve inside the project directory, so an agent that writes a screenshot to `/tmp`
+produces a placeholder the reader cannot act on.
+
+Only two adapters have a channel for it:
+
+- **Codex** appends it in `buildCodexDeveloperInstructions`, outside the mode blocks, so plan and
+  default turns both carry it.
+- **Claude** passes it as `systemPrompt.append` alongside the `claude_code` preset.
+- **Cursor and Grok** get nothing. ACP `session/new` accepts a cwd and MCP servers, with no field
+  for instructions.
+- **OpenCode** gets nothing. Its prompt call takes text and file parts only.
+
+Nothing here may be load-bearing for correctness, since three of the five providers never see it.
+It reduces a common mistake; the failure itself has to stay legible on its own, which is why an
+image that cannot be served names its reason in the chat placeholder rather than failing silently.
+
 ## How provider work is requested
 
 Clients never call a provider directly. They dispatch orchestration commands over the RPC method
