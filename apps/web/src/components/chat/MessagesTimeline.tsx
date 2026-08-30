@@ -10,6 +10,7 @@ import {
 } from "@ras-code/contracts";
 import { parseScopedThreadKey } from "@ras-code/client-runtime/environment";
 import type { AgentPanelModel } from "@ras-code/client-runtime/state/subagentRuntime";
+import type { CodexArtifactTemplate } from "@ras-code/client-runtime/codex-artifact-templates";
 import { commandProgramName } from "@ras-code/client-runtime/work-log/command-label";
 import {
   emptyAgentPanelModel,
@@ -18,6 +19,7 @@ import {
 
 const EMPTY_AGENT_PANEL_MODEL = emptyAgentPanelModel();
 const NOOP_OPEN_AGENTS = () => {};
+const NOOP_USE_ARTIFACT_TEMPLATE = () => {};
 const NOOP_OPEN_ATTACHMENT = (_attachment: ChatFileAttachment) => {};
 import { resolveChatListAnchoredEndSpace } from "@ras-code/shared/chatList";
 import {
@@ -169,6 +171,7 @@ interface TimelineRowSharedState {
   activeThreadEnvironmentId: EnvironmentId;
   onRevertAssistantMessage: (messageId: MessageId) => void;
   onForkFromAssistantMessage: (messageId: MessageId) => void;
+  onUseArtifactTemplate: (template: CodexArtifactTemplate) => void;
   onImageExpand: (preview: ExpandedImagePreview) => void;
   onFileOpen: (attachment: ChatFileAttachment) => void;
   openingVideoAttachmentId: string | null;
@@ -252,6 +255,7 @@ interface MessagesTimelineProps {
   checkpointTurnCountByAssistantMessageId: Map<MessageId, number>;
   onRevertAssistantMessage: (messageId: MessageId) => void;
   onForkFromAssistantMessage: (messageId: MessageId) => void;
+  onUseArtifactTemplate?: (template: CodexArtifactTemplate) => void;
   isRevertingCheckpoint: boolean;
   onImageExpand: (preview: ExpandedImagePreview) => void;
   onFileOpen?: (attachment: ChatFileAttachment) => void;
@@ -301,6 +305,7 @@ export const MessagesTimeline = memo(function MessagesTimeline({
   checkpointTurnCountByAssistantMessageId,
   onRevertAssistantMessage,
   onForkFromAssistantMessage,
+  onUseArtifactTemplate = NOOP_USE_ARTIFACT_TEMPLATE,
   isRevertingCheckpoint,
   onImageExpand,
   onFileOpen = NOOP_OPEN_ATTACHMENT,
@@ -564,6 +569,7 @@ export const MessagesTimeline = memo(function MessagesTimeline({
       activeThreadEnvironmentId,
       onRevertAssistantMessage,
       onForkFromAssistantMessage,
+      onUseArtifactTemplate,
       onImageExpand,
       onFileOpen,
       openingVideoAttachmentId,
@@ -583,6 +589,7 @@ export const MessagesTimeline = memo(function MessagesTimeline({
       activeThreadEnvironmentId,
       onRevertAssistantMessage,
       onForkFromAssistantMessage,
+      onUseArtifactTemplate,
       onImageExpand,
       onFileOpen,
       openingVideoAttachmentId,
@@ -1306,6 +1313,7 @@ function AssistantTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "mess
           isStreaming={Boolean(row.message.streaming)}
           lineBreaks={shouldPreserveAssistantLineBreaks(messageText)}
           skills={ctx.skills}
+          onUseArtifactTemplate={ctx.onUseArtifactTemplate}
           onImageExpand={ctx.onImageExpand}
         />
         <AssistantChangedFilesSection

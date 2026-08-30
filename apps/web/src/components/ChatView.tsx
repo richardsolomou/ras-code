@@ -31,6 +31,7 @@ import {
   type EnvironmentConnectionPresentation,
 } from "@ras-code/client-runtime/connection";
 import { wasBootstrapThreadDeleted } from "@ras-code/client-runtime/errors";
+import { type CodexArtifactTemplate } from "@ras-code/client-runtime/codex-artifact-templates";
 import {
   changeRequestAutoSettles,
   effectiveSettled,
@@ -390,6 +391,7 @@ import {
   revokeUserMessagePreviewUrls,
   shouldWriteThreadErrorToCurrentServerThread,
   startNewThreadForProject,
+  codexArtifactTemplatePromptToAppend,
   waitForStartedServerThread,
 } from "./ChatView.logic";
 import type { ThreadSyncPhase } from "../threadSync";
@@ -3249,6 +3251,25 @@ function ChatViewContent(
       focusComposer();
     });
   }, [focusComposer]);
+  const useArtifactTemplate = useCallback(
+    (template: CodexArtifactTemplate) => {
+      const composer = composerRef.current;
+      if (!composer) return;
+
+      const currentDraft = composer.getSendContext().prompt;
+      const prompt = codexArtifactTemplatePromptToAppend(currentDraft, template);
+      if (prompt !== null && !composer.insertTextAtEnd(prompt, { ensureLeadingBoundary: true })) {
+        toastManager.add({
+          type: "error",
+          title: "Unable to add to chat",
+          description: "The composer is busy; try again once it is ready.",
+        });
+        return;
+      }
+      scheduleComposerFocus();
+    },
+    [composerRef, scheduleComposerFocus],
+  );
   const addTerminalContextToDraft = useCallback(
     (selection: TerminalContextSelection) => {
       composerRef.current?.addTerminalContext(selection);
@@ -7470,6 +7491,7 @@ function ChatViewContent(
                 checkpointTurnCountByAssistantMessageId={checkpointTurnCountByAssistantMessageId}
                 onRevertAssistantMessage={onRevertAssistantMessage}
                 onForkFromAssistantMessage={onForkFromAssistantMessage}
+                onUseArtifactTemplate={useArtifactTemplate}
                 isRevertingCheckpoint={isRevertingCheckpoint}
                 onImageExpand={onExpandTimelineImage}
                 onFileOpen={openFileAttachment}

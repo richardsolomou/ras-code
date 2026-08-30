@@ -1,4 +1,8 @@
 import { type EnvironmentConnectionPhase } from "@ras-code/client-runtime/connection";
+import {
+  appendCodexArtifactTemplateUsePrompt,
+  type CodexArtifactTemplate,
+} from "@ras-code/client-runtime/codex-artifact-templates";
 import type { EnvironmentThreadStatus } from "@ras-code/client-runtime/state/threads";
 import { useKeyboardChatComposerInset, useKeyboardScrollToEnd } from "@legendapp/list/keyboard";
 import type { LegendListRef } from "@legendapp/list/react-native";
@@ -287,6 +291,8 @@ export const ThreadDetailScreen = memo(function ThreadDetailScreen(props: Thread
     string | null
   >(null);
   const composerEditorRef = useRef<ComposerEditorHandle>(null);
+  const draftMessageRef = useRef(props.draftMessage);
+  draftMessageRef.current = props.draftMessage;
   const composerOverlayRef = useRef<View>(null);
   const listRef = useRef<LegendListRef>(null);
   const feedTouchStartRef = useRef<{ pageX: number; pageY: number } | null>(null);
@@ -648,6 +654,21 @@ export const ThreadDetailScreen = memo(function ThreadDetailScreen(props: Thread
     props.draftMessage,
     props.onChangeDraftMessage,
   ]);
+  const handleUseArtifactTemplate = useCallback(
+    (template: CodexArtifactTemplate) => {
+      const currentDraft = draftMessageRef.current;
+      const nextDraft = appendCodexArtifactTemplateUsePrompt(currentDraft, template);
+      if (nextDraft !== currentDraft) {
+        draftMessageRef.current = nextDraft;
+        props.onChangeDraftMessage(nextDraft);
+      }
+      requestAnimationFrame(() => {
+        composerEditorRef.current?.focus();
+        composerEditorRef.current?.setSelection({ start: nextDraft.length, end: nextDraft.length });
+      });
+    },
+    [props.onChangeDraftMessage],
+  );
 
   const handleScrollToEnd = useCallback(() => {
     void Haptics.selectionAsync();
@@ -725,6 +746,7 @@ export const ThreadDetailScreen = memo(function ThreadDetailScreen(props: Thread
             onHeaderMaterialVisibilityChange={props.onHeaderMaterialVisibilityChange}
             onEndFollowEnabledChange={setEndFollowEnabled}
             skills={selectedProviderSkills}
+            onUseArtifactTemplate={handleUseArtifactTemplate}
             loadEarlier={props.loadEarlier ?? null}
           />
         </View>
