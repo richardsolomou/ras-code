@@ -167,6 +167,94 @@ it.effect("uses stable diagnostics for every parsed non-repository command", () 
   }).pipe(Effect.provide(layer));
 });
 
+const makeFailingHandle = (stderr: string) =>
+  ChildProcessSpawner.makeHandle({
+    pid: ChildProcessSpawner.ProcessId(1),
+    exitCode: Effect.succeed(ChildProcessSpawner.ExitCode(128)),
+    isRunning: Effect.succeed(false),
+    kill: () => Effect.void,
+    unref: Effect.succeed(Effect.void),
+    stdin: Sink.drain,
+    stdout: Stream.empty,
+    stderr: Stream.encodeText(Stream.make(stderr)),
+    all: Stream.empty,
+    getInputFd: () => Sink.drain,
+    getOutputFd: () => Stream.empty,
+  });
+
+const makeFailingLayer = (stderr: string) => {
+  const spawner = ChildProcessSpawner.make(() => Effect.sync(() => makeFailingHandle(stderr)));
+  return GitVcsDriver.layer.pipe(
+    Layer.provide(ServerConfigLayer),
+    Layer.provideMerge(
+      Layer.merge(
+        NodeServices.layer,
+        Layer.succeed(ChildProcessSpawner.ChildProcessSpawner, spawner),
+      ),
+    ),
+  );
+};
+
+const failGit = (stderr: string) =>
+  Effect.gen(function* () {
+    const driver = yield* GitVcsDriver.GitVcsDriver;
+    return yield* driver
+      .execute({ operation: "GitVcsDriver.test.classify", cwd: "/repo", args: ["clone", "url"] })
+      .pipe(Effect.flip);
+  }).pipe(Effect.provide(makeFailingLayer(stderr)));
+
+describe("failure classification", () => {
+  it.effect("classifies a missing repository", () =>
+    Effect.gen(function* () {
+      const error = yield* failGit(
+        "remote: Repository not found.\nfatal: repository 'https://github.com/o/r.git/' not found\n",
+      );
+      assert.strictEqual(error.failureReason, "repository-not-found");
+    }),
+  );
+
+  it.effect("classifies an unreachable host", () =>
+    Effect.gen(function* () {
+      const error = yield* failGit(
+        "fatal: unable to access 'https://h.invalid/r.git/': Could not resolve host: h.invalid\n",
+      );
+      assert.strictEqual(error.failureReason, "host-unreachable");
+    }),
+  );
+
+  it.effect("classifies rejected credentials", () =>
+    Effect.gen(function* () {
+      const error = yield* failGit(
+        "fatal: Authentication failed for 'https://github.com/o/r.git/'\n",
+      );
+      assert.strictEqual(error.failureReason, "authentication-failed");
+    }),
+  );
+
+  it.effect("leaves an unrecognised failure unclassified", () =>
+    Effect.gen(function* () {
+      const error = yield* failGit("fatal: something entirely new went wrong\n");
+      assert.strictEqual(error.failureReason, undefined);
+    }),
+  );
+
+  // Git echoes the remote URL into its error prose, so an HTTPS remote puts a
+  // credential on stderr. Classifying must reduce that to a constant, never
+  // carry the text.
+  it.effect("does not carry the classified stderr into the error", () =>
+    Effect.gen(function* () {
+      const error = yield* failGit(
+        "fatal: repository 'https://user:secret-token-value@github.com/o/r.git/' not found\n",
+      );
+
+      assert.strictEqual(error.failureReason, "repository-not-found");
+      assert.notInclude(error.detail, "secret-token-value");
+      assert.notInclude(error.message, "secret-token-value");
+      assert.notProperty(error, "stderr");
+    }),
+  );
+});
+
 const makeOversizedOutputLayer = (stdout: string) => {
   const spawner = ChildProcessSpawner.make(() => Effect.sync(() => makeSuccessfulHandle(stdout)));
   return GitVcsDriver.layer.pipe(

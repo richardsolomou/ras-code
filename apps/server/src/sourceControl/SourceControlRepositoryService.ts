@@ -7,6 +7,7 @@ import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 
 import {
+  GitCommandError,
   SourceControlRepositoryError,
   type SourceControlCloneRepositoryInput,
   type SourceControlCloneRepositoryResult,
@@ -23,6 +24,25 @@ import { ServerConfig } from "../config.ts";
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
 import * as SourceControlProviderRegistry from "./SourceControlProviderRegistry.ts";
 const isSourceControlRepositoryError = Schema.is(SourceControlRepositoryError);
+const isGitCommandError = Schema.is(GitCommandError);
+
+// The Git driver classifies a failure into a constant rather than passing its
+// stderr out, because Git's error prose embeds the remote URL and so can carry
+// a credential. These map that constant to something a user can act on.
+const FAILURE_REASON_DETAIL = {
+  "repository-not-found":
+    "Repository not found. Check the name, and that your account has access to it.",
+  "authentication-failed":
+    "Authentication failed. Check your source control credentials in Settings.",
+  "host-unreachable": "Could not reach the remote host. Check your network connection.",
+} as const;
+
+function detailForCause(cause: unknown): string {
+  if (isGitCommandError(cause) && cause.failureReason) {
+    return FAILURE_REASON_DETAIL[cause.failureReason];
+  }
+  return "The source control operation could not be completed.";
+}
 
 export class SourceControlRepositoryService extends Context.Service<
   SourceControlRepositoryService,
@@ -46,7 +66,7 @@ function mapRepositoryError(operation: string, provider: SourceControlProviderKi
       : new SourceControlRepositoryError({
           operation,
           provider,
-          detail: "The source control operation could not be completed.",
+          detail: detailForCause(cause),
           cause,
         }),
   );

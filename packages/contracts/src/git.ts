@@ -335,6 +335,21 @@ export const VcsPullResult = Schema.Struct({
 export type VcsPullResult = typeof VcsPullResult.Type;
 
 // RPC / domain errors
+
+/**
+ * A recognised cause of a failed Git command, classified from the command's
+ * stderr by the Git driver. This is a fixed set of constants rather than the
+ * stderr itself: Git echoes the remote URL into its error output, which for an
+ * HTTPS remote carries an embedded credential, so raw output must not cross
+ * this boundary.
+ */
+export const GitCommandFailureReason = Schema.Literals([
+  "repository-not-found",
+  "authentication-failed",
+  "host-unreachable",
+]);
+export type GitCommandFailureReason = typeof GitCommandFailureReason.Type;
+
 export class GitCommandError extends Schema.TaggedErrorClass<GitCommandError>()("GitCommandError", {
   operation: Schema.String,
   command: Schema.String,
@@ -344,6 +359,7 @@ export class GitCommandError extends Schema.TaggedErrorClass<GitCommandError>()(
   stdoutLength: Schema.optional(Schema.Number),
   stderrLength: Schema.optional(Schema.Number),
   outputLength: Schema.optional(Schema.Number),
+  failureReason: Schema.optional(GitCommandFailureReason),
   detail: Schema.String,
   cause: Schema.optional(Schema.Defect()),
 }) {
