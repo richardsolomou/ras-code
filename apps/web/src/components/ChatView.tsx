@@ -7089,14 +7089,6 @@ function ChatViewContent(props: ChatViewProps) {
     });
   }, []);
 
-  const composerBannerItems = useMemo(
-    () =>
-      conflictResolutionBannerItem === null
-        ? baseComposerBannerItems
-        : [conflictResolutionBannerItem, ...baseComposerBannerItems],
-    [baseComposerBannerItems, conflictResolutionBannerItem],
-  );
-
   // Empty state: no active thread
   if (!activeThread) {
     return <NoActiveThreadState />;

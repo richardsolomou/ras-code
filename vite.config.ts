@@ -73,10 +73,16 @@ export default defineConfig({
       suspicious: "warn",
       perf: "warn",
     },
+    // Not on by default, and its absence let a hook sit after an early return in
+    // ChatView until a second mount of it crashed. Scoped to the React surfaces:
+    // the server has its own `use` identifiers that the rule cannot tell apart.
+    overrides: [
+      {
+        files: ["apps/web/src/**", "apps/mobile/src/**", "apps/desktop/src/**"],
+        rules: { "react/rules-of-hooks": "error" },
+      },
+    ],
     rules: {
-      // Not on by default, and its absence let a hook sit after an early return
-      // in ChatView for long enough to crash a second mount of it.
-      "react/rules-of-hooks": "error",
       "unicorn/no-array-sort": "off",
       "unicorn/consistent-function-scoping": "off",
       "oxc/no-map-spread": "off",
