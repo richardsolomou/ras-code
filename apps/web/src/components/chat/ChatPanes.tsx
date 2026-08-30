@@ -26,6 +26,7 @@ import {
   isCompanionVisible,
   oppositePaneSide,
   planRouteChange,
+  takeRouteOpenPane,
   useChatPaneStore,
   type ChatPaneSide,
   type FocusedPane,
@@ -151,7 +152,10 @@ function useMeasureRow(): {
       observerRef.current?.disconnect();
       observerRef.current = null;
       rowNodeRef.current = node;
-      if (!node) return;
+      if (!node) {
+        setCanSplit(false);
+        return;
+      }
       const publish = (width: number) => {
         rowWidthRef.current = width;
         // Re-clamped against the new width here rather than at render, because a
@@ -457,12 +461,14 @@ export function ChatPanes({ children }: { children: ReactNode }) {
   const knownThreadKeys = useMemo(() => new Set(threadRefs.map(scopedThreadKey)), [threadRefs]);
 
   useLayoutEffect(() => {
+    const openedFromPane = takeRouteOpenPane(routeId);
     const previous = previousRouteRef.current;
     previousRouteRef.current = { routeId, routed };
     if (!previous) return;
     const paneState = useChatPaneStore.getState();
     const nextLayout = planRouteChange({
       layout: paneState,
+      openedFromPane,
       previousRouteId: previous.routeId,
       nextRouteId: routeId,
       previousRouted: previous.routed,
@@ -497,6 +503,10 @@ export function ChatPanes({ children }: { children: ReactNode }) {
     leftFraction,
   });
   const companionFocused = splitActive && focusedPane === "companion";
+
+  useEffect(() => {
+    if (!splitActive) focusMemoryRef.current.companion = null;
+  }, [splitActive]);
 
   useLayoutEffect(() => {
     if (isCommandPaletteOpen()) return;

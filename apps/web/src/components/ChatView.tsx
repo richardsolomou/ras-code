@@ -219,7 +219,7 @@ import {
 import { useNowMinute } from "../hooks/useNowMinute";
 import { useForkThreadHandler } from "../hooks/useForkThread";
 import { useNewThreadHandler } from "../hooks/useHandleNewThread";
-import { useOpenThreadInPane } from "../hooks/useOpenThreadInPane";
+import { useOpenDraftInPane, useOpenThreadInPane } from "../hooks/useOpenThreadInPane";
 import { useThreadActions } from "../hooks/useThreadActions";
 import { resolveAppModelSelectionForInstance } from "../modelSelection";
 import { confirmTerminalClose, isTerminalCloseConfirmPending } from "../lib/terminalCloseConfirm";
@@ -235,7 +235,6 @@ import {
   selectProjectGroupingSettings,
 } from "../logicalProject";
 import { buildPhysicalToLogicalProjectKeyMap } from "../sidebarProjectGrouping";
-import { buildDraftThreadRouteParams } from "../threadRoutes";
 import {
   beginBackgroundDraftSubmissionByRef,
   clearBackgroundDraftSubmissionByRef,
@@ -1412,6 +1411,7 @@ function ChatViewContent(
   const timestampFormat = settings.timestampFormat;
   const navigate = useNavigate();
   const openThreadInPane = useOpenThreadInPane();
+  const openDraftInPane = useOpenDraftInPane();
   const { resolvedTheme } = useTheme();
   // Granular store selectors — avoid subscribing to prompt changes.
   const composerRuntimeMode = useComposerDraftStore(
@@ -2191,10 +2191,7 @@ function ChatViewContent(
           },
         );
         if (routeKind !== "draft" || draftId !== storedDraftSession.draftId) {
-          await navigate({
-            to: "/draft/$draftId",
-            params: buildDraftThreadRouteParams(storedDraftSession.draftId),
-          });
+          await openDraftInPane(storedDraftSession.draftId);
         }
         return storedDraftSession.threadId;
       }
@@ -2225,10 +2222,7 @@ function ChatViewContent(
         interactionMode: DEFAULT_INTERACTION_MODE,
         ...input,
       });
-      await navigate({
-        to: "/draft/$draftId",
-        params: buildDraftThreadRouteParams(nextDraftId),
-      });
+      await openDraftInPane(nextDraftId);
       return nextThreadId;
     },
     [
@@ -2237,7 +2231,7 @@ function ChatViewContent(
       getDraftSession,
       getDraftSessionByLogicalProjectKey,
       isServerThread,
-      navigate,
+      openDraftInPane,
       projectGroupingSettings,
       routeKind,
       setDraftThreadContext,
@@ -4453,11 +4447,11 @@ function ChatViewContent(
     setIsRevertingCheckpoint(false);
   }, [activeThread?.id]);
 
-  const lastComposerAutoFocusThreadIdRef = useRef<ThreadId | null>(null);
+  const lastComposerAutoFocusThreadKeyRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!activeThread?.id) return;
-    const threadChanged = lastComposerAutoFocusThreadIdRef.current !== activeThread.id;
-    lastComposerAutoFocusThreadIdRef.current = activeThread.id;
+    if (!activeThreadKey) return;
+    const threadChanged = lastComposerAutoFocusThreadKeyRef.current !== activeThreadKey;
+    lastComposerAutoFocusThreadKeyRef.current = activeThreadKey;
     if (
       !isFocusedPane ||
       !threadChanged ||
@@ -4472,7 +4466,7 @@ function ChatViewContent(
     return () => {
       window.cancelAnimationFrame(frame);
     };
-  }, [activeThread?.id, focusComposer, isFocusedPane, terminalUiState.terminalOpen]);
+  }, [activeThreadKey, focusComposer, isFocusedPane, terminalUiState.terminalOpen]);
 
   useEffect(() => {
     if (!activeThread?.id) return;

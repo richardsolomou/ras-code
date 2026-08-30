@@ -30,6 +30,13 @@ export type ChatPaneSide = "left" | "right";
  */
 export type FocusedPane = "routed" | "companion";
 
+interface PaneRouteOpenIntent {
+  pane: FocusedPane;
+  routeId: string;
+}
+
+let pendingRouteOpenIntent: PaneRouteOpenIntent | null = null;
+
 export interface ChatPaneLayout {
   /** The thread beside the routed one, or null while the inset holds one pane. */
   companion: ScopedThreadRef | null;
@@ -61,6 +68,30 @@ export const INITIAL_CHAT_PANE_LAYOUT: ChatPaneLayout = {
  */
 export function isCompanionVisible(layout: ChatPaneMeasuredLayout): boolean {
   return layout.companion !== null && layout.canSplit;
+}
+
+export async function openDraftInFocusedPane<T>(
+  draftId: string,
+  navigate: () => Promise<T>,
+): Promise<T> {
+  const paneState = useChatPaneStore.getState();
+  const intent = {
+    pane: isCompanionVisible(paneState) ? paneState.focusedPane : "routed",
+    routeId: `draft:${draftId}`,
+  } satisfies PaneRouteOpenIntent;
+  pendingRouteOpenIntent = intent;
+  try {
+    return await navigate();
+  } catch (error) {
+    if (pendingRouteOpenIntent === intent) pendingRouteOpenIntent = null;
+    throw error;
+  }
+}
+
+export function takeRouteOpenPane(routeId: string | null): FocusedPane | null {
+  const intent = pendingRouteOpenIntent;
+  pendingRouteOpenIntent = null;
+  return intent?.routeId === routeId ? intent.pane : null;
 }
 
 /**
@@ -202,15 +233,17 @@ export function planThreadDrop(input: {
 /** Places drafts and already-visible threads in the pane that opened them. */
 export function planRouteChange(input: {
   layout: ChatPaneMeasuredLayout;
+  openedFromPane: FocusedPane | null;
   previousRouteId: string | null;
   nextRouteId: string | null;
   previousRouted: ScopedThreadRef | null;
   nextRouted: ScopedThreadRef | null;
 }): ChatPaneLayout {
-  const { layout, nextRouteId, nextRouted, previousRouteId, previousRouted } = input;
+  const { layout, nextRouteId, nextRouted, openedFromPane, previousRouteId, previousRouted } =
+    input;
   if (nextRouteId === previousRouteId || !isCompanionVisible(layout)) return layout;
   const opensDraftInCompanion =
-    layout.focusedPane === "companion" && nextRouteId?.startsWith("draft:") === true;
+    openedFromPane === "companion" && nextRouteId?.startsWith("draft:") === true;
   if (!opensDraftInCompanion && !isSameThreadRef(layout.companion, nextRouted)) {
     return layout;
   }

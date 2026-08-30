@@ -34,6 +34,7 @@ import { resolveThreadRouteTarget } from "../threadRoutes";
 import { legacyProjectCwdPreferenceKey, useUiStateStore } from "../uiStateStore";
 import { useClientSettings } from "./useSettings";
 import { toastManager } from "../components/ui/toast";
+import { useOpenDraftInPane } from "./useOpenThreadInPane";
 
 interface NewThreadWorkspaceOptions {
   branch?: string | null;
@@ -64,6 +65,7 @@ export function useNewThreadHandler() {
   const primaryServerSettings = useAtomValue(primaryServerSettingsAtom);
   const projectGroupingSettings = useClientSettings(selectProjectGroupingSettings);
   const router = useRouter();
+  const openDraftInPane = useOpenDraftInPane();
   const getCurrentRouteTarget = useCallback(() => {
     const currentRouteParams = router.state.matches[router.state.matches.length - 1]?.params ?? {};
     return resolveThreadRouteTarget(currentRouteParams);
@@ -358,9 +360,7 @@ export function useNewThreadHandler() {
           ) {
             return opened;
           }
-          await router.navigate({
-            to: "/draft/$draftId",
-            params: { draftId: emptyStoredDraftThread.draftId },
+          await openDraftInPane(emptyStoredDraftThread.draftId, {
             replace: options?.replace ?? false,
           });
           return opened;
@@ -432,11 +432,7 @@ export function useNewThreadHandler() {
             ...pickExplicitWorkspaceOptions(options),
           });
           carryComposerContentTo(racedDraft.draftId);
-          await router.navigate({
-            to: "/draft/$draftId",
-            params: { draftId: racedDraft.draftId },
-            replace: options?.replace ?? false,
-          });
+          await openDraftInPane(racedDraft.draftId, { replace: options?.replace ?? false });
           return { draftId: racedDraft.draftId, threadId: racedDraft.threadId };
         }
         setLogicalProjectDraftThreadId(logicalProjectKey, projectRef, draftId, {
@@ -463,15 +459,17 @@ export function useNewThreadHandler() {
         }
         carryComposerContentTo(draftId);
 
-        await router.navigate({
-          to: "/draft/$draftId",
-          params: { draftId },
-          replace: options?.replace ?? false,
-        });
+        await openDraftInPane(draftId, { replace: options?.replace ?? false });
         return { draftId, threadId };
       })();
     },
-    [getCurrentRouteTarget, primaryServerSettings, projectGroupingSettings, projects, router],
+    [
+      getCurrentRouteTarget,
+      openDraftInPane,
+      primaryServerSettings,
+      projectGroupingSettings,
+      projects,
+    ],
   );
 }
 

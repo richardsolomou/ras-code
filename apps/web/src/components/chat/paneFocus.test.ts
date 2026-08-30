@@ -58,11 +58,15 @@ describe("restorePaneFocusAfterClick", () => {
 
   it("leaves a clicked focusable control in charge", () => {
     const remembered = focusTarget();
-    const target = { closest: vi.fn(() => remembered) } as unknown as EventTarget;
+    const closest = vi.fn((selector: string) =>
+      selector.includes("a[href]") && selector.includes("button") ? remembered : null,
+    );
+    const target = { closest } as unknown as EventTarget;
 
     expect(restorePaneFocusAfterClick(paneRoot({ remembered }), target, null, remembered)).toBe(
       false,
     );
+    expect(closest).toHaveBeenCalledOnce();
     expect(remembered.focus).not.toHaveBeenCalled();
   });
 

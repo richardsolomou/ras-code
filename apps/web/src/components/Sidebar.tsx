@@ -10,7 +10,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { canOpenThreadInSplit, selectFocusedThread, useChatPaneStore } from "../chatPaneStore";
-import { useOpenThreadInPane } from "../hooks/useOpenThreadInPane";
+import { useOpenDraftInPane, useOpenThreadInPane } from "../hooks/useOpenThreadInPane";
 import { useRoutedThreadRef } from "../hooks/useRoutedThreadRef";
 import { setPinnedReorderHandler, type ThreadDragData } from "../threadDrag";
 import {
@@ -1867,6 +1867,7 @@ export default function Sidebar() {
   });
   const newThreadContext = useHandleNewThread();
   const openThreadInPane = useOpenThreadInPane();
+  const openDraftInPane = useOpenDraftInPane();
   const openAddProjectCommandPalette = useCallback(
     () => openCommandPalette({ open: "add-project" }),
     [],
@@ -2487,9 +2488,9 @@ export default function Sidebar() {
       if (isMobile) {
         setOpenMobile(false);
       }
-      void router.navigate({ to: "/draft/$draftId", params: { draftId } });
+      void openDraftInPane(draftId);
     },
-    [clearSelection, isMobile, router, setOpenMobile],
+    [clearSelection, isMobile, openDraftInPane, setOpenMobile],
   );
 
   const clearThreadSearch = useCallback(() => {
