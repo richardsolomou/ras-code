@@ -57,11 +57,11 @@ jobs:
       - name: Verify preload bundle output
         run: node apps/desktop/scripts/verify-preload-bundle.mjs
 
-  # Everything except `ras-code` (apps/server). `--parallel` drops the package
-  # dependency ordering that `vp run` applies by default: these `test` tasks
-  # declare no `dependsOn` and resolve workspace deps from source, so ordering
-  # only bought us idle runners between dependency layers. The concurrency
-  # limit stays at the default 4 so peak load per runner is unchanged.
+  # Everything except `ras-code` (apps/server) and `@ras-code/web`, which get
+  # their own runners below. `--parallel` drops the package dependency ordering
+  # that `vp run` applies by default: these `test` tasks declare no `dependsOn`
+  # and resolve workspace deps from source, so ordering only bought us idle
+  # runners between dependency layers.
   test:
     name: Test
     runs-on: ubuntu-latest
@@ -86,7 +86,38 @@ jobs:
         run: vp run --filter @ras-code/desktop ensure:electron
 
       - name: Test
-        run: vp run --parallel --concurrency-limit 4 --filter '!ras-code' --filter '!@ras-code/monorepo' test
+        run: vp run --parallel --concurrency-limit 4 --filter '!ras-code' --filter '!@ras-code/web' --filter '!@ras-code/monorepo' test
+
+  # The web suite is the largest (about 290 files) and is import-bound, so it
+  # was pinning the shared Test runner while the other packages fought it for
+  # the same four cores. Two shards on their own runners finish in about half
+  # the time.
+  test_web:
+    name: Test Web ${{ matrix.shard }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: |
+            /*
+            !/.repos/
+          sparse-checkout-cone-mode: false
+
+      - name: Setup Vite+
+        uses: voidzero-dev/setup-vp@v1
+        with:
+          node-version-file: package.json
+          cache: true
+          run-install: true
+
+      - name: Test
+        run: vp run --filter @ras-code/web test --shard ${{ matrix.shard }}/${{ strategy.job-total }}
 
   # apps/server sets `fileParallelism: false`, so its 239 files run strictly
   # one at a time. Sharding spreads them over separate runners instead of
@@ -272,7 +303,10 @@ jobs:
         uses: voidzero-dev/setup-vp@v1
         with:
           node-version-file: package.json
-          cache: true
+          # No dependency cache: a filtered install saves a partial store under
+          # the lockfile-wide key and poisons every full install that restores
+          # it. Only full-install jobs cache.
+          cache: false
           run-install: |
             args:
               - --filter=@ras-code/scripts...
@@ -300,7 +334,10 @@ jobs:
         uses: voidzero-dev/setup-vp@v1
         with:
           node-version-file: package.json
-          cache: true
+          # No dependency cache: a filtered install saves a partial store under
+          # the lockfile-wide key and poisons every full install that restores
+          # it. Only full-install jobs cache.
+          cache: false
           run-install: |
             args:
               - --filter=@ras-code/scripts...
