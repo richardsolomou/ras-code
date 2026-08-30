@@ -339,6 +339,29 @@ export function buildThreadTurnInterruptInput(thread: Pick<Thread, "id" | "sessi
   };
 }
 
+/**
+ * The threads whose terminals a pane keeps mounted.
+ *
+ * The routed pane retains every open one that still exists, so navigating back
+ * to a thread finds its terminal alive. A pane that cannot navigate keeps only
+ * its own thread: retention would buy it nothing and would stand up a second
+ * live surface for a terminal another pane is already showing.
+ */
+export function resolveRetainedTerminalThreadKeys(input: {
+  isRoutedPane: boolean;
+  activeThreadKey: string | null;
+  openTerminalThreadKeys: ReadonlyArray<string>;
+  existingThreadKeys: ReadonlySet<string>;
+}): string[] {
+  const { activeThreadKey, existingThreadKeys, isRoutedPane, openTerminalThreadKeys } = input;
+  if (!isRoutedPane) {
+    return activeThreadKey !== null && openTerminalThreadKeys.includes(activeThreadKey)
+      ? [activeThreadKey]
+      : [];
+  }
+  return openTerminalThreadKeys.filter((threadKey) => existingThreadKeys.has(threadKey));
+}
+
 export function reconcileMountedTerminalThreadIds(input: {
   currentThreadIds: ReadonlyArray<string>;
   openThreadIds: ReadonlyArray<string>;

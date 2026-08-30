@@ -11,5 +11,9 @@ export const Route = createFileRoute("/projects/$projectKey")({
       throw redirect({ to: "/pair", replace: true });
     }
   },
-  component: () => <ProjectSettingsPage projectKey={Route.useParams().projectKey} />,
+  component: ProjectSettingsRouteView,
 });
+
+function ProjectSettingsRouteView() {
+  return <ProjectSettingsPage projectKey={Route.useParams().projectKey} />;
+}

@@ -6,6 +6,7 @@ import { ArrowLeftRightIcon, XIcon } from "lucide-react";
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   type CSSProperties,
@@ -41,7 +42,7 @@ import { resolveThreadSyncPhase } from "../../threadSync";
 import { paneDropZoneId, readThreadDrag } from "../../threadDrag";
 import { Button } from "../ui/button";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
-import { PaneFocusProvider } from "./paneFocus";
+import { PaneFocusProvider, PaneIsRoutedProvider } from "./paneFocus";
 
 /**
  * Which pane the keyboard is aimed at, drawn only while the inset is split. A
@@ -73,6 +74,29 @@ function usePaneFocusHandler(pane: FocusedPane) {
 
 const PANE_KEYBOARD_STEP = 0.02;
 
+/**
+ * The share of the row given to the left pane, as a CSS custom property.
+ *
+ * Written imperatively and never through React: a render that sees an unchanged
+ * value writes nothing, so if React owned the property and anything else cleared
+ * it, both panes would resolve `flex-grow` to 0 and the chat area would go blank.
+ * One writer, and a fallback in the `calc()` for the frame before the first
+ * measurement.
+ */
+const PANE_FRACTION_VARIABLE = "--chat-pane-left-fraction";
+const DEFAULT_PANE_FRACTION = 0.5;
+
+function writePaneFraction(row: HTMLElement, fraction: number, rowWidth: number): void {
+  row.style.setProperty(PANE_FRACTION_VARIABLE, `${clampPaneFraction(fraction, rowWidth)}`);
+}
+
+/** `left` takes the fraction, `right` takes the remainder. */
+function paneGrow(side: ChatPaneSide): string {
+  return side === "left"
+    ? `calc(var(${PANE_FRACTION_VARIABLE}, ${DEFAULT_PANE_FRACTION}))`
+    : `calc(1 - var(${PANE_FRACTION_VARIABLE}, ${DEFAULT_PANE_FRACTION}))`;
+}
+
 /** Flex order slots. The routed pane and the companion trade these on a swap so
  *  neither remounts and neither moves on screen. */
 const ORDER_BY_SIDE = { left: 0, right: 2 } as const;
@@ -87,19 +111,26 @@ const ORDER_BY_SIDE = { left: 0, right: 2 } as const;
  */
 function useMeasureRow(): {
   rowRef: (node: HTMLDivElement | null) => void;
+  rowNodeRef: RefObject<HTMLDivElement | null>;
   rowWidthRef: RefObject<number>;
 } {
   const setCanSplit = useChatPaneStore((state) => state.setCanSplit);
   const observerRef = useRef<ResizeObserver | null>(null);
+  const rowNodeRef = useRef<HTMLDivElement | null>(null);
   const rowWidthRef = useRef(0);
 
   const rowRef = useCallback(
     (node: HTMLDivElement | null) => {
       observerRef.current?.disconnect();
       observerRef.current = null;
+      rowNodeRef.current = node;
       if (!node) return;
       const publish = (width: number) => {
         rowWidthRef.current = width;
+        // Re-clamped against the new width here rather than at render, because a
+        // resize that stays on one side of the split threshold produces no
+        // re-render and would otherwise leave a pane under its minimum.
+        writePaneFraction(node, useChatPaneStore.getState().leftFraction, width);
         setCanSplit(canSplitPaneRow(width));
       };
       publish(node.clientWidth);
@@ -116,7 +147,7 @@ function useMeasureRow(): {
 
   useEffect(() => () => observerRef.current?.disconnect(), []);
 
-  return { rowRef, rowWidthRef };
+  return { rowRef, rowNodeRef, rowWidthRef };
 }
 
 /**
@@ -126,13 +157,13 @@ function useMeasureRow(): {
  */
 function PaneDropZone({
   side,
+  grow,
   label,
-  spacerBefore,
   visible,
 }: {
   side: ChatPaneSide;
+  grow: string;
   label: string;
-  spacerBefore: boolean;
   visible: boolean;
 }) {
   const { isOver, setNodeRef } = useDroppable({
@@ -142,11 +173,11 @@ function PaneDropZone({
 
   return (
     <>
-      {spacerBefore ? <div className="flex-1" /> : null}
       <div
         ref={setNodeRef}
         data-testid={`chat-pane-drop-${side}`}
-        className={`pointer-events-none flex flex-1 items-center justify-center rounded-lg transition-colors ${
+        style={{ flexGrow: grow, flexBasis: 0 }}
+        className={`pointer-events-none flex min-w-0 items-center justify-center rounded-lg transition-colors ${
           visible ? "" : "invisible"
         } ${isOver ? "bg-accent/10 ring-2 ring-accent ring-inset" : "ring-1 ring-border ring-inset"}`}
       >
@@ -187,23 +218,26 @@ function PaneDropOverlay({
   const { active } = useDndContext();
   if (!canSplit) return null;
   const dragging = readThreadDrag(active) !== null;
-  const sides: ChatPaneSide[] = splitActive ? [companionSide] : ["left", "right"];
-
   return (
     <div
       className={`pointer-events-none absolute inset-0 z-30 flex gap-2 p-2 ${dragging ? "" : "invisible"}`}
     >
-      {sides.map((side) => (
-        <PaneDropZone
-          key={side}
-          side={side}
-          visible={dragging}
-          // The lone zone in a live split sits on the companion's side, so it is
-          // pushed across by an empty flex spacer rather than laid out at half.
-          spacerBefore={splitActive && side === "right"}
-          label={splitActive ? "Replace this pane" : `Open on the ${side}`}
-        />
-      ))}
+      {(["left", "right"] as const).map((side) =>
+        // In a live split only the companion's half takes a drop, and the other
+        // half becomes an inert spacer. Both are sized from the same variable
+        // the panes use, so a zone always covers exactly the pane it names.
+        splitActive && side !== companionSide ? (
+          <div key={side} style={{ flexGrow: paneGrow(side), flexBasis: 0 }} />
+        ) : (
+          <PaneDropZone
+            key={side}
+            side={side}
+            grow={splitActive ? paneGrow(side) : "1"}
+            visible={dragging}
+            label={splitActive ? "Replace this pane" : `Open on the ${side}`}
+          />
+        ),
+      )}
     </div>
   );
 }
@@ -234,20 +268,19 @@ function PaneDivider({
 
       let pendingFraction = leftFraction;
       const handleMove = (moveEvent: PointerEvent) => {
-        pendingFraction = clampPaneFraction(
-          (moveEvent.clientX - rowRect.left) / rowRect.width,
-          rowRect.width,
-        );
-        // Writing the variable is a style mutation the browser already batches
-        // to the next frame; going through React instead would re-render the
-        // companion's ChatView on every pointer event.
-        row.style.setProperty("--chat-pane-left-fraction", `${pendingFraction}`);
+        pendingFraction = (moveEvent.clientX - rowRect.left) / rowRect.width;
+        // A style mutation the browser already batches to the next frame; going
+        // through React instead would re-render the companion's ChatView on
+        // every pointer event.
+        writePaneFraction(row, pendingFraction, rowRect.width);
       };
       const handleUp = () => {
-        row.style.removeProperty("--chat-pane-left-fraction");
         target.removeEventListener("pointermove", handleMove);
         target.removeEventListener("pointerup", handleUp);
         target.removeEventListener("pointercancel", handleUp);
+        // Rewritten, never removed: this property is the row's only source for
+        // the split, and clearing it collapses both panes to nothing.
+        writePaneFraction(row, pendingFraction, rowRect.width);
         onFractionChange(pendingFraction, rowRect.width);
       };
       target.addEventListener("pointermove", handleMove);
@@ -383,22 +416,24 @@ function CompanionPane({
       onFocusCapture={takeFocus}
     >
       <PaneFocusRule isFocused={isFocused} />
-      <PaneFocusProvider value={isFocused}>
-        {ready ? (
-          <ChatView
-            environmentId={companion.environmentId}
-            threadId={companion.threadId}
-            routeKind="server"
-            reserveTitleBarControlInset={false}
-            threadSyncPhase={threadSyncPhase}
-            paneControls={paneControls}
-          />
-        ) : (
-          // The controls stay reachable while the thread loads, so a pane that
-          // never resolves is still closable.
-          <WorkspacePageHeader className="bg-background">{paneControls}</WorkspacePageHeader>
-        )}
-      </PaneFocusProvider>
+      <PaneIsRoutedProvider value={false}>
+        <PaneFocusProvider value={isFocused}>
+          {ready ? (
+            <ChatView
+              environmentId={companion.environmentId}
+              threadId={companion.threadId}
+              routeKind="server"
+              reserveTitleBarControlInset={false}
+              threadSyncPhase={threadSyncPhase}
+              paneControls={paneControls}
+            />
+          ) : (
+            // The controls stay reachable while the thread loads, so a pane that
+            // never resolves is still closable.
+            <WorkspacePageHeader className="bg-background">{paneControls}</WorkspacePageHeader>
+          )}
+        </PaneFocusProvider>
+      </PaneIsRoutedProvider>
     </div>
   );
 }
@@ -414,7 +449,7 @@ function CompanionPane({
  */
 export function ChatPanes({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
-  const { rowRef, rowWidthRef } = useMeasureRow();
+  const { rowRef, rowNodeRef, rowWidthRef } = useMeasureRow();
   const routed = useRoutedThreadRef();
   const routedKey = routed ? scopedThreadKey(routed) : null;
   const routeId = useRouteTargetId();
@@ -456,6 +491,13 @@ export function ChatPanes({ children }: { children: ReactNode }) {
     reconcile({ knownThreadKeys, routedKey });
   }, [closeCompanion, knownThreadKeys, reconcile, routeId, routedKey]);
 
+  // Keeps the DOM in step with a fraction that changed anywhere but the divider:
+  // rehydration, the arrow keys, or a double-click reset.
+  useLayoutEffect(() => {
+    const row = rowNodeRef.current;
+    if (row) writePaneFraction(row, leftFraction, rowWidthRef.current);
+  }, [leftFraction, rowNodeRef, rowWidthRef]);
+
   const focusRoutedPane = usePaneFocusHandler("routed");
 
   const handleMakePrimary = useCallback(() => {
@@ -484,24 +526,15 @@ export function ChatPanes({ children }: { children: ReactNode }) {
   const companionFocused = splitActive && focusedPane === "companion";
   // Both panes grow from one custom property, so the divider retunes the split
   // by writing a variable rather than re-rendering either ChatView.
-  const routedOnLeft = companionSide === "right";
+  const routedSide = oppositePaneSide(companionSide);
   const routedStyle: CSSProperties = {
-    order: splitActive ? ORDER_BY_SIDE[oppositePaneSide(companionSide)] : 0,
-    flexGrow: splitActive ? `calc(${routedOnLeft ? "" : "1 - "}var(--chat-pane-left-fraction))` : 1,
+    order: splitActive ? ORDER_BY_SIDE[routedSide] : 0,
+    flexGrow: splitActive ? paneGrow(routedSide) : 1,
     flexBasis: 0,
   };
 
   return (
-    <div
-      ref={rowRef}
-      data-chat-panes=""
-      className="relative flex min-w-0 flex-1"
-      style={
-        {
-          "--chat-pane-left-fraction": clampPaneFraction(leftFraction, rowWidthRef.current),
-        } as CSSProperties
-      }
-    >
+    <div ref={rowRef} data-chat-panes="" className="relative flex min-w-0 flex-1">
       {/* biome-ignore lint/a11y/noStaticElementInteractions: pane focus mirrors pointer focus */}
       <div
         className="relative flex min-w-0"
@@ -520,7 +553,7 @@ export function ChatPanes({ children }: { children: ReactNode }) {
           <CompanionPane
             companion={companion}
             isFocused={companionFocused}
-            grow={`calc(${routedOnLeft ? "1 - " : ""}var(--chat-pane-left-fraction))`}
+            grow={paneGrow(companionSide)}
             order={ORDER_BY_SIDE[companionSide]}
             onClose={closeCompanion}
             onMakePrimary={handleMakePrimary}

@@ -339,7 +339,7 @@ import {
   runMobileComposerTransition,
 } from "./chat/draftHeroTransition";
 import { DiffWorkerPoolProvider } from "./DiffWorkerPoolProvider";
-import { useIsFocusedPane } from "./chat/paneFocus";
+import { useIsFocusedPane, useIsRoutedPane } from "./chat/paneFocus";
 import {
   MAX_HIDDEN_MOUNTED_TERMINAL_THREADS,
   branchMismatchKey,
@@ -373,6 +373,7 @@ import {
   deriveLockedProvider,
   readFileAsDataUrl,
   reconcileMountedTerminalThreadIds,
+  resolveRetainedTerminalThreadKeys,
   resolveBackgroundDraftWorkspaceOptions,
   resolveDraftHeroState,
   resolveThreadMetadataUpdateForNextTurn,
@@ -1298,6 +1299,7 @@ function ChatViewContent(props: ChatViewProps) {
     forceExpandedMobileComposer = false,
   } = props;
   const isFocusedPane = useIsFocusedPane();
+  const isRoutedPane = useIsRoutedPane();
   const draftId = routeKind === "draft" ? props.draftId : null;
   const threadSyncPhase = routeKind === "server" ? (props.threadSyncPhase ?? null) : null;
   const threadDetailLoading = threadSyncPhase === "loading";
@@ -1913,10 +1915,16 @@ function ChatViewContent(props: ChatViewProps) {
     previewPanelOpen,
   ]);
 
-  const existingOpenTerminalThreadKeys = useMemo(() => {
-    const existingThreadKeys = new Set<string>([...serverThreadKeys, ...draftThreadKeys]);
-    return openTerminalThreadKeys.filter((nextThreadKey) => existingThreadKeys.has(nextThreadKey));
-  }, [draftThreadKeys, openTerminalThreadKeys, serverThreadKeys]);
+  const existingOpenTerminalThreadKeys = useMemo(
+    () =>
+      resolveRetainedTerminalThreadKeys({
+        isRoutedPane,
+        activeThreadKey,
+        openTerminalThreadKeys,
+        existingThreadKeys: new Set<string>([...serverThreadKeys, ...draftThreadKeys]),
+      }),
+    [activeThreadKey, draftThreadKeys, isRoutedPane, openTerminalThreadKeys, serverThreadKeys],
+  );
   const activeLatestTurn = activeThread?.latestTurn ?? null;
   const activeRunningTurnId =
     (activeThread?.session?.status === "running" ? activeThread.session.activeTurnId : null) ??
@@ -1946,14 +1954,14 @@ function ChatViewContent(props: ChatViewProps) {
         openThreadIds: existingOpenTerminalThreadKeys,
         activeThreadId: activeThreadKey,
         activeThreadTerminalOpen: Boolean(activeThreadKey && terminalUiState.terminalOpen),
-        maxHiddenThreadCount: MAX_HIDDEN_MOUNTED_TERMINAL_THREADS,
+        maxHiddenThreadCount: isRoutedPane ? MAX_HIDDEN_MOUNTED_TERMINAL_THREADS : 0,
       });
       return currentThreadIds.length === nextThreadIds.length &&
         currentThreadIds.every((nextThreadId, index) => nextThreadId === nextThreadIds[index])
         ? currentThreadIds
         : nextThreadIds;
     });
-  }, [activeThreadKey, existingOpenTerminalThreadKeys, terminalUiState.terminalOpen]);
+  }, [activeThreadKey, existingOpenTerminalThreadKeys, isRoutedPane, terminalUiState.terminalOpen]);
   const latestTurnSettled = isLatestTurnSettled(activeLatestTurn, activeThread?.session ?? null);
   const activeProjectRef = useMemo(
     () =>

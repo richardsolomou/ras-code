@@ -12,7 +12,7 @@ import type { ScopedThreadRef } from "@ras-code/contracts";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
-import { createDebouncedStorage } from "./lib/storage";
+import { createDebouncedStorage, createMemoryStorage } from "./lib/storage";
 
 const CHAT_PANES_STORAGE_KEY = "ras-code:chat-panes:v1";
 const CHAT_PANES_STORAGE_VERSION = 1;
@@ -269,6 +269,21 @@ interface ChatPaneStore extends ChatPaneLayout {
   reconcile: (input: { routedKey: string | null; knownThreadKeys: ReadonlySet<string> }) => void;
 }
 
+// Debounced because zustand's persist writes on every `set`, including the no-op
+// ones: focus lands on a pointerdown and the divider commits a fraction, and
+// neither should mean a synchronous localStorage write.
+const chatPaneDebouncedStorage = createDebouncedStorage(
+  typeof localStorage === "undefined" ? createMemoryStorage() : localStorage,
+);
+
+// A pane closed or resized inside the debounce window would otherwise be lost,
+// so the close button would read as not having worked after a reload.
+if (typeof window !== "undefined" && typeof window.addEventListener === "function") {
+  window.addEventListener("beforeunload", () => {
+    chatPaneDebouncedStorage.flush();
+  });
+}
+
 export const useChatPaneStore = create<ChatPaneStore>()(
   persist(
     (set) => ({
@@ -302,12 +317,7 @@ export const useChatPaneStore = create<ChatPaneStore>()(
     {
       name: CHAT_PANES_STORAGE_KEY,
       version: CHAT_PANES_STORAGE_VERSION,
-      // Debounced because zustand's persist writes on every `set`, including the
-      // no-op ones: focus lands on a pointerdown and the divider commits a
-      // fraction, and neither should mean a synchronous localStorage write.
-      storage: createJSONStorage(() =>
-        createDebouncedStorage(typeof window !== "undefined" ? window.localStorage : undefined),
-      ),
+      storage: createJSONStorage(() => chatPaneDebouncedStorage),
       partialize: (state): ChatPaneLayout => ({
         companion: state.companion,
         companionSide: state.companionSide,
