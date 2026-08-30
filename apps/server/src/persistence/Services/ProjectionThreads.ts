@@ -43,6 +43,7 @@ export const ProjectionThread = Schema.Struct({
   archivedAt: Schema.NullOr(IsoDateTime),
   settledOverride: Schema.NullOr(Schema.Literals(["settled", "active"])),
   settledAt: Schema.NullOr(IsoDateTime),
+  settledReason: Schema.NullOr(Schema.Literals(["user", "merge"])),
   unsettledAt: Schema.NullOr(IsoDateTime),
   snoozedUntil: Schema.NullOr(IsoDateTime),
   snoozedAt: Schema.NullOr(IsoDateTime),

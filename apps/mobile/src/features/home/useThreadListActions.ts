@@ -237,8 +237,12 @@ export function useThreadListActions(): {
     direction: "up" | "down",
   ) => Promise<boolean>;
   readonly regenerateThreadTitle: (thread: EnvironmentThreadShell) => Promise<boolean>;
+  readonly recordMergeSettle: (thread: EnvironmentThreadShell) => Promise<boolean>;
 } {
   const executeAction = useThreadActionExecutor();
+  // Separate from the user-facing settle path: this one is background work, so
+  // it must not buzz the phone or raise an alert when it loses a race.
+  const mergeSettleMutation = useAtomCommand(threadEnvironment.settle, { reportFailure: false });
   const snoozeMutation = useAtomCommand(threadEnvironment.snooze, { reportFailure: false });
   const unsnoozeMutation = useAtomCommand(threadEnvironment.unsnooze, { reportFailure: false });
   const pinMutation = useAtomCommand(threadEnvironment.pin, { reportFailure: false });
@@ -542,6 +546,21 @@ export function useThreadListActions(): {
 
   const confirmDeleteThread = useConfirmDeleteThread(executeAction);
 
+  // Persist this client's auto-settle-on-merge decision so the next cold load,
+  // here and on every other device, reads it from the projection instead of
+  // waiting on a PR lookup. Silent by design: the caller has already decided.
+  const recordMergeSettle = useCallback(
+    async (thread: EnvironmentThreadShell) => {
+      if (!environmentSupportsSettlement(thread.environmentId)) return false;
+      const result = await mergeSettleMutation({
+        environmentId: thread.environmentId,
+        input: { threadId: thread.id, reason: "merge" },
+      });
+      return result._tag !== "Failure";
+    },
+    [mergeSettleMutation],
+  );
+
   return {
     archiveThread,
     confirmDeleteThread,
@@ -553,6 +572,7 @@ export function useThreadListActions(): {
     unpinThread,
     movePinnedThread,
     regenerateThreadTitle,
+    recordMergeSettle,
   };
 }
 

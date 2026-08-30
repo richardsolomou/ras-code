@@ -16,7 +16,12 @@ import {
   activeThreadAnchorTimestampMs,
   sortPinnedThreadsByOrderKey,
 } from "@ras-code/client-runtime/state/thread-sort";
-import type { EnvironmentId, ProjectId, ThreadLinkedPullRequest } from "@ras-code/contracts";
+import type {
+  EnvironmentId,
+  OrchestrationThreadShell,
+  ProjectId,
+  ThreadLinkedPullRequest,
+} from "@ras-code/contracts";
 
 import type { PendingNewTask } from "../../state/use-pending-new-tasks";
 
@@ -35,6 +40,21 @@ export type ThreadListV2SwipeAction = "archive" | "settle" | "unsettle" | "snooz
 
 export interface ThreadListV2ChangeRequestState extends ChangeRequestSettleSource {
   readonly linkedPullRequestKey?: string | null;
+}
+
+/**
+ * The cached change request, but only when it still belongs to this thread's
+ * linked pull request. Shared so the list partition and the merge-settle
+ * recorder cannot disagree about which PR a thread owns.
+ */
+export function resolveThreadListV2ChangeRequest(
+  thread: Pick<OrchestrationThreadShell, "linkedPullRequest">,
+  cached: ThreadListV2ChangeRequestState | null | undefined,
+): ThreadListV2ChangeRequestState | null {
+  if (cached == null) return null;
+  return (cached.linkedPullRequestKey ?? null) === linkedPullRequestKey(thread.linkedPullRequest)
+    ? cached
+    : null;
 }
 
 function linkedPullRequestKey(
@@ -402,14 +422,10 @@ export function buildThreadListV2Items(input: {
     }
     const supportsSettlement = input.settlementEnvironmentIds?.has(thread.environmentId) ?? true;
     const supportsSnooze = input.snoozeEnvironmentIds?.has(thread.environmentId) ?? true;
-    const cachedChangeRequest =
-      input.changeRequestByKey?.get(`${thread.environmentId}:${thread.id}`) ?? null;
-    const changeRequest =
-      cachedChangeRequest !== null &&
-      (cachedChangeRequest.linkedPullRequestKey ?? null) ===
-        linkedPullRequestKey(thread.linkedPullRequest)
-        ? cachedChangeRequest
-        : null;
+    const changeRequest = resolveThreadListV2ChangeRequest(
+      thread,
+      input.changeRequestByKey?.get(`${thread.environmentId}:${thread.id}`),
+    );
     // Snooze outranks settlement and pinning until the thread wakes.
     if (supportsSnooze && effectiveSnoozed(thread, { now: snoozeNow })) {
       snoozed.push(thread);

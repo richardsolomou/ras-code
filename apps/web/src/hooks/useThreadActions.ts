@@ -470,7 +470,7 @@ export function useThreadActions() {
   );
 
   const settleThread = useCallback(
-    async (target: ScopedThreadRef) => {
+    async (target: ScopedThreadRef, reason?: "user" | "merge") => {
       // Version skew: never send the command to a server that predates it —
       // the raw protocol rejection would read as a random failure.
       if (!readEnvironmentSupportsSettlement(target.environmentId)) {
@@ -504,7 +504,12 @@ export function useThreadActions() {
       // toast.
       const result = await settleThreadMutation({
         environmentId: target.environmentId,
-        input: { threadId: target.threadId },
+        // Omitted rather than sent as "user": a server that predates the field
+        // reads an absent reason as a user settle either way.
+        input: {
+          threadId: target.threadId,
+          ...(reason === undefined || reason === "user" ? {} : { reason }),
+        },
       });
       if (result._tag === "Success" && wokeAt !== null) {
         markThreadVisited(scopedThreadKey(target), wokeAt);

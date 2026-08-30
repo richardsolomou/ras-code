@@ -584,6 +584,13 @@ export const decideOrchestrationCommand = Effect.fn("decideOrchestrationCommand"
       // settledAt: the engine rejects zero-event commands, and bulk-settle /
       // double-click must stay silent no-ops rather than surface errors.
       const alreadySettled = thread.settledOverride === "settled" && thread.settledAt !== null;
+      const commandReason = command.reason ?? "user";
+      // An explicit user settle always wins: it must not be downgraded to a
+      // merge settle, which a client with auto-settle-on-merge off ignores.
+      const settledReason =
+        alreadySettled && commandReason !== "user"
+          ? (thread.settledReason ?? "user")
+          : commandReason;
       const settledEvent = {
         ...(yield* withEventBase({
           aggregateKind: "thread",
@@ -595,6 +602,7 @@ export const decideOrchestrationCommand = Effect.fn("decideOrchestrationCommand"
         payload: {
           threadId: command.threadId,
           settledAt: alreadySettled ? thread.settledAt : occurredAt,
+          reason: settledReason,
           // A re-emission is a projected no-op: keep the existing updatedAt
           // so duplicate settles neither rewind nor churn ordering. A fresh
           // settle stamps the command time.

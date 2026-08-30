@@ -30,6 +30,7 @@ function makeReadModel(
     readonly pinnedAt?: string | null;
     readonly snoozedUntil?: string | null;
     readonly snoozedAt?: string | null;
+    readonly settledReason?: OrchestrationThread["settledReason"];
   } = {},
 ): OrchestrationReadModel {
   return {
@@ -51,6 +52,7 @@ function makeReadModel(
         archivedAt,
         settledOverride,
         settledAt: settledOverride === "settled" ? SETTLED_AT : null,
+        settledReason: lifecycle.settledReason ?? (settledOverride === "settled" ? "user" : null),
         snoozedUntil: lifecycle.snoozedUntil ?? null,
         snoozedAt: lifecycle.snoozedAt ?? (lifecycle.snoozedUntil != null ? SETTLED_AT : null),
         pinnedAt: lifecycle.pinnedAt ?? null,
@@ -682,6 +684,116 @@ it.layer(NodeServices.layer)("settled thread decider", (it) => {
       expect(unconditionalEvents.map((event) => event.type)).toEqual([
         "thread.session-stop-requested",
       ]);
+    }),
+  );
+
+  // The reason distinguishes an explicit user settle from a client's
+  // auto-settle-on-merge decision, which a client with that toggle off
+  // disregards. Downgrading one to the other would hide or resurface work.
+  const settleReason = Effect.fn(function* (input: {
+    readonly reason?: "user" | "merge";
+    readonly settledOverride: OrchestrationThread["settledOverride"];
+    readonly settledReason?: OrchestrationThread["settledReason"];
+  }) {
+    const result = yield* decideOrchestrationCommand({
+      command: {
+        type: "thread.settle",
+        commandId: CommandId.make("cmd-settle-reason"),
+        threadId: ThreadId.make("thread-1"),
+        ...(input.reason === undefined ? {} : { reason: input.reason }),
+      },
+      readModel: makeReadModel(input.settledOverride, null, null, [], [], {
+        settledReason: input.settledReason,
+      }),
+    });
+    const events = Array.isArray(result) ? result : [result];
+    const settled = events.find((event) => event.type === "thread.settled");
+    return settled?.type === "thread.settled" ? settled.payload.reason : undefined;
+  });
+
+  it.effect("records the reason a settle was requested with", () =>
+    Effect.gen(function* () {
+      expect(yield* settleReason({ reason: "merge", settledOverride: null })).toBe("merge");
+    }),
+  );
+
+  it.effect("labels an unlabelled settle a user settle", () =>
+    Effect.gen(function* () {
+      expect(yield* settleReason({ settledOverride: null })).toBe("user");
+    }),
+  );
+
+  it.effect("never downgrades a settled thread's user settle to a merge settle", () =>
+    Effect.gen(function* () {
+      expect(
+        yield* settleReason({
+          reason: "merge",
+          settledOverride: "settled",
+          settledReason: "user",
+        }),
+      ).toBe("user");
+    }),
+  );
+
+  it.effect("upgrades a merge settle when the user settles the thread explicitly", () =>
+    Effect.gen(function* () {
+      expect(
+        yield* settleReason({
+          reason: "user",
+          settledOverride: "settled",
+          settledReason: "merge",
+        }),
+      ).toBe("user");
+    }),
+  );
+
+  it.effect("keeps a merge settle on a second client's merge re-emission", () =>
+    Effect.gen(function* () {
+      expect(
+        yield* settleReason({
+          reason: "merge",
+          settledOverride: "settled",
+          settledReason: "merge",
+        }),
+      ).toBe("merge");
+    }),
+  );
+
+  // A thread can open several change requests over its life: one merging does
+  // not mean the thread is done. The recorded merge settle must therefore be
+  // reversible — sending the thread more work clears it, so the thread is
+  // active again by the time a second change request exists.
+  it.effect("clears a recorded merge settle when the thread is given more work", () =>
+    Effect.gen(function* () {
+      const readModel = makeReadModel("settled", null, null, [], [], { settledReason: "merge" });
+      const result = yield* decideOrchestrationCommand({
+        command: {
+          type: "thread.turn.start",
+          commandId: CommandId.make("cmd-second-pr"),
+          threadId: ThreadId.make("thread-1"),
+          message: {
+            messageId: MessageId.make("msg-second-pr"),
+            role: "user",
+            text: "now open a follow-up PR",
+            attachments: [],
+          },
+          interactionMode: "default",
+          runtimeMode: "full-access",
+          createdAt: NOW,
+        },
+        readModel,
+      });
+      const events = Array.isArray(result) ? result : [result];
+      const unsettled = events.find((event) => event.type === "thread.unsettled");
+      expect(unsettled).toBeDefined();
+
+      const projected = yield* projectEvent(readModel, {
+        ...unsettled!,
+        sequence: readModel.snapshotSequence + 1,
+      } as OrchestrationEvent);
+      const thread = projected.threads[0]!;
+      expect(thread.settledOverride).toBeNull();
+      expect(thread.settledReason).toBeNull();
     }),
   );
 });
