@@ -100,9 +100,9 @@ describe("theme files", () => {
       messageAction: "#2a2733",
     });
     expectThemeColors(getStandardThemeColors("dark"), {
-      canvas: "#16141c",
-      surface: "#1f1c26",
-      sidebar: "#100f15",
+      canvas: "#151515",
+      surface: "#1e1e1e",
+      sidebar: "#101010",
       accent: "#f0c24b",
       messageAction: "#f0c24b",
     });

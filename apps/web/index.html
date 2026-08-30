@@ -6,7 +6,7 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content"
     />
-    <meta name="theme-color" content="#16141C" />
+    <meta name="theme-color" content="#151515" />
     <link rel="icon" href="/favicon.ico?v=ras4" sizes="48x48" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=ras4" />
     <link rel="manifest" href="/manifest.webmanifest" />
@@ -20,7 +20,7 @@
           const isDark =
             appearance === "dark" ||
             (appearance === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-          const background = isDark ? "#16141C" : "#ffffff";
+          const background = isDark ? "#151515" : "#ffffff";
           document.documentElement.classList.toggle("dark", isDark);
           document.documentElement.style.backgroundColor = background;
           for (const meta of document.querySelectorAll('meta[name="theme-color"]')) {
@@ -75,7 +75,7 @@
         --brand-low: #006d32;
         --brand-medium: #26a641;
         --brand-high: #39d353;
-        background: #16141c;
+        background: #151515;
         color: #f5f5f5;
       }
 

@@ -20,8 +20,8 @@ function statusDotTone(state: ConnectionStatusDotState): {
   switch (state) {
     case "available":
       return {
-        dotColor: "#3a3646",
-        haloColor: "rgba(58,54,70,0.42)",
+        dotColor: "#393939",
+        haloColor: "rgba(57,57,57,0.42)",
       };
     case "connected":
       return {
