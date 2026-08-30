@@ -73,10 +73,11 @@ export function isCompanionVisible(layout: ChatPaneMeasuredLayout): boolean {
 export async function openDraftInFocusedPane<T>(
   draftId: string,
   navigate: () => Promise<T>,
+  pane?: FocusedPane,
 ): Promise<T> {
   const paneState = useChatPaneStore.getState();
   const intent = {
-    pane: isCompanionVisible(paneState) ? paneState.focusedPane : "routed",
+    pane: pane ?? (isCompanionVisible(paneState) ? paneState.focusedPane : "routed"),
     routeId: `draft:${draftId}`,
   } satisfies PaneRouteOpenIntent;
   pendingRouteOpenIntent = intent;

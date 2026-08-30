@@ -292,6 +292,27 @@ describe("draft route intent", () => {
     expect(takeRouteOpenPane("draft:new")).toBeNull();
     useChatPaneStore.setState({ ...INITIAL_CHAT_PANE_LAYOUT, canSplit: false });
   });
+
+  it("keeps the pane captured before asynchronous navigation", async () => {
+    useChatPaneStore.setState(splitLayout({ focusedPane: "routed" }));
+
+    await openDraftInFocusedPane("new", async () => undefined, "companion");
+
+    expect(takeRouteOpenPane("draft:new")).toBe("companion");
+    useChatPaneStore.setState({ ...INITIAL_CHAT_PANE_LAYOUT, canSplit: false });
+  });
+
+  it("clears pane intent when navigation fails", async () => {
+    const failure = new Error("navigation failed");
+
+    await expect(
+      openDraftInFocusedPane("new", async () => {
+        throw failure;
+      }),
+    ).rejects.toBe(failure);
+
+    expect(takeRouteOpenPane("draft:new")).toBeNull();
+  });
 });
 
 describe("planRouteChange", () => {

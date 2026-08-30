@@ -35,6 +35,7 @@ import { legacyProjectCwdPreferenceKey, useUiStateStore } from "../uiStateStore"
 import { useClientSettings } from "./useSettings";
 import { toastManager } from "../components/ui/toast";
 import { useOpenDraftInPane } from "./useOpenThreadInPane";
+import { isCompanionVisible, selectFocusedThread, useChatPaneStore } from "../chatPaneStore";
 
 interface NewThreadWorkspaceOptions {
   branch?: string | null;
@@ -104,7 +105,13 @@ export function useNewThreadHandler() {
         setLogicalProjectDraftThreadId,
         setModelSelection,
       } = useComposerDraftStore.getState();
-      const currentRouteTarget = getCurrentRouteTarget();
+      const routeTarget = getCurrentRouteTarget();
+      const paneState = useChatPaneStore.getState();
+      const openInPane = isCompanionVisible(paneState) ? paneState.focusedPane : "routed";
+      const currentRouteTarget =
+        openInPane === "companion" && paneState.companion
+          ? { kind: "server" as const, threadRef: paneState.companion }
+          : routeTarget;
       // A new thread carries the user's working mode from the thread being
       // viewed. The target project's configured model still wins; runtime and
       // interaction modes carry independently. Branch, worktree, and env mode
@@ -361,6 +368,7 @@ export function useNewThreadHandler() {
             return opened;
           }
           await openDraftInPane(emptyStoredDraftThread.draftId, {
+            pane: openInPane,
             replace: options?.replace ?? false,
           });
           return opened;
@@ -432,7 +440,10 @@ export function useNewThreadHandler() {
             ...pickExplicitWorkspaceOptions(options),
           });
           carryComposerContentTo(racedDraft.draftId);
-          await openDraftInPane(racedDraft.draftId, { replace: options?.replace ?? false });
+          await openDraftInPane(racedDraft.draftId, {
+            pane: openInPane,
+            replace: options?.replace ?? false,
+          });
           return { draftId: racedDraft.draftId, threadId: racedDraft.threadId };
         }
         setLogicalProjectDraftThreadId(logicalProjectKey, projectRef, draftId, {
@@ -459,7 +470,10 @@ export function useNewThreadHandler() {
         }
         carryComposerContentTo(draftId);
 
-        await openDraftInPane(draftId, { replace: options?.replace ?? false });
+        await openDraftInPane(draftId, {
+          pane: openInPane,
+          replace: options?.replace ?? false,
+        });
         return { draftId, threadId };
       })();
     },
@@ -480,14 +494,15 @@ export function useHandleNewThread() {
     select: (params) => resolveThreadRouteTarget(params),
   });
   const routeThreadRef = routeTarget?.kind === "server" ? routeTarget.threadRef : null;
-  const activeThread = useThread(routeThreadRef);
+  const focusedThreadRef = useChatPaneStore((state) => selectFocusedThread(state, routeThreadRef));
+  const activeThread = useThread(focusedThreadRef);
   const getDraftThread = useComposerDraftStore((store) => store.getDraftThread);
   const activeDraftThread = useComposerDraftStore(() =>
-    routeTarget
-      ? routeTarget.kind === "server"
-        ? getDraftThread(routeTarget.threadRef)
-        : useComposerDraftStore.getState().getDraftSession(routeTarget.draftId)
-      : null,
+    focusedThreadRef
+      ? getDraftThread(focusedThreadRef)
+      : routeTarget?.kind === "draft"
+        ? useComposerDraftStore.getState().getDraftSession(routeTarget.draftId)
+        : null,
   );
   const projects = useProjects();
   const orderedProjects = useMemo(() => {

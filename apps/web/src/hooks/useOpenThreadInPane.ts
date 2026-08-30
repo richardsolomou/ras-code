@@ -2,7 +2,12 @@ import type { ScopedThreadRef } from "@ras-code/contracts";
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useRef } from "react";
 
-import { openDraftInFocusedPane, planThreadOpen, useChatPaneStore } from "../chatPaneStore";
+import {
+  openDraftInFocusedPane,
+  planThreadOpen,
+  useChatPaneStore,
+  type FocusedPane,
+} from "../chatPaneStore";
 import type { DraftId } from "../composerDraftStore";
 import { buildDraftThreadRouteParams, buildThreadRouteParams } from "../threadRoutes";
 import { useRoutedThreadRef } from "./useRoutedThreadRef";
@@ -36,18 +41,21 @@ export function useOpenThreadInPane(): (threadRef: ScopedThreadRef) => Promise<v
 
 export function useOpenDraftInPane(): (
   draftId: DraftId,
-  options?: { replace?: boolean },
+  options?: { replace?: boolean; pane?: FocusedPane },
 ) => Promise<void> {
   const navigate = useNavigate();
 
   return useCallback(
     (draftId, options) =>
-      openDraftInFocusedPane(draftId, () =>
-        navigate({
-          to: "/draft/$draftId",
-          params: buildDraftThreadRouteParams(draftId),
-          ...(options?.replace !== undefined ? { replace: options.replace } : {}),
-        }),
+      openDraftInFocusedPane(
+        draftId,
+        () =>
+          navigate({
+            to: "/draft/$draftId",
+            params: buildDraftThreadRouteParams(draftId),
+            ...(options?.replace !== undefined ? { replace: options.replace } : {}),
+          }),
+        options?.pane,
       ),
     [navigate],
   );
