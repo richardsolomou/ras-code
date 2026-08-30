@@ -41,7 +41,7 @@ import { resolveThreadSyncPhase } from "../../threadSync";
 import { paneDropZoneId, readThreadDrag } from "../../threadDrag";
 import { Button } from "../ui/button";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
-import { PaneFocusProvider } from "./paneFocus";
+import { PaneFocusProvider, PaneIsRoutedProvider } from "./paneFocus";
 
 /**
  * Which pane the keyboard is aimed at, drawn only while the inset is split. A
@@ -383,22 +383,24 @@ function CompanionPane({
       onFocusCapture={takeFocus}
     >
       <PaneFocusRule isFocused={isFocused} />
-      <PaneFocusProvider value={isFocused}>
-        {ready ? (
-          <ChatView
-            environmentId={companion.environmentId}
-            threadId={companion.threadId}
-            routeKind="server"
-            reserveTitleBarControlInset={false}
-            threadSyncPhase={threadSyncPhase}
-            paneControls={paneControls}
-          />
-        ) : (
-          // The controls stay reachable while the thread loads, so a pane that
-          // never resolves is still closable.
-          <WorkspacePageHeader className="bg-background">{paneControls}</WorkspacePageHeader>
-        )}
-      </PaneFocusProvider>
+      <PaneIsRoutedProvider value={false}>
+        <PaneFocusProvider value={isFocused}>
+          {ready ? (
+            <ChatView
+              environmentId={companion.environmentId}
+              threadId={companion.threadId}
+              routeKind="server"
+              reserveTitleBarControlInset={false}
+              threadSyncPhase={threadSyncPhase}
+              paneControls={paneControls}
+            />
+          ) : (
+            // The controls stay reachable while the thread loads, so a pane that
+            // never resolves is still closable.
+            <WorkspacePageHeader className="bg-background">{paneControls}</WorkspacePageHeader>
+          )}
+        </PaneFocusProvider>
+      </PaneIsRoutedProvider>
     </div>
   );
 }

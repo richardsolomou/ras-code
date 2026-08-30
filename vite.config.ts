@@ -74,6 +74,9 @@ export default defineConfig({
       perf: "warn",
     },
     rules: {
+      // Not on by default, and its absence let a hook sit after an early return
+      // in ChatView for long enough to crash a second mount of it.
+      "react/rules-of-hooks": "error",
       "unicorn/no-array-sort": "off",
       "unicorn/consistent-function-scoping": "off",
       "oxc/no-map-spread": "off",

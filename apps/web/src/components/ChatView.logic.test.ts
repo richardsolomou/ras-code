@@ -45,6 +45,7 @@ import {
   shouldShowBranchMismatchBanner,
   shouldShowPlanFollowUpPrompt,
   shouldWriteThreadErrorToCurrentServerThread,
+  resolveRetainedTerminalThreadKeys,
 } from "./ChatView.logic";
 
 const environmentId = EnvironmentId.make("environment-local");
@@ -1170,5 +1171,53 @@ describe("hasServerAcknowledgedLocalDispatch", () => {
     expect(hasServerAcknowledgedLocalDispatch({ ...common, hasPendingApproval: true })).toBe(true);
     expect(hasServerAcknowledgedLocalDispatch({ ...common, hasPendingUserInput: true })).toBe(true);
     expect(hasServerAcknowledgedLocalDispatch({ ...common, threadError: "failed" })).toBe(true);
+  });
+});
+
+describe("resolveRetainedTerminalThreadKeys", () => {
+  const existingThreadKeys = new Set(["env:a", "env:b", "env:c"]);
+
+  it("keeps every open terminal the routed pane could navigate back to", () => {
+    expect(
+      resolveRetainedTerminalThreadKeys({
+        isRoutedPane: true,
+        activeThreadKey: "env:a",
+        openTerminalThreadKeys: ["env:a", "env:b"],
+        existingThreadKeys,
+      }),
+    ).toEqual(["env:a", "env:b"]);
+  });
+
+  it("drops an open terminal whose thread no longer exists", () => {
+    expect(
+      resolveRetainedTerminalThreadKeys({
+        isRoutedPane: true,
+        activeThreadKey: "env:a",
+        openTerminalThreadKeys: ["env:a", "env:gone"],
+        existingThreadKeys,
+      }),
+    ).toEqual(["env:a"]);
+  });
+
+  it("keeps only its own thread in a pane that cannot navigate", () => {
+    expect(
+      resolveRetainedTerminalThreadKeys({
+        isRoutedPane: false,
+        activeThreadKey: "env:a",
+        openTerminalThreadKeys: ["env:a", "env:b", "env:c"],
+        existingThreadKeys,
+      }),
+    ).toEqual(["env:a"]);
+  });
+
+  it("keeps nothing in a non-routed pane whose own terminal is closed", () => {
+    expect(
+      resolveRetainedTerminalThreadKeys({
+        isRoutedPane: false,
+        activeThreadKey: "env:a",
+        openTerminalThreadKeys: ["env:b"],
+        existingThreadKeys,
+      }),
+    ).toEqual([]);
   });
 });
