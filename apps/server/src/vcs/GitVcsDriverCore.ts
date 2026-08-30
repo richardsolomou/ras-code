@@ -21,6 +21,7 @@ import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process";
 
 import {
   GitCommandError,
+  type GitCommandFailureReason,
   type ReviewDiffFileContentsInput,
   type ReviewDiffPreviewInput,
   type ReviewDiffPreviewSource,
@@ -37,6 +38,47 @@ import {
   parseRemoteRefWithRemoteNames,
 } from "../git/remoteRefs.ts";
 import { ServerConfig } from "../config.ts";
+
+// Git reports why a command failed only in prose on stderr, and that prose
+// embeds the remote URL — which for an HTTPS remote carries a credential. So
+// stderr is matched here and reduced to a constant; the text itself never
+// leaves the driver. See `GitCommandFailureReason`.
+const FAILURE_REASON_PATTERNS: ReadonlyArray<
+  readonly [GitCommandFailureReason, ReadonlyArray<RegExp>]
+> = [
+  [
+    "authentication-failed",
+    [
+      /authentication failed/i,
+      /permission denied \(publickey\)/i,
+      /could not read (username|password)/i,
+      /terminal prompts disabled/i,
+      /invalid username or (password|token)/i,
+    ],
+  ],
+  [
+    "host-unreachable",
+    [
+      /could not resolve host/i,
+      /connection (timed out|refused)/i,
+      /network is unreachable/i,
+      /failed to connect to/i,
+    ],
+  ],
+  [
+    "repository-not-found",
+    [/repository .* not found/i, /repository not found/i, /repository .* does not exist/i],
+  ],
+];
+
+function classifyFailureReason(stderr: string): GitCommandFailureReason | undefined {
+  for (const [reason, patterns] of FAILURE_REASON_PATTERNS) {
+    if (patterns.some((pattern) => pattern.test(stderr))) {
+      return reason;
+    }
+  }
+  return undefined;
+}
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 // `git worktree add` checks out the full tree, so on large repositories it can
@@ -811,12 +853,14 @@ export const makeGitVcsDriverCore = Effect.fn("makeGitVcsDriverCore")(function* 
         yield* trace2Monitor.flush;
 
         if (!input.allowNonZeroExit && exitCode !== 0) {
+          const failureReason = classifyFailureReason(stderr.text);
           return yield* new GitCommandError({
             ...gitCommandContext(commandInput),
             detail: "Git command exited with a non-zero status.",
             exitCode,
             stdoutLength: stdout.text.length,
             stderrLength: stderr.text.length,
+            ...(failureReason ? { failureReason } : {}),
           });
         }
 
