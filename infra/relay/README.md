@@ -7,9 +7,8 @@ The relay is the hosted control plane for RAS Connect. It helps clients discover
 remote environments, manages the cloud-side records needed for those connections, and delivers
 optional mobile notifications and Live Activities.
 
-The relay API is not in the hot path for normal RAS Code traffic. Managed tunnel traffic passes
-through the relay Worker's shared path gateway, then goes directly through the selected Cloudflare
-Tunnel to the environment.
+Managed traffic passes through the relay Worker's shared path gateway. A per-environment Durable
+Object multiplexes it over the RAS Code server's authenticated outbound connector.
 See the [RAS Connect architecture overview](../../docs/internals/ras-code-connect-auth-flow.html) for the larger system
 design.
 
@@ -18,7 +17,7 @@ design.
 The relay currently owns:
 
 - Linking RAS Code environments to a cloud account.
-- Provisioning and tracking managed environment endpoints.
+- Provisioning deterministic managed environment endpoints and relay sessions.
 - Issuing short-lived credentials used to connect clients to linked environments.
 - Listing linked environments and registered mobile devices for an account.
 - Registering mobile notification preferences and APNs tokens.
@@ -83,11 +82,11 @@ The relay deploys through Alchemy:
 vp run --filter ras-code-relay deploy
 ```
 
-The stack provisions the Cloudflare Worker and queues, managed endpoint resources, database
+The stack provisions the Cloudflare Worker, Durable Objects, queues, gateway resources, database
 connectivity, and relay tracing resources. Copy [`infra/relay/.env.example`](./.env.example) to
 `infra/relay/.env` and fill in the deployment-specific values before deploying. Alchemy loads that
 file from the relay directory. Runtime secrets include Clerk and APNs credentials. Production adopts
-the configured API and tunnel DNS zones as retained Cloudflare resources. Personal stages reference
+the configured API and gateway DNS zones as retained Cloudflare resources. Personal stages reference
 the production-owned zones.
 
 The `prod` Alchemy stage is the shared hosted relay for stable and canary clients and owns the
@@ -103,10 +102,10 @@ Alchemy defaults personal deployments to the `dev_$USER` stage. Relay custom dom
 DNS-safe sanitization as Alchemy physical resource names, so `prod` uses
 `code-relay.<RELAY_API_ZONE_NAME>` and `dev_julius` uses
 `code-relay-dev-julius.<RELAY_API_ZONE_NAME>`. Clients use
-`RELAY_TUNNEL_GATEWAY_DOMAIN/e/<digest>/`; the Worker resolves each request to an internal
-`<namespace>-<digest>.<RELAY_TUNNEL_ZONE_NAME>` record without changing the public Host. Keep the API
-and tunnel zone the same when Cloudflare's Universal SSL certificate must cover only first-level
-subdomains. `RELAY_DOMAIN` remains available as an explicit API domain override.
+`RELAY_GATEWAY_DOMAIN/e/<digest>/`; the Worker sends each request to the endpoint's Durable Object,
+which multiplexes it over the environment's outbound connector. Keep the API and gateway zone the
+same when Cloudflare's Universal SSL certificate must cover only first-level subdomains.
+`RELAY_DOMAIN` remains available as an explicit API domain override.
 
 After a successful deploy, the wrapper updates the repository-root `.env` file with the derived relay
 URL. That makes subsequent source builds point at the relay that was just deployed without copying
@@ -134,9 +133,9 @@ The `production` GitHub environment must define these Actions variables:
 - `RELAY_DATABASE_HOST`
 - `RELAY_DATABASE_NAME`
 - `RELAY_DATABASE_USER`
-- `RELAY_TUNNEL_ZONE_NAME`
-- `RELAY_TUNNEL_GATEWAY_DOMAIN`
-- `RELAY_TUNNEL_NAMESPACE`
+- `RELAY_GATEWAY_ZONE_NAME`
+- `RELAY_GATEWAY_DOMAIN`
+- `RELAY_ENDPOINT_NAMESPACE`
 - `RELAY_DOMAIN` if overriding the derived production relay domain
 - `CLERK_PUBLISHABLE_KEY`
 - `CLERK_JWT_AUDIENCE`

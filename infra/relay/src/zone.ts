@@ -6,9 +6,9 @@ import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 
 import {
-  MANAGED_ENDPOINT_ZONE_OWNER_STAGE,
-  managedEndpointNamespaceForStage,
-  relayOwnsManagedEndpointZone,
+  RELAY_GATEWAY_ZONE_OWNER_STAGE,
+  relayEndpointNamespaceForStage,
+  relayOwnsGatewayZone,
   relayPublicDomainForStage,
 } from "./deploymentConfig.ts";
 
@@ -23,9 +23,9 @@ function withLogicalId<Resource extends object>(resource: Resource, logicalId: s
 export const RelayDeploymentConfig = Effect.gen(function* () {
   const { stage } = yield* Alchemy.Stack;
   const relayApiZoneName = yield* Config.nonEmptyString("RELAY_API_ZONE_NAME");
-  const managedEndpointZoneName = yield* Config.nonEmptyString("RELAY_TUNNEL_ZONE_NAME");
-  const managedEndpointGatewayDomain = yield* Config.nonEmptyString("RELAY_TUNNEL_GATEWAY_DOMAIN");
-  const managedEndpointNamespaceOverride = yield* Config.string("RELAY_TUNNEL_NAMESPACE").pipe(
+  const relayGatewayZoneName = yield* Config.nonEmptyString("RELAY_GATEWAY_ZONE_NAME");
+  const relayGatewayDomain = yield* Config.nonEmptyString("RELAY_GATEWAY_DOMAIN");
+  const relayEndpointNamespaceOverride = yield* Config.string("RELAY_ENDPOINT_NAMESPACE").pipe(
     Config.option,
     Config.map(Option.getOrUndefined),
   );
@@ -47,39 +47,34 @@ export const RelayDeploymentConfig = Effect.gen(function* () {
     relayPublicDomain,
     relayPublicOrigin: `https://${relayPublicDomain}`,
     relayApiZoneName,
-    managedEndpointZoneName,
-    managedEndpointGatewayDomain,
-    managedEndpointNamespace: managedEndpointNamespaceForStage(
-      stage,
-      managedEndpointNamespaceOverride,
-    ),
+    relayGatewayZoneName,
+    relayGatewayDomain,
+    relayEndpointNamespace: relayEndpointNamespaceForStage(stage, relayEndpointNamespaceOverride),
   };
 });
 
-export const ManagedEndpointZone = RelayDeploymentConfig.pipe(
-  Effect.flatMap(({ stage, managedEndpointZoneName }) =>
-    relayOwnsManagedEndpointZone(stage)
-      ? Cloudflare.Zone.Zone("ManagedEndpointZone", { name: managedEndpointZoneName }).pipe(
-          adopt(true),
-        )
-      : Cloudflare.Zone.Zone.ref("ManagedEndpointZone", {
-          stage: MANAGED_ENDPOINT_ZONE_OWNER_STAGE,
+export const RelayGatewayZone = RelayDeploymentConfig.pipe(
+  Effect.flatMap(({ stage, relayGatewayZoneName }) =>
+    relayOwnsGatewayZone(stage)
+      ? Cloudflare.Zone.Zone("RelayGatewayZone", { name: relayGatewayZoneName }).pipe(adopt(true))
+      : Cloudflare.Zone.Zone.ref("RelayGatewayZone", {
+          stage: RELAY_GATEWAY_ZONE_OWNER_STAGE,
         }).pipe(
           // Alchemy beta's DNS binding policy uses LogicalId to derive a
           // stable SID, but Resource.ref returns a lazy output proxy.
-          Effect.map((zone) => withLogicalId(zone, "ManagedEndpointZone")),
+          Effect.map((zone) => withLogicalId(zone, "RelayGatewayZone")),
         ),
   ),
 );
 
 export const RelayApiZone = RelayDeploymentConfig.pipe(
-  Effect.flatMap(({ stage, relayApiZoneName, managedEndpointZoneName }) =>
-    relayApiZoneName === managedEndpointZoneName
-      ? ManagedEndpointZone
-      : relayOwnsManagedEndpointZone(stage)
+  Effect.flatMap(({ stage, relayApiZoneName, relayGatewayZoneName }) =>
+    relayApiZoneName === relayGatewayZoneName
+      ? RelayGatewayZone
+      : relayOwnsGatewayZone(stage)
         ? Cloudflare.Zone.Zone("RelayApiZone", { name: relayApiZoneName }).pipe(adopt(true))
         : Cloudflare.Zone.Zone.ref("RelayApiZone", {
-            stage: MANAGED_ENDPOINT_ZONE_OWNER_STAGE,
+            stage: RELAY_GATEWAY_ZONE_OWNER_STAGE,
           }),
   ),
 );

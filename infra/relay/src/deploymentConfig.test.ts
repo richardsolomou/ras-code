@@ -2,19 +2,15 @@ import { describe, expect, it } from "vite-plus/test";
 import * as Schema from "effect/Schema";
 
 import {
-  managedEndpointDigestInput,
-  managedEndpointForHostname,
-  managedEndpointRequestOrigin,
-  managedEndpointGatewayTargetHostname,
-  managedEndpointHostname,
-  managedEndpointNamespaceForStage,
-  isManagedEndpointHostname,
-  managedEndpointTunnelName,
-  relayOwnsManagedEndpointZone,
+  relayEndpointNamespaceForStage,
+  relayOwnsGatewayZone,
   RelayPublicDomainLabelTooLongError,
   relayPublicDomainForStage,
   relayResourceNameForStage,
   relayStageSlug,
+  rasRelayEndpointDigestInput,
+  rasRelayEndpointForId,
+  rasRelayEndpointId,
 } from "./deploymentConfig.ts";
 
 const isRelayPublicDomainLabelTooLongError = Schema.is(RelayPublicDomainLabelTooLongError);
@@ -60,10 +56,10 @@ describe("relayPublicDomainForStage", () => {
   });
 });
 
-describe("relayOwnsManagedEndpointZone", () => {
+describe("relayOwnsGatewayZone", () => {
   it("keeps the shared Cloudflare zone owned by production", () => {
-    expect(relayOwnsManagedEndpointZone("prod")).toBe(true);
-    expect(relayOwnsManagedEndpointZone("dev_julius")).toBe(false);
+    expect(relayOwnsGatewayZone("prod")).toBe(true);
+    expect(relayOwnsGatewayZone("dev_julius")).toBe(false);
   });
 });
 
@@ -78,107 +74,24 @@ describe("relayResourceNameForStage", () => {
   });
 });
 
-describe("managedEndpointNamespaceForStage", () => {
+describe("relayEndpointNamespaceForStage", () => {
   it("uses a branded production namespace when configured", () => {
-    expect(managedEndpointNamespaceForStage("prod", "code")).toBe("code");
+    expect(relayEndpointNamespaceForStage("prod", "code")).toBe("code");
   });
 
   it("falls back to the deployment stage", () => {
-    expect(managedEndpointNamespaceForStage("dev_julius")).toBe("dev-julius");
+    expect(relayEndpointNamespaceForStage("dev_julius")).toBe("dev-julius");
   });
 });
 
 describe("managed endpoint names", () => {
-  it("uses the stage slug and a stable stage-scoped digest suffix", () => {
-    const hash = "ABCDEF0123456789ABCDEF0123456789";
-
-    expect(managedEndpointDigestInput("dev_julius", "user_123", "env_123")).toBe(
-      "dev_julius:user_123:env_123",
-    );
-    expect(managedEndpointHostname("dev_julius", ".example.com.", hash)).toBe(
-      "dev-julius-abcdef0123456789.example.com",
-    );
-    expect(managedEndpointHostname("prod", "ras-code-relay.com", hash)).toBe(
-      "prod-abcdef0123456789.ras-code-relay.com",
-    );
-    expect(managedEndpointTunnelName("dev_julius", hash)).toBe(
-      "ras-code-relay-managedendpoint-dev-julius-abcdef0123456789",
-    );
-  });
-
-  it("keeps the DNS label within the provider limit for long stage names", () => {
-    const hostname = managedEndpointHostname(
-      "dev_" + "x".repeat(100),
-      "example.com",
-      "a".repeat(64),
-    );
-
-    expect(hostname.split(".")[0]?.length).toBeLessThanOrEqual(63);
-    expect(hostname).toMatch(/-a{16}\.example\.com$/);
-  });
-
-  it("accepts allocated hostnames within the relay zone", () => {
-    expect(
-      isManagedEndpointHostname("dev-julius-abcdef0123456789.example.com", "example.com"),
-    ).toBe(true);
-    expect(managedEndpointForHostname("dev-julius-abcdef0123456789.example.com")).toEqual({
-      httpBaseUrl: "https://dev-julius-abcdef0123456789.example.com/",
-      wsBaseUrl: "wss://dev-julius-abcdef0123456789.example.com/ws",
-      providerKind: "cloudflare_tunnel",
-    });
-  });
-
-  it("publishes managed endpoints through a shared path gateway", () => {
-    expect(
-      managedEndpointForHostname("code-abcdef0123456789.ras.sh", "code-tunnels.ras.sh"),
-    ).toEqual({
+  it("publishes environment-scoped RAS relay endpoints through the gateway", () => {
+    expect(rasRelayEndpointDigestInput("prod", "env_123")).toBe("prod:ras-relay:env_123");
+    expect(rasRelayEndpointId("ABCDEF0123456789ABCDEF0123456789")).toBe("abcdef0123456789");
+    expect(rasRelayEndpointForId("code-tunnels.ras.sh", "abcdef0123456789")).toEqual({
       httpBaseUrl: "https://code-tunnels.ras.sh/e/abcdef0123456789/",
       wsBaseUrl: "wss://code-tunnels.ras.sh/e/abcdef0123456789/ws",
-      providerKind: "cloudflare_tunnel",
+      providerKind: "ras_relay",
     });
-  });
-
-  it("keeps the relay's own requests off the gateway it serves", () => {
-    expect(managedEndpointRequestOrigin("code-abcdef0123456789.ras.sh")).toBe(
-      "https://code-abcdef0123456789.ras.sh/",
-    );
-  });
-
-  it("resolves gateway paths to the matching internal tunnel hostname", () => {
-    const target = managedEndpointGatewayTargetHostname({
-      requestUrl: new URL("https://code-tunnels.ras.sh/e/abcdef0123456789/api/thread?cursor=next"),
-      gatewayDomain: "code-tunnels.ras.sh",
-      baseDomain: "ras.sh",
-      namespace: "code",
-    });
-
-    expect(target).toBe("code-abcdef0123456789.ras.sh");
-  });
-
-  it("rejects malformed and off-domain gateway requests", () => {
-    const config = {
-      gatewayDomain: "code-tunnels.ras.sh",
-      baseDomain: "ras.sh",
-      namespace: "code",
-    } as const;
-
-    expect(
-      managedEndpointGatewayTargetHostname({
-        ...config,
-        requestUrl: new URL("https://code-tunnels.ras.sh/e/not-an-id/ws"),
-      }),
-    ).toBeNull();
-    expect(
-      managedEndpointGatewayTargetHostname({
-        ...config,
-        requestUrl: new URL("https://attacker.example/e/abcdef0123456789/ws"),
-      }),
-    ).toBeNull();
-  });
-
-  it("rejects hostnames outside the relay zone", () => {
-    expect(isManagedEndpointHostname("internal.example.net", "example.com")).toBe(false);
-    expect(isManagedEndpointHostname("example.com.attacker.test", "example.com")).toBe(false);
-    expect(isManagedEndpointHostname("dev-julius.example.com.", "example.com")).toBe(false);
   });
 });

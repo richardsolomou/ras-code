@@ -82,8 +82,7 @@ const isEnvironmentCloudApiError = Schema.is(
 );
 const isEnvironmentAuthInvalidError = Schema.is(EnvironmentAuthInvalidError);
 
-const MANAGED_ENDPOINT_PROVIDER_KIND =
-  "cloudflare_tunnel" satisfies RelayManagedEndpointProviderKind;
+const MANAGED_ENDPOINT_PROVIDER_KIND = "ras_relay" satisfies RelayManagedEndpointProviderKind;
 
 function cloudEnvironmentLinkError(message: string, options?: { readonly dpop?: boolean }) {
   return (cause: unknown) => {
@@ -278,7 +277,7 @@ export function linkEnvironmentToCloudWithPreference(
         payload: {
           notificationsEnabled: true,
           liveActivitiesEnabled,
-          managedTunnelsEnabled: true,
+          managedRelayEnabled: true,
         },
       })
       .pipe(
@@ -310,7 +309,7 @@ export function linkEnvironmentToCloudWithPreference(
           proof,
           notificationsEnabled: true,
           liveActivitiesEnabled,
-          managedTunnelsEnabled: true,
+          managedRelayEnabled: true,
         },
       })
       .pipe(

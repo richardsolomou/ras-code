@@ -27,7 +27,7 @@ const environments = [
     endpoint: {
       httpBaseUrl: "https://one.example.test",
       wsBaseUrl: "wss://one.example.test",
-      providerKind: "cloudflare_tunnel",
+      providerKind: "ras_relay",
     },
     linkedAt: "2026-06-01T00:00:00.000Z",
   },
@@ -37,7 +37,7 @@ const environments = [
     endpoint: {
       httpBaseUrl: "https://two.example.test",
       wsBaseUrl: "wss://two.example.test",
-      providerKind: "cloudflare_tunnel",
+      providerKind: "ras_relay",
     },
     linkedAt: "2026-06-01T00:00:00.000Z",
   },

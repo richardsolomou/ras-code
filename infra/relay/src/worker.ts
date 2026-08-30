@@ -1,4 +1,3 @@
-// @effect-diagnostics globalFetchInEffect:off
 import * as Alchemy from "alchemy";
 import * as Cloudflare from "alchemy/Cloudflare";
 import * as Drizzle from "alchemy/Drizzle";
@@ -6,11 +5,12 @@ import * as Config from "effect/Config";
 import * as DateTime from "effect/DateTime";
 import * as Crypto from "effect/Crypto";
 import * as Effect from "effect/Effect";
+import * as Encoding from "effect/Encoding";
 import * as Layer from "effect/Layer";
-import * as Schema from "effect/Schema";
+import * as Option from "effect/Option";
+import * as Result from "effect/Result";
 import * as Stream from "effect/Stream";
-import * as HttpBody from "effect/unstable/http/HttpBody";
-import * as HttpEffect from "effect/unstable/http/HttpEffect";
+import * as Headers from "effect/unstable/http/Headers";
 import * as Etag from "effect/unstable/http/Etag";
 import * as HttpPlatform from "effect/unstable/http/HttpPlatform";
 import * as HttpRouter from "effect/unstable/http/HttpRouter";
@@ -20,6 +20,7 @@ import * as HttpApiBuilder from "effect/unstable/httpapi/HttpApiBuilder";
 import * as HttpApiScalar from "effect/unstable/httpapi/HttpApiScalar";
 
 import { RelayApi } from "@ras-code/contracts/relay";
+import { parseManagedEndpointGatewayPath } from "@ras-code/shared/advertisedEndpoint";
 
 import {
   clientApi,
@@ -38,7 +39,7 @@ import {
   tokenApi,
   withoutCapturedParentSpan,
 } from "./http/Api.ts";
-import { ManagedEndpointZone, RelayApiZone, RelayDeploymentConfig } from "./zone.ts";
+import { RelayApiZone, RelayDeploymentConfig, RelayGatewayZone } from "./zone.ts";
 import { makeRelayTraceLayer, RelayTracingConfig } from "./observability.ts";
 import * as DeliveryAttempts from "./agentActivity/DeliveryAttempts.ts";
 import * as AgentActivityRows from "./agentActivity/AgentActivityRows.ts";
@@ -47,7 +48,6 @@ import * as DpopProofs from "./auth/DpopProofs.ts";
 import * as RelayTokens from "./auth/RelayTokens.ts";
 import * as EnvironmentCredentials from "./environments/EnvironmentCredentials.ts";
 import * as EnvironmentLinks from "./environments/EnvironmentLinks.ts";
-import * as ManagedEndpointAllocations from "./environments/ManagedEndpointAllocations.ts";
 import * as LiveActivities from "./agentActivity/LiveActivities.ts";
 import * as RelayDb from "./db.ts";
 import { RelayApnsDeliveryDeadLetterQueue, RelayApnsDeliveryQueue } from "./queues.ts";
@@ -61,14 +61,16 @@ import * as EnvironmentConnector from "./environments/EnvironmentConnector.ts";
 import * as EnvironmentLinker from "./environments/EnvironmentLinker.ts";
 import * as EnvironmentPublishSignatures from "./environments/EnvironmentPublishSignatures.ts";
 import * as ManagedEndpointProvider from "./environments/ManagedEndpointProvider.ts";
-import * as ManagedTunnelLimits from "./environments/ManagedTunnelLimits.ts";
+import { RasRelaySession, RasRelaySessionDirectory } from "./environments/RasRelaySession.ts";
 import * as MobileRegistrations from "./agentActivity/MobileRegistrations.ts";
-import { managedEndpointGatewayTargetHostname } from "./deploymentConfig.ts";
+import { rasRelayEndpointDigestInput, rasRelayEndpointId } from "./deploymentConfig.ts";
 
-class ManagedEndpointGatewayFetchFailed extends Schema.TaggedErrorClass<ManagedEndpointGatewayFetchFailed>()(
-  "ManagedEndpointGatewayFetchFailed",
-  { cause: Schema.Defect() },
-) {}
+const RAS_RELAY_CONNECT_PATH = /^\/v1\/ras-relay\/connect\/([a-f0-9]{16})$/u;
+
+function bearerToken(authorization: string | undefined): string | null {
+  const match = /^Bearer\s+(.+)$/iu.exec(authorization ?? "");
+  return match?.[1]?.trim() || null;
+}
 
 const webcryptoLayer = Layer.succeed(
   Crypto.Crypto,
@@ -108,49 +110,17 @@ const ApnsDeliveryJobSigningSecret = Alchemy.makeRandom("ApnsDeliveryJobSigningS
   bytes: 32,
 });
 
-/**
- * Hands a proxied upgrade back to the client.
- *
- * The upstream response cannot be forwarded as-is. Its headers are immutable,
- * and the response pipeline appends a `traceparent` on the way out, so copying
- * that header onto it throws `Can't modify immutable headers` and the request
- * dies as a worker exception. Carrying the socket on a response we construct
- * keeps the headers writable.
- *
- * The socket also outlives this handler, so the request scope has to be
- * ejected: the worker bridge closes a scope that is not, and closing it takes
- * the socket with it. `scopeTransferToStream` only ejects for streaming bodies,
- * and an upgrade has to ride through as a raw body for the runtime to receive a
- * `Response` carrying `webSocket`.
- */
-export const managedEndpointGatewayResponse = Effect.fn("relay.managedEndpointGateway.response")(
-  function* (response: Response) {
-    if (response.status !== 101) {
-      return HttpServerResponse.fromWeb(response);
-    }
-    HttpEffect.scopeDisableClose(yield* Effect.scope);
-    const upgrade = new Response(null, {
-      status: 101,
-      webSocket: (response as Response & { readonly webSocket?: unknown }).webSocket,
-    } as ResponseInit);
-    return HttpServerResponse.setBody(
-      HttpServerResponse.empty({ status: 101 }),
-      HttpBody.raw(upgrade),
-    );
-  },
-);
-
 export class Api extends Cloudflare.Worker<Api, {}>()("Api") {}
 
 export const ApiLive = Api.make(
   RelayDeploymentConfig.pipe(
-    Effect.map(({ managedEndpointGatewayDomain, relayPublicDomain }) => ({
+    Effect.map(({ relayGatewayDomain, relayPublicDomain }) => ({
       main: import.meta.filename,
       compatibility: {
         date: "2026-05-22",
-        flags: ["nodejs_compat", "global_fetch_private_origin"],
+        flags: ["nodejs_compat"],
       },
-      domain: { name: relayPublicDomain, aliases: [managedEndpointGatewayDomain] },
+      domain: { name: relayPublicDomain, aliases: [relayGatewayDomain] },
     })),
     Effect.orDie,
   ),
@@ -158,17 +128,13 @@ export const ApiLive = Api.make(
     //
     // 1. Provision Infrastructure for the Worker to use
     //
-    const {
-      managedEndpointGatewayDomain,
-      managedEndpointNamespace,
-      managedEndpointZoneName,
-      relayPublicOrigin,
-    } = yield* RelayDeploymentConfig;
+    const { relayGatewayDomain, relayEndpointNamespace, relayPublicDomain, relayPublicOrigin } =
+      yield* RelayDeploymentConfig;
     const apnsDeliveryQueue = yield* RelayApnsDeliveryQueue;
     const apnsDeliveryDeadLetterQueue = yield* RelayApnsDeliveryDeadLetterQueue;
     const cloudMintKeyPair = yield* CloudMintKeyPair;
     const relayApiZone = yield* RelayApiZone;
-    const managedEndpointZone = yield* ManagedEndpointZone;
+    const relayGatewayZone = yield* RelayGatewayZone;
     const randomApnsDeliveryJobSigningSecret = yield* ApnsDeliveryJobSigningSecret;
     const tracing = yield* RelayTracingConfig;
 
@@ -195,11 +161,10 @@ export const ApiLive = Api.make(
     const hyperdrive = yield* Cloudflare.Hyperdrive.Connect(yield* RelayDb.RelayHyperdrive);
     const db = yield* Drizzle.Postgres(hyperdrive.connectionString);
 
-    const managedEndpointTunnelBinding = yield* Cloudflare.Tunnel.ReadWriteTunnel();
-    // Keep Worker custom-domain reconciliation ordered after API zone provisioning.
+    const rasRelaySessions = yield* RasRelaySession;
+    // Keep Worker custom-domain reconciliation ordered after zone provisioning.
     yield* yield* relayApiZone.zoneId;
-    const managedEndpointDnsBinding = yield* Cloudflare.DNS.ReadWriteDns(managedEndpointZone);
-    const managedEndpointZoneNameOutput = yield* managedEndpointZone.name;
+    yield* yield* relayGatewayZone.zoneId;
 
     //
     // 3. Runtime layers and app construction
@@ -222,27 +187,45 @@ export const ApiLive = Api.make(
         clerkJwtAudience,
         cloudMintPrivateKey: yield* cloudMintPrivateKey,
         cloudMintPublicKey: yield* cloudMintPublicKey,
-        managedEndpointBaseDomain: yield* managedEndpointZoneNameOutput,
-        managedEndpointGatewayDomain,
-        managedEndpointNamespace,
+        relayGatewayDomain,
+        relayEndpointNamespace,
       });
     });
 
     const relayTraceLayer = makeRelayTraceLayer(tracing);
 
     const runtimeLayer = Layer.empty.pipe(
-      Layer.provideMerge(MobileRegistrations.layer),
+      Layer.provideMerge(
+        Layer.mergeAll(
+          Layer.effect(
+            RasRelaySessionDirectory,
+            Effect.gen(function* () {
+              const crypto = yield* Crypto.Crypto;
+              return RasRelaySessionDirectory.of({
+                disconnect: (environmentId) =>
+                  Effect.gen(function* () {
+                    if (!relayEndpointNamespace) return;
+                    const hash = yield* crypto.digest(
+                      "SHA-256",
+                      new TextEncoder().encode(
+                        rasRelayEndpointDigestInput(relayEndpointNamespace, environmentId),
+                      ),
+                    );
+                    yield* rasRelaySessions
+                      .getByName(rasRelayEndpointId(Encoding.encodeHex(hash)))
+                      .disconnect();
+                  }).pipe(Effect.orDie),
+              });
+            }),
+          ),
+          MobileRegistrations.layer,
+        ),
+      ),
       Layer.provideMerge(AgentActivityPublisher.layer),
       Layer.provideMerge(EnvironmentConnector.layer),
       Layer.provideMerge(EnvironmentLinker.layer),
       Layer.provideMerge(EnvironmentPublishSignatures.layer),
-      Layer.provideMerge(
-        ManagedEndpointProvider.layerCloudflareBindings(
-          managedEndpointTunnelBinding,
-          managedEndpointDnsBinding,
-          alchemyRuntimeContext,
-        ),
-      ),
+      Layer.provideMerge(ManagedEndpointProvider.layer),
       Layer.provideMerge(DpopProofs.layer),
       Layer.provideMerge(ApnsDeliveries.layer),
       Layer.provideMerge(ApnsClient.layer.pipe(Layer.provideMerge(ApnsProviderTokens.layer))),
@@ -252,13 +235,7 @@ export const ApiLive = Api.make(
       Layer.provideMerge(AgentActivityRows.layer),
       Layer.provideMerge(Devices.layer),
       Layer.provideMerge(EnvironmentCredentials.layer),
-      Layer.provideMerge(
-        Layer.mergeAll(
-          EnvironmentLinks.layer,
-          ManagedEndpointAllocations.layer,
-          ManagedTunnelLimits.layer,
-        ),
-      ),
+      Layer.provideMerge(EnvironmentLinks.layer),
       Layer.provideMerge(LiveActivities.layer),
       Layer.provideMerge(DeliveryAttempts.layer),
       Layer.provideMerge(RelayTokens.layer),
@@ -333,41 +310,70 @@ export const ApiLive = Api.make(
     const fetch = Effect.gen(function* () {
       const request = yield* HttpServerRequest.HttpServerRequest;
       const requestUrl = HttpServerRequest.toURL(request);
-      if (
-        requestUrl._tag === "None" ||
-        requestUrl.value.hostname !== managedEndpointGatewayDomain
-      ) {
+      const connectorMatch =
+        requestUrl._tag === "Some" && requestUrl.value.hostname === relayPublicDomain
+          ? RAS_RELAY_CONNECT_PATH.exec(requestUrl.value.pathname)
+          : null;
+      if (connectorMatch) {
+        const token = bearerToken(request.headers.authorization);
+        if (!token || !relayEndpointNamespace) {
+          return HttpServerResponse.empty({ status: 401 });
+        }
+        const authorization = yield* Effect.gen(function* () {
+          const credentials = yield* EnvironmentCredentials.EnvironmentCredentials;
+          const crypto = yield* Crypto.Crypto;
+          const principal = yield* credentials.authenticate(token);
+          if (Option.isNone(principal)) return null;
+          const hash = yield* crypto
+            .digest(
+              "SHA-256",
+              new TextEncoder().encode(
+                rasRelayEndpointDigestInput(relayEndpointNamespace, principal.value.environmentId),
+              ),
+            )
+            .pipe(Effect.map(Encoding.encodeHex));
+          return {
+            endpointId: rasRelayEndpointId(hash),
+            principal: principal.value,
+          };
+        }).pipe(Effect.provide(runtimeLayer), Effect.result);
+        if (Result.isFailure(authorization)) {
+          yield* Effect.logError("RAS relay connector authorization failed", {
+            cause: authorization.failure,
+          });
+          return HttpServerResponse.empty({ status: 503 });
+        }
+        if (!authorization.success || authorization.success.endpointId !== connectorMatch[1]) {
+          return HttpServerResponse.empty({ status: 403 });
+        }
+        const connectorRequest = request.modify({
+          headers: Headers.set(
+            Headers.remove(request.headers, "authorization"),
+            "x-ras-relay-connector",
+            "1",
+          ),
+        });
+        return yield* rasRelaySessions
+          .getByName(authorization.success.endpointId)
+          .fetch(connectorRequest)
+          .pipe(Effect.orDie);
+      }
+      if (requestUrl._tag === "None" || requestUrl.value.hostname !== relayGatewayDomain) {
         return yield* relayApiFetch;
       }
 
-      const targetHostname = managedEndpointGatewayTargetHostname({
-        requestUrl: requestUrl.value,
-        gatewayDomain: managedEndpointGatewayDomain,
-        baseDomain: managedEndpointZoneName,
-        namespace: managedEndpointNamespace,
-      });
-      if (targetHostname === null) {
+      const route = parseManagedEndpointGatewayPath(requestUrl.value.pathname);
+      if (!route) {
         return HttpServerResponse.empty({ status: 404 });
       }
-
-      const source = yield* HttpServerRequest.toWeb(request);
-      const response = yield* Effect.tryPromise({
-        try: () =>
-          globalThis.fetch(
-            new Request(source, {
-              cf: { resolveOverride: targetHostname },
-            }),
-          ),
-        catch: (cause) => new ManagedEndpointGatewayFetchFailed({ cause }),
-      }).pipe(
-        Effect.catch((cause) =>
-          Effect.logError("Managed endpoint gateway request failed", {
-            cause,
-            targetHostname,
-          }).pipe(Effect.as(new Response(null, { status: 502 }))),
-        ),
-      );
-      return yield* managedEndpointGatewayResponse(response);
+      return yield* rasRelaySessions
+        .getByName(route.endpointId)
+        .fetch(
+          request.modify({
+            headers: Headers.remove(request.headers, "x-ras-relay-connector"),
+          }),
+        )
+        .pipe(Effect.orDie);
     }).pipe(withoutCapturedParentSpan, (httpEffect) =>
       traceRelayHttpRequestWith(httpEffect, relayTraceLayer),
     );
@@ -380,8 +386,6 @@ export const ApiLive = Api.make(
         Layer.provideMerge(Cloudflare.Workers.CronEventSourceLive),
         Layer.provideMerge(Cloudflare.Queues.WriteQueueBinding),
         Layer.provideMerge(Cloudflare.Queues.EventSourceLive),
-        Layer.provideMerge(Cloudflare.Tunnel.ReadWriteTunnelBinding),
-        Layer.provideMerge(Cloudflare.DNS.ReadWriteDnsHttp),
       ),
     ),
   ),

@@ -40,8 +40,8 @@ the task commands.
 ## infra
 
 - `infra/relay` (`ras-code-relay`): the hosted RAS Connect relay, deployed with Alchemy. Handles
-  environment discovery, cloud-side records, mobile notifications, and the shared managed-tunnel
-  gateway. After connect, managed traffic passes through the gateway to the selected tunnel. See
+  environment discovery, relay sessions, mobile notifications, and the shared gateway. After connect,
+  a Durable Object multiplexes managed traffic over the environment's outbound connector. See
   [ras-connect.md](./ras-connect.md).
 - `infra/web` (`ras-code-web-infra`): the hosted web app, deployed to Cloudflare Workers with
   Alchemy. The stage names the release channel (`latest`, `canary`) or a pull-request preview

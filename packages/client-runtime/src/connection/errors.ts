@@ -46,7 +46,6 @@ function relayProtectedError(error: RelayProtectedError): ConnectionAttemptError
       });
     case "RelayEnvironmentConnectNotAuthorizedError":
     case "RelayEnvironmentLinkProofInvalidError":
-    case "RelayEnvironmentLinkLimitExceededError":
       return new ConnectionBlockedError({
         reason: "permission",
         detail: relayProtectedErrorMessage(error),

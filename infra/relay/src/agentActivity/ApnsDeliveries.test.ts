@@ -46,8 +46,7 @@ const config = RelayConfiguration.RelayConfiguration.of({
   clerkJwtAudience: "ras-code-relay",
   cloudMintPrivateKey: Redacted.make("cloud-private-key"),
   cloudMintPublicKey: "cloud-public-key",
-  managedEndpointBaseDomain: undefined,
-  managedEndpointNamespace: undefined,
+  relayEndpointNamespace: undefined,
 });
 
 const apnsSigningKeyPair = NodeCrypto.generateKeyPairSync("ec", {

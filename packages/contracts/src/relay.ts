@@ -133,11 +133,7 @@ export const RelayAgentActivityAggregateState = Schema.Struct({
 });
 export type RelayAgentActivityAggregateState = typeof RelayAgentActivityAggregateState.Type;
 
-export const RelayManagedEndpointProviderKind = Schema.Literals([
-  "manual",
-  "cloudflare_tunnel",
-  "ras_relay",
-]);
+export const RelayManagedEndpointProviderKind = Schema.Literals(["manual", "ras_relay"]);
 export type RelayManagedEndpointProviderKind = typeof RelayManagedEndpointProviderKind.Type;
 
 export const RelayManagedEndpoint = Schema.Struct({
@@ -157,10 +153,13 @@ export const RelayManagedEndpointOrigin = Schema.Struct({
 export type RelayManagedEndpointOrigin = typeof RelayManagedEndpointOrigin.Type;
 
 export const RelayManagedEndpointRuntimeConfig = Schema.Struct({
-  providerKind: RelayManagedEndpointProviderKind,
+  providerKind: Schema.Literal("ras_relay"),
   connectorToken: TrimmedNonEmptyString,
-  tunnelId: Schema.optional(TrimmedNonEmptyString),
-  tunnelName: Schema.optional(TrimmedNonEmptyString),
+  connectorUrl: Schema.optional(TrimmedNonEmptyString),
+  localHttpHost: Schema.optional(TrimmedNonEmptyString),
+  localHttpPort: Schema.optional(
+    Schema.Int.check(Schema.isGreaterThanOrEqualTo(1), Schema.isLessThanOrEqualTo(65_535)),
+  ),
 });
 export type RelayManagedEndpointRuntimeConfig = typeof RelayManagedEndpointRuntimeConfig.Type;
 
@@ -213,7 +212,7 @@ export type RelayAgentActivityPublishRequest = typeof RelayAgentActivityPublishR
 
 export const RelayEnvironmentLinkScope = Schema.Literals([
   "agent_activity_notifications",
-  "managed_tunnels",
+  "managed_relay",
 ]);
 export type RelayEnvironmentLinkScope = typeof RelayEnvironmentLinkScope.Type;
 
@@ -239,8 +238,8 @@ export const RelayEnvironmentLinkChallengeRequest = Schema.Struct({
   liveActivitiesEnabled: Schema.Boolean.annotate({
     description: "Whether this link may update Live Activities.",
   }),
-  managedTunnelsEnabled: Schema.Boolean.annotate({
-    description: "Whether the relay should provision a managed tunnel for this environment.",
+  managedRelayEnabled: Schema.Boolean.annotate({
+    description: "Whether the relay should expose this environment through the managed relay.",
   }),
 }).annotate({ description: "Requested capabilities for a new environment-link challenge." });
 export type RelayEnvironmentLinkChallengeRequest = typeof RelayEnvironmentLinkChallengeRequest.Type;
@@ -263,7 +262,7 @@ export const RelayEnvironmentLinkRequest = Schema.Struct({
   }),
   notificationsEnabled: Schema.Boolean,
   liveActivitiesEnabled: Schema.Boolean,
-  managedTunnelsEnabled: Schema.Boolean,
+  managedRelayEnabled: Schema.Boolean,
 }).annotate({ description: "Links an authenticated cloud user to a RAS Code environment." });
 export type RelayEnvironmentLinkRequest = typeof RelayEnvironmentLinkRequest.Type;
 
@@ -385,11 +384,6 @@ export const RelayEnvironmentConnectNotAuthorizedReason = Schema.Literals([
   "client_proof_key_thumbprint_missing",
   "environment_link_not_found",
   "endpoint_provider_not_managed",
-  "managed_endpoint_allocation_not_found",
-  "managed_endpoint_base_domain_not_configured",
-  "managed_endpoint_allocation_not_ready",
-  "managed_endpoint_hostname_invalid",
-  "managed_endpoint_mismatch",
 ]);
 export type RelayEnvironmentConnectNotAuthorizedReason =
   typeof RelayEnvironmentConnectNotAuthorizedReason.Type;
@@ -398,9 +392,7 @@ export class RelayEnvironmentConnectNotAuthorizedError extends Schema.TaggedErro
   "RelayEnvironmentConnectNotAuthorizedError",
   {
     code: Schema.Literal("environment_connect_not_authorized"),
-    // Optional so responses from relays deployed before the reason was
-    // threaded through still decode.
-    reason: Schema.optional(RelayEnvironmentConnectNotAuthorizedReason),
+    reason: RelayEnvironmentConnectNotAuthorizedReason,
     traceId: TrimmedNonEmptyString,
   },
   { httpApiStatus: 403 },
@@ -467,20 +459,6 @@ export class RelayEnvironmentLinkUnavailableError extends Schema.TaggedErrorClas
   }
 }
 
-export class RelayEnvironmentLinkLimitExceededError extends Schema.TaggedErrorClass<RelayEnvironmentLinkLimitExceededError>()(
-  "RelayEnvironmentLinkLimitExceededError",
-  {
-    code: Schema.Literal("environment_link_limit_exceeded"),
-    maxTunnels: Schema.Number,
-    traceId: TrimmedNonEmptyString,
-  },
-  { httpApiStatus: 403 },
-) {
-  override get message(): string {
-    return `Relay managed tunnel limit reached: this account allows at most ${this.maxTunnels} tunnels`;
-  }
-}
-
 export class RelayAgentActivityPublishProofExpiredError extends Schema.TaggedErrorClass<RelayAgentActivityPublishProofExpiredError>()(
   "RelayAgentActivityPublishProofExpiredError",
   {
@@ -531,7 +509,6 @@ export const RelayProtectedError = Schema.Union([
   RelayEnvironmentEndpointTimedOutError,
   RelayEnvironmentLinkFailedError,
   RelayEnvironmentLinkUnavailableError,
-  RelayEnvironmentLinkLimitExceededError,
   RelayAgentActivityPublishProofExpiredError,
   RelayAgentActivityPublishProofInvalidError,
   RelayInternalError,
@@ -545,7 +522,6 @@ const RelayEnvironmentLinkErrors = [
   RelayEnvironmentLinkProofExpiredError,
   RelayEnvironmentLinkProofInvalidError,
   RelayEnvironmentLinkUnavailableError,
-  RelayEnvironmentLinkLimitExceededError,
   RelayEnvironmentLinkFailedError,
   RelayInternalError,
 ] as const;
@@ -990,21 +966,6 @@ export const RelayClientGroup = HttpApiGroup.make("client")
       success: RelayOkResponse,
       error: RelayAuthAndInternalErrors,
     }).annotate(OpenApi.Summary, "Unlink an environment"),
-    HttpApiEndpoint.delete(
-      "releaseEnvironmentTunnel",
-      "/v1/client/environment-links/:environmentId/tunnel",
-      {
-        headers: RelayBearerRequestHeaders,
-        params: RelayEnvironmentUnlinkParams,
-        success: RelayOkResponse,
-        error: RelayAuthAndInternalErrors,
-      },
-    )
-      .annotate(OpenApi.Summary, "Release an environment's managed tunnel")
-      .annotate(
-        OpenApi.Description,
-        "Deletes the provisioned Cloudflare tunnel while keeping the environment link and its hostname reservation, so a later link re-provisions the tunnel under the same URL. Environments call this when they shut down; Cloudflare bills per provisioned tunnel, so idle tunnels should not outlive their environment.",
-      ),
   )
   .annotate(OpenApi.Description, "Cloud-user environment links and registered devices.")
   .middleware(RelayClientAuth);

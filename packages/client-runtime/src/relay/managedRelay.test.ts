@@ -67,7 +67,7 @@ describe("ManagedRelayClient", () => {
           endpoint: {
             httpBaseUrl: "https://desktop.example.test/",
             wsBaseUrl: "wss://desktop.example.test/ws",
-            providerKind: "cloudflare_tunnel",
+            providerKind: "ras_relay",
           },
           status: "online",
           checkedAt: "2026-06-05T20:00:00.000Z",
@@ -153,7 +153,7 @@ describe("ManagedRelayClient", () => {
           endpoint: {
             httpBaseUrl: "https://desktop.example.test/",
             wsBaseUrl: "wss://desktop.example.test/ws",
-            providerKind: "cloudflare_tunnel",
+            providerKind: "ras_relay",
           },
           status: "online",
           checkedAt: "2026-05-25T00:01:00.000Z",
@@ -223,7 +223,7 @@ describe("ManagedRelayClient", () => {
           endpoint: {
             httpBaseUrl: "https://desktop.example.test/",
             wsBaseUrl: "wss://desktop.example.test/ws",
-            providerKind: "cloudflare_tunnel",
+            providerKind: "ras_relay",
           },
           status: "online",
           checkedAt: "2026-06-05T20:00:00.000Z",
@@ -322,7 +322,7 @@ describe("ManagedRelayClient", () => {
           endpoint: {
             httpBaseUrl: "https://desktop.example.test/",
             wsBaseUrl: "wss://desktop.example.test/ws",
-            providerKind: "cloudflare_tunnel",
+            providerKind: "ras_relay",
           },
           status: "online",
           checkedAt: "2026-06-05T20:00:00.000Z",
@@ -385,7 +385,7 @@ describe("ManagedRelayClient", () => {
           endpoint: {
             httpBaseUrl: "https://desktop.example.test/",
             wsBaseUrl: "wss://desktop.example.test/ws",
-            providerKind: "cloudflare_tunnel",
+            providerKind: "ras_relay",
           },
           status: "online",
           checkedAt: "2026-06-05T20:00:00.000Z",

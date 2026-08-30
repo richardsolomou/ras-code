@@ -43,8 +43,7 @@ const config = RelayConfiguration.RelayConfiguration.of({
   clerkJwtAudience: "ras-code-relay",
   cloudMintPrivateKey: Redacted.make(relayKeyPair.privateKey),
   cloudMintPublicKey: relayKeyPair.publicKey,
-  managedEndpointBaseDomain: undefined,
-  managedEndpointNamespace: undefined,
+  relayEndpointNamespace: undefined,
 });
 const isEnvironmentLinkProofInvalid = Schema.is(EnvironmentLinker.EnvironmentLinkProofInvalid);
 
@@ -64,7 +63,7 @@ const makeRequest = Effect.gen(function* () {
     request: {
       notificationsEnabled: true,
       liveActivitiesEnabled: true,
-      managedTunnelsEnabled: true,
+      managedRelayEnabled: true,
     },
     jti: "challenge-jti",
     issuedAtEpochSeconds: Math.floor(now.epochMilliseconds / 1_000),
@@ -93,14 +92,14 @@ const makeRequest = Effect.gen(function* () {
       providerKind: "manual",
     },
     origin: { localHttpHost: "127.0.0.1", localHttpPort: 3773 },
-    scopes: ["agent_activity_notifications", "managed_tunnels"],
+    scopes: ["agent_activity_notifications", "managed_relay"],
   } satisfies RelayEnvironmentLinkProofPayload;
   return {
     request: {
       proof: signTestJwt(payload, RELAY_LINK_PROOF_TYP, environmentKeyPair.privateKey),
       notificationsEnabled: true,
       liveActivitiesEnabled: true,
-      managedTunnelsEnabled: false,
+      managedRelayEnabled: false,
     } satisfies RelayEnvironmentLinkRequest,
     payload,
   };
@@ -109,7 +108,6 @@ const makeRequest = Effect.gen(function* () {
 function testLayer(input?: {
   readonly upsert?: EnvironmentLinks.EnvironmentLinks["Service"]["upsert"];
   readonly consume?: DpopProofs.DpopProofReplay["Service"]["consume"];
-  readonly deprovision?: ManagedEndpointProvider.ManagedEndpointProvider["Service"]["deprovision"];
 }) {
   return EnvironmentLinker.layer.pipe(
     Layer.provideMerge(RelayTokens.layer),
@@ -136,17 +134,19 @@ function testLayer(input?: {
           revokeForEnvironmentPublicKey: () => Effect.succeed(false),
         }),
         Layer.succeed(ManagedEndpointProvider.ManagedEndpointProvider, {
-          prepareDeprovision: () => Effect.succeed(null),
-          deprovision: input?.deprovision ?? (() => Effect.void),
-          release: () => Effect.succeed(true),
           provision: () =>
             Effect.succeed({
               endpoint: {
-                httpBaseUrl: "https://managed.example.test/",
-                wsBaseUrl: "wss://managed.example.test/ws",
-                providerKind: "cloudflare_tunnel",
+                httpBaseUrl: "https://managed.example.test/e/endpoint/",
+                wsBaseUrl: "wss://managed.example.test/e/endpoint/ws",
+                providerKind: "ras_relay",
               },
-              runtime: { providerKind: "cloudflare_tunnel", connectorToken: "connector-token" },
+              runtime: {
+                providerKind: "ras_relay",
+                connectorUrl: "wss://relay.example.test/v1/ras-relay/connect/endpoint",
+                localHttpHost: "127.0.0.1",
+                localHttpPort: 3000,
+              },
             }),
         }),
       ),
@@ -178,7 +178,6 @@ describe("EnvironmentLinker", () => {
 
   it.effect("links a publish-only environment with a non-secure nominal endpoint", () => {
     let persistedEndpoint: string | null = null;
-    let deprovisionedEnvironmentId: string | null = null;
     return Effect.gen(function* () {
       const now = yield* DateTime.now;
       const expiresAt = DateTime.add(now, { minutes: 5 });
@@ -188,7 +187,7 @@ describe("EnvironmentLinker", () => {
         request: {
           notificationsEnabled: true,
           liveActivitiesEnabled: true,
-          managedTunnelsEnabled: false,
+          managedRelayEnabled: false,
         },
         jti: "publish-only-challenge-jti",
         issuedAtEpochSeconds: Math.floor(now.epochMilliseconds / 1_000),
@@ -223,26 +222,19 @@ describe("EnvironmentLinker", () => {
         proof: signTestJwt(payload, RELAY_LINK_PROOF_TYP, environmentKeyPair.privateKey),
         notificationsEnabled: true,
         liveActivitiesEnabled: true,
-        managedTunnelsEnabled: false,
+        managedRelayEnabled: false,
       } satisfies RelayEnvironmentLinkRequest;
       const linker = yield* EnvironmentLinker.EnvironmentLinker;
       const result = yield* linker.link({ userId: "user_123", request });
       expect(result.environmentCredential).toBe("t3env_credential_secret");
       expect(result.endpointRuntime).toBeNull();
       expect(persistedEndpoint).toBe("http://127.0.0.1:3773/");
-      // Downgrading from a managed link must release the previously provisioned
-      // tunnel; nothing else cleans it up before a full unlink.
-      expect(deprovisionedEnvironmentId).toBe("env-link-test");
     }).pipe(
       Effect.provide(
         testLayer({
           upsert: (input) =>
             Effect.sync(() => {
               persistedEndpoint = input.endpoint.httpBaseUrl;
-            }),
-          deprovision: (input) =>
-            Effect.sync(() => {
-              deprovisionedEnvironmentId = input.environmentId;
             }),
         }),
       ),

@@ -76,7 +76,7 @@ on the **Tailscale HTTPS** row in **Settings** → **Connections**. The desktop 
 backend with the same server-side behavior as `ras serve --tailscale-serve`, then the server asks
 Tailscale Serve to proxy HTTPS traffic to the local backend. Turn the same switch off to stop it.
 
-The Tailscale support is an endpoint provider add-on. The core remote model still works without Tailscale: LAN HTTP endpoints, custom HTTPS endpoints, managed tunnels, and SSH-launched environments all use the same saved environment and pairing flow.
+The Tailscale support is an endpoint provider add-on. The core remote model still works without Tailscale: LAN HTTP endpoints, custom HTTPS endpoints, managed relay endpoints, and SSH-launched environments all use the same saved environment and pairing flow.
 
 For `https://code.ras.sh`, prefer an HTTPS Tailnet or other HTTPS endpoint. A plain `http://100.x.y.z:3773` endpoint can still work from a desktop client or another browser page served over HTTP, but it will not work from the hosted HTTPS app because of browser mixed-content rules.
 
@@ -90,8 +90,8 @@ the environment. On a headless machine, run:
 npx ras-code connect
 ```
 
-The CLI authorizes the machine, installs the managed relay client, and starts a Cloudflare Tunnel to
-the local RAS Code server. The RAS-hosted service publishes environments below
+The CLI authorizes the machine, and the RAS Code server starts its built-in outbound relay connector.
+The RAS-hosted service publishes environments below
 `https://code-tunnels.ras.sh/e/<endpoint-id>/`; the endpoint ID is only a routing identifier, while
 normal RAS Code pairing and DPoP-bound session authentication still control access.
 
@@ -153,7 +153,7 @@ Use this when you want the desktop app to start or reuse RAS Code on another mac
 
 After setup, the renderer connects to a local forwarded HTTP/WebSocket endpoint. The remote host still owns the actual RAS Code server, projects, files, git state, terminals, and provider sessions.
 
-SSH launch is a desktop feature because it needs local process and SSH access. Once the environment is paired and saved, it uses the same environment list and connection model as direct LAN, Tailscale, HTTPS, or managed tunnel-backed environments.
+SSH launch is a desktop feature because it needs local process and SSH access. Once the environment is paired and saved, it uses the same environment list and connection model as direct LAN, Tailscale, HTTPS, or managed relay-backed environments.
 
 #### SSH Launch Troubleshooting
 
@@ -258,7 +258,7 @@ Use `ras auth --help` and the nested subcommand help pages for the full referenc
 
 Open your account menu and choose **RAS Connect** to see every environment registered to your
 account. On mobile, open **Settings** → **RAS Connect**. Choose **Deregister** to revoke an
-environment's RAS Connect access, remove any managed tunnel, and free its host space.
+environment's RAS Connect access, disconnect its relay session, and remove its hosted link.
 
 Deregistration is an account action and does not need a connection to the environment, so it also
 works for a server that was wiped or is no longer reachable. Device-local connect and disconnect

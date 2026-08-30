@@ -1,8 +1,6 @@
 import * as Data from "effect/Data";
 import * as Effect from "effect/Effect";
-import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
-import * as Stream from "effect/Stream";
 import { HttpClient } from "effect/unstable/http";
 import {
   EnvironmentCloudEndpointUnavailableError,
@@ -13,7 +11,6 @@ import {
   EnvironmentHttpInternalServerError,
   EnvironmentHttpUnauthorizedError,
   EnvironmentId,
-  WS_METHODS,
 } from "@ras-code/contracts";
 import {
   type RelayClientDeviceRecord,
@@ -21,8 +18,6 @@ import {
   type RelayEnvironmentLinkResponse,
   type RelayManagedEndpointProviderKind,
 } from "@ras-code/contracts/relay";
-import { EnvironmentRegistry } from "@ras-code/client-runtime/connection";
-import { request, runStream } from "@ras-code/client-runtime/rpc";
 import { makeEnvironmentHttpApiClient } from "@ras-code/client-runtime/rpc";
 import { ManagedRelay, relayProtectedErrorMessage } from "@ras-code/client-runtime/relay";
 
@@ -32,11 +27,6 @@ import {
 } from "../environments/primary";
 import { primaryEnvironmentHttpLayer } from "../environments/primary/httpLayer";
 import { resolveCloudPublicConfig } from "./publicConfig";
-import {
-  finishRelayClientInstall,
-  reportRelayClientInstallProgress,
-  requestRelayClientInstallConfirmation,
-} from "./relayClientInstallDialog";
 
 export function normalizeRelayBaseUrl(value: string | null | undefined): string | null {
   const trimmed = value?.trim();
@@ -55,66 +45,6 @@ export class CloudEnvironmentLinkError extends Data.TaggedError("CloudEnvironmen
   readonly cause?: unknown;
   readonly traceId?: string;
 }> {}
-
-const relayClientRpcError = (message: string) => (cause: unknown) =>
-  new CloudEnvironmentLinkError({
-    message,
-    cause,
-  });
-
-function ensureRelayClientAvailable(
-  environmentId: EnvironmentId,
-): Effect.Effect<void, CloudEnvironmentLinkError, EnvironmentRegistry> {
-  return Effect.gen(function* () {
-    const registry = yield* EnvironmentRegistry;
-    const status = yield* registry
-      .run(environmentId, request(WS_METHODS.cloudGetRelayClientStatus, {}))
-      .pipe(Effect.mapError(relayClientRpcError("Could not check relay client availability.")));
-    if (status.status === "available") return;
-    if (status.status === "unsupported") {
-      return yield* new CloudEnvironmentLinkError({
-        message: `RAS Code cannot install the relay client automatically on ${status.platform}-${status.arch}.`,
-      });
-    }
-
-    const confirmed = yield* Effect.tryPromise({
-      try: () => requestRelayClientInstallConfirmation(status.version),
-      catch: relayClientRpcError("Could not confirm relay client installation."),
-    });
-    if (!confirmed) {
-      return yield* new CloudEnvironmentLinkError({
-        message: "Relay client installation was cancelled.",
-      });
-    }
-
-    const installed = yield* registry
-      .runStream(
-        environmentId,
-        runStream(WS_METHODS.cloudInstallRelayClient, {}).pipe(
-          Stream.tap((event) => Effect.sync(() => reportRelayClientInstallProgress(event))),
-        ),
-      )
-      .pipe(
-        Stream.runLast,
-        Effect.mapError(relayClientRpcError("Could not install the relay client.")),
-        Effect.ensuring(Effect.sync(finishRelayClientInstall)),
-      );
-    if (Option.isNone(installed) || installed.value.type !== "complete") {
-      return yield* new CloudEnvironmentLinkError({
-        message: "The relay client install completed without a final status.",
-      });
-    }
-    const installedStatus = installed.value.status;
-    if (installedStatus.status !== "available") {
-      return yield* new CloudEnvironmentLinkError({
-        message:
-          installedStatus.status === "unsupported"
-            ? `RAS Code cannot install the relay client automatically on ${installedStatus.platform}-${installedStatus.arch}.`
-            : "The relay client is still unavailable after installation.",
-      });
-    }
-  });
-}
 
 const isEnvironmentCloudApiError = Schema.is(
   Schema.Union([
@@ -169,8 +99,7 @@ function endpointOrigin(httpBaseUrl: string) {
   };
 }
 
-const MANAGED_ENDPOINT_PROVIDER_KIND =
-  "cloudflare_tunnel" satisfies RelayManagedEndpointProviderKind;
+const MANAGED_ENDPOINT_PROVIDER_KIND = "ras_relay" satisfies RelayManagedEndpointProviderKind;
 
 function ensureLinkedEnvironmentMatches(input: {
   readonly expectedEnvironmentId: string;
@@ -348,7 +277,7 @@ export function unlinkPrimaryEnvironmentFromCloud(input: {
 }
 
 // "publish_only" links the environment to the relay for agent-activity
-// publishing alone: no managed tunnel is provisioned, so it can be toggled
+// publishing alone: no managed relay endpoint is provisioned, so it can be toggled
 // independently of RAS Connect while clients reach the environment out of band.
 export type CloudLinkMode = "managed" | "publish_only";
 
@@ -361,7 +290,7 @@ export function linkPrimaryEnvironmentToCloud(input: {
 }): Effect.Effect<
   void,
   CloudEnvironmentLinkError,
-  EnvironmentRegistry | HttpClient.HttpClient | ManagedRelay.ManagedRelayClient
+  HttpClient.HttpClient | ManagedRelay.ManagedRelayClient
 > {
   return Effect.gen(function* () {
     const configuredRelayUrl = relayUrl();
@@ -370,23 +299,19 @@ export function linkPrimaryEnvironmentToCloud(input: {
         message: "RAS_CODE_RELAY_URL is not configured.",
       });
     }
-    const managedTunnelsEnabled = (input.mode ?? "managed") === "managed";
-    const providerKind = managedTunnelsEnabled
+    const managedRelayEnabled = (input.mode ?? "managed") === "managed";
+    const providerKind = managedRelayEnabled
       ? MANAGED_ENDPOINT_PROVIDER_KIND
       : PUBLISH_ONLY_PROVIDER_KIND;
     const relayClient = yield* ManagedRelay.ManagedRelayClient;
     const environmentClient = yield* makeEnvironmentHttpApiClient(input.target.httpBaseUrl);
-    if (managedTunnelsEnabled) {
-      yield* ensureRelayClientAvailable(EnvironmentId.make(input.target.environmentId));
-    }
-
     const challenge = yield* relayClient
       .createEnvironmentLinkChallenge({
         clerkToken: input.clerkToken,
         payload: {
           notificationsEnabled: true,
           liveActivitiesEnabled: true,
-          managedTunnelsEnabled,
+          managedRelayEnabled,
         },
       })
       .pipe(
@@ -418,7 +343,7 @@ export function linkPrimaryEnvironmentToCloud(input: {
           proof,
           notificationsEnabled: true,
           liveActivitiesEnabled: true,
-          managedTunnelsEnabled,
+          managedRelayEnabled,
         },
       })
       .pipe(

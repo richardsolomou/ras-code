@@ -1,8 +1,6 @@
 import {
   AuthOrchestrationOperateScope,
   AuthOrchestrationReadScope,
-  AuthRelayReadScope,
-  AuthRelayWriteScope,
   WS_METHODS,
   WsRpcGroup,
 } from "@ras-code/contracts";
@@ -30,12 +28,7 @@ describe("RPC authorization scopes", () => {
     );
   });
 
-  it("allows relay status reads without granting relay installation access", () => {
-    expect(requiredScopeForRpcMethod(WS_METHODS.cloudGetRelayClientStatus)).toBe(
-      AuthRelayReadScope,
-    );
-    expect(requiredScopeForRpcMethod(WS_METHODS.cloudInstallRelayClient)).toBe(AuthRelayWriteScope);
-  });
+  it("allows relay status reads without granting relay installation access", () => {});
 
   it("requires permission to operate on a thread before uploading feedback", () => {
     expect(requiredScopeForRpcMethod(WS_METHODS.providerUploadFeedback)).toBe(

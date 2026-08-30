@@ -11,7 +11,7 @@ const environment: RelayClientEnvironmentRecord = {
   endpoint: {
     httpBaseUrl: "https://studio.example.com",
     wsBaseUrl: "wss://studio.example.com",
-    providerKind: "cloudflare_tunnel",
+    providerKind: "ras_relay",
   },
   linkedAt: "2026-08-12T12:00:00.000Z",
 };

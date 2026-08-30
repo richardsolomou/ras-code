@@ -70,9 +70,9 @@ Required `production` environment variables:
 - `RELAY_DATABASE_HOST`
 - `RELAY_DATABASE_NAME`
 - `RELAY_DATABASE_USER`
-- `RELAY_TUNNEL_ZONE_NAME`
-- `RELAY_TUNNEL_GATEWAY_DOMAIN`
-- `RELAY_TUNNEL_NAMESPACE`
+- `RELAY_GATEWAY_ZONE_NAME`
+- `RELAY_GATEWAY_DOMAIN`
+- `RELAY_ENDPOINT_NAMESPACE`
 - `CLERK_PUBLISHABLE_KEY`
 - `CLERK_JWT_AUDIENCE`
 - `CLERK_JWT_TEMPLATE`
@@ -102,8 +102,12 @@ hostname, and Hyperdrive authenticates with the Access service token. The `prod`
 `RELAY_DATABASE_NAME`; every other stage gets its own `<RELAY_DATABASE_NAME>-<stage>` database on the
 same server. Migrations run from the deploy host over `cloudflared access tcp`, which the deploy
 workflow opens before the stack runs and closes afterwards.
-Production adopts the configured relay API and tunnel DNS zones as retained Cloudflare resources.
+Production adopts the configured relay API and gateway DNS zones as retained Cloudflare resources.
 Personal stages reference the production-owned zones.
+
+### Built-in relay cutover
+
+The built-in relay release is a hard cutover from the previous per-environment Cloudflare Tunnel transport. Before deploying it, unlink every environment through the old relay so that deployment removes its tunnel and DNS record. Then replace the production environment variables `RELAY_TUNNEL_ZONE_NAME`, `RELAY_TUNNEL_GATEWAY_DOMAIN`, and `RELAY_TUNNEL_NAMESPACE` with `RELAY_GATEWAY_ZONE_NAME`, `RELAY_GATEWAY_DOMAIN`, and `RELAY_ENDPOINT_NAMESPACE`. Deploy the relay before releasing clients, then relink each environment after its server is running the new build. Mixed old and new relay transports are not supported.
 
 Developers deploy personal stages locally rather than through pull-request automation:
 

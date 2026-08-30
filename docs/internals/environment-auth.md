@@ -138,6 +138,6 @@ capabilities.
 
 ## Relay Boundary
 
-Relay-managed tunnels use their own tokens and keys. The relay can reuse scope
+Relay-managed endpoints use their own tokens and keys. The relay can reuse scope
 parsing and token-exchange conventions, but an environment access token is not a
 relay token and cannot be presented to the relay.

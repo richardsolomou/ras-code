@@ -141,10 +141,10 @@ function validLinkResponse(environmentId = "env-1") {
     endpoint: {
       httpBaseUrl: "https://managed.example.test/",
       wsBaseUrl: "wss://managed.example.test/ws",
-      providerKind: "cloudflare_tunnel",
+      providerKind: "ras_relay",
     },
     endpointRuntime: {
-      providerKind: "cloudflare_tunnel",
+      providerKind: "ras_relay",
       connectorToken: "connector-token",
     },
     relayIssuer: "https://relay.example.test",
@@ -182,7 +182,7 @@ function listedEnvironment(environmentId: string) {
     endpoint: {
       httpBaseUrl: `https://${environmentId}.example.test/`,
       wsBaseUrl: `wss://${environmentId}.example.test/ws`,
-      providerKind: "cloudflare_tunnel" as const,
+      providerKind: "ras_relay" as const,
     },
     linkedAt: "2026-05-25T00:00:00.000Z",
   };
@@ -226,7 +226,7 @@ describe("mobile cloud link environment client", () => {
                   endpoint: {
                     httpBaseUrl: "https://desktop.example.test/",
                     wsBaseUrl: "wss://desktop.example.test/ws",
-                    providerKind: "cloudflare_tunnel",
+                    providerKind: "ras_relay",
                   },
                   linkedAt: "2026-05-25T00:00:00.000Z",
                 },
@@ -246,7 +246,7 @@ describe("mobile cloud link environment client", () => {
           endpoint: {
             httpBaseUrl: "https://desktop.example.test/",
             wsBaseUrl: "wss://desktop.example.test/ws",
-            providerKind: "cloudflare_tunnel",
+            providerKind: "ras_relay",
           },
           linkedAt: "2026-05-25T00:00:00.000Z",
         },
@@ -268,7 +268,7 @@ describe("mobile cloud link environment client", () => {
                   endpoint: {
                     httpBaseUrl: "",
                     wsBaseUrl: "wss://desktop.example.test/ws",
-                    providerKind: "cloudflare_tunnel",
+                    providerKind: "ras_relay",
                   },
                   linkedAt: "2026-05-25T00:00:00.000Z",
                 },
@@ -301,7 +301,7 @@ describe("mobile cloud link environment client", () => {
                   endpoint: {
                     httpBaseUrl: "https://desktop.example.test/",
                     wsBaseUrl: "wss://desktop.example.test/ws",
-                    providerKind: "cloudflare_tunnel",
+                    providerKind: "ras_relay",
                   },
                   linkedAt: "2026-05-25T00:00:00.000Z",
                 },
@@ -319,7 +319,7 @@ describe("mobile cloud link environment client", () => {
             endpoint: {
               httpBaseUrl: "https://desktop.example.test/",
               wsBaseUrl: "wss://desktop.example.test/ws",
-              providerKind: "cloudflare_tunnel",
+              providerKind: "ras_relay",
             },
             status: "online",
             checkedAt: "2026-05-25T00:01:00.000Z",
@@ -520,7 +520,7 @@ describe("mobile cloud link environment client", () => {
                     endpoint: {
                       httpBaseUrl: "https://desktop.example.test/",
                       wsBaseUrl: "wss://desktop.example.test/ws",
-                      providerKind: "cloudflare_tunnel",
+                      providerKind: "ras_relay",
                     },
                     linkedAt: "2026-05-25T00:00:00.000Z",
                   },
@@ -566,7 +566,7 @@ describe("mobile cloud link environment client", () => {
                     endpoint: {
                       httpBaseUrl: "https://desktop.example.test/",
                       wsBaseUrl: "wss://desktop.example.test/ws",
-                      providerKind: "cloudflare_tunnel",
+                      providerKind: "ras_relay",
                     },
                     linkedAt: "2026-05-25T00:00:00.000Z",
                   },
@@ -583,7 +583,7 @@ describe("mobile cloud link environment client", () => {
               endpoint: {
                 httpBaseUrl: "https://desktop.example.test/",
                 wsBaseUrl: "wss://desktop.example.test/ws",
-                providerKind: "cloudflare_tunnel",
+                providerKind: "ras_relay",
               },
               status: "online",
               checkedAt: "2026-05-25T00:01:00.000Z",
@@ -785,7 +785,7 @@ describe("mobile cloud link environment client", () => {
         endpoint: {
           httpBaseUrl: "https://desktop.example.test/",
           wsBaseUrl: "wss://desktop.example.test/ws",
-          providerKind: "cloudflare_tunnel",
+          providerKind: "ras_relay",
         },
         origin: {
           localHttpHost: "127.0.0.1",
@@ -796,7 +796,7 @@ describe("mobile cloud link environment client", () => {
         deviceId: "device-1",
         notificationsEnabled: true,
         liveActivitiesEnabled: false,
-        managedTunnelsEnabled: true,
+        managedRelayEnabled: true,
       });
       expect(bodies[3]).toMatchObject({
         cloudUserId: "user_123",
@@ -884,7 +884,7 @@ describe("mobile cloud link environment client", () => {
               endpoint: {
                 httpBaseUrl: "https://desktop.example.test/",
                 wsBaseUrl: "wss://desktop.example.test/ws",
-                providerKind: "cloudflare_tunnel",
+                providerKind: "ras_relay",
               },
               credential: "one-time-cloud-credential",
               expiresAt: "2026-05-25T00:05:00.000Z",
@@ -902,7 +902,7 @@ describe("mobile cloud link environment client", () => {
               endpoint: {
                 httpBaseUrl: "https://desktop.example.test/",
                 wsBaseUrl: "wss://desktop.example.test/ws",
-                providerKind: "cloudflare_tunnel",
+                providerKind: "ras_relay",
               },
               linkedAt: "2026-05-25T00:00:00.000Z",
             },
@@ -970,7 +970,7 @@ describe("mobile cloud link environment client", () => {
               endpoint: {
                 httpBaseUrl: "https://rotated-desktop.example.test/",
                 wsBaseUrl: "wss://rotated-desktop.example.test/ws",
-                providerKind: "cloudflare_tunnel",
+                providerKind: "ras_relay",
               },
               credential: "rotated-one-time-cloud-credential",
               expiresAt: "2026-05-25T00:05:00.000Z",
@@ -1020,7 +1020,7 @@ describe("mobile cloud link environment client", () => {
                   endpoint: {
                     httpBaseUrl: "https://desktop.example.test/",
                     wsBaseUrl: "wss://desktop.example.test/ws",
-                    providerKind: "cloudflare_tunnel",
+                    providerKind: "ras_relay",
                   },
                   credential: "one-time-cloud-credential",
                   expiresAt: "2026-05-25T00:05:00.000Z",
@@ -1038,7 +1038,7 @@ describe("mobile cloud link environment client", () => {
             endpoint: {
               httpBaseUrl: "https://desktop.example.test/",
               wsBaseUrl: "wss://desktop.example.test/ws",
-              providerKind: "cloudflare_tunnel",
+              providerKind: "ras_relay",
             },
             linkedAt: "2026-05-25T00:00:00.000Z",
           },
@@ -1081,7 +1081,7 @@ describe("mobile cloud link environment client", () => {
             endpoint: {
               httpBaseUrl: "https://desktop.example.test/",
               wsBaseUrl: "wss://desktop.example.test/ws",
-              providerKind: "cloudflare_tunnel",
+              providerKind: "ras_relay",
             },
             linkedAt: "2026-05-25T00:00:00.000Z",
           },
@@ -1115,7 +1115,7 @@ describe("mobile cloud link environment client", () => {
                   endpoint: {
                     httpBaseUrl: "https://desktop.example.test/",
                     wsBaseUrl: "wss://desktop.example.test/ws",
-                    providerKind: "cloudflare_tunnel",
+                    providerKind: "ras_relay",
                   },
                   credential: "one-time-cloud-credential",
                   expiresAt: "2026-05-25T00:05:00.000Z",
@@ -1156,7 +1156,7 @@ describe("mobile cloud link environment client", () => {
               endpoint: {
                 httpBaseUrl: "https://desktop.example.test/",
                 wsBaseUrl: "wss://desktop.example.test/ws",
-                providerKind: "cloudflare_tunnel",
+                providerKind: "ras_relay",
               },
               linkedAt: "2026-05-25T00:00:00.000Z",
             },
@@ -1184,7 +1184,7 @@ describe("mobile cloud link environment client", () => {
                   endpoint: {
                     httpBaseUrl: "https://other-desktop.example.test/",
                     wsBaseUrl: "wss://other-desktop.example.test/ws",
-                    providerKind: "cloudflare_tunnel",
+                    providerKind: "ras_relay",
                   },
                   credential: "one-time-cloud-credential",
                   expiresAt: "2026-05-25T00:05:00.000Z",
@@ -1202,7 +1202,7 @@ describe("mobile cloud link environment client", () => {
             endpoint: {
               httpBaseUrl: "https://desktop.example.test/",
               wsBaseUrl: "wss://desktop.example.test/ws",
-              providerKind: "cloudflare_tunnel",
+              providerKind: "ras_relay",
             },
             linkedAt: "2026-05-25T00:00:00.000Z",
           },
@@ -1238,7 +1238,7 @@ describe("mobile cloud link environment client", () => {
                       endpoint: {
                         httpBaseUrl: "https://desktop.example.test/",
                         wsBaseUrl: "wss://desktop.example.test/ws",
-                        providerKind: "cloudflare_tunnel",
+                        providerKind: "ras_relay",
                       },
                       credential: "one-time-cloud-credential",
                       expiresAt: "2026-05-25T00:05:00.000Z",
@@ -1256,7 +1256,7 @@ describe("mobile cloud link environment client", () => {
               endpoint: {
                 httpBaseUrl: "https://desktop.example.test/",
                 wsBaseUrl: "wss://desktop.example.test/ws",
-                providerKind: "cloudflare_tunnel",
+                providerKind: "ras_relay",
               },
               linkedAt: "2026-05-25T00:00:00.000Z",
             },

@@ -44,7 +44,7 @@ const REMOTE_TOKEN = new TokenStore.RemoteDpopAccessToken({
   endpoint: {
     httpBaseUrl: "https://remote.example.test",
     wsBaseUrl: "wss://remote.example.test",
-    providerKind: "cloudflare_tunnel",
+    providerKind: "ras_relay",
   },
   accessToken: "dpop-token",
   expiresAtEpochMs: 1_000_000,

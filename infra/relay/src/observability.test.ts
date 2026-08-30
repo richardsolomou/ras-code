@@ -44,7 +44,7 @@ it.effect("exports schema error fields as span attributes", () =>
       new EnvironmentConnector.EnvironmentConnectNotAuthorized({
         environmentId: "environment-1",
         operation: "connect",
-        reason: "managed_endpoint_allocation_not_ready",
+        reason: "endpoint_provider_not_managed",
       }),
     ).pipe(
       Effect.withSpan("relay.test.schema_error"),
@@ -75,7 +75,7 @@ it.effect("exports schema error fields as span attributes", () =>
       "error.type": "EnvironmentConnectNotAuthorized",
       "error.environmentId": "environment-1",
       "error.operation": "connect",
-      "error.reason": "managed_endpoint_allocation_not_ready",
+      "error.reason": "endpoint_provider_not_managed",
     });
   }).pipe(Effect.provide(NodeHttpServer.layerTest), Effect.scoped),
 );

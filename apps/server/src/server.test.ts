@@ -39,8 +39,8 @@ import {
   computeDpopJwkThumbprint,
   type DpopPublicJwk,
 } from "@ras-code/shared/dpop";
+import { RAS_RELAY_PUBLIC_ORIGIN_HEADER } from "@ras-code/shared/rasRelayProtocol";
 import { RELAY_HEALTH_REQUEST_TYP, RELAY_MINT_REQUEST_TYP } from "@ras-code/shared/relayJwt";
-import * as RelayClient from "@ras-code/shared/relayClient";
 import { assert, it } from "@effect/vitest";
 import { assertFailure, assertInclude, assertTrue } from "@effect/vitest/utils";
 import * as Clock from "effect/Clock";
@@ -431,7 +431,6 @@ const buildAppUnderTest = (options?: {
     cloudManagedEndpointRuntime?: Partial<
       CloudManagedEndpointRuntime.CloudManagedEndpointRuntime["Service"]
     >;
-    relayClient?: Partial<RelayClient.RelayClient["Service"]>;
     cloudCliTokenManager?: Partial<CloudCliTokenManager.CloudCliTokenManager["Service"]>;
     nativeTelemetryClient?: Partial<NativeTelemetryClient.NativeTelemetryClient["Service"]>;
     desktopTelemetryReceiver?: Partial<
@@ -978,20 +977,6 @@ const buildAppUnderTest = (options?: {
           CloudManagedEndpointRuntime.CloudManagedEndpointRuntime.of({
             applyConfig: () => Effect.succeed({ status: "disabled" }),
             ...options?.layers?.cloudManagedEndpointRuntime,
-          }),
-        ),
-      ),
-      Layer.provide(
-        Layer.succeed(
-          RelayClient.RelayClient,
-          RelayClient.RelayClient.of({
-            resolve: Effect.succeed({
-              status: "missing",
-              version: RelayClient.CLOUDFLARED_VERSION,
-            }),
-            install: Effect.die("unused relay-client install"),
-            installWithProgress: () => Effect.die("unused relay-client install"),
-            ...options?.layers?.relayClient,
           }),
         ),
       ),
@@ -1952,7 +1937,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
     }).pipe(Effect.provide(NodeHttpServer.layerTest)),
   );
 
-  it.effect("validates gateway-prefixed DPoP URLs before routing the request", () =>
+  it.effect("validates relay DPoP URLs against the public gateway origin", () =>
     Effect.gen(function* () {
       yield* buildAppUnderTest();
 
@@ -1962,17 +1947,20 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
         body: yield* HttpBody.json({}),
       });
       const credential = (yield* credentialResponse.json) as { readonly credential: string };
-      const tokenUrl = yield* getHttpServerUrl("/e/abcdef0123456789/oauth/token");
+      const localTokenUrl = yield* getHttpServerUrl("/e/abcdef0123456789/oauth/token");
+      const publicOrigin = "https://code-tunnels.ras.sh";
+      const publicTokenUrl = new URL(new URL(localTokenUrl).pathname, publicOrigin).href;
       const now = yield* DateTime.now;
       const dpop = makeDpopProof({
         method: "POST",
-        url: tokenUrl,
+        url: publicTokenUrl,
         iat: Math.floor(now.epochMilliseconds / 1_000),
       });
-      const response = yield* fetchEffect(tokenUrl, {
+      const response = yield* fetchEffect(localTokenUrl, {
         method: "POST",
         headers: {
           "content-type": "application/x-www-form-urlencoded",
+          [RAS_RELAY_PUBLIC_ORIGIN_HEADER]: publicOrigin,
           dpop: dpop.proof,
         },
         body: new URLSearchParams({
@@ -2087,8 +2075,38 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
             wsBaseUrl: linkProofUrl
               .replace("http://", "ws://")
               .replace("/api/connect/link-proof", "/ws"),
-            // "manual" and "cloudflare_tunnel" are supported; "ras_relay" is not.
-            providerKind: "ras_relay",
+            providerKind: "unsupported",
+          },
+          origin: {
+            localHttpHost: "127.0.0.1",
+            localHttpPort: serverPort,
+          },
+        }),
+      });
+      assert.equal(linkProofResponse.status, 400);
+    }).pipe(Effect.provide(NodeHttpServer.layerTest)),
+  );
+
+  it.effect("rejects cloud link proofs requested through a public managed endpoint", () =>
+    Effect.gen(function* () {
+      yield* buildAppUnderTest();
+
+      const linkProofUrl = yield* getHttpServerUrl("/e/abcdef0123456789/api/connect/link-proof");
+      const serverPort = Number(new URL(linkProofUrl).port);
+      const linkProofResponse = yield* fetchEffect(linkProofUrl, {
+        method: "POST",
+        headers: {
+          cookie: yield* getAuthenticatedSessionCookieHeader(),
+          "content-type": "application/json",
+          [RAS_RELAY_PUBLIC_ORIGIN_HEADER]: "https://environment.example.test",
+        },
+        body: jsonRequestBody({
+          challenge: "relay-link-challenge",
+          relayIssuer: "https://relay.example.test",
+          endpoint: {
+            httpBaseUrl: "https://environment.example.test/",
+            wsBaseUrl: "wss://environment.example.test/ws",
+            providerKind: "manual",
           },
           origin: {
             localHttpHost: "127.0.0.1",
@@ -2100,48 +2118,6 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
         readonly _tag?: string;
         readonly message?: string;
       }>(linkProofResponse);
-
-      assert.equal(linkProofResponse.status, 400);
-      assert.equal(body._tag, "EnvironmentHttpBadRequestError");
-      assert.equal(body.message, "Invalid managed endpoint origin.");
-    }).pipe(Effect.provide(NodeHttpServer.layerTest)),
-  );
-
-  it.effect("rejects cloud link proofs requested through a public managed endpoint", () =>
-    Effect.gen(function* () {
-      yield* buildAppUnderTest();
-
-      const linkProofUrl = yield* getHttpServerUrl("/api/connect/link-proof");
-      const serverPort = Number(new URL(linkProofUrl).port);
-      const linkProofResponse = yield* HttpClient.post("/api/connect/link-proof", {
-        headers: {
-          cookie: yield* getAuthenticatedSessionCookieHeader(),
-          "content-type": "application/json",
-          host: "environment.example.test",
-          "x-forwarded-host": "environment.example.test",
-          "x-forwarded-proto": "https",
-        },
-        body: HttpBody.text(
-          jsonRequestBody({
-            challenge: "relay-link-challenge",
-            relayIssuer: "https://relay.example.test",
-            endpoint: {
-              httpBaseUrl: "https://environment.example.test/",
-              wsBaseUrl: "wss://environment.example.test/ws",
-              providerKind: "manual",
-            },
-            origin: {
-              localHttpHost: "127.0.0.1",
-              localHttpPort: serverPort,
-            },
-          }),
-          "application/json",
-        ),
-      });
-      const body = (yield* linkProofResponse.json) as {
-        readonly _tag?: string;
-        readonly message?: string;
-      };
 
       assert.equal(linkProofResponse.status, 400);
       assert.equal(body._tag, "EnvironmentHttpBadRequestError");
@@ -2297,52 +2273,6 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
       assert.equal(body.linked, false);
       assert.equal(body.publishAgentActivity, false);
     }).pipe(Effect.provide(NodeHttpServer.layerTest)),
-  );
-
-  it.effect(
-    "reports relay client status and streams installation progress over environment RPC",
-    () =>
-      Effect.gen(function* () {
-        const installedRelayClient = {
-          status: "available" as const,
-          executablePath: "/tmp/ras/tools/cloudflared",
-          source: "managed" as const,
-          version: RelayClient.CLOUDFLARED_VERSION,
-        };
-        yield* buildAppUnderTest({
-          layers: {
-            relayClient: {
-              resolve: Effect.succeed({
-                status: "missing",
-                version: RelayClient.CLOUDFLARED_VERSION,
-              }),
-              install: Effect.succeed(installedRelayClient),
-              installWithProgress: (report) =>
-                report({ type: "progress", stage: "checking" }).pipe(
-                  Effect.andThen(report({ type: "progress", stage: "downloading" })),
-                  Effect.as(installedRelayClient),
-                ),
-            },
-          },
-        });
-
-        const wsUrl = yield* getWsServerUrl("/ws");
-        const status = yield* Effect.scoped(
-          withWsRpcClient(wsUrl, (client) => client[WS_METHODS.cloudGetRelayClientStatus]({})),
-        );
-        const installEvents = yield* Effect.scoped(
-          withWsRpcClient(wsUrl, (client) =>
-            client[WS_METHODS.cloudInstallRelayClient]({}).pipe(Stream.runCollect),
-          ),
-        );
-
-        assert.equal(status.status, "missing");
-        assert.deepEqual(Array.from(installEvents), [
-          { type: "progress", stage: "checking" },
-          { type: "progress", stage: "downloading" },
-          { type: "complete", status: installedRelayClient },
-        ]);
-      }).pipe(Effect.provide(NodeHttpServer.layerTest)),
   );
 
   it.effect("requires relay write scope to update agent activity publication", () =>
@@ -2628,10 +2558,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
               }
               return Effect.succeed({
                 status: "running",
-                providerKind: "cloudflare_tunnel",
-                pid: 123,
-                ...(config.tunnelId ? { tunnelId: config.tunnelId } : {}),
-                ...(config.tunnelName ? { tunnelName: config.tunnelName } : {}),
+                providerKind: "ras_relay",
               });
             },
           },
@@ -2660,10 +2587,11 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
           environmentCredential: "t3env_test_credential",
           cloudMintPublicKey: cloudKeyPair.publicKey,
           endpointRuntime: {
-            providerKind: "cloudflare_tunnel",
+            providerKind: "ras_relay",
             connectorToken: "connector-token",
-            tunnelId: "tunnel-id",
-            tunnelName: "tunnel-name",
+            connectorUrl: "wss://relay.example.test/v1/ras-relay/connect/endpoint",
+            localHttpHost: "127.0.0.1",
+            localHttpPort: 3000,
           },
         }),
       });
@@ -2701,10 +2629,11 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
       assert.equal(linkStateBody.relayIssuer, null);
       assert.deepEqual(appliedRuntimeConfigs, [
         {
-          providerKind: "cloudflare_tunnel",
+          providerKind: "ras_relay",
           connectorToken: "connector-token",
-          tunnelId: "tunnel-id",
-          tunnelName: "tunnel-name",
+          connectorUrl: "wss://relay.example.test/v1/ras-relay/connect/endpoint",
+          localHttpHost: "127.0.0.1",
+          localHttpPort: 3000,
         },
         null,
       ]);
@@ -3026,9 +2955,8 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
             applyConfig: () =>
               Effect.succeed({
                 status: "failed",
-                providerKind: "cloudflare_tunnel",
-                reason: "cloudflared missing",
-                tunnelId: "tunnel-1",
+                providerKind: "ras_relay",
+                reason: "relay offline",
               }),
           },
         },
@@ -3052,9 +2980,11 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
           environmentCredential: "t3env_test_credential",
           cloudMintPublicKey: cloudKeyPair.publicKey,
           endpointRuntime: {
-            providerKind: "cloudflare_tunnel",
+            providerKind: "ras_relay",
             connectorToken: "connector-token",
-            tunnelId: "tunnel-1",
+            connectorUrl: "wss://relay.example.test/v1/ras-relay/connect/endpoint",
+            localHttpHost: "127.0.0.1",
+            localHttpPort: 3000,
           },
         }),
       });
@@ -3068,7 +2998,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
       assert.equal(relayConfigBody._tag, "EnvironmentCloudEndpointUnavailableError");
       assert.equal(relayConfigBody.message, "Managed endpoint runtime could not be started.");
       assert.equal(relayConfigBody.endpointRuntimeStatus?.status, "failed");
-      assert.equal(relayConfigBody.endpointRuntimeStatus?.reason, "cloudflared missing");
+      assert.equal(relayConfigBody.endpointRuntimeStatus?.reason, "relay offline");
 
       const now = yield* DateTime.now;
       const healthRequest = makeCloudEnvironmentHealthRequest({
