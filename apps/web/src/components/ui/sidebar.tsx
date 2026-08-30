@@ -777,7 +777,7 @@ function SidebarGroupContent({ className, ...props }: React.ComponentProps<"div"
 function SidebarMenu({ className, ...props }: React.ComponentProps<"ul">) {
   return (
     <ul
-      className={cn("flex w-full min-w-0 flex-col gap-1.5", className)}
+      className={cn("flex w-full min-w-0 flex-col gap-2", className)}
       data-sidebar="menu"
       data-slot="sidebar-menu"
       {...props}
@@ -806,7 +806,7 @@ const sidebarMenuButtonVariants = cva(
     variants: {
       size: {
         default:
-          "h-9 rounded-[var(--control-radius)] px-[var(--sidebar-row-content-inset)] py-2 text-sm",
+          "h-8 rounded-[var(--control-radius)] px-[var(--sidebar-row-content-inset)] py-1.5 text-sm",
         // The box must not depend on state: `size-8!` outranks the base
         // `w-full`, and `shrink-0` keeps a neighbour appearing (update pill)
         // from squeezing the row. Active and focus rims are drawn with

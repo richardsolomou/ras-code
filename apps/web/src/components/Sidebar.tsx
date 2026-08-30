@@ -544,7 +544,7 @@ const SidebarDraftRow = memo(function SidebarDraftRow(props: {
         onClick={handleActivate}
         onKeyDown={handleKeyDown}
       >
-        <div className="relative z-10 px-[var(--sidebar-row-content-inset)] py-[var(--sidebar-content-inset)]">
+        <div className="relative z-10 p-[var(--sidebar-row-content-inset)]">
           <div className="flex h-5 min-w-0 items-center gap-1.5">
             <SquarePenIcon
               aria-hidden
@@ -1449,7 +1449,7 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: {
             />
           }
         >
-          <div className="relative z-10 h-[4.875rem] px-[var(--sidebar-row-content-inset)] py-[var(--sidebar-content-inset)]">
+          <div className="relative z-10 h-[4.875rem] p-[var(--sidebar-row-content-inset)]">
             <div className="flex h-5 min-w-0 items-center gap-1.5">
               <ProjectFavicon
                 environmentId={thread.environmentId}
@@ -3715,7 +3715,7 @@ export default function Sidebar() {
                   id="sidebar-thread-search-results"
                   role="listbox"
                   aria-label="Thread search results"
-                  className="flex flex-col gap-px"
+                  className="flex flex-col gap-1.5"
                 >
                   {threadSearchResults.map((thread, index) => {
                     const threadKey = scopedThreadKey(
@@ -3774,7 +3774,7 @@ export default function Sidebar() {
               closeDelay={0}
               timeout={400}
             >
-              <ul ref={attachListAutoAnimateRef} role="list" className="flex flex-col gap-px">
+              <ul ref={attachListAutoAnimateRef} role="list" className="flex flex-col gap-1.5">
                 {(() => {
                   const renderThreadRow = (
                     thread: EnvironmentThreadShell,
@@ -3925,7 +3925,7 @@ export default function Sidebar() {
                             <ul
                               role="list"
                               aria-label="Pinned threads"
-                              className="flex flex-col gap-px"
+                              className="flex flex-col gap-1.5"
                             >
                               {orderedPinnedThreads.map((thread) => {
                                 const threadKey = scopedThreadKey(

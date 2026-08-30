@@ -95,13 +95,13 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(ras-code
    */
   --control-radius: 0.625rem;
   --sidebar-content-inset: 0.75rem;
-  --sidebar-control-gap: 0.625rem;
+  --sidebar-control-gap: 0.5rem;
   --sidebar-icon-color: color-mix(
     in srgb,
     var(--contrast-sidebar-muted-foreground) 60%,
     var(--sidebar)
   );
-  --sidebar-row-content-inset: 0.75rem;
+  --sidebar-row-content-inset: 0.625rem;
   --command-shell-inset: 0.5rem;
   --command-content-inset: 1rem;
   --floating-content-inset: 0.75rem;
