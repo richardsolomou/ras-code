@@ -14,7 +14,11 @@ import type {
 } from "@ras-code/contracts";
 import { formatDuration } from "@ras-code/shared/orchestrationTiming";
 import {
+  FALLBACK_DECLINED_ACTIVITY_KIND,
   FALLBACK_ENGAGED_ACTIVITY_KIND,
+  FALLBACK_OFFER_EXPIRED_ACTIVITY_KIND,
+  FALLBACK_OFFERED_ACTIVITY_KIND,
+  derivePendingFallbackOfferActivities,
   readFallbackNoticePayload,
 } from "@ras-code/client-runtime/provider-fallback";
 
@@ -38,6 +42,16 @@ export interface PendingUserInput {
   readonly requestId: ApprovalRequestId;
   readonly createdAt: string;
   readonly questions: ReadonlyArray<UserInputQuestion>;
+}
+
+export interface PendingFallbackOffer {
+  readonly requestId: ApprovalRequestId;
+  readonly primaryInstanceId: string;
+  readonly fallbackInstanceId: string;
+  readonly model: string;
+  readonly modelLabel?: string;
+  readonly resetsAt: string | null;
+  readonly createdAt: string;
 }
 
 export interface PendingUserInputDraftAnswer {
@@ -361,7 +375,7 @@ export function formatFallbackEngagedSummary(input: {
   const formatTime = input.formatTime ?? formatFallbackResetTime;
   const primary = resolveInstanceName(payload.primaryInstanceId);
   const fallback = resolveInstanceName(payload.fallbackInstanceId);
-  const head = `Usage limit reached on ${primary}; using ${fallback} (${payload.model})`;
+  const head = `Usage limit reached on ${primary}; continuing with ${payload.modelLabel ?? payload.model} via ${fallback}`;
   const resetsAt = payload.resetsAt === null ? "" : formatTime(payload.resetsAt).trim();
   return resetsAt.length > 0 ? `${head} until ${resetsAt}` : `${head} until further notice`;
 }
@@ -1132,6 +1146,16 @@ function extractChangedFiles(payload: Record<string, unknown> | null): string[] 
 }
 
 function compareActivityLifecycleRank(kind: string): number {
+  if (kind === FALLBACK_OFFERED_ACTIVITY_KIND) {
+    return 0;
+  }
+  if (
+    kind === FALLBACK_ENGAGED_ACTIVITY_KIND ||
+    kind === FALLBACK_DECLINED_ACTIVITY_KIND ||
+    kind === FALLBACK_OFFER_EXPIRED_ACTIVITY_KIND
+  ) {
+    return 2;
+  }
   if (kind.endsWith(".started") || kind === "tool.started") {
     return 0;
   }
@@ -1504,6 +1528,19 @@ export function derivePendingApprovals(
   }
 
   return Arr.sortWith([...openByRequestId.values()], (s) => new Date(s.createdAt), Order.Date);
+}
+
+export function derivePendingFallbackOffers(
+  sortedActivities: ReadonlyArray<OrchestrationThreadActivity>,
+): PendingFallbackOffer[] {
+  return Arr.sortWith(
+    derivePendingFallbackOfferActivities(sortedActivities).map((offer) => ({
+      ...offer,
+      requestId: ApprovalRequestId.make(offer.requestId),
+    })),
+    (offer) => new Date(offer.createdAt),
+    Order.Date,
+  );
 }
 
 export function derivePendingUserInputs(

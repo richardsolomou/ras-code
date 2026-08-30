@@ -22,9 +22,8 @@ import {
   FALLBACK_ENGAGED_ACTIVITY_KIND,
   FALLBACK_OFFER_EXPIRED_ACTIVITY_KIND,
   FALLBACK_OFFERED_ACTIVITY_KIND,
+  derivePendingFallbackOfferActivities,
   readFallbackNoticePayload,
-  readFallbackOfferRequestId,
-  readPendingFallbackOfferPayload,
   type FallbackNoticePayload,
 } from "./components/settings/providerUsageLimit.logic";
 
@@ -151,6 +150,7 @@ export interface PendingFallbackOffer {
   primaryInstanceId: string;
   fallbackInstanceId: string;
   model: string;
+  modelLabel?: string;
   resetsAt: string | null;
   createdAt: string;
 }
@@ -520,41 +520,9 @@ export function derivePendingApprovals(
 export function derivePendingFallbackOffers(
   activities: ReadonlyArray<OrchestrationThreadActivity>,
 ): PendingFallbackOffer[] {
-  const openByRequestId = new Map<ApprovalRequestId, PendingFallbackOffer>();
-  const ordered = [...activities].toSorted(compareActivitiesByOrder);
-
-  for (const activity of ordered) {
-    if (activity.kind === FALLBACK_OFFERED_ACTIVITY_KIND) {
-      const offer = readPendingFallbackOfferPayload(activity.payload);
-      if (offer === null) continue;
-      const requestId = ApprovalRequestId.make(offer.requestId);
-      openByRequestId.set(requestId, {
-        requestId,
-        primaryInstanceId: offer.primaryInstanceId,
-        fallbackInstanceId: offer.fallbackInstanceId,
-        model: offer.model,
-        resetsAt: offer.resetsAt,
-        createdAt: activity.createdAt,
-      });
-      continue;
-    }
-
-    if (
-      activity.kind === FALLBACK_ENGAGED_ACTIVITY_KIND ||
-      activity.kind === FALLBACK_DECLINED_ACTIVITY_KIND ||
-      activity.kind === FALLBACK_OFFER_EXPIRED_ACTIVITY_KIND
-    ) {
-      const requestId = readFallbackOfferRequestId(activity.payload);
-      if (requestId !== null) {
-        openByRequestId.delete(ApprovalRequestId.make(requestId));
-      }
-      continue;
-    }
-  }
-
-  return [...openByRequestId.values()].toSorted((left, right) =>
-    left.createdAt.localeCompare(right.createdAt),
-  );
+  return derivePendingFallbackOfferActivities(activities)
+    .map((offer) => ({ ...offer, requestId: ApprovalRequestId.make(offer.requestId) }))
+    .toSorted((left, right) => left.createdAt.localeCompare(right.createdAt));
 }
 
 function parseUserInputQuestions(
@@ -1908,6 +1876,16 @@ function compareActivitiesByOrder(
 }
 
 function compareActivityLifecycleRank(kind: string): number {
+  if (kind === FALLBACK_OFFERED_ACTIVITY_KIND) {
+    return 0;
+  }
+  if (
+    kind === FALLBACK_ENGAGED_ACTIVITY_KIND ||
+    kind === FALLBACK_DECLINED_ACTIVITY_KIND ||
+    kind === FALLBACK_OFFER_EXPIRED_ACTIVITY_KIND
+  ) {
+    return 2;
+  }
   if (kind.endsWith(".started") || kind === "tool.started") {
     return 0;
   }

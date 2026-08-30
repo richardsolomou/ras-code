@@ -2,8 +2,8 @@ import {
   type ChatFileAttachment,
   type EnvironmentId,
   type MessageId,
-  type ProviderInstanceId,
   type ScopedThreadRef,
+  type ServerProvider,
   type ServerProviderSkill,
   PROVIDER_DISPLAY_NAMES,
   type TurnId,
@@ -132,7 +132,7 @@ import {
   describeFallbackNotice,
   type FallbackNoticePayload,
 } from "../settings/providerUsageLimit.logic";
-import { useClientSettings, usePrimarySettings } from "../../hooks/useSettings";
+import { useClientSettings } from "../../hooks/useSettings";
 
 import {
   buildInlineTerminalContextText,
@@ -185,6 +185,7 @@ interface TimelineRowActivityState {
 
 const TimelineRowCtx = createContext<TimelineRowSharedState>(null!);
 const TimelineRowActivityCtx = createContext<TimelineRowActivityState>(null!);
+const TimelineProvidersCtx = createContext<ReadonlyArray<ServerProvider>>([]);
 const TIMELINE_LIST_HEADER = <div className="h-3 sm:h-4" />;
 const TIMELINE_LIST_FADE_HEADER = <div className="h-10 sm:h-12" />;
 
@@ -254,6 +255,7 @@ interface MessagesTimelineProps {
   timestampFormat: TimestampFormat;
   workspaceRoot: string | undefined;
   skills?: ReadonlyArray<Pick<ServerProviderSkill, "name" | "displayName">>;
+  providers: ReadonlyArray<ServerProvider>;
   anchorMessageId: MessageId | null;
   onAnchorReady: (messageId: MessageId, anchorIndex: number) => void;
   contentInsetEndAdjustment: number;
@@ -301,6 +303,7 @@ export const MessagesTimeline = memo(function MessagesTimeline({
   timestampFormat,
   workspaceRoot,
   skills = EMPTY_TIMELINE_SKILLS,
+  providers,
   anchorMessageId,
   onAnchorReady,
   contentInsetEndAdjustment,
@@ -614,60 +617,62 @@ export const MessagesTimeline = memo(function MessagesTimeline({
 
   return (
     <TimelineRowCtx value={sharedState}>
-      <TimelineRowActivityCtx value={activityState}>
-        <div ref={setTimelineViewportElement} className="relative h-full min-h-0">
-          <LegendList<MessagesTimelineRow>
-            ref={listRef}
-            data={rows}
-            keyExtractor={keyExtractor}
-            getItemType={getItemType}
-            renderItem={renderItem}
-            estimatedItemSize={90}
-            initialScrollAtEnd
-            {...(anchoredEndSpace ? { anchoredEndSpace } : {})}
-            contentInsetEndAdjustment={contentInsetEndAdjustment}
-            maintainScrollAtEnd={
-              anchoredEndSpace || !liveFollowEnabled || disclosureToggleSettling
-                ? false
-                : TIMELINE_MAINTAIN_SCROLL_AT_END
-            }
-            maintainVisibleContentPosition={maintainVisibleContentPosition}
-            onScroll={handleScroll}
-            className={cn(
-              "scrollbar-gutter-both h-full min-h-0 overflow-x-hidden overscroll-y-contain px-3 [overflow-anchor:none] sm:px-5",
-              topFadeEnabled && "topbar-scroll-fade",
-            )}
-            ListHeaderComponent={
-              loadEarlier !== null ? (
-                <TimelineLoadEarlierHeader
-                  loading={loadEarlier.loading}
-                  onLoadEarlier={loadEarlier.onLoadEarlier}
-                  fade={topFadeEnabled}
-                />
-              ) : topFadeEnabled ? (
-                TIMELINE_LIST_FADE_HEADER
-              ) : (
-                TIMELINE_LIST_HEADER
-              )
-            }
-            ListFooterComponent={TIMELINE_LIST_FOOTER}
-          />
-          <TimelineMinimap
-            items={minimapItems}
-            hasPersistentGutter={minimapHasPersistentGutter}
-            hitStripWidth={minimapHitStripWidth}
-            stripMap={minimapStripMap}
-            onSelect={(item) => {
-              onManualNavigation();
-              void listRef.current?.scrollToIndex({
-                index: item.rowIndex,
-                animated: true,
-                viewOffset: 24,
-              });
-            }}
-          />
-        </div>
-      </TimelineRowActivityCtx>
+      <TimelineProvidersCtx value={providers}>
+        <TimelineRowActivityCtx value={activityState}>
+          <div ref={setTimelineViewportElement} className="relative h-full min-h-0">
+            <LegendList<MessagesTimelineRow>
+              ref={listRef}
+              data={rows}
+              keyExtractor={keyExtractor}
+              getItemType={getItemType}
+              renderItem={renderItem}
+              estimatedItemSize={90}
+              initialScrollAtEnd
+              {...(anchoredEndSpace ? { anchoredEndSpace } : {})}
+              contentInsetEndAdjustment={contentInsetEndAdjustment}
+              maintainScrollAtEnd={
+                anchoredEndSpace || !liveFollowEnabled || disclosureToggleSettling
+                  ? false
+                  : TIMELINE_MAINTAIN_SCROLL_AT_END
+              }
+              maintainVisibleContentPosition={maintainVisibleContentPosition}
+              onScroll={handleScroll}
+              className={cn(
+                "scrollbar-gutter-both h-full min-h-0 overflow-x-hidden overscroll-y-contain px-3 [overflow-anchor:none] sm:px-5",
+                topFadeEnabled && "topbar-scroll-fade",
+              )}
+              ListHeaderComponent={
+                loadEarlier !== null ? (
+                  <TimelineLoadEarlierHeader
+                    loading={loadEarlier.loading}
+                    onLoadEarlier={loadEarlier.onLoadEarlier}
+                    fade={topFadeEnabled}
+                  />
+                ) : topFadeEnabled ? (
+                  TIMELINE_LIST_FADE_HEADER
+                ) : (
+                  TIMELINE_LIST_HEADER
+                )
+              }
+              ListFooterComponent={TIMELINE_LIST_FOOTER}
+            />
+            <TimelineMinimap
+              items={minimapItems}
+              hasPersistentGutter={minimapHasPersistentGutter}
+              hitStripWidth={minimapHitStripWidth}
+              stripMap={minimapStripMap}
+              onSelect={(item) => {
+                onManualNavigation();
+                void listRef.current?.scrollToIndex({
+                  index: item.rowIndex,
+                  animated: true,
+                  viewOffset: 24,
+                });
+              }}
+            />
+          </div>
+        </TimelineRowActivityCtx>
+      </TimelineProvidersCtx>
     </TimelineRowCtx>
   );
 });
@@ -2704,12 +2709,12 @@ const FallbackNoticeRow = memo(function FallbackNoticeRow(props: {
   notice: FallbackNoticePayload;
 }) {
   const timestampFormat = useClientSettings((settings) => settings.timestampFormat);
-  const providerInstances = usePrimarySettings((settings) => settings.providerInstances);
+  const providers = use(TimelineProvidersCtx);
   const instanceName = (instanceId: string) => {
-    const instance = providerInstances[instanceId as ProviderInstanceId];
+    const provider = providers.find((entry) => String(entry.instanceId) === instanceId);
     return (
-      instance?.displayName?.trim() ||
-      (instance ? PROVIDER_DISPLAY_NAMES[instance.driver] : undefined) ||
+      provider?.displayName?.trim() ||
+      (provider ? PROVIDER_DISPLAY_NAMES[provider.driver] : undefined) ||
       instanceId
     );
   };

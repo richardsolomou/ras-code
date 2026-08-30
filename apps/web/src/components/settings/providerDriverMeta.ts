@@ -60,7 +60,7 @@ export const PROVIDER_CLIENT_DEFINITIONS: readonly ProviderClientDefinition[] = 
     icon: PostHog,
     settingsSchema: PostHogGatewaySettings,
     purpose:
-      "Set this as the fallback on a Claude or Codex instance to keep working on the same model when its usage limit is reached.",
+      "Use models through PostHog, or continue automatically when a compatible subscription reaches its usage limit.",
   },
   {
     value: ProviderDriverKind.make("cursor"),

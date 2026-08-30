@@ -2961,8 +2961,8 @@ function ChatViewContent(props: ChatViewProps) {
       ?.instanceId ?? null;
   const activeProviderInstanceId =
     selectedProviderInstanceId ??
-    activeThread?.session?.providerInstanceId ??
     activeThread?.modelSelection.instanceId ??
+    activeThread?.session?.providerInstanceId ??
     activeDefaultModelSelection?.instanceId ??
     null;
   const compactionProviderAvailable = useMemo(
@@ -2974,8 +2974,8 @@ function ChatViewContent(props: ChatViewProps) {
         ),
         instanceId: activeProviderInstanceId,
         lockedInstanceId: lockedProvider
-          ? (activeThread?.session?.providerInstanceId ??
-            activeThread?.modelSelection.instanceId ??
+          ? (activeThread?.modelSelection.instanceId ??
+            activeThread?.session?.providerInstanceId ??
             null)
           : null,
       }),
@@ -7378,6 +7378,7 @@ function ChatViewContent(props: ChatViewProps) {
                 timestampFormat={timestampFormat}
                 workspaceRoot={activeWorkspaceRoot}
                 skills={activeProviderStatus?.skills ?? EMPTY_PROVIDER_SKILLS}
+                providers={providerStatuses as ServerProvider[]}
                 anchorMessageId={timelineAnchorMessageId}
                 onAnchorReady={onTimelineAnchorReady}
                 contentInsetEndAdjustment={composerOverlayHeight}

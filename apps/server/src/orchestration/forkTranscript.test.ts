@@ -1,6 +1,10 @@
 import { describe, expect, it } from "@effect/vitest";
 
-import { renderForkTranscript, withForkTranscript } from "./forkTranscript.ts";
+import {
+  renderForkTranscript,
+  withForkTranscript,
+  withProviderSwitchTranscript,
+} from "./forkTranscript.ts";
 
 describe("renderForkTranscript", () => {
   it("returns undefined when there is nothing to hand over", () => {
@@ -42,5 +46,17 @@ describe("renderForkTranscript", () => {
     });
     expect(prompt.endsWith("try it another way")).toBe(true);
     expect(prompt.indexOf("add a button")).toBeLessThan(prompt.indexOf("try it another way"));
+  });
+
+  it("labels a provider switch without repeating the current message", () => {
+    const prompt = withProviderSwitchTranscript({
+      messageText: "continue",
+      priorMessages: [
+        { role: "user", text: "inspect the bug" },
+        { role: "assistant", text: "I found it" },
+      ],
+    });
+    expect(prompt).toContain("<provider-switch-conversation>");
+    expect(prompt.match(/continue/g)).toHaveLength(1);
   });
 });

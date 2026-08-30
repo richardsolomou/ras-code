@@ -132,6 +132,9 @@ function isStalePendingApprovalFailureDetail(detail: string | null): boolean {
 
 // A full refresh loads all thread history, so skip events that cannot change the summary.
 const FALLBACK_ENGAGED_ACTIVITY_KIND = "provider.fallback.engaged";
+const FALLBACK_OFFERED_ACTIVITY_KIND = "provider.fallback.offered";
+const FALLBACK_DECLINED_ACTIVITY_KIND = "provider.fallback.declined";
+const FALLBACK_OFFER_EXPIRED_ACTIVITY_KIND = "provider.fallback.offer-expired";
 
 /**
  * Cap for the shell's assistant preview. Matches the notifier's own cap, so a
@@ -157,6 +160,9 @@ function shouldRefreshThreadShellSummary(event: OrchestrationEvent): boolean {
     case "user-input.requested":
     case "user-input.resolved":
     case "provider.user-input.respond.failed":
+    case FALLBACK_OFFERED_ACTIVITY_KIND:
+    case FALLBACK_DECLINED_ACTIVITY_KIND:
+    case FALLBACK_OFFER_EXPIRED_ACTIVITY_KIND:
     case FALLBACK_ENGAGED_ACTIVITY_KIND:
       return true;
     default:
@@ -244,6 +250,30 @@ function derivePendingUserInputCountFromActivities(
         detail.includes("unknown pending user input request") ||
         detail.includes("unknown pending codex user input request"))
     ) {
+      openRequestIds.delete(requestId);
+    }
+  }
+
+  return openRequestIds.size;
+}
+
+export function derivePendingFallbackOfferCountFromActivities(
+  activities: ReadonlyArray<Pick<ProjectionThreadActivity, "kind" | "payload">>,
+): number {
+  const openRequestIds = new Set<string>();
+  const settledRequestIds = new Set<string>();
+
+  for (const activity of activities) {
+    const requestId = extractActivityRequestId(activity.payload);
+    if (requestId === null) continue;
+    if (activity.kind === FALLBACK_OFFERED_ACTIVITY_KIND) {
+      if (!settledRequestIds.has(requestId)) openRequestIds.add(requestId);
+    } else if (
+      activity.kind === FALLBACK_ENGAGED_ACTIVITY_KIND ||
+      activity.kind === FALLBACK_DECLINED_ACTIVITY_KIND ||
+      activity.kind === FALLBACK_OFFER_EXPIRED_ACTIVITY_KIND
+    ) {
+      settledRequestIds.add(requestId);
       openRequestIds.delete(requestId);
     }
   }
@@ -665,9 +695,9 @@ const makeOrchestrationProjectionPipeline = Effect.fn("makeOrchestrationProjecti
         }
       }
 
-      const pendingApprovalCount = pendingApprovals.filter(
-        (approval) => approval.status === "pending",
-      ).length;
+      const pendingApprovalCount =
+        pendingApprovals.filter((approval) => approval.status === "pending").length +
+        derivePendingFallbackOfferCountFromActivities(activities);
       const pendingUserInputCount = derivePendingUserInputCountFromActivities(activities);
       const hasActionableProposedPlan = deriveHasActionableProposedPlan({
         latestTurnId: existingRow.value.latestTurnId,

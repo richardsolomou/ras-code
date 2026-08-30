@@ -42,7 +42,7 @@ const EVENT_ROWS: ReadonlyArray<{
   {
     kind: "fallbackEngaged",
     title: "Provider fallback",
-    description: "A thread switched to a fallback provider.",
+    description: "A thread continued through the PostHog AI Gateway.",
   },
 ];
 

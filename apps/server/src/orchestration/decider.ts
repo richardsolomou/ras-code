@@ -47,7 +47,7 @@ function linkedPullRequestsEqual(
 
 /**
  * Blocked-on-you work derived from the thread's retained activities: an
- * approval or user-input request with no later resolution for the same
+ * approval, fallback, or user-input request with no later resolution for the same
  * requestId. The server-side twin of the shell's hasPendingApprovals /
  * hasPendingUserInput flags, which the decider read model does not carry.
  * The clearing rules MUST match ProjectionPipeline's pending accounting —
@@ -87,9 +87,19 @@ function hasOpenBlockingRequest(thread: {
         : null;
     const requestId = typeof payload?.requestId === "string" ? payload.requestId : null;
     if (requestId === null) continue;
-    if (activity.kind === "approval.requested" || activity.kind === "user-input.requested") {
+    if (
+      activity.kind === "approval.requested" ||
+      activity.kind === "provider.fallback.offered" ||
+      activity.kind === "user-input.requested"
+    ) {
       openRequestIds.add(requestId);
-    } else if (activity.kind === "approval.resolved" || activity.kind === "user-input.resolved") {
+    } else if (
+      activity.kind === "approval.resolved" ||
+      activity.kind === "provider.fallback.engaged" ||
+      activity.kind === "provider.fallback.declined" ||
+      activity.kind === "provider.fallback.offer-expired" ||
+      activity.kind === "user-input.resolved"
+    ) {
       openRequestIds.delete(requestId);
     } else if (
       (activity.kind === "provider.approval.respond.failed" ||

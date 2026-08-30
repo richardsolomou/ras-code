@@ -1,26 +1,27 @@
-import { PROVIDER_DISPLAY_NAMES, type ProviderInstanceId } from "@ras-code/contracts";
+import { PROVIDER_DISPLAY_NAMES, type ServerProvider } from "@ras-code/contracts";
 import { memo } from "react";
-import { useClientSettings, usePrimarySettings } from "../../hooks/useSettings";
+import { useClientSettings } from "../../hooks/useSettings";
 import { formatShortTimestamp } from "../../timestampFormat";
 import type { PendingFallbackOffer } from "../../session-logic";
 import { cn } from "~/lib/utils";
 
 interface ComposerPendingFallbackOfferPanelProps {
   offer: PendingFallbackOffer;
+  providers: ReadonlyArray<ServerProvider>;
   className?: string;
 }
 
 export const ComposerPendingFallbackOfferPanel = memo(function ComposerPendingFallbackOfferPanel({
   offer,
+  providers,
   className,
 }: ComposerPendingFallbackOfferPanelProps) {
   const timestampFormat = useClientSettings((settings) => settings.timestampFormat);
-  const providerInstances = usePrimarySettings((settings) => settings.providerInstances);
   const instanceName = (instanceId: string) => {
-    const instance = providerInstances[instanceId as ProviderInstanceId];
+    const provider = providers.find((entry) => String(entry.instanceId) === instanceId);
     return (
-      instance?.displayName?.trim() ||
-      (instance ? PROVIDER_DISPLAY_NAMES[instance.driver] : undefined) ||
+      provider?.displayName?.trim() ||
+      (provider ? PROVIDER_DISPLAY_NAMES[provider.driver] : undefined) ||
       instanceId
     );
   };
@@ -38,7 +39,7 @@ export const ComposerPendingFallbackOfferPanel = memo(function ComposerPendingFa
         {primaryName} hit its usage limit
       </span>
       <span className="text-sm text-foreground/85">
-        Continue on {fallbackName} ({offer.model}) with usage-based tokens
+        Continue with {offer.modelLabel ?? offer.model} via {fallbackName} using usage-based tokens
         {resetsAt ? `, or wait until ${resetsAt}` : ""}?
       </span>
     </div>

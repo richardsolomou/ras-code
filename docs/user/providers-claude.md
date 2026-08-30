@@ -194,30 +194,21 @@ You can also check the OpenRouter activity dashboard for requests from your API 
 OpenRouter's setup can change over time. Use its upstream Claude Code guide for the current details:
 <https://openrouter.ai/docs/guides/guides/claude-code-integration>.
 
-## Fallback Providers
+## PostHog AI Gateway fallback
 
-A provider can hand its work to another provider when its usage limit is reached. Use this when you
-run on a subscription and want a paid gateway to take over instead of waiting for the window to
-reopen.
+Add and connect a [PostHog AI Gateway](./providers-posthog-gateway.md) provider once. There is no
+fallback setting on Claude. When the Claude subscription reaches its usage limit, RAS Code offers
+to continue through the gateway if it has the exact same model and can preserve the thread's
+conversation state.
 
-Open Settings, select the provider, and use the Fallback row on its Configuration tab:
+After you accept, the thread stays visually attached to Claude and its original model. A quiet
+`Using <model> via PostHog AI Gateway` label and a timeline event explain how turns are being sent.
+RAS Code tries the subscription again on the first turn after the reset. It records the successful
+return, or resumes the already-approved gateway without asking again if the subscription is still
+exhausted.
 
-- **When this provider's usage limit is reached, use** picks the provider that takes over. The list
-  offers your other enabled providers. It hides any provider that already falls back to this one,
-  because fallbacks are never chained: RAS Code follows one hop and no more.
-- **Model on the fallback** defaults to **Same model**, which keeps whatever model the turn asked
-  for. Choose **Specific model** when the fallback serves a different catalog.
-- **Clear** removes the binding.
-
-While a provider's limit is reached, its model picker shows a **Limit reached · resets HH:MM** pill,
-and the provider list marks it the same way. A provider approaching its limit gets a small dot
-instead. When a thread has been moved to a fallback, the composer shows a quiet
-`Using <provider> (<model>)` pill, and the thread's timeline records the switch.
-
-Two Claude providers with different `CLAUDE_CONFIG_DIR path` values are separate Claude
-environments, so a fallback between them applies to new threads only. Leave the fallback's
-`CLAUDE_CONFIG_DIR path` empty to share the primary's Claude home, and existing threads keep
-working across the switch.
+RAS Code does not substitute another model. If the gateway does not advertise the exact model, it
+does not offer the switch.
 
 ## PostHog AI Gateway
 

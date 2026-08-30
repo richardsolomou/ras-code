@@ -10,6 +10,7 @@ import type {
   ModelSelection,
   OrchestrationThreadShell,
   ProviderApprovalDecision,
+  ProviderFallbackOfferDecision,
   ProviderInteractionMode,
   RuntimeMode,
   ServerConfig as RasCodeServerConfig,
@@ -62,11 +63,13 @@ import { scopedThreadKey } from "../../lib/scopedEntities";
 import { buildResolveConflictsPrompt } from "@ras-code/shared/sourceControl";
 import type {
   PendingApproval,
+  PendingFallbackOffer,
   PendingUserInput,
   PendingUserInputDraftAnswer,
   ThreadFeedEntry,
 } from "../../lib/threadActivity";
 import { PendingApprovalCard } from "./PendingApprovalCard";
+import { PendingFallbackOfferCard } from "./PendingFallbackOfferCard";
 import { PendingUserInputCard } from "./PendingUserInputCard";
 import {
   derivePendingUserInputMaxHeight,
@@ -93,6 +96,8 @@ export interface ThreadDetailScreenProps {
   readonly activeWorkStartedAt: string | null;
   readonly activePendingApproval: PendingApproval | null;
   readonly respondingApprovalId: ApprovalRequestId | null;
+  readonly activePendingFallbackOffer: PendingFallbackOffer | null;
+  readonly respondingFallbackId: ApprovalRequestId | null;
   readonly activePendingUserInput: PendingUserInput | null;
   readonly activePendingUserInputDrafts: Record<string, PendingUserInputDraftAnswer>;
   readonly activePendingUserInputAnswers: Record<string, string | ReadonlyArray<string>> | null;
@@ -126,6 +131,10 @@ export interface ThreadDetailScreenProps {
   readonly onRespondToApproval: (
     requestId: ApprovalRequestId,
     decision: ProviderApprovalDecision,
+  ) => Promise<unknown>;
+  readonly onRespondToFallback: (
+    requestId: ApprovalRequestId,
+    decision: ProviderFallbackOfferDecision,
   ) => Promise<unknown>;
   readonly onSelectUserInputOption: (
     requestId: ApprovalRequestId,
@@ -733,7 +742,9 @@ export const ThreadDetailScreen = memo(function ThreadDetailScreen(props: Thread
               </Animated.View>
             ) : null}
             <View className="w-full self-center" style={{ maxWidth: contentMaxWidth }}>
-              {props.activePendingApproval || props.activePendingUserInput ? (
+              {props.activePendingApproval ||
+              props.activePendingFallbackOffer ||
+              props.activePendingUserInput ? (
                 <Animated.View
                   className="shrink-0 gap-3 px-4 pb-3"
                   // The questionnaire replaces the composer, so it must pad
@@ -751,6 +762,14 @@ export const ThreadDetailScreen = memo(function ThreadDetailScreen(props: Thread
                       approval={props.activePendingApproval}
                       respondingApprovalId={props.respondingApprovalId}
                       onRespond={props.onRespondToApproval}
+                    />
+                  ) : null}
+                  {props.activePendingFallbackOffer ? (
+                    <PendingFallbackOfferCard
+                      offer={props.activePendingFallbackOffer}
+                      providers={props.serverConfig?.providers ?? []}
+                      respondingFallbackId={props.respondingFallbackId}
+                      onRespond={props.onRespondToFallback}
                     />
                   ) : null}
                   {props.activePendingUserInput ? (

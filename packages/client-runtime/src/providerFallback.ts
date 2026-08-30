@@ -1,6 +1,6 @@
 /**
  * The `provider.fallback.engaged` thread activity: the marker a thread gets
- * when a turn ran on a configured fallback because the primary provider
+ * when a turn ran through the PostHog AI Gateway because the primary provider
  * instance was out of quota. Shared so web and mobile read the same opaque
  * activity payload the same way; each surface words its own sentence.
  */
@@ -9,11 +9,13 @@ export const FALLBACK_ENGAGED_ACTIVITY_KIND = "provider.fallback.engaged";
 export const FALLBACK_OFFERED_ACTIVITY_KIND = "provider.fallback.offered";
 export const FALLBACK_DECLINED_ACTIVITY_KIND = "provider.fallback.declined";
 export const FALLBACK_OFFER_EXPIRED_ACTIVITY_KIND = "provider.fallback.offer-expired";
+export const FALLBACK_RETURNED_ACTIVITY_KIND = "provider.fallback.returned";
 
 export interface FallbackNoticePayload {
   readonly primaryInstanceId: string;
   readonly fallbackInstanceId: string;
   readonly model: string;
+  readonly modelLabel?: string;
   readonly resetsAt: string | null;
   /** Present when this engagement resolved a `provider.fallback.offered` prompt. */
   readonly requestId?: string;
@@ -30,6 +32,7 @@ export function readFallbackNoticePayload(payload: unknown): FallbackNoticePaylo
   const primaryInstanceId = record.primaryInstanceId;
   const fallbackInstanceId = record.fallbackInstanceId;
   const model = record.model;
+  const modelLabel = record.modelLabel;
   if (
     typeof primaryInstanceId !== "string" ||
     typeof fallbackInstanceId !== "string" ||
@@ -43,6 +46,7 @@ export function readFallbackNoticePayload(payload: unknown): FallbackNoticePaylo
     primaryInstanceId,
     fallbackInstanceId,
     model,
+    ...(typeof modelLabel === "string" ? { modelLabel } : {}),
     resetsAt: typeof resetsAt === "string" ? resetsAt : null,
     ...(typeof requestId === "string" ? { requestId } : {}),
   };
@@ -53,7 +57,12 @@ export interface PendingFallbackOfferPayload {
   readonly primaryInstanceId: string;
   readonly fallbackInstanceId: string;
   readonly model: string;
+  readonly modelLabel?: string;
   readonly resetsAt: string | null;
+}
+
+export interface PendingFallbackOfferActivity extends PendingFallbackOfferPayload {
+  readonly createdAt: string;
 }
 
 /**
@@ -69,6 +78,7 @@ export function readPendingFallbackOfferPayload(
   const primaryInstanceId = record.primaryInstanceId;
   const fallbackInstanceId = record.fallbackInstanceId;
   const model = record.model;
+  const modelLabel = record.modelLabel;
   if (
     typeof requestId !== "string" ||
     typeof primaryInstanceId !== "string" ||
@@ -83,8 +93,42 @@ export function readPendingFallbackOfferPayload(
     primaryInstanceId,
     fallbackInstanceId,
     model,
+    ...(typeof modelLabel === "string" ? { modelLabel } : {}),
     resetsAt: typeof resetsAt === "string" ? resetsAt : null,
   };
+}
+
+export function derivePendingFallbackOfferActivities(
+  activities: ReadonlyArray<{
+    readonly kind: string;
+    readonly payload: unknown;
+    readonly createdAt: string;
+  }>,
+): ReadonlyArray<PendingFallbackOfferActivity> {
+  const settledRequestIds = new Set<string>();
+  const openByRequestId = new Map<string, PendingFallbackOfferActivity>();
+
+  for (const activity of activities) {
+    if (
+      activity.kind === FALLBACK_ENGAGED_ACTIVITY_KIND ||
+      activity.kind === FALLBACK_DECLINED_ACTIVITY_KIND ||
+      activity.kind === FALLBACK_OFFER_EXPIRED_ACTIVITY_KIND
+    ) {
+      const requestId = readFallbackOfferRequestId(activity.payload);
+      if (requestId !== null) {
+        settledRequestIds.add(requestId);
+        openByRequestId.delete(requestId);
+      }
+      continue;
+    }
+
+    if (activity.kind !== FALLBACK_OFFERED_ACTIVITY_KIND) continue;
+    const offer = readPendingFallbackOfferPayload(activity.payload);
+    if (offer === null || settledRequestIds.has(offer.requestId)) continue;
+    openByRequestId.set(offer.requestId, { ...offer, createdAt: activity.createdAt });
+  }
+
+  return [...openByRequestId.values()];
 }
 
 /** Read the `requestId` off a `provider.fallback.declined` or `.offer-expired` activity. */

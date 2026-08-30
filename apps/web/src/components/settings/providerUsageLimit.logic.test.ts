@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 
 import {
-  activeFallbackNotice,
   describeFallbackNotice,
   latestFallbackNotice,
   readFallbackNoticePayload,
@@ -106,29 +105,14 @@ describe("latestFallbackNotice", () => {
         ?.model,
     ).toBe("good");
   });
-});
 
-describe("activeFallbackNotice", () => {
-  const payload = (resetsAt: string | null) => ({
-    primaryInstanceId: "a",
-    fallbackInstanceId: "b",
-    model: "m",
-    resetsAt,
-  });
-  const now = Date.parse("2026-08-28T14:00:00.000Z");
-
-  it("shows the pill while the window is still open", () => {
-    expect(activeFallbackNotice({ payload: payload("2026-08-28T14:30:00.000Z"), now })).not.toBe(
-      null,
-    );
-  });
-
-  it("hides the pill once the window has passed", () => {
-    expect(activeFallbackNotice({ payload: payload("2026-08-28T13:30:00.000Z"), now })).toBe(null);
-  });
-
-  it("keeps the pill up when the provider never said when the window reopens", () => {
-    expect(activeFallbackNotice({ payload: payload(null), now })).not.toBe(null);
+  it("ends the notice only after the subscription accepts a turn again", () => {
+    expect(
+      latestFallbackNotice([
+        notice("claude-sonnet-4-5"),
+        { kind: "provider.fallback.returned", payload: {} },
+      ]),
+    ).toBe(null);
   });
 });
 
@@ -147,7 +131,7 @@ describe("describeFallbackNotice", () => {
         formatTime: at,
       }),
     ).toBe(
-      "Claude reached its usage limit. Using PostHog AI Gateway (posthog/zai-org/glm-5.2) until 14:30.",
+      "Claude reached its usage limit. Continuing with posthog/zai-org/glm-5.2 via PostHog AI Gateway until 14:30.",
     );
   });
 
@@ -164,6 +148,6 @@ describe("describeFallbackNotice", () => {
         fallbackName: "Fallback",
         formatTime: at,
       }),
-    ).toBe("Primary reached its usage limit. Using Fallback (m).");
+    ).toBe("Primary reached its usage limit. Continuing with m via Fallback.");
   });
 });

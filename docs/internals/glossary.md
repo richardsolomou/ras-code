@@ -136,9 +136,10 @@ A point-in-time view of state. The word is used in multiple layers, including or
 
 #### Fallback provider
 
-A second provider instance that takes new turns while the first one's usage limit is exhausted,
-declared as `fallback` on the primary instance's config. Routing back happens on its own once the
-limit resets. See the [provider architecture][16] usage limits section.
+The PostHog AI Gateway when it temporarily carries turns for an exhausted subscription provider.
+RAS Code discovers it automatically, preserves the thread's logical provider and model, and tries
+the subscription again after its limit resets. See the [provider architecture][16] usage limits
+section.
 
 #### Model manifest
 

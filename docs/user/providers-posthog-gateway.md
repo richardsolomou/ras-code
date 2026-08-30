@@ -49,16 +49,16 @@ start a new thread.
 
 ## As A Fallback
 
-This provider is a good fallback for a Claude subscription. It shares the primary Claude provider's
-config directory, so a thread that has already started can move to it and keep going, as long as
-the turn asks for a `claude-*` model. Fallbacks onto the gateway's other models apply to new threads
-only.
+Connecting this provider also makes it the automatic usage fallback for subscription providers.
+There is nothing else to configure. When a subscription runs out, RAS Code offers the gateway only
+if its catalog contains the exact same model.
 
-Set it up on the primary provider's Configuration tab — see
-[Fallback providers](./providers-claude.md#fallback-providers). **Same model** is the right choice
-when the primary is a Claude provider, because the gateway serves the same model IDs.
+Started Claude threads can keep their conversation state because the gateway's Claude side shares
+Claude's continuation identity. Other harness shapes can use the fallback for a thread that has not
+started, but RAS Code will not move a started thread unless its continuation state is compatible.
 
-The provider can also be a primary with a fallback of its own.
+Accepting the offer keeps the thread's original provider icon and model label, with a quiet
+`via PostHog AI Gateway` indicator. RAS Code later tries the subscription again automatically.
 
 ## Advanced: Point A Single Harness At The Gateway
 

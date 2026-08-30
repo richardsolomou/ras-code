@@ -780,9 +780,7 @@ export function HomeScreen(props: HomeScreenProps) {
             serverConfigs
               .get(thread.environmentId)
               ?.providers.find(
-                (provider) =>
-                  provider.instanceId ===
-                  (thread.session?.providerInstanceId ?? thread.modelSelection.instanceId),
+                (provider) => provider.instanceId === thread.modelSelection.instanceId,
               )?.driver ?? null
           }
           environmentLabel={

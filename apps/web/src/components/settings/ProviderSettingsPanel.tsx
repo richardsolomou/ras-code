@@ -659,8 +659,6 @@ export function EnvironmentProviderSettings({
         environmentId={environmentId}
         instanceId={row.instanceId}
         instance={row.instance}
-        instances={settings.providerInstances}
-        serverProviders={serverProviders}
         driverOption={driverOption}
         liveProvider={liveProvider}
         mode={mode}

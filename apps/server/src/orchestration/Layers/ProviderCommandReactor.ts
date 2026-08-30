@@ -44,7 +44,7 @@ import { ProjectionTurnRepository } from "../../persistence/Services/ProjectionT
 import { ProjectionTurnRepositoryLive } from "../../persistence/Layers/ProjectionTurns.ts";
 import * as ProviderSessionRuntime from "../../persistence/ProviderSessionRuntime.ts";
 import { resolveForkResumeCursor } from "../forkResume.ts";
-import { withForkTranscript } from "../forkTranscript.ts";
+import { withForkTranscript, withProviderSwitchTranscript } from "../forkTranscript.ts";
 import { increment, orchestrationEventsProcessedTotal } from "../../observability/Metrics.ts";
 import { ProviderAdapterRequestError } from "../../provider/Errors.ts";
 import type { ProviderServiceError } from "../../provider/Errors.ts";
@@ -74,6 +74,7 @@ import { VcsStatusBroadcaster } from "../../vcs/VcsStatusBroadcaster.ts";
 import { GitWorkflowService } from "../../git/GitWorkflowService.ts";
 const isProviderAdapterRequestError = Schema.is(ProviderAdapterRequestError);
 const isProviderDriverKind = Schema.is(ProviderDriverKind);
+const POSTHOG_GATEWAY_DRIVER = ProviderDriverKind.make("posthogGateway");
 
 type ProviderIntentEvent = Extract<
   OrchestrationEvent,
@@ -93,6 +94,14 @@ type ProviderIntentEvent = Extract<
 function toNonEmptyProviderInput(value: string | undefined): string | undefined {
   const normalized = value?.trim();
   return normalized && normalized.length > 0 ? normalized : undefined;
+}
+
+function modelIdsMatch(left: string, right: string): boolean {
+  return (
+    left === right ||
+    (!left.includes("/") && right.endsWith(`/${left}`)) ||
+    (!right.includes("/") && left.endsWith(`/${right}`))
+  );
 }
 
 function mapProviderSessionStatusToOrchestrationStatus(
@@ -347,13 +356,13 @@ function providerDisplayLabel(
 function formatFallbackNotice(input: {
   readonly primaryLabel: string;
   readonly fallbackLabel: string;
-  readonly model: string;
+  readonly modelLabel: string;
   readonly resetsAt: string | null;
 }): string {
   // The instant is rendered verbatim; clients localise it from the activity
   // payload's `resetsAt`.
   const until = input.resetsAt ?? "further notice";
-  return `Usage limit reached on ${input.primaryLabel}; using ${input.fallbackLabel} (${input.model}) until ${until}.`;
+  return `Usage limit reached on ${input.primaryLabel}; continuing with ${input.modelLabel} via ${input.fallbackLabel} until ${until}.`;
 }
 
 const make = Effect.gen(function* () {
@@ -580,7 +589,7 @@ const make = Effect.gen(function* () {
    * so a later exhaustion (a new window) speaks up again, while every turn
    * inside one window stays quiet.
    */
-  const announcedFallbacks = new Set<string>();
+  const announcedFallbacks = new Map<ThreadId, string>();
 
   const appendThreadActivity = (input: {
     readonly threadId: ThreadId;
@@ -620,6 +629,7 @@ const make = Effect.gen(function* () {
     readonly primaryInstanceId: ProviderInstanceId;
     readonly fallbackInstanceId: ProviderInstanceId;
     readonly model: string;
+    readonly modelLabel: string;
     readonly resetsAt: string | null;
     readonly createdAt: string;
     readonly requestId?: ApprovalRequestId;
@@ -633,6 +643,7 @@ const make = Effect.gen(function* () {
         primaryInstanceId: input.primaryInstanceId,
         fallbackInstanceId: input.fallbackInstanceId,
         model: input.model,
+        modelLabel: input.modelLabel,
         resetsAt: input.resetsAt,
         ...(input.requestId !== undefined ? { requestId: input.requestId } : {}),
       },
@@ -647,6 +658,7 @@ const make = Effect.gen(function* () {
     readonly primaryInstanceId: ProviderInstanceId;
     readonly fallbackInstanceId: ProviderInstanceId;
     readonly model: string;
+    readonly modelLabel: string;
     readonly resetsAt: string | null;
     readonly createdAt: string;
   }) =>
@@ -654,12 +666,13 @@ const make = Effect.gen(function* () {
       threadId: input.threadId,
       tone: "approval",
       kind: "provider.fallback.offered",
-      summary: `${input.primaryLabel} reached its usage limit. Offered ${input.fallbackLabel} (${input.model}) as a fallback.`,
+      summary: `${input.primaryLabel} reached its usage limit. Offered ${input.modelLabel} via ${input.fallbackLabel}.`,
       payload: {
         requestId: input.requestId,
         primaryInstanceId: input.primaryInstanceId,
         fallbackInstanceId: input.fallbackInstanceId,
         model: input.model,
+        modelLabel: input.modelLabel,
         resetsAt: input.resetsAt,
       },
       createdAt: input.createdAt,
@@ -694,38 +707,35 @@ const make = Effect.gen(function* () {
       createdAt: input.createdAt,
     });
 
-  /**
-   * Decide whether this turn should run on the desired instance's configured
-   * fallback instead.
-   *
-   * Substitution happens only when every one of these holds:
-   *   - the desired instance names a fallback in settings;
-   *   - the desired instance's usage limit is currently exhausted;
-   *   - the fallback exists, is available and enabled, and is not itself
-   *     exhausted (a fallback's own fallback is never followed);
-   *   - switching instances mid-thread is allowed for both drivers.
-   *
-   * Anything else returns `undefined` and the turn proceeds unchanged, so the
-   * caller surfaces the provider's own error rather than a silent reroute.
-   */
+  const appendFallbackReturnedActivity = (input: {
+    readonly threadId: ThreadId;
+    readonly primaryLabel: string;
+    readonly primaryInstanceId: ProviderInstanceId;
+    readonly fallbackInstanceId: ProviderInstanceId;
+    readonly model: string;
+    readonly modelLabel: string;
+    readonly createdAt: string;
+  }) =>
+    appendThreadActivity({
+      threadId: input.threadId,
+      tone: "info",
+      kind: "provider.fallback.returned",
+      summary: `Back on ${input.primaryLabel} with ${input.modelLabel}.`,
+      payload: {
+        primaryInstanceId: input.primaryInstanceId,
+        fallbackInstanceId: input.fallbackInstanceId,
+        model: input.model,
+        modelLabel: input.modelLabel,
+      },
+      createdAt: input.createdAt,
+    });
+
   const resolveFallbackSelection = Effect.fn("resolveFallbackSelection")(function* (input: {
     readonly selection: ModelSelection;
     readonly hasStartedSession: boolean;
   }) {
-    const settings = yield* serverSettingsService.getSettings.pipe(
-      Effect.orElseSucceed(() => undefined),
-    );
-    const fallback = settings?.providerInstances[input.selection.instanceId]?.fallback;
-    if (!fallback || fallback.instanceId === input.selection.instanceId) {
-      return undefined;
-    }
-
     const primaryUsage = yield* providerRegistry.getProviderUsageLimit(input.selection.instanceId);
     if (primaryUsage?.status !== "exhausted") {
-      return undefined;
-    }
-    const fallbackUsage = yield* providerRegistry.getProviderUsageLimit(fallback.instanceId);
-    if (fallbackUsage?.status === "exhausted") {
       return undefined;
     }
 
@@ -733,14 +743,40 @@ const make = Effect.gen(function* () {
     const primarySnapshot = providers.find(
       (snapshot) => snapshot.instanceId === input.selection.instanceId,
     );
-    const fallbackSnapshot = providers.find(
-      (snapshot) => snapshot.instanceId === fallback.instanceId,
+    if (primarySnapshot?.driver === POSTHOG_GATEWAY_DRIVER) {
+      return undefined;
+    }
+    const fallbackSnapshot = providers.find((snapshot) => {
+      const supportsModel = snapshot.models?.some((model) =>
+        modelIdsMatch(model.slug, input.selection.model),
+      );
+      return (
+        snapshot.driver === POSTHOG_GATEWAY_DRIVER &&
+        snapshot.instanceId !== input.selection.instanceId &&
+        snapshot.enabled &&
+        snapshot.installed !== false &&
+        snapshot.status !== "error" &&
+        snapshot.status !== "disabled" &&
+        isProviderAvailable(snapshot) &&
+        supportsModel === true
+      );
+    });
+    if (fallbackSnapshot === undefined) {
+      return undefined;
+    }
+    const fallbackModel = fallbackSnapshot.models.find((model) =>
+      modelIdsMatch(model.slug, input.selection.model),
     );
-    if (
-      fallbackSnapshot === undefined ||
-      !isProviderAvailable(fallbackSnapshot) ||
-      !fallbackSnapshot.enabled
-    ) {
+    if (fallbackModel === undefined) {
+      return undefined;
+    }
+    const primaryModel = primarySnapshot?.models?.find((model) =>
+      modelIdsMatch(model.slug, input.selection.model),
+    );
+    const fallbackUsage = yield* providerRegistry.getProviderUsageLimit(
+      fallbackSnapshot.instanceId,
+    );
+    if (fallbackUsage?.status === "exhausted") {
       return undefined;
     }
     if (
@@ -753,38 +789,13 @@ const make = Effect.gen(function* () {
 
     const instanceInfo = yield* Effect.all({
       primary: providerService.getInstanceInfo(input.selection.instanceId),
-      fallback: providerService.getInstanceInfo(fallback.instanceId),
+      fallback: providerService.getInstanceInfo(fallbackSnapshot.instanceId),
     }).pipe(Effect.orElseSucceed(() => undefined));
 
-    // Continuation key, not driver kind, is what says whether two instances
-    // are interchangeable: a composite driver can carry another driver's key
-    // precisely so it can stand in for it. Instances that do not share one
-    // are separate catalogs, so the turn's own model means nothing on the
-    // fallback and the binding has to name one.
     const sharesContinuation =
       instanceInfo !== undefined &&
       instanceInfo.primary.continuationIdentity.continuationKey ===
         instanceInfo.fallback.continuationIdentity.continuationKey;
-    // The gateway composite serves every model shape, so the turn's own model
-    // is valid there even without a shared continuation key.
-    const fallbackServesAnyShape =
-      instanceInfo !== undefined && String(instanceInfo.fallback.driverKind) === "posthogGateway";
-    if (
-      instanceInfo !== undefined &&
-      !sharesContinuation &&
-      !fallbackServesAnyShape &&
-      !fallback.model?.trim()
-    ) {
-      yield* Effect.logWarning("provider fallback skipped: cross-driver binding names no model", {
-        instanceId: input.selection.instanceId,
-        fallbackInstanceId: fallback.instanceId,
-      });
-      return undefined;
-    }
-
-    // A started thread can only move to an instance that shares its resume
-    // state; otherwise `ensureSessionForThread` would reject the switch and
-    // the user would see a confusing error instead of the provider's own.
     if (input.hasStartedSession && !sharesContinuation) {
       return undefined;
     }
@@ -792,12 +803,18 @@ const make = Effect.gen(function* () {
     return {
       selection: {
         ...input.selection,
-        instanceId: fallback.instanceId,
-        model: fallback.model ?? input.selection.model,
+        instanceId: fallbackSnapshot.instanceId,
+        model: fallbackModel.slug,
       } satisfies ModelSelection,
       primaryLabel: providerDisplayLabel(primarySnapshot, input.selection.instanceId),
-      fallbackLabel: providerDisplayLabel(fallbackSnapshot, fallback.instanceId),
+      fallbackLabel: providerDisplayLabel(fallbackSnapshot, fallbackSnapshot.instanceId),
+      modelLabel:
+        primaryModel?.shortName ??
+        primaryModel?.name ??
+        fallbackModel.shortName ??
+        fallbackModel.name,
       primaryInstanceId: input.selection.instanceId,
+      sharesContinuation,
       resetsAt: primaryUsage.resetsAt,
     } as const;
   });
@@ -854,6 +871,7 @@ const make = Effect.gen(function* () {
     options?: {
       readonly modelSelection?: ModelSelection;
       readonly pendingTurnStart?: boolean;
+      readonly freshProviderHandoff?: boolean;
     },
   ) {
     const thread = yield* resolveThread(threadId);
@@ -944,7 +962,7 @@ const make = Effect.gen(function* () {
         createdAt,
       });
     }
-    if (thread.session !== null) {
+    if (thread.session !== null && options?.freshProviderHandoff !== true) {
       yield* rejectStartedThreadModelChangeIfRequired({
         threadId,
         currentModelSelection:
@@ -958,24 +976,21 @@ const make = Effect.gen(function* () {
         requestedModelSelection,
       });
     }
-    if (
+    const incompatibleInstanceChange =
       thread.session !== null &&
       requestedModelSelection !== undefined &&
-      requestedModelSelection.instanceId !== currentInstanceId
-    ) {
+      requestedModelSelection.instanceId !== currentInstanceId &&
+      currentInfo.continuationIdentity.continuationKey !==
+        desiredInfo.continuationIdentity.continuationKey;
+    if (incompatibleInstanceChange && options?.freshProviderHandoff !== true) {
       // Driver kinds may differ as long as the resume state matches — a
       // composite driver adopts the continuation key of the harness it wraps
       // so it can pick up a thread that harness started.
-      if (
-        currentInfo.continuationIdentity.continuationKey !==
-        desiredInfo.continuationIdentity.continuationKey
-      ) {
-        return yield* new ProviderAdapterRequestError({
-          provider: preferredProvider,
-          method: "thread.turn.start",
-          detail: `Thread '${threadId}' cannot switch from instance '${currentInstanceId}' to '${desiredInstanceId}' because their provider resume state is incompatible.`,
-        });
-      }
+      return yield* new ProviderAdapterRequestError({
+        provider: preferredProvider,
+        method: "thread.turn.start",
+        detail: `Thread '${threadId}' cannot switch from instance '${currentInstanceId}' to '${desiredInstanceId}' because their provider resume state is incompatible.`,
+      });
     }
     const project = yield* resolveProject(thread.projectId);
     const effectiveCwd = resolveThreadWorkspaceCwd({
@@ -1057,9 +1072,10 @@ const make = Effect.gen(function* () {
         return existingSessionThreadId;
       }
 
-      const resumeCursor = shouldRestartForModelChange
-        ? undefined
-        : (activeSession?.resumeCursor ?? undefined);
+      const resumeCursor =
+        shouldRestartForModelChange || incompatibleInstanceChange
+          ? undefined
+          : (activeSession?.resumeCursor ?? undefined);
       yield* Effect.logInfo("provider command reactor restarting provider session", {
         threadId,
         existingSessionThreadId,
@@ -1120,6 +1136,9 @@ const make = Effect.gen(function* () {
     readonly messageText: string;
     readonly attachments?: ReadonlyArray<ChatAttachment>;
     readonly modelSelection?: ModelSelection;
+    readonly requestedModelSelection?: ModelSelection;
+    readonly messageId?: string;
+    readonly freshProviderHandoff?: boolean;
     readonly interactionMode?: "default" | "plan";
     readonly createdAt: string;
   }) {
@@ -1132,9 +1151,10 @@ const make = Effect.gen(function* () {
     yield* ensureSessionForThread(input.threadId, input.createdAt, {
       ...(input.modelSelection !== undefined ? { modelSelection: input.modelSelection } : {}),
       pendingTurnStart: true,
+      ...(input.freshProviderHandoff === true ? { freshProviderHandoff: true } : {}),
     });
-    if (input.modelSelection !== undefined) {
-      threadModelSelections.set(input.threadId, input.modelSelection);
+    if (input.requestedModelSelection !== undefined) {
+      threadModelSelections.set(input.threadId, input.requestedModelSelection);
     }
     // A fork that could not branch its parent's provider conversation carries
     // the parent's transcript into its opening prompt instead.
@@ -1147,7 +1167,7 @@ const make = Effect.gen(function* () {
     const forkContextDelivered =
       forkedFrom === null ||
       thread.messages.some((message) => message.role === "assistant" && message.inherited !== true);
-    const messageText =
+    const messageTextWithForkContext =
       forkedFrom !== null &&
       !forkContextDelivered &&
       (yield* resolveForkResumeCursorForThread({
@@ -1159,6 +1179,15 @@ const make = Effect.gen(function* () {
             inheritedMessages: thread.messages.filter((message) => message.inherited === true),
           })
         : input.messageText;
+    const messageText =
+      input.freshProviderHandoff === true
+        ? withProviderSwitchTranscript({
+            messageText: messageTextWithForkContext,
+            priorMessages: thread.messages.filter(
+              (message) => message.id !== input.messageId && !message.streaming,
+            ),
+          })
+        : messageTextWithForkContext;
     const normalizedInput = toNonEmptyProviderInput(messageText);
     const normalizedAttachments = input.attachments ?? [];
     const activeSession = yield* providerService
@@ -1481,12 +1510,23 @@ const make = Effect.gen(function* () {
     processThreadTitleRegenerationSafely,
   );
 
+  type ActiveFallbackRoute = {
+    readonly primarySelection: ModelSelection;
+    readonly fallbackSelection: ModelSelection;
+    readonly primaryLabel: string;
+    readonly fallbackLabel: string;
+    readonly modelLabel: string;
+    readonly resetsAt: string | null;
+    readonly sharesContinuation: boolean;
+  };
+
   type PendingTurnAttempt = {
     readonly event: Extract<ProviderIntentEvent, { type: "thread.turn-start-requested" }>;
     readonly messageText: string;
     readonly attachments?: ReadonlyArray<ChatAttachment>;
     readonly instanceId: ProviderInstanceId;
     readonly onFallback: boolean;
+    readonly returningFromFallback?: ActiveFallbackRoute;
     /** Streamed assistant text, capped; compared against the failure message on error. */
     assistantText: string;
     /** Tool calls, plans, and other non-message items: work a retry would repeat. */
@@ -1495,12 +1535,16 @@ const make = Effect.gen(function* () {
 
   /** At most one in-flight turn per thread, so a plain map is enough. */
   const pendingTurnAttempts = new Map<ThreadId, PendingTurnAttempt>();
+  const activeFallbackRoutes = new Map<ThreadId, ActiveFallbackRoute>();
+  const declinedFallbacks = new Map<ThreadId, ProviderInstanceId>();
+  const clearAnnouncedFallbacks = (threadId: ThreadId) => announcedFallbacks.delete(threadId);
 
   type PendingFallbackDecision = {
     readonly requestId: ApprovalRequestId;
     readonly pending: PendingTurnAttempt;
     readonly primaryLabel: string;
     readonly fallbackLabel: string;
+    readonly primaryInstanceId: ProviderInstanceId;
   };
 
   /**
@@ -1561,6 +1605,8 @@ const make = Effect.gen(function* () {
     readonly messageText: string;
     readonly attachments?: ReadonlyArray<ChatAttachment>;
     readonly modelSelection?: ModelSelection;
+    readonly requestedModelSelection?: ModelSelection;
+    readonly freshProviderHandoff?: boolean;
   }) {
     const recover = makeTurnStartFailureHandlers(input.event);
     const sendTurnRequest = yield* buildSendTurnRequestForThread({
@@ -1568,6 +1614,11 @@ const make = Effect.gen(function* () {
       messageText: input.messageText,
       ...(input.attachments !== undefined ? { attachments: input.attachments } : {}),
       ...(input.modelSelection !== undefined ? { modelSelection: input.modelSelection } : {}),
+      ...(input.requestedModelSelection !== undefined
+        ? { requestedModelSelection: input.requestedModelSelection }
+        : {}),
+      messageId: input.event.payload.messageId,
+      ...(input.freshProviderHandoff === true ? { freshProviderHandoff: true } : {}),
       interactionMode: input.event.payload.interactionMode,
       createdAt: input.event.payload.createdAt,
     }).pipe(
@@ -1662,9 +1713,42 @@ const make = Effect.gen(function* () {
         }).pipe(Effect.as(undefined)),
       ),
     );
+    if (
+      routed === undefined &&
+      declinedFallbacks.get(event.payload.threadId) === baseSelection.instanceId &&
+      (yield* providerRegistry.getProviderUsageLimit(baseSelection.instanceId))?.status !==
+        "exhausted"
+    ) {
+      declinedFallbacks.delete(event.payload.threadId);
+    }
+    const activeFallback = activeFallbackRoutes.get(event.payload.threadId);
+    const approvedFallback =
+      activeFallback !== undefined &&
+      activeFallback.primarySelection.instanceId === baseSelection.instanceId &&
+      activeFallback.primarySelection.model === baseSelection.model
+        ? {
+            ...activeFallback,
+            primarySelection: baseSelection,
+            fallbackSelection: {
+              ...baseSelection,
+              instanceId: activeFallback.fallbackSelection.instanceId,
+              model: activeFallback.fallbackSelection.model,
+            },
+          }
+        : undefined;
+    if (activeFallback !== undefined && approvedFallback === undefined) {
+      activeFallbackRoutes.delete(event.payload.threadId);
+    }
+    const declinedForPrimary =
+      routed !== undefined &&
+      declinedFallbacks.get(event.payload.threadId) === routed.primaryInstanceId;
     if (routed !== undefined) {
-      const noticeKey = `${event.payload.threadId}:${routed.selection.instanceId}:${routed.resetsAt ?? "unknown"}`;
-      if (!announcedFallbacks.has(noticeKey)) {
+      const noticeKey = `${event.payload.threadId}:${routed.selection.instanceId}:${routed.selection.model}:${routed.resetsAt ?? "unknown"}`;
+      if (
+        approvedFallback === undefined &&
+        !declinedForPrimary &&
+        announcedFallbacks.get(event.payload.threadId) !== noticeKey
+      ) {
         // Not yet confirmed for this exhaustion episode: pause this turn and
         // ask, exactly like a mid-turn failure would. A message sent while
         // an earlier offer is still open replaces its pending turn (the
@@ -1690,6 +1774,7 @@ const make = Effect.gen(function* () {
           pending: pendingAttempt,
           primaryLabel: routed.primaryLabel,
           fallbackLabel: routed.fallbackLabel,
+          primaryInstanceId: routed.primaryInstanceId,
         });
         yield* appendFallbackOfferActivity({
           threadId,
@@ -1698,13 +1783,15 @@ const make = Effect.gen(function* () {
           fallbackLabel: routed.fallbackLabel,
           primaryInstanceId: routed.primaryInstanceId,
           fallbackInstanceId: routed.selection.instanceId,
-          model: routed.selection.model,
+          model: baseSelection.model,
+          modelLabel: routed.modelLabel,
           resetsAt: routed.resetsAt,
           createdAt: event.payload.createdAt,
         }).pipe(Effect.ignoreCause({ log: true }));
         return;
       }
     }
+    const effectiveRoute = declinedForPrimary ? undefined : routed;
 
     // Track the attempt so a usage-limit failure arriving on the runtime
     // stream can retry once on the fallback. A turn already running on the
@@ -1713,8 +1800,11 @@ const make = Effect.gen(function* () {
       event,
       messageText: message.text,
       ...(message.attachments !== undefined ? { attachments: message.attachments } : {}),
-      instanceId: (routed?.selection ?? baseSelection).instanceId,
-      onFallback: routed !== undefined,
+      instanceId: (effectiveRoute?.selection ?? baseSelection).instanceId,
+      onFallback: effectiveRoute !== undefined,
+      ...(effectiveRoute === undefined && approvedFallback !== undefined
+        ? { returningFromFallback: approvedFallback }
+        : {}),
       assistantText: "",
       sawWorkItem: false,
     });
@@ -1723,11 +1813,11 @@ const make = Effect.gen(function* () {
       event,
       messageText: message.text,
       ...(message.attachments !== undefined ? { attachments: message.attachments } : {}),
-      ...(routed !== undefined
-        ? { modelSelection: routed.selection }
-        : event.payload.modelSelection !== undefined
-          ? { modelSelection: event.payload.modelSelection }
-          : {}),
+      modelSelection: effectiveRoute?.selection ?? baseSelection,
+      requestedModelSelection: baseSelection,
+      ...(effectiveRoute === undefined && approvedFallback?.sharesContinuation === false
+        ? { freshProviderHandoff: true }
+        : {}),
     });
   });
 
@@ -1742,9 +1832,8 @@ const make = Effect.gen(function* () {
    *     `result` errors reach us as prose (see `resultUserFacingError` in
    *     ClaudeAdapter). Recorded as exhausted with the default cooldown.
    *
-   * The second signal also drives the retry: if the failed turn produced no
-   * assistant output and was not already running on a fallback, it is
-   * re-sent once against the fallback instance.
+   * The second signal offers a fallback before the first retry. An already
+   * approved route retries immediately when a return attempt is still exhausted.
    */
   const processRuntimeEvent = Effect.fn("processRuntimeEvent")(function* (
     event: ProviderRuntimeEvent,
@@ -1764,6 +1853,9 @@ const make = Effect.gen(function* () {
 
     const pending = pendingTurnAttempts.get(event.threadId);
     if (pending === undefined) {
+      return;
+    }
+    if (instanceId !== pending.instanceId) {
       return;
     }
 
@@ -1792,6 +1884,22 @@ const make = Effect.gen(function* () {
     }
     pendingTurnAttempts.delete(event.threadId);
     if (event.payload.state !== "failed") {
+      declinedFallbacks.delete(event.threadId);
+      if (!pending.onFallback) clearAnnouncedFallbacks(event.threadId);
+      if (pending.returningFromFallback !== undefined) {
+        yield* appendFallbackReturnedActivity({
+          threadId: event.threadId,
+          primaryLabel: pending.returningFromFallback.primaryLabel,
+          primaryInstanceId: pending.returningFromFallback.primarySelection.instanceId,
+          fallbackInstanceId: pending.returningFromFallback.fallbackSelection.instanceId,
+          model: pending.returningFromFallback.primarySelection.model,
+          modelLabel: pending.returningFromFallback.modelLabel,
+          createdAt: event.createdAt,
+        }).pipe(
+          Effect.tap(() => Effect.sync(() => activeFallbackRoutes.delete(event.threadId))),
+          Effect.ignoreCause({ log: true }),
+        );
+      }
       return;
     }
     if (!isUsageLimitFailureMessage(event.payload.errorMessage)) {
@@ -1811,7 +1919,11 @@ const make = Effect.gen(function* () {
     ) {
       return;
     }
-    yield* offerOrContinueFallback(pending);
+    if (pending.returningFromFallback !== undefined) {
+      yield* retryTurnOnFallback(pending);
+    } else {
+      yield* offerOrContinueFallback(pending);
+    }
   });
 
   /**
@@ -1841,8 +1953,11 @@ const make = Effect.gen(function* () {
       return;
     }
 
-    const noticeKey = `${threadId}:${routed.selection.instanceId}:${routed.resetsAt ?? "unknown"}`;
-    if (announcedFallbacks.has(noticeKey)) {
+    const noticeKey = `${threadId}:${routed.selection.instanceId}:${routed.selection.model}:${routed.resetsAt ?? "unknown"}`;
+    if (declinedFallbacks.get(threadId) === routed.primaryInstanceId) {
+      return;
+    }
+    if (announcedFallbacks.get(threadId) === noticeKey) {
       yield* retryTurnOnFallback(pending);
       return;
     }
@@ -1856,6 +1971,7 @@ const make = Effect.gen(function* () {
       pending,
       primaryLabel: routed.primaryLabel,
       fallbackLabel: routed.fallbackLabel,
+      primaryInstanceId: routed.primaryInstanceId,
     });
     yield* appendFallbackOfferActivity({
       threadId,
@@ -1864,7 +1980,8 @@ const make = Effect.gen(function* () {
       fallbackLabel: routed.fallbackLabel,
       primaryInstanceId: routed.primaryInstanceId,
       fallbackInstanceId: routed.selection.instanceId,
-      model: routed.selection.model,
+      model: baseSelection.model,
+      modelLabel: routed.modelLabel,
       resetsAt: routed.resetsAt,
       createdAt: pending.event.payload.createdAt,
     }).pipe(Effect.ignoreCause({ log: true }));
@@ -1873,47 +1990,71 @@ const make = Effect.gen(function* () {
   const retryTurnOnFallback = Effect.fn("retryTurnOnFallback")(function* (
     pending: PendingTurnAttempt,
     requestId?: ApprovalRequestId,
+    activityCreatedAt?: string,
   ) {
     const threadId = pending.event.payload.threadId;
-    const thread = yield* resolveThread(threadId);
-    if (!thread) {
-      return;
-    }
+    const approvedRoute = pending.returningFromFallback;
+    const thread = approvedRoute === undefined ? yield* resolveThread(threadId) : undefined;
+    if (approvedRoute === undefined && thread === undefined) return false;
     const baseSelection =
+      approvedRoute?.primarySelection ??
       pending.event.payload.modelSelection ??
       threadModelSelections.get(threadId) ??
-      thread.modelSelection;
-    const routed = yield* resolveFallbackSelection({
-      selection: baseSelection,
-      hasStartedSession: thread.session !== null,
-    });
+      thread?.modelSelection;
+    if (baseSelection === undefined) return false;
+    const routed =
+      approvedRoute !== undefined
+        ? {
+            selection: approvedRoute.fallbackSelection,
+            primaryLabel: approvedRoute.primaryLabel,
+            fallbackLabel: approvedRoute.fallbackLabel,
+            modelLabel: approvedRoute.modelLabel,
+            primaryInstanceId: approvedRoute.primarySelection.instanceId,
+            sharesContinuation: approvedRoute.sharesContinuation,
+            resetsAt: approvedRoute.resetsAt,
+          }
+        : yield* resolveFallbackSelection({
+            selection: baseSelection,
+            hasStartedSession: thread?.session !== null,
+          });
     if (routed === undefined) {
-      return;
+      return false;
     }
 
-    const noticeKey = `${threadId}:${routed.selection.instanceId}:${routed.resetsAt ?? "unknown"}`;
-    if (!announcedFallbacks.has(noticeKey)) {
-      announcedFallbacks.add(noticeKey);
+    const noticeKey = `${threadId}:${routed.selection.instanceId}:${routed.selection.model}:${routed.resetsAt ?? "unknown"}`;
+    if (announcedFallbacks.get(threadId) !== noticeKey) {
+      announcedFallbacks.set(threadId, noticeKey);
       yield* appendFallbackActivity({
         threadId,
         summary: formatFallbackNotice({
           primaryLabel: routed.primaryLabel,
           fallbackLabel: routed.fallbackLabel,
-          model: routed.selection.model,
+          modelLabel: routed.modelLabel,
           resetsAt: routed.resetsAt,
         }),
         primaryInstanceId: routed.primaryInstanceId,
         fallbackInstanceId: routed.selection.instanceId,
-        model: routed.selection.model,
+        model: baseSelection.model,
+        modelLabel: routed.modelLabel,
         resetsAt: routed.resetsAt,
-        createdAt: pending.event.payload.createdAt,
+        createdAt: activityCreatedAt ?? pending.event.payload.createdAt,
         ...(requestId !== undefined ? { requestId } : {}),
       }).pipe(Effect.ignoreCause({ log: true }));
     }
 
-    // `onFallback` closes the loop: this attempt is never retried again.
+    activeFallbackRoutes.set(threadId, {
+      primarySelection: baseSelection,
+      fallbackSelection: routed.selection,
+      primaryLabel: routed.primaryLabel,
+      fallbackLabel: routed.fallbackLabel,
+      modelLabel: routed.modelLabel,
+      resetsAt: routed.resetsAt,
+      sharesContinuation: routed.sharesContinuation,
+    });
+    declinedFallbacks.delete(threadId);
+    const { returningFromFallback: _returningFromFallback, ...fallbackPending } = pending;
     pendingTurnAttempts.set(threadId, {
-      ...pending,
+      ...fallbackPending,
       instanceId: routed.selection.instanceId,
       onFallback: true,
       assistantText: "",
@@ -1924,7 +2065,10 @@ const make = Effect.gen(function* () {
       messageText: pending.messageText,
       ...(pending.attachments !== undefined ? { attachments: pending.attachments } : {}),
       modelSelection: routed.selection,
+      requestedModelSelection: baseSelection,
+      ...(routed.sharesContinuation === false ? { freshProviderHandoff: true } : {}),
     });
+    return true;
   });
 
   const processTurnInterruptRequested = Effect.fn("processTurnInterruptRequested")(function* (
@@ -2038,6 +2182,7 @@ const make = Effect.gen(function* () {
     pendingFallbackDecisions.delete(threadId);
 
     if (event.payload.decision === "wait") {
+      declinedFallbacks.set(threadId, decisionEntry.primaryInstanceId);
       yield* appendFallbackDeclinedActivity({
         threadId,
         requestId: decisionEntry.requestId,
@@ -2047,7 +2192,18 @@ const make = Effect.gen(function* () {
       return;
     }
 
-    yield* retryTurnOnFallback(decisionEntry.pending, decisionEntry.requestId);
+    const switched = yield* retryTurnOnFallback(
+      decisionEntry.pending,
+      decisionEntry.requestId,
+      event.payload.createdAt,
+    );
+    if (!switched) {
+      yield* appendFallbackOfferExpiredActivity({
+        threadId,
+        requestId: decisionEntry.requestId,
+        createdAt: event.payload.createdAt,
+      }).pipe(Effect.ignoreCause({ log: true }));
+    }
   });
 
   const processApprovalResponseRequested = Effect.fn("processApprovalResponseRequested")(function* (
@@ -2189,7 +2345,9 @@ const make = Effect.gen(function* () {
         if (!thread?.session || thread.session.status === "stopped") {
           return;
         }
-        const cachedModelSelection = threadModelSelections.get(event.payload.threadId);
+        const cachedModelSelection =
+          activeFallbackRoutes.get(event.payload.threadId)?.fallbackSelection ??
+          threadModelSelections.get(event.payload.threadId);
         yield* ensureSessionForThread(
           event.payload.threadId,
           event.occurredAt,

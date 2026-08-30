@@ -269,7 +269,7 @@ describe("derivePendingFallbackOffers", () => {
       }),
       makeActivity({
         id: "fallback-offer-engaged",
-        createdAt: "2026-02-23T00:00:02.000Z",
+        createdAt: "2026-02-23T00:00:01.000Z",
         kind: "provider.fallback.engaged",
         summary: "Using PostHog AI Gateway (claude-sonnet-4-5) until 2026-02-23T05:00:00.000Z.",
         tone: "info",
@@ -278,6 +278,35 @@ describe("derivePendingFallbackOffers", () => {
           primaryInstanceId: "x",
           fallbackInstanceId: "y",
           model: "m",
+        },
+      }),
+    ];
+
+    expect(derivePendingFallbackOffers(activities)).toEqual([]);
+  });
+
+  it("keeps a clock-skewed response from reopening its offer", () => {
+    const activities: OrchestrationThreadActivity[] = [
+      makeActivity({
+        id: "fallback-response-skewed",
+        createdAt: "2026-02-22T23:59:59.000Z",
+        kind: "provider.fallback.engaged",
+        summary: "engaged",
+        tone: "info",
+        payload: { requestId: "req-skewed" },
+      }),
+      makeActivity({
+        id: "fallback-offer-skewed",
+        createdAt: "2026-02-23T00:00:01.000Z",
+        kind: "provider.fallback.offered",
+        summary: "offered",
+        tone: "approval",
+        payload: {
+          requestId: "req-skewed",
+          primaryInstanceId: "claude_subscription",
+          fallbackInstanceId: "posthog_gateway",
+          model: "claude-sonnet-4-5",
+          resetsAt: null,
         },
       }),
     ];

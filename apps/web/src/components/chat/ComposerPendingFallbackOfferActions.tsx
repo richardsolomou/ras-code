@@ -13,7 +13,7 @@ interface ComposerPendingFallbackOfferActionsProps {
 
 const FALLBACK_OFFER_OPTIONS = [
   { decision: "wait", label: "Wait for reset" },
-  { decision: "switch", label: "Switch to gateway" },
+  { decision: "switch", label: "Continue via PostHog" },
 ] as const satisfies ReadonlyArray<{
   decision: ProviderFallbackOfferDecision;
   label: string;

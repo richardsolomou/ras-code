@@ -4,6 +4,8 @@ import {
   FALLBACK_ENGAGED_ACTIVITY_KIND,
   FALLBACK_OFFER_EXPIRED_ACTIVITY_KIND,
   FALLBACK_OFFERED_ACTIVITY_KIND,
+  FALLBACK_RETURNED_ACTIVITY_KIND,
+  derivePendingFallbackOfferActivities,
   readFallbackNoticePayload,
   readFallbackOfferRequestId,
   readPendingFallbackOfferPayload,
@@ -16,6 +18,8 @@ export {
   FALLBACK_ENGAGED_ACTIVITY_KIND,
   FALLBACK_OFFER_EXPIRED_ACTIVITY_KIND,
   FALLBACK_OFFERED_ACTIVITY_KIND,
+  FALLBACK_RETURNED_ACTIVITY_KIND,
+  derivePendingFallbackOfferActivities,
   readFallbackNoticePayload,
   readFallbackOfferRequestId,
   readPendingFallbackOfferPayload,
@@ -76,36 +80,21 @@ export function describeFallbackNotice(input: {
   readonly formatTime: TimeFormatter;
 }): string {
   const resetsAt = formatResetTime(input.payload.resetsAt, input.formatTime);
-  const head = `${input.primaryName} reached its usage limit. Using ${input.fallbackName} (${input.payload.model})`;
+  const model = input.payload.modelLabel ?? input.payload.model;
+  const head = `${input.primaryName} reached its usage limit. Continuing with ${model} via ${input.fallbackName}`;
   return resetsAt ? `${head} until ${resetsAt}.` : `${head}.`;
 }
 
 /**
- * The fallback pill the composer shows, or `null` when the window that
- * triggered it has passed. A notice without a reset instant stays up: the
- * server applied its own cooldown and did not tell us when it ends, and a
- * quiet pill is better than pretending the primary is back.
- */
-export function activeFallbackNotice(input: {
-  readonly payload: FallbackNoticePayload | null;
-  readonly now: number;
-}): FallbackNoticePayload | null {
-  if (input.payload === null) return null;
-  if (input.payload.resetsAt === null) return input.payload;
-  const resetsAt = new Date(input.payload.resetsAt).getTime();
-  if (Number.isNaN(resetsAt)) return input.payload;
-  return resetsAt > input.now ? input.payload : null;
-}
-
-/**
- * The most recent fallback notice on a thread, or `null` when the thread
- * has none. Activities arrive oldest-first, so the last match wins.
+ * The active fallback notice on a thread. A reset time only starts a return
+ * attempt; the returned activity confirms that the subscription accepted it.
  */
 export function latestFallbackNotice(
   activities: ReadonlyArray<{ readonly kind: string; readonly payload: unknown }>,
 ): FallbackNoticePayload | null {
   for (let index = activities.length - 1; index >= 0; index -= 1) {
     const activity = activities[index];
+    if (activity?.kind === FALLBACK_RETURNED_ACTIVITY_KIND) return null;
     if (activity?.kind !== FALLBACK_ENGAGED_ACTIVITY_KIND) continue;
     const payload = readFallbackNoticePayload(activity.payload);
     if (payload !== null) return payload;

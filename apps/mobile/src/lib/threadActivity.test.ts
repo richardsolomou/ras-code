@@ -16,10 +16,12 @@ import {
   buildPendingUserInputAnswers,
   buildThreadFeed,
   derivePendingApprovals,
+  derivePendingFallbackOffers,
   deriveThreadFeedPresentation,
   formatFallbackEngagedSummary,
   isPendingUserInputOptionSelected,
   setPendingUserInputCustomAnswer,
+  sortThreadActivities,
   togglePendingUserInputOptionSelection,
   type ThreadFeedActivity,
   type ThreadFeedEntry,
@@ -194,6 +196,69 @@ describe("pending approvals", () => {
     });
 
     expect(derivePendingApprovals([requested, resolved])).toEqual([]);
+  });
+});
+
+describe("pending fallback offers", () => {
+  const offered = makeActivity({
+    id: EventId.make("fallback-offered"),
+    kind: "provider.fallback.offered",
+    summary: "Gateway offered",
+    createdAt: "2026-08-24T00:00:00.000Z",
+    payload: {
+      requestId: "fallback-request",
+      primaryInstanceId: "claudeAgent",
+      fallbackInstanceId: "posthogGateway",
+      model: "claude-sonnet-4-5",
+      modelLabel: "Claude Sonnet 4.5",
+      resetsAt: null,
+    },
+  });
+
+  it("keeps an unanswered gateway offer actionable", () => {
+    expect(derivePendingFallbackOffers([offered])).toEqual([
+      {
+        requestId: "fallback-request",
+        primaryInstanceId: "claudeAgent",
+        fallbackInstanceId: "posthogGateway",
+        model: "claude-sonnet-4-5",
+        modelLabel: "Claude Sonnet 4.5",
+        resetsAt: null,
+        createdAt: "2026-08-24T00:00:00.000Z",
+      },
+    ]);
+  });
+
+  it("closes the offer after either decision", () => {
+    const engaged = makeActivity({
+      id: EventId.make("a-fallback-engaged"),
+      kind: "provider.fallback.engaged",
+      summary: "Gateway engaged",
+      createdAt: "2026-08-24T00:00:00.000Z",
+      payload: { requestId: "fallback-request" },
+    });
+    const declined = makeActivity({
+      id: EventId.make("fallback-declined"),
+      kind: "provider.fallback.declined",
+      summary: "Gateway declined",
+      createdAt: "2026-08-24T00:00:01.000Z",
+      payload: { requestId: "fallback-request" },
+    });
+
+    expect(derivePendingFallbackOffers(sortThreadActivities([offered, engaged]))).toEqual([]);
+    expect(derivePendingFallbackOffers([offered, declined])).toEqual([]);
+  });
+
+  it("keeps a clock-skewed response from reopening its offer", () => {
+    const engaged = makeActivity({
+      id: EventId.make("fallback-engaged-skewed"),
+      kind: "provider.fallback.engaged",
+      summary: "Gateway engaged",
+      createdAt: "2026-08-23T23:59:59.000Z",
+      payload: { requestId: "fallback-request" },
+    });
+
+    expect(derivePendingFallbackOffers(sortThreadActivities([offered, engaged]))).toEqual([]);
   });
 });
 
@@ -891,7 +956,7 @@ describe("formatFallbackEngagedSummary", () => {
 
   it("names both instances and the local reset time", () => {
     expect(formatFallbackEngagedSummary({ payload, resolveInstanceName, formatTime })).toBe(
-      "Usage limit reached on Codex; using PostHog AI Gateway (claude-opus-4-6) until 4:00 PM",
+      "Usage limit reached on Codex; continuing with claude-opus-4-6 via PostHog AI Gateway until 4:00 PM",
     );
   });
 
@@ -903,7 +968,7 @@ describe("formatFallbackEngagedSummary", () => {
         formatTime,
       }),
     ).toBe(
-      "Usage limit reached on Codex; using PostHog AI Gateway (claude-opus-4-6) until further notice",
+      "Usage limit reached on Codex; continuing with claude-opus-4-6 via PostHog AI Gateway until further notice",
     );
   });
 
@@ -915,13 +980,13 @@ describe("formatFallbackEngagedSummary", () => {
         formatTime: () => "",
       }),
     ).toBe(
-      "Usage limit reached on Codex; using PostHog AI Gateway (claude-opus-4-6) until further notice",
+      "Usage limit reached on Codex; continuing with claude-opus-4-6 via PostHog AI Gateway until further notice",
     );
   });
 
   it("falls back to instance ids when no resolver is given", () => {
     expect(formatFallbackEngagedSummary({ payload, formatTime })).toBe(
-      "Usage limit reached on codex; using posthog (claude-opus-4-6) until 4:00 PM",
+      "Usage limit reached on codex; continuing with claude-opus-4-6 via posthog until 4:00 PM",
     );
   });
 
@@ -982,7 +1047,7 @@ describe("provider fallback work-log rows", () => {
     );
     expect(activities).toHaveLength(1);
     expect(activities[0]?.summary).toBe(
-      "Usage limit reached on Codex; using PostHog AI Gateway (claude-opus-4-6) until further notice",
+      "Usage limit reached on Codex; continuing with claude-opus-4-6 via PostHog AI Gateway until further notice",
     );
     expect(activities[0]?.maxLines).toBe(2);
   });

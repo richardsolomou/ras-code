@@ -1113,8 +1113,7 @@ function OpenCommandPaletteDialog(props: {
         renderLeadingContent: (thread) => <ThreadRowLeadingStatus thread={thread} />,
         renderTrailingContent: (thread) => <ThreadRowTrailingStatus thread={thread} />,
         renderDescription: (thread, { projectTitle }) => {
-          const modelInstanceId =
-            thread.session?.providerInstanceId ?? thread.modelSelection.instanceId;
+          const modelInstanceId = thread.modelSelection.instanceId;
           const providerEntry =
             providerEntryByEnvironmentAndInstanceId.get(
               `${thread.environmentId}:${modelInstanceId}`,
@@ -1130,9 +1129,7 @@ function OpenCommandPaletteDialog(props: {
               worktreePath={thread.worktreePath}
               isCurrent={thread.id === activeThreadId}
               driverKind={providerEntry?.driverKind ?? null}
-              providerDisplayName={
-                thread.session?.providerName ?? providerEntry?.displayName ?? modelInstanceId
-              }
+              providerDisplayName={providerEntry?.displayName ?? modelInstanceId}
             />
           );
         },
