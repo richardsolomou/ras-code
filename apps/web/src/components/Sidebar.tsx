@@ -160,7 +160,7 @@ import {
   type TerminalStatusIndicator,
   useLinkedThreadPullRequest,
 } from "./ThreadStatusIndicators";
-import { StatusLamp, StatusMark } from "./StatusLamp";
+import { StatusGlyph } from "./StatusGlyph";
 import {
   resolveSnoozePresets,
   snoozeWakeDescription,
@@ -870,12 +870,12 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: {
       ? {
           label: "Working",
           icon: "working" as const,
-          lamp: "working" as const,
-          // The lamp breathes; the label does not. A label that animates
+          glyph: "working" as const,
+          // The glyph breathes; the label does not. A label that animates
           // forever is noise in a sidebar full of them. Working is a
           // background state, so it rests at the dim end; only the thread you
           // have open gets the label at full strength.
-          lampPulse: true,
+          pulse: true,
           className: cn("text-[var(--lamp-working)]", !props.isActive && "opacity-75"),
         }
       : status === "monitoring"
@@ -884,48 +884,48 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: {
             // (monitoring-pill D6), so it keeps the label at full strength.
             label: "Monitoring",
             icon: null,
-            lamp: "working" as const,
-            lampPulse: false,
+            glyph: "working" as const,
+            pulse: false,
             className: "text-[var(--lamp-working)]",
           }
         : status === "approval"
           ? {
               label: "Approval",
               icon: null,
-              lamp: "waiting" as const,
-              lampPulse: false,
+              glyph: "waiting" as const,
+              pulse: false,
               className: "text-[var(--lamp-waiting)]",
             }
           : status === "input"
             ? {
                 label: "Input",
                 icon: null,
-                lamp: "waiting" as const,
-                lampPulse: false,
+                glyph: "waiting" as const,
+                pulse: false,
                 className: "text-[var(--lamp-waiting)]",
               }
             : status === "failed"
               ? {
                   label: "Failed",
                   icon: null,
-                  lamp: "failed" as const,
-                  lampPulse: false,
+                  glyph: "failed" as const,
+                  pulse: false,
                   className: "text-[var(--lamp-failed)]",
                 }
               : isWoke
                 ? {
                     label: "Woke",
                     icon: "woke" as const,
-                    lamp: "waiting" as const,
-                    lampPulse: false,
+                    glyph: "waiting" as const,
+                    pulse: false,
                     className: "text-[var(--lamp-waiting)]",
                   }
                 : isUnread
                   ? {
                       label: "Done",
                       icon: "done" as const,
-                      lamp: "settled" as const,
-                      lampPulse: false,
+                      glyph: "settled" as const,
+                      pulse: false,
                       className: "text-[var(--lamp-working)]",
                     }
                   : null;
@@ -1340,7 +1340,6 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: {
                           onClick={handleAcknowledgeWokeClick}
                           className="legend inline-flex cursor-pointer items-center gap-1 rounded-sm text-[var(--lamp-waiting)] outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
                         >
-                          <StatusLamp state="waiting" />
                           <AlarmClockIcon aria-hidden className="size-3" />
                           <span role="status">Woke</span>
                         </button>
@@ -1350,7 +1349,7 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: {
                   </Tooltip>
                 ) : (
                   <span className="inline-flex items-center gap-1 text-xs">
-                    <StatusMark state={variantAction === "unsettle" ? "settled" : "idle"} />
+                    <StatusGlyph state={variantAction === "unsettle" ? "settled" : "idle"} />
                     {variantAction === "unsettle"
                       ? settledTimeLabel(thread)
                       : threadTimeLabel(thread)}
@@ -1502,7 +1501,6 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: {
                                 topStatus.className,
                               )}
                             >
-                              <StatusLamp state={topStatus.lamp} />
                               <AlarmClockIcon aria-hidden className="size-3.5 shrink-0" />
                               <span role="status">{topStatus.label}</span>
                             </button>
@@ -1514,7 +1512,7 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: {
                       <span
                         className={cn("legend inline-flex items-center gap-1", topStatus.className)}
                       >
-                        <StatusMark state={topStatus.lamp} pulse={topStatus.lampPulse} />
+                        <StatusGlyph state={topStatus.glyph} pulse={topStatus.pulse} />
                         {/* The label alone is the live region: a role="status"
                             wrapper around the ticking duration would make
                             screen readers announce every second. */}
@@ -1527,10 +1525,7 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: {
                       </span>
                     )
                   ) : (
-                    <span className="inline-flex items-center gap-1">
-                      <StatusMark state="idle" />
-                      {threadTimeLabel(thread)}
-                    </span>
+                    threadTimeLabel(thread)
                   )}
                 </span>
                 {props.settlementSupported || showSnoozeButton ? (

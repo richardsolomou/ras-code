@@ -61,6 +61,37 @@ describe("branding", () => {
     expect(branding.APP_DISPLAY_NAME).toBe("RAS Code");
   });
 
+  it("carries no stage label in a release build", async () => {
+    vi.stubEnv("VITE_HOSTED_APP_CHANNEL", "");
+    vi.stubEnv("DEV", false);
+
+    const branding = await import("./branding");
+
+    expect(branding.APP_STAGE_LABEL).toBeNull();
+    expect(branding.APP_DISPLAY_NAME).toBe("RAS Code");
+  });
+
+  it("keeps a release desktop build unlabelled over the dev fallback", async () => {
+    vi.stubEnv("VITE_HOSTED_APP_CHANNEL", "");
+    Object.defineProperty(globalThis, "window", {
+      configurable: true,
+      value: {
+        desktopBridge: {
+          getAppBranding: () => ({
+            baseName: "RAS Code",
+            stageLabel: null,
+            displayName: "RAS Code",
+          }),
+        },
+      },
+    });
+
+    const branding = await import("./branding");
+
+    expect(branding.APP_STAGE_LABEL).toBeNull();
+    expect(branding.APP_DISPLAY_NAME).toBe("RAS Code");
+  });
+
   it("ignores unknown hosted app channels", async () => {
     vi.stubEnv("VITE_HOSTED_APP_CHANNEL", "preview");
 
@@ -76,7 +107,7 @@ describe("branding logic", () => {
     expect(
       resolveServerBackedAppStageLabel({
         primaryServerVersion: "0.0.28-nightly.20260616.12",
-        fallbackStageLabel: "Alpha",
+        fallbackStageLabel: null,
       }),
     ).toBe("Nightly");
   });
@@ -85,8 +116,8 @@ describe("branding logic", () => {
     expect(
       resolveServerBackedAppDisplayName({
         baseName: "RAS Code",
-        fallbackDisplayName: "RAS Code (Alpha)",
-        fallbackStageLabel: "Alpha",
+        fallbackDisplayName: "RAS Code",
+        fallbackStageLabel: null,
         primaryServerVersion: "0.0.28-nightly.20260616.12",
       }),
     ).toBe("RAS Code (Nightly)");
@@ -96,21 +127,21 @@ describe("branding logic", () => {
     expect(
       resolveServerBackedAppDisplayName({
         baseName: "RAS Code",
-        fallbackDisplayName: "RAS Code (Alpha)",
-        fallbackStageLabel: "Alpha",
+        fallbackDisplayName: "RAS Code",
+        fallbackStageLabel: null,
         primaryServerVersion: "0.0.27",
       }),
-    ).toBe("RAS Code (Alpha)");
+    ).toBe("RAS Code");
   });
 
   it("keeps the fallback display name for malformed nightly primary server versions", () => {
     expect(
       resolveServerBackedAppDisplayName({
         baseName: "RAS Code",
-        fallbackDisplayName: "RAS Code (Alpha)",
-        fallbackStageLabel: "Alpha",
+        fallbackDisplayName: "RAS Code",
+        fallbackStageLabel: null,
         primaryServerVersion: "0.0.28-nightly.20260616",
       }),
-    ).toBe("RAS Code (Alpha)");
+    ).toBe("RAS Code");
   });
 });

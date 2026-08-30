@@ -20,7 +20,7 @@ import { resolveChangeRequestPresentation } from "../sourceControlPresentation";
 import { resolveThreadStatusPill, type ThreadStatusPill } from "./Sidebar.logic";
 import type { SidebarThreadSummary } from "../types";
 import { formatWorktreePathForDisplay } from "../worktreeCleanup";
-import { StatusLamp, StatusMark, type LampState } from "./StatusLamp";
+import { StatusGlyph, type StatusState } from "./StatusGlyph";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "./ui/tooltip";
 
 export interface PrStatusIndicator {
@@ -464,9 +464,9 @@ export function ThreadWorktreeIndicator({
   );
 }
 
-/** Console lamp for a thread status pill. The pill's own label is the source
- * of truth, so every surface that renders a pill lights the same lamp. */
-export function threadStatusLamp(label: ThreadStatusPill["label"]): LampState {
+/** Console state for a thread status pill. The pill's own label is the source
+ * of truth, so every surface that renders a pill draws the same glyph. */
+function threadStatusState(label: ThreadStatusPill["label"]): StatusState {
   switch (label) {
     case "Pending Approval":
     case "Awaiting Input":
@@ -481,7 +481,7 @@ export function threadStatusLamp(label: ThreadStatusPill["label"]): LampState {
   }
 }
 
-const LAMP_TEXT_CLASS: Record<LampState, string> = {
+const STATUS_TEXT_CLASS: Record<StatusState, string> = {
   working: "text-[var(--lamp-working)]",
   waiting: "text-[var(--lamp-waiting)]",
   settled: "text-[var(--lamp-working)]",
@@ -489,32 +489,8 @@ const LAMP_TEXT_CLASS: Record<LampState, string> = {
   idle: "text-muted-foreground",
 };
 
-export function ThreadStatusLabel({
-  status,
-  compact = false,
-}: {
-  status: ThreadStatusPill;
-  compact?: boolean;
-}) {
-  const lamp = threadStatusLamp(status.label);
-
-  if (compact) {
-    return (
-      <Tooltip>
-        <TooltipTrigger
-          render={
-            <span
-              aria-label={status.label}
-              className="inline-flex size-3.5 shrink-0 items-center justify-center"
-            />
-          }
-        >
-          <StatusLamp state={lamp} pulse={status.pulse} />
-        </TooltipTrigger>
-        <TooltipPopup side="top">{status.label}</TooltipPopup>
-      </Tooltip>
-    );
-  }
+export function ThreadStatusLabel({ status }: { status: ThreadStatusPill }) {
+  const state = threadStatusState(status.label);
 
   return (
     <Tooltip>
@@ -522,11 +498,11 @@ export function ThreadStatusLabel({
         render={
           <span
             aria-label={status.label}
-            className={`legend inline-flex items-center gap-1 text-[10px] ${LAMP_TEXT_CLASS[lamp]}`}
+            className={`legend inline-flex items-center gap-1 text-[10px] ${STATUS_TEXT_CLASS[state]}`}
           />
         }
       >
-        <StatusMark state={lamp} pulse={status.pulse} glyphClassName="size-3" />
+        <StatusGlyph state={state} pulse={status.pulse} className="size-3" />
         <span className="hidden md:inline">{status.label}</span>
       </TooltipTrigger>
       <TooltipPopup side="top">{status.label}</TooltipPopup>

@@ -15,7 +15,7 @@ const repoRoot = NodePath.resolve(desktopDir, "..", "..");
 const devBundleIdSuffix = NodePath.basename(repoRoot)
   .toLowerCase()
   .replaceAll(/[^a-z0-9]+/g, "");
-export const APP_DISPLAY_NAME = isDevelopment ? "RAS Code (Dev)" : "RAS Code (Alpha)";
+export const APP_DISPLAY_NAME = isDevelopment ? "RAS Code (Dev)" : "RAS Code";
 export const APP_BUNDLE_ID = isDevelopment
   ? `com.richardsolomou.ras-code.dev.${devBundleIdSuffix || "local"}`
   : "com.richardsolomou.ras-code";
