@@ -6,7 +6,7 @@
  * react to.
  */
 import { useEffect, useEffectEvent, useMemo, useRef } from "react";
-import { useNavigate, useParams } from "@tanstack/react-router";
+import { useParams } from "@tanstack/react-router";
 import {
   initialNotifierState,
   reduceNotifications,
@@ -24,7 +24,9 @@ import {
   findThreadRef,
 } from "~/state/entities";
 import { useClientSettings } from "~/hooks/useSettings";
-import { buildThreadRouteParams, resolveThreadRouteRef } from "~/threadRoutes";
+import { useOpenThreadInPane } from "~/hooks/useOpenThreadInPane";
+import { resolveThreadRouteRef } from "~/threadRoutes";
+import { selectFocusedThread, useChatPaneStore } from "~/chatPaneStore";
 import { buildNotificationSnapshots } from "./snapshots";
 import { playNotificationSound, setBadgeCount, showNotification } from "./deliver";
 import { useWindowFocused } from "./useWindowFocused";
@@ -37,11 +39,12 @@ export function NotificationCoordinator() {
   const threads = useThreadShells();
   const projects = useProjects();
   const windowFocused = useWindowFocused();
-  const navigate = useNavigate();
+  const openThreadInPane = useOpenThreadInPane();
 
-  const activeThreadRef = resolveThreadRouteRef(
+  const routeThreadRef = resolveThreadRouteRef(
     useParams({ strict: false, select: (params) => params }),
   );
+  const activeThreadRef = useChatPaneStore((state) => selectFocusedThread(state, routeThreadRef));
   const activeThreadDetail = useThreadDetail(activeThreadRef);
 
   const details = useMemo(
@@ -62,10 +65,7 @@ export function NotificationCoordinator() {
   const openThread = useEffectEvent((threadId: string) => {
     const ref = findThreadRef(threadId as ThreadId);
     if (ref === null) return;
-    void navigate({
-      to: "/$environmentId/$threadId",
-      params: buildThreadRouteParams(ref),
-    });
+    void openThreadInPane(ref);
   });
 
   useEffect(() => {

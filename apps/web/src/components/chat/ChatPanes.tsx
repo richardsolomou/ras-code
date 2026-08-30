@@ -1,8 +1,7 @@
 import { useDndContext, useDroppable } from "@dnd-kit/core";
 import { scopedThreadKey } from "@ras-code/client-runtime/environment";
 import type { ScopedThreadRef } from "@ras-code/contracts";
-import { useNavigate } from "@tanstack/react-router";
-import { ArrowLeftRightIcon, XIcon } from "lucide-react";
+import { XIcon } from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -10,25 +9,28 @@ import {
   useMemo,
   useRef,
   type CSSProperties,
-  type RefObject,
+  type FocusEvent as ReactFocusEvent,
+  type MouseEvent as ReactMouseEvent,
+  type MutableRefObject,
   type PointerEvent as ReactPointerEvent,
+  type RefObject,
   type ReactNode,
 } from "react";
 
 import ChatView from "../ChatView";
+import { isCommandPaletteOpen } from "../../commandPaletteBus";
 import { WorkspacePageHeader } from "../WorkspacePageHeader";
 import {
   canSplitPaneRow,
   clampPaneFraction,
   isCompanionVisible,
   oppositePaneSide,
-  planPaneFocusChange,
-  shouldCollapseOnNavigation,
+  planRouteChange,
   useChatPaneStore,
   type ChatPaneSide,
   type FocusedPane,
 } from "../../chatPaneStore";
-import { useRouteTargetId, useRoutedThreadRef } from "../../hooks/useRoutedThreadRef";
+import { useRoutedThreadRef, useRouteTargetId } from "../../hooks/useRoutedThreadRef";
 import {
   useThreadDetail,
   useThreadRefs,
@@ -37,12 +39,18 @@ import {
 } from "../../state/entities";
 import { useEnvironmentQuery } from "../../state/query";
 import { environmentShell } from "../../state/shell";
-import { buildThreadRouteParams, resolveThreadRouteRenderState } from "../../threadRoutes";
+import { resolveThreadRouteRenderState } from "../../threadRoutes";
 import { resolveThreadSyncPhase } from "../../threadSync";
 import { paneDropZoneId, readThreadDrag } from "../../threadDrag";
 import { Button } from "../ui/button";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
-import { PaneFocusProvider, PaneIsRoutedProvider } from "./paneFocus";
+import {
+  PaneFocusProvider,
+  PaneIsRoutedProvider,
+  registerPaneFocusRestorer,
+  restorePaneFocus,
+  restorePaneFocusAfterClick,
+} from "./paneFocus";
 
 /**
  * Which pane the keyboard is aimed at, drawn only while the inset is split. A
@@ -60,16 +68,35 @@ function PaneFocusRule({ isFocused }: { isFocused: boolean }) {
   );
 }
 
-/**
- * Focus follows the pointer into a pane, in the capture phase: transcripts stop
- * propagation on plenty of their own clicks, so a bubbled handler would miss
- * whichever spot the user happened to hit. Capturing is safe because focus only
- * moves a highlight and decides which pane answers window shortcuts — the click
- * it precedes still lands on the control the user aimed at.
- */
-function usePaneFocusHandler(pane: FocusedPane) {
+type PaneFocusMemory = Record<FocusedPane, HTMLElement | null>;
+
+/** Capture sees nested transcript controls that stop pointer events from bubbling. */
+function usePaneFocusHandlers(pane: FocusedPane, memoryRef: MutableRefObject<PaneFocusMemory>) {
   const focusPane = useChatPaneStore((state) => state.focusPane);
-  return useCallback(() => focusPane(pane), [focusPane, pane]);
+  const onFocusCapture = useCallback(
+    (event: ReactFocusEvent<HTMLDivElement>) => {
+      focusPane(pane);
+      if (event.target instanceof HTMLElement && event.target !== event.currentTarget) {
+        memoryRef.current[pane] = event.target;
+      }
+    },
+    [focusPane, memoryRef, pane],
+  );
+  const onPointerDownCapture = useCallback(() => {
+    focusPane(pane);
+  }, [focusPane, pane]);
+  const onClickCapture = useCallback(
+    (event: ReactMouseEvent<HTMLDivElement>) => {
+      restorePaneFocusAfterClick(
+        event.currentTarget,
+        event.target,
+        document.activeElement,
+        memoryRef.current[pane],
+      );
+    },
+    [memoryRef, pane],
+  );
+  return { onClickCapture, onFocusCapture, onPointerDownCapture };
 }
 
 const PANE_KEYBOARD_STEP = 0.02;
@@ -200,21 +227,8 @@ function PaneDropZone({
  *
  * No zones at all on a row too narrow to hold two panes: offering a target that
  * would immediately suspend itself is a lie.
- *
- * While a split is live only the companion's own half takes a drop. The routed
- * half belongs to the URL and changes by navigating, and a zone over it could
- * only be honoured by evicting the companion — replacing the pane the user did
- * not aim at.
  */
-function PaneDropOverlay({
-  canSplit,
-  companionSide,
-  splitActive,
-}: {
-  canSplit: boolean;
-  companionSide: ChatPaneSide;
-  splitActive: boolean;
-}) {
+function PaneDropOverlay({ canSplit, splitActive }: { canSplit: boolean; splitActive: boolean }) {
   const { active } = useDndContext();
   if (!canSplit) return null;
   const dragging = readThreadDrag(active) !== null;
@@ -222,22 +236,15 @@ function PaneDropOverlay({
     <div
       className={`pointer-events-none absolute inset-0 z-30 flex gap-2 p-2 ${dragging ? "" : "invisible"}`}
     >
-      {(["left", "right"] as const).map((side) =>
-        // In a live split only the companion's half takes a drop, and the other
-        // half becomes an inert spacer. Both are sized from the same variable
-        // the panes use, so a zone always covers exactly the pane it names.
-        splitActive && side !== companionSide ? (
-          <div key={side} style={{ flexGrow: paneGrow(side), flexBasis: 0 }} />
-        ) : (
-          <PaneDropZone
-            key={side}
-            side={side}
-            grow={splitActive ? paneGrow(side) : "1"}
-            visible={dragging}
-            label={splitActive ? "Replace this pane" : `Open on the ${side}`}
-          />
-        ),
-      )}
+      {(["left", "right"] as const).map((side) => (
+        <PaneDropZone
+          key={side}
+          side={side}
+          grow={splitActive ? paneGrow(side) : "1"}
+          visible={dragging}
+          label={splitActive ? "Open in this pane" : `Open on the ${side}`}
+        />
+      ))}
     </div>
   );
 }
@@ -323,30 +330,9 @@ function PaneDivider({
   );
 }
 
-function CompanionPaneControls({
-  onClose,
-  onMakePrimary,
-}: {
-  onClose: () => void;
-  onMakePrimary: () => void;
-}) {
+function CompanionPaneControls({ onClose }: { onClose: () => void }) {
   return (
     <div className="-ms-1 flex shrink-0 items-center gap-0.5">
-      <Tooltip>
-        <TooltipTrigger
-          render={
-            <Button
-              variant="ghost-muted"
-              size="icon-sm"
-              aria-label="Make this the primary pane"
-              onClick={onMakePrimary}
-            >
-              <ArrowLeftRightIcon className="size-4" />
-            </Button>
-          }
-        />
-        <TooltipPopup side="bottom">Make primary (takes keyboard shortcuts)</TooltipPopup>
-      </Tooltip>
       <Tooltip>
         <TooltipTrigger
           render={
@@ -372,14 +358,14 @@ function CompanionPane({
   isFocused,
   order,
   onClose,
-  onMakePrimary,
+  focusMemoryRef,
 }: {
   companion: ScopedThreadRef;
   grow: string;
   isFocused: boolean;
   order: number;
   onClose: () => void;
-  onMakePrimary: () => void;
+  focusMemoryRef: MutableRefObject<PaneFocusMemory>;
 }) {
   const shell = useEnvironmentQuery(environmentShell.stateAtom(companion.environmentId));
   const threadShell = useThreadShell(companion);
@@ -401,9 +387,9 @@ function CompanionPane({
     shellExists: threadShell !== null,
     status: threadStatus,
   });
-  const paneControls = <CompanionPaneControls onClose={onClose} onMakePrimary={onMakePrimary} />;
+  const paneControls = <CompanionPaneControls onClose={onClose} />;
   const ready = renderState === "ready" || (renderState === "loading" && threadShell !== null);
-  const takeFocus = usePaneFocusHandler("companion");
+  const focusHandlers = usePaneFocusHandlers("companion", focusMemoryRef);
 
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: pane focus mirrors pointer focus
@@ -412,8 +398,9 @@ function CompanionPane({
       data-chat-pane-focused={isFocused ? "true" : "false"}
       className="relative flex min-w-0 flex-col bg-background"
       style={{ order, flexGrow: grow, flexBasis: 0 }}
-      onPointerDownCapture={takeFocus}
-      onFocusCapture={takeFocus}
+      onClickCapture={focusHandlers.onClickCapture}
+      onPointerDownCapture={focusHandlers.onPointerDownCapture}
+      onFocusCapture={focusHandlers.onFocusCapture}
     >
       <PaneFocusRule isFocused={isFocused} />
       <PaneIsRoutedProvider value={false}>
@@ -441,18 +428,20 @@ function CompanionPane({
 /**
  * The chat inset, as one pane or two.
  *
- * The routed pane is always the primary one — it owns the URL and the global
- * shortcuts — and the companion sits beside it as a second live thread. Both
- * panes keep a fixed position in the DOM and are placed by flex `order`, so
- * promoting the companion swaps which thread each pane renders without either
- * one remounting or sliding across the screen.
+ * One pane backs the address bar while both panes share the same interaction
+ * model. The routed and companion containers stay mounted and use flex `order`,
+ * so changing the address-bar thread does not move either pane on screen.
  */
 export function ChatPanes({ children }: { children: ReactNode }) {
-  const navigate = useNavigate();
   const { rowRef, rowNodeRef, rowWidthRef } = useMeasureRow();
   const routed = useRoutedThreadRef();
   const routedKey = routed ? scopedThreadKey(routed) : null;
   const routeId = useRouteTargetId();
+  const focusMemoryRef = useRef<PaneFocusMemory>({ routed: null, companion: null });
+  const previousRouteRef = useRef<{
+    routeId: string | null;
+    routed: ScopedThreadRef | null;
+  } | null>(null);
 
   const companion = useChatPaneStore((state) => state.companion);
   const focusedPane = useChatPaneStore((state) => state.focusedPane);
@@ -467,29 +456,26 @@ export function ChatPanes({ children }: { children: ReactNode }) {
   const threadRefs = useThreadRefs();
   const knownThreadKeys = useMemo(() => new Set(threadRefs.map(scopedThreadKey)), [threadRefs]);
 
-  // `undefined` until the first run, which keeps a companion restored from a
-  // previous session from reading as a navigation and closing itself.
-  const previousRouteRef = useRef<{ routeId: string | null; routedKey: string | null } | undefined>(
-    undefined,
-  );
-  useEffect(() => {
+  useLayoutEffect(() => {
     const previous = previousRouteRef.current;
-    previousRouteRef.current = { routeId, routedKey };
-    const { companion } = useChatPaneStore.getState();
-    if (
-      previous !== undefined &&
-      shouldCollapseOnNavigation({
-        previousRouteId: previous.routeId,
-        nextRouteId: routeId,
-        previousRoutedKey: previous.routedKey,
-        companionKey: companion ? scopedThreadKey(companion) : null,
-      })
-    ) {
-      closeCompanion();
-      return;
+    previousRouteRef.current = { routeId, routed };
+    if (!previous) return;
+    const paneState = useChatPaneStore.getState();
+    const nextLayout = planRouteChange({
+      layout: paneState,
+      previousRouteId: previous.routeId,
+      nextRouteId: routeId,
+      previousRouted: previous.routed,
+      nextRouted: routed,
+    });
+    if (nextLayout !== paneState) {
+      applyLayout(nextLayout);
     }
+  }, [applyLayout, routeId, routed]);
+
+  useEffect(() => {
     reconcile({ knownThreadKeys, routedKey });
-  }, [closeCompanion, knownThreadKeys, reconcile, routeId, routedKey]);
+  }, [knownThreadKeys, reconcile, routedKey]);
 
   // Keeps the DOM in step with a fraction that changed anywhere but the divider:
   // rehydration, the arrow keys, or a double-click reset.
@@ -498,20 +484,7 @@ export function ChatPanes({ children }: { children: ReactNode }) {
     if (row) writePaneFraction(row, leftFraction, rowWidthRef.current);
   }, [leftFraction, rowNodeRef, rowWidthRef]);
 
-  const focusRoutedPane = usePaneFocusHandler("routed");
-
-  const handleMakePrimary = useCallback(() => {
-    const plan = planPaneFocusChange(useChatPaneStore.getState(), routed);
-    if (!plan) return;
-    applyLayout(plan.layout);
-    // Replaces rather than pushes: promoting a pane is a focus change, and a
-    // back stack full of them buries the navigations worth undoing.
-    void navigate({
-      to: "/$environmentId/$threadId",
-      params: buildThreadRouteParams(plan.navigateTo),
-      replace: true,
-    });
-  }, [applyLayout, navigate, routed]);
+  const routedFocusHandlers = usePaneFocusHandlers("routed", focusMemoryRef);
 
   // A row too narrow for two readable transcripts shows only the routed pane.
   // The companion is suspended rather than dropped, so widening the window (or
@@ -524,6 +497,40 @@ export function ChatPanes({ children }: { children: ReactNode }) {
     leftFraction,
   });
   const companionFocused = splitActive && focusedPane === "companion";
+
+  useLayoutEffect(() => {
+    if (isCommandPaletteOpen()) return;
+    const pane = splitActive ? focusedPane : "routed";
+    const root = rowNodeRef.current?.querySelector<HTMLElement>(`[data-chat-pane="${pane}"]`);
+    if (!root || root.contains(document.activeElement)) return;
+    restorePaneFocus(root, focusMemoryRef.current[pane]);
+  }, [focusedPane, rowNodeRef, splitActive]);
+
+  useEffect(
+    () =>
+      registerPaneFocusRestorer(() => {
+        const paneState = useChatPaneStore.getState();
+        const pane = isCompanionVisible(paneState) ? paneState.focusedPane : "routed";
+        const root = rowNodeRef.current?.querySelector<HTMLElement>(`[data-chat-pane="${pane}"]`);
+        return root ? restorePaneFocus(root, focusMemoryRef.current[pane]) : false;
+      }),
+    [rowNodeRef],
+  );
+
+  useEffect(() => {
+    const restoreAfterWindowFocus = () => {
+      if (document.activeElement !== document.body) return;
+      const focused = useChatPaneStore.getState().focusedPane;
+      const root =
+        rowNodeRef.current?.querySelector<HTMLElement>(`[data-chat-pane="${focused}"]`) ??
+        rowNodeRef.current?.querySelector<HTMLElement>('[data-chat-pane="routed"]');
+      if (!root) return;
+      const pane = root.dataset.chatPane === "companion" ? "companion" : "routed";
+      restorePaneFocus(root, focusMemoryRef.current[pane]);
+    };
+    window.addEventListener("focus", restoreAfterWindowFocus);
+    return () => window.removeEventListener("focus", restoreAfterWindowFocus);
+  }, [rowNodeRef]);
   // Both panes grow from one custom property, so the divider retunes the split
   // by writing a variable rather than re-rendering either ChatView.
   const routedSide = oppositePaneSide(companionSide);
@@ -541,8 +548,9 @@ export function ChatPanes({ children }: { children: ReactNode }) {
         data-chat-pane="routed"
         data-chat-pane-focused={companionFocused ? "false" : "true"}
         style={routedStyle}
-        onPointerDownCapture={focusRoutedPane}
-        onFocusCapture={focusRoutedPane}
+        onClickCapture={routedFocusHandlers.onClickCapture}
+        onPointerDownCapture={routedFocusHandlers.onPointerDownCapture}
+        onFocusCapture={routedFocusHandlers.onFocusCapture}
       >
         {splitActive ? <PaneFocusRule isFocused={!companionFocused} /> : null}
         <PaneFocusProvider value={!companionFocused}>{children}</PaneFocusProvider>
@@ -556,15 +564,11 @@ export function ChatPanes({ children }: { children: ReactNode }) {
             grow={paneGrow(companionSide)}
             order={ORDER_BY_SIDE[companionSide]}
             onClose={closeCompanion}
-            onMakePrimary={handleMakePrimary}
+            focusMemoryRef={focusMemoryRef}
           />
         </>
       ) : null}
-      <PaneDropOverlay
-        canSplit={canSplit}
-        splitActive={splitActive}
-        companionSide={companionSide}
-      />
+      <PaneDropOverlay canSplit={canSplit} splitActive={splitActive} />
     </div>
   );
 }

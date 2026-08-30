@@ -7,9 +7,8 @@ import { useComposerDraftStore } from "../composerDraftStore";
 import { resolveActiveThreadRouteRef, resolveThreadRouteTarget } from "../threadRoutes";
 
 /**
- * The server thread on screen in the routed pane — the one that owns the URL and
- * the global shortcuts — or null while the route shows an unpromoted draft or no
- * thread at all.
+ * The server thread on screen in the pane represented by the URL, or null while
+ * the route shows an unpromoted draft or no thread at all.
  *
  * A draft route counts once its draft has been promoted, since by then it is
  * showing a real thread.
@@ -28,13 +27,6 @@ export function useRoutedThreadRef(): ScopedThreadRef | null {
   );
 }
 
-/**
- * A stable identity for whatever the route points at, draft or thread.
- *
- * Distinct from the thread ref: a draft keeps the same identity across the
- * promotion that gives it one, which is what tells an in-place promotion apart
- * from a real navigation.
- */
 export function useRouteTargetId(): string | null {
   return useParams({
     strict: false,

@@ -10,6 +10,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { canOpenThreadInSplit, selectFocusedThread, useChatPaneStore } from "../chatPaneStore";
+import { useOpenThreadInPane } from "../hooks/useOpenThreadInPane";
 import { useRoutedThreadRef } from "../hooks/useRoutedThreadRef";
 import { setPinnedReorderHandler, type ThreadDragData } from "../threadDrag";
 import {
@@ -108,7 +109,7 @@ import { vcsEnvironment } from "../state/vcs";
 import { threadEnvironment } from "../state/threads";
 import { useEnvironmentQuery } from "../state/query";
 import { useAtomCommand } from "../state/use-atom-command";
-import { buildThreadRouteParams, resolveThreadRouteTarget } from "../threadRoutes";
+import { resolveThreadRouteTarget } from "../threadRoutes";
 import { formatRelativeTimeLabel, parseTimestampDate } from "../timestampFormat";
 import type { SidebarThreadSummary } from "../types";
 import { cn } from "~/lib/utils";
@@ -1865,6 +1866,7 @@ export default function Sidebar() {
     },
   });
   const newThreadContext = useHandleNewThread();
+  const openThreadInPane = useOpenThreadInPane();
   const openAddProjectCommandPalette = useCallback(
     () => openCommandPalette({ open: "add-project" }),
     [],
@@ -2470,12 +2472,9 @@ export default function Sidebar() {
       if (isMobile) {
         setOpenMobile(false);
       }
-      void router.navigate({
-        to: "/$environmentId/$threadId",
-        params: buildThreadRouteParams(threadRef),
-      });
+      void openThreadInPane(threadRef);
     },
-    [clearSelection, isMobile, router, setOpenMobile, setSelectionAnchor],
+    [clearSelection, isMobile, openThreadInPane, setOpenMobile, setSelectionAnchor],
   );
 
   const navigateToDraft = useCallback(

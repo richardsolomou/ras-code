@@ -13,10 +13,12 @@ import {
   type Modifier,
 } from "@dnd-kit/core";
 import { restrictToFirstScrollableAncestor, restrictToVerticalAxis } from "@dnd-kit/modifiers";
+import { useNavigate } from "@tanstack/react-router";
 import { useCallback, type ReactNode } from "react";
 
-import { useChatPaneStore } from "../../chatPaneStore";
+import { planThreadDrop, useChatPaneStore } from "../../chatPaneStore";
 import { useRoutedThreadRef } from "../../hooks/useRoutedThreadRef";
+import { buildThreadRouteParams } from "../../threadRoutes";
 import {
   isPinnedReorderDrag,
   readPaneDrop,
@@ -90,6 +92,7 @@ function ThreadDragPreview() {
  * cannot be split across separate mechanisms.
  */
 export function ThreadDragProvider({ children }: { children: ReactNode }) {
+  const navigate = useNavigate();
   const routed = useRoutedThreadRef();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
@@ -98,14 +101,26 @@ export function ThreadDragProvider({ children }: { children: ReactNode }) {
       const thread = readThreadDrag(event.active);
       const paneDrop = readPaneDrop(event.over);
       if (thread && paneDrop) {
-        useChatPaneStore
-          .getState()
-          .splitWithThread({ routed, dropped: thread.ref, side: paneDrop.side });
+        const paneState = useChatPaneStore.getState();
+        const plan = planThreadDrop({
+          layout: paneState,
+          routed,
+          target: thread.ref,
+          side: paneDrop.side,
+        });
+        if (!plan) return;
+        paneState.applyLayout(plan.layout);
+        if (plan.navigateTo) {
+          void navigate({
+            to: "/$environmentId/$threadId",
+            params: buildThreadRouteParams(plan.navigateTo),
+          });
+        }
         return;
       }
       runPinnedReorder(event);
     },
-    [routed],
+    [navigate, routed],
   );
 
   return (

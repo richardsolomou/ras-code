@@ -80,6 +80,7 @@ import {
   useRef,
   useState,
   type ReactNode,
+  type RefObject,
 } from "react";
 import { flushSync } from "react-dom";
 import { useNavigate } from "@tanstack/react-router";
@@ -218,6 +219,7 @@ import {
 import { useNowMinute } from "../hooks/useNowMinute";
 import { useForkThreadHandler } from "../hooks/useForkThread";
 import { useNewThreadHandler } from "../hooks/useHandleNewThread";
+import { useOpenThreadInPane } from "../hooks/useOpenThreadInPane";
 import { useThreadActions } from "../hooks/useThreadActions";
 import { resolveAppModelSelectionForInstance } from "../modelSelection";
 import { confirmTerminalClose, isTerminalCloseConfirmPending } from "../lib/terminalCloseConfirm";
@@ -233,7 +235,7 @@ import {
   selectProjectGroupingSettings,
 } from "../logicalProject";
 import { buildPhysicalToLogicalProjectKeyMap } from "../sidebarProjectGrouping";
-import { buildDraftThreadRouteParams, buildThreadRouteParams } from "../threadRoutes";
+import { buildDraftThreadRouteParams } from "../threadRoutes";
 import {
   beginBackgroundDraftSubmissionByRef,
   clearBackgroundDraftSubmissionByRef,
@@ -386,7 +388,7 @@ import {
 } from "./ChatView.logic";
 import type { ThreadSyncPhase } from "../threadSync";
 import { useLocalStorage } from "~/hooks/useLocalStorage";
-import { useComposerHandleContext } from "../composerHandleContext";
+import { ComposerHandleContext } from "../composerHandleContext";
 import {
   awaitAttachmentUploads,
   getUploadedAttachments,
@@ -1288,7 +1290,9 @@ function releaseChatTimelineAnchor<T extends { readonly messageId: MessageId | n
   return current.messageId === null ? current : { ...current, messageId: null };
 }
 
-function ChatViewContent(props: ChatViewProps) {
+function ChatViewContent(
+  props: ChatViewProps & { composerRef: RefObject<ChatComposerHandle | null> },
+) {
   const {
     environmentId,
     threadId,
@@ -1407,6 +1411,7 @@ function ChatViewContent(props: ChatViewProps) {
   );
   const timestampFormat = settings.timestampFormat;
   const navigate = useNavigate();
+  const openThreadInPane = useOpenThreadInPane();
   const { resolvedTheme } = useTheme();
   // Granular store selectors — avoid subscribing to prompt changes.
   const composerRuntimeMode = useComposerDraftStore(
@@ -1454,8 +1459,7 @@ function ChatViewContent(props: ChatViewProps) {
   const composerFilesRef = useRef<ComposerFileAttachment[]>([]);
   const composerTerminalContextsRef = useRef<TerminalContextDraft[]>([]);
   const composerElementContextsRef = useRef<ElementContextDraft[]>([]);
-  const localComposerRef = useRef<ChatComposerHandle | null>(null);
-  const composerRef = useComposerHandleContext() ?? localComposerRef;
+  const { composerRef } = props;
   const [isWorkspaceFileDragActive, setIsWorkspaceFileDragActive] = useState(false);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const [expandedImage, setExpandedImage] = useState<ExpandedImagePreview | null>(null);
@@ -4449,8 +4453,19 @@ function ChatViewContent(props: ChatViewProps) {
     setIsRevertingCheckpoint(false);
   }, [activeThread?.id]);
 
+  const lastComposerAutoFocusThreadIdRef = useRef<ThreadId | null>(null);
   useEffect(() => {
-    if (!isFocusedPane || !activeThread?.id || terminalUiState.terminalOpen) return;
+    if (!activeThread?.id) return;
+    const threadChanged = lastComposerAutoFocusThreadIdRef.current !== activeThread.id;
+    lastComposerAutoFocusThreadIdRef.current = activeThread.id;
+    if (
+      !isFocusedPane ||
+      !threadChanged ||
+      terminalUiState.terminalOpen ||
+      isCommandPaletteOpen()
+    ) {
+      return;
+    }
     const frame = window.requestAnimationFrame(() => {
       focusComposer();
     });
@@ -6289,10 +6304,7 @@ function ChatViewContent(props: ChatViewProps) {
                   actionProps: {
                     children: "Open",
                     onClick: () => {
-                      void navigate({
-                        to: "/$environmentId/$threadId",
-                        params: buildThreadRouteParams(backgroundThreadRef),
-                      });
+                      void openThreadInPane(backgroundThreadRef);
                     },
                   },
                 }),
@@ -6848,13 +6860,7 @@ function ChatViewContent(props: ChatViewProps) {
 
     if (failure === null) {
       const navigateResult = await settlePromise(() =>
-        navigate({
-          to: "/$environmentId/$threadId",
-          params: {
-            environmentId: activeThread.environmentId,
-            threadId: nextThreadId,
-          },
-        }),
+        openThreadInPane(scopeThreadRef(activeThread.environmentId, nextThreadId)),
       );
       failure = navigateResult._tag === "Failure" ? navigateResult : null;
     }
@@ -6899,7 +6905,7 @@ function ChatViewContent(props: ChatViewProps) {
     isConnecting,
     isSendBusy,
     isServerThread,
-    navigate,
+    openThreadInPane,
     resetLocalDispatch,
     runtimeMode,
     startThreadTurn,
@@ -7772,9 +7778,12 @@ function ChatViewContent(props: ChatViewProps) {
 }
 
 export default function ChatView(props: ChatViewProps) {
+  const composerRef = useRef<ChatComposerHandle | null>(null);
   return (
-    <DiffWorkerPoolProvider>
-      <ChatViewContent {...props} />
-    </DiffWorkerPoolProvider>
+    <ComposerHandleContext value={composerRef}>
+      <DiffWorkerPoolProvider>
+        <ChatViewContent {...props} composerRef={composerRef} />
+      </DiffWorkerPoolProvider>
+    </ComposerHandleContext>
   );
 }
