@@ -11,6 +11,13 @@ complexity:
   TooManyFunctions:
     active: false
 
+naming:
+  # The Expo module packages are expo.modules.ras_code.*; renaming them changes
+  # the native fingerprint and every module config for a cosmetic win. ktlint's
+  # package-name rule is disabled in .editorconfig for the same reason.
+  PackageNaming:
+    active: false
+
 style:
   MagicNumber:
     active: false
