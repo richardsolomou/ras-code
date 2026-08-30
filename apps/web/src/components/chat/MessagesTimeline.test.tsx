@@ -126,6 +126,8 @@ vi.mock("@pierre/diffs/react", () => {
   return { FileDiff: MockFileDiff };
 });
 
+const menuItemHandlers: Array<() => void> = [];
+
 vi.mock("../ui/menu", () => ({
   Menu: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   MenuTrigger: ({ children, render }: { children?: ReactNode; render: ReactNode }) => (
@@ -135,11 +137,14 @@ vi.mock("../ui/menu", () => ({
     </>
   ),
   MenuPopup: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  MenuItem: ({ children, onClick }: { children: ReactNode; onClick?: () => void }) => (
-    <button type="button" data-has-on-click={Boolean(onClick)}>
-      {children}
-    </button>
-  ),
+  MenuItem: ({ children, onClick }: { children: ReactNode; onClick?: () => void }) => {
+    if (onClick) menuItemHandlers.push(onClick);
+    return (
+      <button type="button" data-has-on-click={Boolean(onClick)}>
+        {children}
+      </button>
+    );
+  },
 }));
 
 function matchMedia() {
@@ -1012,6 +1017,9 @@ describe("MessagesTimeline", () => {
   });
 
   it("keeps user actions to copy and puts response actions in a three-dot menu", () => {
+    menuItemHandlers.length = 0;
+    const onForkFromAssistantMessage = vi.fn();
+    const onRevertAssistantMessage = vi.fn();
     const userEntry = buildUserTimelineEntry("Try another approach.");
     const assistantEntry = {
       ...buildAssistantTimelineEntry("Here is one approach."),
@@ -1024,6 +1032,8 @@ describe("MessagesTimeline", () => {
     const markup = renderToStaticMarkup(
       <MessagesTimeline
         {...buildProps()}
+        onForkFromAssistantMessage={onForkFromAssistantMessage}
+        onRevertAssistantMessage={onRevertAssistantMessage}
         timelineEntries={[userEntry, assistantEntry]}
         checkpointTurnCountByAssistantMessageId={new Map([[assistantEntry.message.id, 1]])}
       />,
@@ -1035,8 +1045,9 @@ describe("MessagesTimeline", () => {
     );
     expect(userMarkup).toContain('aria-label="Copy link"');
     expect(userMarkup).not.toContain('aria-label="More message actions"');
-    expect(markup.indexOf('aria-label="Copy link"')).toBeLessThan(
-      markup.indexOf('aria-label="More message actions"'),
+    const assistantMarkup = markup.slice(markup.indexOf('data-message-role="assistant"'));
+    expect(assistantMarkup.indexOf('aria-label="Copy link"')).toBeLessThan(
+      assistantMarkup.indexOf('aria-label="More message actions"'),
     );
     expect(markup).toContain("lucide-ellipsis");
     expect(markup).toContain("Fork from here");
@@ -1045,6 +1056,11 @@ describe("MessagesTimeline", () => {
     expect(markup).toContain("lucide-rotate-ccw");
     expect(markup).not.toContain("Fork here in place");
     expect(markup.match(/data-has-on-click="true"/g)).toHaveLength(2);
+    expect(menuItemHandlers).toHaveLength(2);
+    menuItemHandlers[0]?.();
+    expect(onForkFromAssistantMessage).toHaveBeenCalledWith(assistantEntry.message.id);
+    menuItemHandlers[1]?.();
+    expect(onRevertAssistantMessage).toHaveBeenCalledWith(assistantEntry.message.id);
   });
 
   it("renders context compaction entries in the normal work log", () => {

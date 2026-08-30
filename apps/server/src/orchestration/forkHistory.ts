@@ -1,3 +1,5 @@
+import type { ThreadForkMessageBoundary } from "@ras-code/contracts";
+
 export function resolveForkTurnCount<
   Message extends { readonly id: string; readonly role: string; readonly streaming: boolean },
   Checkpoint extends {
@@ -8,7 +10,7 @@ export function resolveForkTurnCount<
   messages: ReadonlyArray<Message>,
   checkpoints: ReadonlyArray<Checkpoint>,
   sourceMessageId: string,
-  sourceMessageBoundary: "before" | "after",
+  sourceMessageBoundary: ThreadForkMessageBoundary,
   requestedTurnCount: number,
 ): number | null {
   if (sourceMessageBoundary === "before") return requestedTurnCount;

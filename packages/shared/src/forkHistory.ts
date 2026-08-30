@@ -1,9 +1,11 @@
+import type { ThreadForkMessageBoundary } from "@ras-code/contracts";
+
 export function selectForkInheritedPrefix<
   Message extends { readonly id: string; readonly createdAt: string; readonly streaming: boolean },
 >(
   messages: ReadonlyArray<Message>,
   sourceMessageId: string,
-  sourceMessageBoundary: "before" | "after" = "before",
+  sourceMessageBoundary: ThreadForkMessageBoundary = "before",
 ): Message[] | null {
   const orderedMessages = messages.toSorted(
     (left, right) =>

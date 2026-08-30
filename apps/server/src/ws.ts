@@ -1173,7 +1173,12 @@ const makeWsRpcLayer = (
               // refs live in the shared git dir, so it restores from here.
               if (bootstrap.forkThread?.workspaceMode === "worktree") {
                 const forkPoint = bootstrap.forkThread;
-                const forkTurnCount = resolvedForkTurnCount ?? forkPoint.turnCount;
+                if (resolvedForkTurnCount === null) {
+                  return yield* new OrchestrationDispatchCommandError({
+                    message: "Fork checkpoint resolution did not complete.",
+                  });
+                }
+                const forkTurnCount = resolvedForkTurnCount;
                 const restored = yield* checkpointStore
                   .restoreCheckpoint({
                     cwd: targetWorktreePath,

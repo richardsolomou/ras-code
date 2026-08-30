@@ -1618,17 +1618,83 @@ function ChatViewContent(props: ChatViewProps) {
     [draftThread],
   );
   const draftForkParentMessages = useThreadMessages(draftForkParentRef);
-  const draftInheritedMessages = useMemo(
+  const draftForkParentState = useEnvironmentThread(
+    draftForkParentRef?.environmentId ?? null,
+    draftForkParentRef?.threadId ?? null,
+  );
+  const draftForkKey = draftThread?.forkedFrom
+    ? [
+        draftThread.environmentId,
+        draftThread.forkedFrom.threadId,
+        draftThread.forkedFrom.messageId,
+        draftThread.forkedFrom.sourceMessageBoundary ?? "before",
+      ].join("\0")
+    : null;
+  const draftForkSourceLoaded = useMemo(
     () =>
-      draftThread?.forkedFrom
-        ? deriveForkInheritedMessages(
-            draftForkParentMessages,
-            draftThread.forkedFrom.messageId,
-            draftThread.forkedFrom.sourceMessageBoundary,
-          )
-        : [],
+      draftThread?.forkedFrom !== undefined &&
+      draftThread.forkedFrom !== null &&
+      draftForkParentMessages.some((message) => message.id === draftThread.forkedFrom?.messageId),
     [draftForkParentMessages, draftThread?.forkedFrom],
   );
+  const draftForkHistoryRequestRef = useRef<{
+    parentKey: string;
+    attemptedCursors: Set<string>;
+  } | null>(null);
+  useEffect(() => {
+    if (draftForkParentRef === null || draftForkSourceLoaded) {
+      return;
+    }
+    const page = draftForkParentState.page._tag === "Some" ? draftForkParentState.page.value : null;
+    if (page === null || page.loadingOlder || !page.hasMore || page.beforeCursor === null) {
+      return;
+    }
+    const parentKey = `${draftForkKey ?? ""}\0${scopedThreadKey(draftForkParentRef)}`;
+    if (draftForkHistoryRequestRef.current?.parentKey !== parentKey) {
+      draftForkHistoryRequestRef.current = { parentKey, attemptedCursors: new Set() };
+    }
+    const attemptedCursors = draftForkHistoryRequestRef.current.attemptedCursors;
+    if (attemptedCursors.has(page.beforeCursor)) {
+      return;
+    }
+    if (requestOlderThreadTurns(draftForkParentRef.environmentId, draftForkParentRef.threadId)) {
+      attemptedCursors.add(page.beforeCursor);
+    }
+  }, [draftForkKey, draftForkParentRef, draftForkParentState, draftForkSourceLoaded]);
+  const [frozenDraftInheritedMessages, setFrozenDraftInheritedMessages] = useState<{
+    forkKey: string;
+    messages: ChatMessage[];
+  } | null>(null);
+  const draftInheritedMessages = useMemo(() => {
+    if (draftForkKey === null || !draftThread?.forkedFrom) {
+      return [];
+    }
+    if (frozenDraftInheritedMessages?.forkKey === draftForkKey) {
+      return frozenDraftInheritedMessages.messages;
+    }
+    return deriveForkInheritedMessages(
+      draftForkParentMessages,
+      draftThread.forkedFrom.messageId,
+      draftThread.forkedFrom.sourceMessageBoundary,
+    );
+  }, [
+    draftForkKey,
+    draftForkParentMessages,
+    draftThread?.forkedFrom,
+    frozenDraftInheritedMessages,
+  ]);
+  useEffect(() => {
+    if (draftForkKey === null) {
+      if (frozenDraftInheritedMessages !== null) setFrozenDraftInheritedMessages(null);
+      return;
+    }
+    if (draftForkSourceLoaded && frozenDraftInheritedMessages?.forkKey !== draftForkKey) {
+      setFrozenDraftInheritedMessages({
+        forkKey: draftForkKey,
+        messages: draftInheritedMessages,
+      });
+    }
+  }, [draftForkKey, draftForkSourceLoaded, draftInheritedMessages, frozenDraftInheritedMessages]);
   const localDraftThread = useMemo(
     () =>
       draftThread
