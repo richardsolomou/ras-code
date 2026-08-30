@@ -11,6 +11,7 @@ This is a living glossary for RAS Code. It explains what common terms mean in th
 - [Orchestration](#orchestration)
 - [Provider runtime](#provider-runtime)
 - [Checkpointing](#checkpointing)
+- [Chat panes](#chat-panes)
 - [Upstream sync](#upstream-sync)
 
 ## Concepts
@@ -167,6 +168,30 @@ The patch difference between two checkpoints. Query logic lives in [CheckpointDi
 
 The file patch and changed-file summary for one turn. It is usually computed in [CheckpointDiffQuery.ts][20], represented in [the contracts][1], and recorded into thread state by [projector.ts][4].
 
+### Chat panes
+
+Client-side vocabulary for the split chat inset. The model is a pure module, [chatPaneStore.ts][32]; [ChatPanes.tsx][33] renders it.
+
+#### Routed pane
+
+The pane holding the thread the URL names — the router's outlet. There is always exactly one, and it is the only pane a deep link can address.
+
+#### Companion pane
+
+The optional second pane beside the routed one. It holds a `ScopedThreadRef` to a server thread, never a draft, because a draft owns navigation when it is promoted. It is gated on the same render state as the routed thread route: ChatView returns an empty state before some of its hooks when it has no thread, so mounting it against a thread that has not loaded crashes on the render that fills in.
+
+#### Focused pane
+
+The pane the user is working in: it takes the window-level shortcuts and the sidebar's active row. Deliberately distinct from the routed pane, because making the URL follow focus would swap the two panes' DOM nodes out from under a click. Focus is client state; the URL only moves when the user chooses **Make primary**.
+
+#### Collapse on navigation
+
+The rule that any change of routed thread closes the split, so clicking a thread means "go there, on its own" rather than re-targeting one of two panes. Promoting the companion is the exception, and [chatPaneStore.ts][32] recognises it without a flag: it is the navigation whose previous routed thread is the companion.
+
+#### Suspended split
+
+What a window too narrow for two readable panes shows. The companion is kept in the store and hidden rather than dropped, so widening restores it.
+
 ### Upstream sync
 
 RAS Code is a diverging fork of `pingdotgg/t3code`. Upstream changes come across one at a time, never by merge. The workflow is described in [upstream-sync.md][26].
@@ -238,3 +263,5 @@ The single source of truth for this fork's vocabulary and its do-not-rename list
 [29]: ../../apps/server/src/ws.ts
 [30]: ../user/forking-threads.md
 [31]: ../../apps/server/src/orchestration/forkTranscript.ts
+[32]: ../../apps/web/src/chatPaneStore.ts
+[33]: ../../apps/web/src/components/chat/ChatPanes.tsx

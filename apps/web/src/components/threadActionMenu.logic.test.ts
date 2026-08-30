@@ -4,6 +4,7 @@ import { buildThreadActionMenuItems, type ThreadActionMenuState } from "./thread
 
 const baseState: ThreadActionMenuState = {
   branch: null,
+  canOpenInSplit: false,
   isPinned: false,
   isSettled: false,
   isSnoozed: false,
@@ -27,6 +28,14 @@ function allIds(state: ThreadActionMenuState): string[] {
 }
 
 describe("buildThreadActionMenuItems", () => {
+  it("offers a split when the thread can open beside the current one", () => {
+    expect(ids({ ...baseState, canOpenInSplit: true })).toContain("open-in-split");
+  });
+
+  it("omits the split for a thread that is already on screen", () => {
+    expect(ids(baseState)).not.toContain("open-in-split");
+  });
+
   it("hides lifecycle items when the environment lacks the capabilities", () => {
     expect(
       ids({

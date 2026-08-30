@@ -1,22 +1,22 @@
 import { autoAnimate } from "@formkit/auto-animate";
 import { useAtomValue } from "@effect/atom-react";
 import * as Schema from "effect/Schema";
-import {
-  DndContext,
-  PointerSensor,
-  closestCenter,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from "@dnd-kit/core";
+import { useDraggable, type DragEndEvent } from "@dnd-kit/core";
 import {
   SortableContext,
   arrayMove,
   useSortable,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { restrictToFirstScrollableAncestor, restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { CSS } from "@dnd-kit/utilities";
+import {
+  canSplitPaneRow,
+  isSameThreadRef,
+  selectFocusedThread,
+  useChatPaneStore,
+} from "../chatPaneStore";
+import { useRoutedThreadRef } from "../hooks/useRoutedThreadRef";
+import { setPinnedReorderHandler, type ThreadDragData } from "../threadDrag";
 import {
   canSnooze,
   changeRequestAutoSettles,
@@ -112,11 +112,7 @@ import { vcsEnvironment } from "../state/vcs";
 import { threadEnvironment } from "../state/threads";
 import { useEnvironmentQuery } from "../state/query";
 import { useAtomCommand } from "../state/use-atom-command";
-import {
-  buildThreadRouteParams,
-  resolveActiveThreadRouteRef,
-  resolveThreadRouteTarget,
-} from "../threadRoutes";
+import { buildThreadRouteParams, resolveThreadRouteTarget } from "../threadRoutes";
 import { formatRelativeTimeLabel, parseTimestampDate } from "../timestampFormat";
 import type { SidebarThreadSummary } from "../types";
 import { cn } from "~/lib/utils";
@@ -457,20 +453,37 @@ function SnoozePopoverButton(props: {
 // constraint keeps plain clicks working, and we skip dnd-kit's aria
 // attributes since there is no keyboard sensor and the card body already
 // carries its own button semantics.
-type SortablePinnedRowBag = Pick<
+type ThreadRowDragBag = Pick<
   ReturnType<typeof useSortable>,
-  "listeners" | "setNodeRef" | "transform" | "transition" | "isDragging"
->;
+  "listeners" | "setNodeRef" | "transform" | "isDragging"
+> &
+  Partial<Pick<ReturnType<typeof useSortable>, "transition">>;
 
 function SortablePinnedThreadRow(props: {
   id: string;
-  children: (bag: SortablePinnedRowBag) => ReactNode;
+  data: ThreadDragData;
+  children: (bag: ThreadRowDragBag) => ReactNode;
 }) {
   const { listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: props.id,
+    data: props.data,
     animateLayoutChanges: animatePinnedLayoutChanges,
   });
   return props.children({ listeners, setNodeRef, transform, transition, isDragging });
+}
+
+/**
+ * A row that can only be thrown into a chat pane, not reordered. The drag
+ * preview follows the pointer (see ThreadDragProvider), so the row itself stays
+ * put and only fades while it is in flight.
+ */
+function DraggableThreadRow(props: {
+  id: string;
+  data: ThreadDragData;
+  children: (bag: ThreadRowDragBag) => ReactNode;
+}) {
+  const { listeners, setNodeRef, isDragging } = useDraggable({ id: props.id, data: props.data });
+  return props.children({ listeners, setNodeRef, transform: null, isDragging });
 }
 
 // One unsent draft session the user has invested content in. Two lines,
@@ -728,10 +741,12 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: {
   // rows. The marker can unpin the thread when the server supports pinning.
   pinningSupported: boolean;
   isPinned: boolean;
-  // Present only on pinned cards whose server supports reordering: dnd-kit
-  // sortable bag applied to the card root so the whole card drags (the
-  // pointer sensor's distance constraint keeps plain clicks working).
-  sortable?: SortablePinnedRowBag | undefined;
+  // dnd-kit bag applied to the card root so the whole card drags (the pointer
+  // sensor's distance constraint keeps plain clicks working). Pinned cards on a
+  // server that supports reordering carry a sortable bag and move themselves;
+  // every other card carries a plain draggable bag and stays put behind the
+  // drag preview.
+  drag?: ThreadRowDragBag | undefined;
   // Compact wake countdown ("2h") for rows in the snoozed shelf.
   snoozeWakeLabelText: string | null;
   // When a snooze ended (timer or early wake); drives the Woke pill until
@@ -1267,9 +1282,12 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: {
     return (
       <li
         data-thread-item
+        ref={props.drag?.setNodeRef}
+        {...(props.drag?.listeners ?? {})}
         className={cn(
           "list-none [content-visibility:auto] [contain-intrinsic-size:auto_34px]",
           variantAction === "unsettle" && "-mt-1.5",
+          props.drag?.isDragging && "opacity-50",
         )}
       >
         <Tooltip>
@@ -1416,23 +1434,23 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: {
 
   const diff = latestTurnDiff(thread);
 
-  const sortable = props.sortable;
+  const drag = props.drag;
   return (
     <li
       data-thread-item
-      ref={sortable?.setNodeRef}
+      ref={drag?.setNodeRef}
       style={
-        sortable
+        drag?.transform
           ? {
-              transform: CSS.Translate.toString(sortable.transform),
-              transition: sortable.transition,
+              transform: CSS.Translate.toString(drag.transform),
+              transition: drag.transition,
             }
           : undefined
       }
-      {...(sortable?.listeners ?? {})}
+      {...(drag?.listeners ?? {})}
       className={cn(
         "list-none py-0.5 [content-visibility:auto] [contain-intrinsic-size:auto_96px]",
-        sortable?.isDragging && "z-20 opacity-80",
+        drag?.isDragging && "z-20 opacity-80",
       )}
     >
       <Tooltip>
@@ -1860,21 +1878,20 @@ export default function Sidebar() {
     strict: false,
     select: (params) => resolveThreadRouteTarget(params),
   });
-  const routeDraftThread = useComposerDraftStore((store) =>
-    routeTarget?.kind === "draft" ? store.getDraftSession(routeTarget.draftId) : null,
-  );
-  const routeThreadRef = useMemo(
-    () => resolveActiveThreadRouteRef(routeTarget, routeDraftThread),
-    [routeDraftThread, routeTarget],
-  );
-  const routeThreadKey = routeThreadRef ? scopedThreadKey(routeThreadRef) : null;
+  const routeThreadRef = useRoutedThreadRef();
+  // The active row marks the pane the user is working in, which is the routed
+  // thread until they click into a split pane beside it.
+  const focusedThreadRef = useChatPaneStore((state) => selectFocusedThread(state, routeThreadRef));
+  const focusedThreadKey = focusedThreadRef ? scopedThreadKey(focusedThreadRef) : null;
   const routeTargetRef = useRef(routeTarget);
   routeTargetRef.current = routeTarget;
+  const routedThreadRefRef = useRef(routeThreadRef);
+  routedThreadRefRef.current = routeThreadRef;
   // Post-settle navigation validates against the CURRENT route, not the one
   // captured when the settle started: if the user navigated elsewhere while
   // the command was in flight, completing it must not yank them away.
-  const routeThreadKeyRef = useRef(routeThreadKey);
-  routeThreadKeyRef.current = routeThreadKey;
+  const routeThreadKeyRef = useRef(focusedThreadKey);
+  routeThreadKeyRef.current = focusedThreadKey;
 
   const environmentLabelById = useMemo(
     () =>
@@ -2264,17 +2281,17 @@ export default function Sidebar() {
     // The open thread must never hide under "Show more": navigating into a
     // deep settled thread (search, deep link) pulls its row into the visible
     // tail so the highlight and the un-settle affordance stay reachable.
-    if (routeThreadKey !== null) {
+    if (focusedThreadKey !== null) {
       const routeThread = settledThreads
         .slice(settledVisibleCount)
         .find(
           (thread) =>
-            scopedThreadKey(scopeThreadRef(thread.environmentId, thread.id)) === routeThreadKey,
+            scopedThreadKey(scopeThreadRef(thread.environmentId, thread.id)) === focusedThreadKey,
         );
       if (routeThread !== undefined) visible.push(routeThread);
     }
     return visible;
-  }, [routeThreadKey, settledThreads, settledVisibleCount]);
+  }, [focusedThreadKey, settledThreads, settledVisibleCount]);
   const hiddenSettledCount = settledThreads.length - visibleSettledThreads.length;
   const showMoreSettled = useCallback(
     () => setSettledVisibleCount((count) => count + SETTLED_TAIL_PAGE_COUNT),
@@ -2291,13 +2308,13 @@ export default function Sidebar() {
   );
   const renderedSettledThreads = useMemo(() => {
     if (settledShelfExpanded) return visibleSettledThreads;
-    if (routeThreadKey === null) return [];
-    const routeThread = visibleSettledThreads.find(
+    if (focusedThreadKey === null) return [];
+    const focusedThread = visibleSettledThreads.find(
       (thread) =>
-        scopedThreadKey(scopeThreadRef(thread.environmentId, thread.id)) === routeThreadKey,
+        scopedThreadKey(scopeThreadRef(thread.environmentId, thread.id)) === focusedThreadKey,
     );
-    return routeThread === undefined ? [] : [routeThread];
-  }, [routeThreadKey, settledShelfExpanded, visibleSettledThreads]);
+    return focusedThread === undefined ? [] : [focusedThread];
+  }, [focusedThreadKey, settledShelfExpanded, visibleSettledThreads]);
 
   // The snoozed shelf is collapsed by default: out of the way, never gone.
   // Collapsed threads don't render (and so don't participate in jump
@@ -2313,17 +2330,17 @@ export default function Sidebar() {
   );
   const visibleSnoozedThreads = useMemo(() => {
     if (snoozedShelfExpanded) return snoozedThreads;
-    // The open thread must never vanish behind the collapsed shelf: a
-    // snoozed thread reached by route (deep link, open before snoozing
-    // elsewhere) keeps its row — with highlight and wake affordance — same
-    // exception the settled tail's "Show more" makes.
-    if (routeThreadKey === null) return [];
-    const routeThread = snoozedThreads.find(
+    // The open thread must never vanish behind the collapsed shelf: a snoozed
+    // thread on screen (deep link, split pane, open before snoozing elsewhere)
+    // keeps its row — with highlight and wake affordance — same exception the
+    // settled tail's "Show more" makes.
+    if (focusedThreadKey === null) return [];
+    const focusedThread = snoozedThreads.find(
       (thread) =>
-        scopedThreadKey(scopeThreadRef(thread.environmentId, thread.id)) === routeThreadKey,
+        scopedThreadKey(scopeThreadRef(thread.environmentId, thread.id)) === focusedThreadKey,
     );
-    return routeThread === undefined ? [] : [routeThread];
-  }, [routeThreadKey, snoozedShelfExpanded, snoozedThreads]);
+    return focusedThread === undefined ? [] : [focusedThread];
+  }, [focusedThreadKey, snoozedShelfExpanded, snoozedThreads]);
 
   const orderedThreads = useMemo(
     () => [...pinnedThreads, ...activeThreads, ...visibleSnoozedThreads, ...renderedSettledThreads],
@@ -2658,9 +2675,6 @@ export default function Sidebar() {
   // win) and ANY membership change (new pin, unpin, snooze/wake) also
   // release it: the override can't say where members it never saw belong,
   // and holding it would launder a stale order into later drags.
-  const pinnedDndSensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-  );
   const [optimisticPinnedOrder, setOptimisticPinnedOrder] = useState<{
     readonly order: readonly string[];
     /** pinOrderKey per thread as of the drop — the baseline that tells a
@@ -2823,6 +2837,7 @@ export default function Sidebar() {
     },
     [orderedPinnedThreads, reorderPinnedThread, reorderablePinnedKeys],
   );
+  useEffect(() => setPinnedReorderHandler(handlePinnedDragEnd), [handlePinnedDragEnd]);
   // One snooze per thread at a time — same double-dispatch guard as settle.
   const snoozingThreadKeysRef = useRef(new Set<string>());
   const performSnooze = useCallback(
@@ -3160,6 +3175,9 @@ export default function Sidebar() {
           api.contextMenu.show(
             buildThreadActionMenuItems({
               branch: thread.branch ?? null,
+              canOpenInSplit:
+                canSplitPaneRow(useChatPaneStore.getState().rowWidth) &&
+                !isSameThreadRef(routedThreadRefRef.current, threadRef),
               isPinned,
               isSettled,
               isSnoozed,
@@ -3187,6 +3205,13 @@ export default function Sidebar() {
           return;
         }
         switch (clicked.value) {
+          case "open-in-split":
+            useChatPaneStore.getState().splitWithThread({
+              routed: routedThreadRefRef.current,
+              dropped: threadRef,
+              side: "right",
+            });
+            return;
           case "new-thread-on-branch": {
             // Explicit branch carry-over: reuse the thread's worktree when it
             // has one, otherwise its branch on the local checkout.
@@ -3347,8 +3372,8 @@ export default function Sidebar() {
   // Thread jump (cmd+1..9) and prev/next traversal reuse the same commands as
   // v1 — the keybinding layer is shared, only the ordered list differs.
   const routeTerminalOpen = useTerminalUiStateStore((state) =>
-    routeThreadRef
-      ? selectThreadTerminalUiState(state.terminalUiStateByThreadKey, routeThreadRef).terminalOpen
+    focusedThreadRef
+      ? selectThreadTerminalUiState(state.terminalUiStateByThreadKey, focusedThreadRef).terminalOpen
       : false,
   );
   useEffect(() => {
@@ -3376,7 +3401,7 @@ export default function Sidebar() {
         navigateToThreadKey(
           resolveAdjacentThreadId({
             threadIds: orderedThreadKeys,
-            currentThreadId: routeThreadKey,
+            currentThreadId: focusedThreadKey,
             direction: traversalDirection,
           }),
         );
@@ -3393,7 +3418,7 @@ export default function Sidebar() {
     navigateToThread,
     orderedThreadKeys,
     routeTerminalOpen,
-    routeThreadKey,
+    focusedThreadKey,
     threadByKey,
   ]);
 
@@ -3747,7 +3772,7 @@ export default function Sidebar() {
                           EMPTY_PROVIDER_ENTRIES
                         }
                         isHighlighted={activeSearchResultIndex === index}
-                        isRouteActive={routeThreadKey === threadKey}
+                        isRouteActive={focusedThreadKey === threadKey}
                         resultId={`sidebar-thread-search-result-${index}`}
                         onHighlight={() => setActiveSearchResultIndex(index)}
                         onSelect={() => selectThreadSearchResult(thread)}
@@ -3777,18 +3802,23 @@ export default function Sidebar() {
                   const renderThreadRow = (
                     thread: EnvironmentThreadShell,
                     section: "pinned" | "active" | "snoozed" | "settled",
-                    sortable?: SortablePinnedRowBag,
+                    sortableBag?: ThreadRowDragBag,
                   ) => {
-                    const threadKey = scopedThreadKey(
-                      scopeThreadRef(thread.environmentId, thread.id),
-                    );
+                    const threadRef = scopeThreadRef(thread.environmentId, thread.id);
+                    const threadKey = scopedThreadKey(threadRef);
+                    const dragData: ThreadDragData = {
+                      kind: "thread",
+                      ref: threadRef,
+                      title: thread.title ?? "Untitled thread",
+                      reorderable: sortableBag !== undefined,
+                    };
                     // Settled and snoozed are the ONLY things that collapse a
                     // row: every other thread is a full card. Density comes
                     // from users (or the auto rules) actually parking work,
                     // not from the sidebar second-guessing what still matters.
                     const isCard = section === "active" || section === "pinned";
                     const rowVariant = isCard ? "card" : "slim";
-                    return (
+                    const renderRow = (drag: ThreadRowDragBag | undefined) => (
                       <SidebarThreadRow
                         // Keyed per variant on purpose: when a thread settles,
                         // the card fades out in place and the slim row fades
@@ -3823,7 +3853,7 @@ export default function Sidebar() {
                             .threadPinning === true
                         }
                         isPinned={thread.pinnedAt != null}
-                        sortable={sortable}
+                        drag={drag}
                         snoozeWakeLabelText={
                           section === "snoozed" && thread.snoozedUntil != null
                             ? snoozeWakeLabel(thread.snoozedUntil, {
@@ -3836,7 +3866,7 @@ export default function Sidebar() {
                         // the wake signal must survive the trip. Still-snoozed
                         // rows resolve to null on their own.
                         wokeAt={threadWokeAt(thread, { now: snoozeNow })}
-                        isActive={routeThreadKey === threadKey}
+                        isActive={focusedThreadKey === threadKey}
                         openPullRequestsInRightPanel={routeThreadRef !== null}
                         jumpLabel={
                           showThreadJumpHints ? (jumpLabelByKey.get(threadKey) ?? null) : null
@@ -3885,6 +3915,19 @@ export default function Sidebar() {
                         onChangeRequestSnapshot={setThreadChangeRequestSnapshot}
                       />
                     );
+                    if (sortableBag) return renderRow(sortableBag);
+                    // Rows outside the pinned sortable list still drag, into a
+                    // chat pane. Their id carries the section so a thread that
+                    // renders in two of them registers two distinct draggables.
+                    return (
+                      <DraggableThreadRow
+                        key={`${threadKey}:${rowVariant}`}
+                        id={`${threadKey}:${section}`}
+                        data={dragData}
+                      >
+                        {renderRow}
+                      </DraggableThreadRow>
+                    );
                   };
                   // Draft block above everything, then the pinned block:
                   // full cards above the inbox, closed by a thin divider (the
@@ -3906,41 +3949,46 @@ export default function Sidebar() {
                     />,
                     pinnedThreads.length > 0 ? (
                       <li key="pinned-dnd" className="list-none">
-                        <DndContext
-                          sensors={pinnedDndSensors}
-                          collisionDetection={closestCenter}
-                          modifiers={[restrictToVerticalAxis, restrictToFirstScrollableAncestor]}
-                          onDragEnd={handlePinnedDragEnd}
+                        {/* The DndContext lives in AppSidebarLayout so a drag
+                            can reach the chat panes; this list only declares
+                            its sortable membership. */}
+                        <SortableContext
+                          items={orderedPinnedThreads
+                            .map((thread) =>
+                              scopedThreadKey(scopeThreadRef(thread.environmentId, thread.id)),
+                            )
+                            .filter((threadKey) => reorderablePinnedKeys.has(threadKey))}
+                          strategy={verticalListSortingStrategy}
                         >
-                          <SortableContext
-                            items={orderedPinnedThreads
-                              .map((thread) =>
-                                scopedThreadKey(scopeThreadRef(thread.environmentId, thread.id)),
-                              )
-                              .filter((threadKey) => reorderablePinnedKeys.has(threadKey))}
-                            strategy={verticalListSortingStrategy}
+                          <ul
+                            role="list"
+                            aria-label="Pinned threads"
+                            className="flex flex-col gap-1.5"
                           >
-                            <ul
-                              role="list"
-                              aria-label="Pinned threads"
-                              className="flex flex-col gap-1.5"
-                            >
-                              {orderedPinnedThreads.map((thread) => {
-                                const threadKey = scopedThreadKey(
-                                  scopeThreadRef(thread.environmentId, thread.id),
-                                );
-                                if (!reorderablePinnedKeys.has(threadKey)) {
-                                  return renderThreadRow(thread, "pinned");
-                                }
-                                return (
-                                  <SortablePinnedThreadRow key={threadKey} id={threadKey}>
-                                    {(bag) => renderThreadRow(thread, "pinned", bag)}
-                                  </SortablePinnedThreadRow>
-                                );
-                              })}
-                            </ul>
-                          </SortableContext>
-                        </DndContext>
+                            {orderedPinnedThreads.map((thread) => {
+                              const threadKey = scopedThreadKey(
+                                scopeThreadRef(thread.environmentId, thread.id),
+                              );
+                              if (!reorderablePinnedKeys.has(threadKey)) {
+                                return renderThreadRow(thread, "pinned");
+                              }
+                              return (
+                                <SortablePinnedThreadRow
+                                  key={threadKey}
+                                  id={threadKey}
+                                  data={{
+                                    kind: "thread",
+                                    ref: scopeThreadRef(thread.environmentId, thread.id),
+                                    title: thread.title ?? "Untitled thread",
+                                    reorderable: true,
+                                  }}
+                                >
+                                  {(bag) => renderThreadRow(thread, "pinned", bag)}
+                                </SortablePinnedThreadRow>
+                              );
+                            })}
+                          </ul>
+                        </SortableContext>
                       </li>
                     ) : null,
                   ];
