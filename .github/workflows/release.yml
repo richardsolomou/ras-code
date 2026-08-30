@@ -31,13 +31,17 @@ on:
 
 # Canary collapses to the newest commit: a merge landing mid-release supersedes
 # the run in flight, so main ships once rather than once per commit in a burst.
-# Stable is never canceled, and queue: max keeps every pending stable run
-# instead of the default newest-wins single slot, so a queued stable release can
-# never be silently dropped.
+# Stable is never canceled.
+#
+# No `queue: max` here: GitHub rejects that combined with cancel-in-progress,
+# and the whole file fails validation rather than the one channel. Stable
+# therefore keeps the default single pending slot, so a stable run queued while
+# another is in flight replaces the one already waiting instead of stacking
+# behind it. Stable only fires once a day or on a deliberate tag, so two runs
+# have to queue within one release for that to lose anything.
 concurrency:
   group: release-${{ ((github.event_name == 'push' && github.ref_type == 'branch') || inputs.channel == 'canary') && 'canary' || 'stable' }}
   cancel-in-progress: ${{ (github.event_name == 'push' && github.ref_type == 'branch') || inputs.channel == 'canary' }}
-  queue: max
 
 permissions:
   contents: read
