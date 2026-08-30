@@ -30,9 +30,9 @@ jobs:
       POSTHOG_OTLP_TRACES_URL: ${{ vars.POSTHOG_OTLP_TRACES_URL }}
       RELAY_DOMAIN: ${{ vars.RELAY_DOMAIN }}
       RELAY_API_ZONE_NAME: ${{ vars.RELAY_API_ZONE_NAME }}
-      RELAY_TUNNEL_ZONE_NAME: ${{ vars.RELAY_TUNNEL_ZONE_NAME }}
-      RELAY_TUNNEL_GATEWAY_DOMAIN: ${{ vars.RELAY_TUNNEL_GATEWAY_DOMAIN }}
-      RELAY_TUNNEL_NAMESPACE: ${{ vars.RELAY_TUNNEL_NAMESPACE }}
+      RELAY_GATEWAY_ZONE_NAME: ${{ vars.RELAY_GATEWAY_ZONE_NAME }}
+      RELAY_GATEWAY_DOMAIN: ${{ vars.RELAY_GATEWAY_DOMAIN }}
+      RELAY_ENDPOINT_NAMESPACE: ${{ vars.RELAY_ENDPOINT_NAMESPACE }}
       CLERK_PUBLISHABLE_KEY: ${{ vars.CLERK_PUBLISHABLE_KEY }}
       CLERK_JWT_AUDIENCE: ${{ vars.CLERK_JWT_AUDIENCE }}
       APNS_ENVIRONMENT: ${{ vars.APNS_ENVIRONMENT }}
@@ -120,22 +120,26 @@ jobs:
           fi
 
       - name: Publish relay deploy commit status
+        if: always()
         uses: actions/github-script@v8
         with:
           script: |
+            const succeeded = "${{ steps.deploy.outcome }}" === "success";
             const result = "${{ steps.deploy.outputs.result }}";
             const changed = "${{ steps.deploy.outputs.changed }}" === "true";
-            const description = changed
-              ? "Relay production deploy applied infrastructure changes."
-              : result === "noop"
-                ? "Relay production deploy was a no-op."
-                : `Relay production deploy completed with result: ${result}.`;
+            const description = succeeded
+              ? changed
+                ? "Relay production deploy applied infrastructure changes."
+                : result === "noop"
+                  ? "Relay production deploy was a no-op."
+                  : `Relay production deploy completed with result: ${result}.`
+              : "Relay production deployment failed.";
 
             await github.rest.repos.createCommitStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,
               sha: context.sha,
-              state: "success",
+              state: succeeded ? "success" : "error",
               context: "Relay deploy / production",
               description,
               target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,

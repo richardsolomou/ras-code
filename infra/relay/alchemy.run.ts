@@ -8,7 +8,7 @@ import * as Redacted from "effect/Redacted";
 
 import * as RelayDb from "./src/db.ts";
 import { RelayTracingConfig } from "./src/observability.ts";
-import { ManagedEndpointZone, RelayApiZone } from "./src/zone.ts";
+import { RelayApiZone, RelayGatewayZone } from "./src/zone.ts";
 import ApiLive, { Api } from "./src/worker.ts";
 
 export default Alchemy.Stack(
@@ -20,7 +20,7 @@ export default Alchemy.Stack(
   Effect.gen(function* () {
     const db = yield* RelayDb.RelayDatabase;
     const hyperdrive = yield* RelayDb.RelayHyperdrive;
-    const managedEndpointZone = yield* ManagedEndpointZone.pipe(Effect.orDie);
+    const relayGatewayZone = yield* RelayGatewayZone.pipe(Effect.orDie);
     const relayApiZone = yield* RelayApiZone.pipe(Effect.orDie);
     const tracing = yield* RelayTracingConfig;
     const api = yield* Api;
@@ -31,7 +31,7 @@ export default Alchemy.Stack(
       workerName: api.workerName,
       url: api.url,
       relayApiZoneId: relayApiZone.zoneId,
-      managedEndpointZoneId: managedEndpointZone.zoneId,
+      relayGatewayZoneId: relayGatewayZone.zoneId,
       mobileTracingUrl: tracing.tracesEndpoint,
       mobileTracingToken: Redacted.value(tracing.ingestToken),
       clientTracingUrl: tracing.tracesEndpoint,

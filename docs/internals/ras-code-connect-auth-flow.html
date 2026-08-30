@@ -293,8 +293,8 @@
           <ul>
             <li>
               Normal environment API traffic passes through the relay Worker's shared path gateway
-              and then the selected managed tunnel. The gateway can observe the DPoP-bound access
-              token but cannot use it without the client's private proof key.
+              and the endpoint's Durable Object. The relay can observe the DPoP-bound access token
+              but cannot use it without the client's private proof key.
             </li>
             <li>
               The one-time bootstrap credential and resulting environment access token are bound to
@@ -308,32 +308,31 @@
             </li>
             <li>
               Environment health and mint responses are signed by the linked environment and bound
-              to the request nonce, so a different process behind the tunnel cannot impersonate the
-              linked environment.
+              to the request nonce, so a different process behind the connector cannot impersonate
+              the linked environment.
             </li>
           </ul>
           <div class="callout warning">
             The hosted relay remains a trusted mint broker: it holds the cloud-mint signing key.
-            DPoP prevents credential reuse by the relay or tunnel transport during an honest flow,
-            but it does not make compromise of the relay signing authority harmless.
+            DPoP prevents credential reuse by the relay transport during an honest flow, but it does
+            not make compromise of the relay signing authority harmless.
           </div>
         </article>
 
         <article class="panel half">
           <h2>Product Boundaries</h2>
           <p>
-            The generic local connector is called the <strong>relay client</strong>. The current
-            implementation layer uses <code>cloudflared</code>, but that is an internal transport
-            detail rather than the product contract.
+            The local connector is built into the RAS Code server. It opens one authenticated
+            outbound WebSocket and multiplexes relay HTTP and WebSocket traffic to loopback.
           </p>
           <ul>
             <li>
-              The relay Worker owns cloud links, managed endpoint allocations, and notifications.
+              The relay Worker owns cloud links, Durable Object relay sessions, and notifications.
             </li>
             <li>
               The environment server owns local sessions, environment keys, and access tokens.
             </li>
-            <li>The relay client exposes only the environment's loopback HTTP server.</li>
+            <li>The built-in connector exposes only the environment's loopback HTTP server.</li>
             <li>
               Web and mobile clients connect through the shared managed-endpoint gateway after
               bootstrap.
@@ -358,7 +357,7 @@ flowchart LR
     Worker["Relay Worker<br/>HTTP API"]
     Queue["APNs delivery queue<br/>with dead-letter queue"]
     Hyperdrive["Hyperdrive"]
-    CF["Cloudflare tunnel + DNS APIs"]
+    Sessions["Durable Object relay sessions"]
   end
 
   DB["Self-hosted Postgres<br/>one database per stage"]
@@ -367,11 +366,11 @@ flowchart LR
 
   subgraph Local["Linked RAS Code environment"]
     Env["Environment server<br/>local auth authority"]
-    RelayClient["Relay client<br/>cloudflared implementation"]
+    Connector["Built-in relay connector<br/>outbound WebSocket"]
     Secrets["Server secret store<br/>keys + relay config"]
   end
 
-  Endpoint["Shared HTTPS/WSS gateway<br/>plus selected managed tunnel"]
+  Endpoint["Shared HTTPS/WSS gateway"]
 
   Web -->|"Clerk bearer / relay DPoP"| Worker
   Mobile -->|"Clerk bearer / relay DPoP"| Worker
@@ -381,10 +380,10 @@ flowchart LR
   CLI -->|"PKCE authorization code flow"| Clerk
   Worker --> Hyperdrive --> DB
   Worker --> Traces
-  Worker --> CF
+  Worker --> Sessions
   Worker --> Queue --> APNs
-  Worker --> Endpoint
-  Endpoint --> RelayClient -->|"http://127.0.0.1:port"| Env
+  Worker --> Endpoint --> Sessions
+  Sessions <-->|"multiplexed relay protocol"| Connector -->|"http://127.0.0.1:port"| Env
   Env --> Secrets
   Web -->|"environment token + DPoP<br/>HTTPS / WSS"| Endpoint
   Mobile -->|"environment token + DPoP<br/>HTTPS / WSS"| Endpoint
@@ -426,7 +425,7 @@ flowchart LR
             </tr>
             <tr>
               <td>Relay -> managed environment endpoint</td>
-              <td>HTTPS over the managed tunnel</td>
+              <td>HTTPS over the built-in relay</td>
               <td>Short-lived relay-signed JWT request proof</td>
               <td>
                 Request a signed health response or ask the local environment to mint a credential.
@@ -442,7 +441,7 @@ flowchart LR
             </tr>
             <tr>
               <td>Remote client -> environment</td>
-              <td>HTTPS and WSS over the managed tunnel</td>
+              <td>HTTPS and WSS over the built-in relay</td>
               <td>Environment-issued access token bound to the client DPoP key</td>
               <td>Use the normal environment HTTP APIs and request a one-time WebSocket ticket.</td>
             </tr>
@@ -524,13 +523,10 @@ flowchart LR
               <td>Short-lived one-time credential for the WSS upgrade.</td>
             </tr>
             <tr>
-              <td>Relay client connector token</td>
-              <td>Cloudflare tunnel API</td>
+              <td>Relay connector credential</td>
+              <td>Relay</td>
               <td>Local server secret store</td>
-              <td>
-                Start the local relay client. It is passed through <code>TUNNEL_TOKEN</code>, not a
-                shell argument.
-              </td>
+              <td>Authenticate the built-in connector's outbound WebSocket.</td>
             </tr>
           </tbody>
         </table>
@@ -545,17 +541,9 @@ sequenceDiagram
   participant C as Desktop web UI
   participant E as Local environment
   participant R as Relay Worker
-  participant CF as Cloudflare APIs
-  participant RC as Local relay client
+  participant RC as Built-in relay connector
 
   U->>C: Enable RAS Connect for a locally paired environment
-  C->>E: Check relay client availability
-  alt relay client is missing
-    C->>U: Prompt before download and install
-    U->>C: Confirm
-    C->>E: Stream relay-client install RPC
-    E-->>C: Progress stages
-  end
   C->>R: POST /v1/client/environment-link-challenges (Clerk bearer)
   R-->>C: Short-lived challenge
   C->>E: POST /api/connect/link-proof (local relay:write bearer)
@@ -563,11 +551,11 @@ sequenceDiagram
   E-->>C: Environment-signed link proof
   C->>R: POST /v1/client/environment-links (Clerk bearer + proof)
   R->>R: Verify challenge, proof, capabilities, nonce, and loopback origin
-  R->>CF: Reconcile tunnel, ingress, and CNAME
-  R->>R: Upsert user/environment link and issue environment bearer
+  R->>R: Derive the endpoint ID and upsert the user/environment link
+  R->>R: Issue environment and connector credentials
   R-->>C: Managed endpoint, relay config, and connector token
   C->>E: POST /api/connect/relay-config (local relay:write bearer)
-  E->>RC: Start relay client with TUNNEL_TOKEN
+  E->>RC: Open authenticated outbound WebSocket
           </pre>
           <div class="callout">
             The local link-proof endpoint requires <code>relay:write</code>, rejects forwarded
@@ -576,8 +564,7 @@ sequenceDiagram
           </div>
           <p>
             A locally paired mobile client uses the same relay challenge, local proof, relay link,
-            and local relay-config endpoints. The desktop web UI is the surface that checks relay
-            client availability and offers the managed install dialog.
+            and local relay-config endpoints.
           </p>
         </article>
 
@@ -590,22 +577,16 @@ sequenceDiagram
   participant Clerk as Clerk OAuth
   participant S as Environment server on next start
   participant R as Relay Worker
-  participant RC as Local relay client
+  participant RC as Built-in relay connector
 
   U->>CLI: ras connect link
-  CLI->>CLI: Resolve relay client
-  alt relay client is missing
-    CLI->>U: Confirm managed relay-client install
-    U->>CLI: Confirm
-    CLI->>CLI: Install with terminal progress updates
-  end
   CLI->>Clerk: Browser PKCE authorization-code flow
   Clerk-->>CLI: OAuth access and refresh tokens
   CLI->>CLI: Persist desired cloud-link state
   U->>S: Start RAS Code environment server
   S->>R: Create challenge and submit local signed proof
   R-->>S: Managed endpoint config and connector token
-  S->>RC: Start relay client
+  S->>RC: Open authenticated outbound WebSocket
           </pre>
           <p>
             <code>ras connect login</code> stores authorization without enabling exposure.
@@ -639,9 +620,9 @@ sequenceDiagram
   C->>E: WSS /ws with ticket
           </pre>
           <div class="callout">
-            Relay-to-environment control requests disable redirects, use only a reconciled managed
-            endpoint allocation, and require a signed environment response before the relay returns
-            data to the client.
+            Relay-to-environment control requests disable redirects, use only the linked managed
+            endpoint, and require a signed environment response before the relay returns data to the
+            client.
           </div>
         </article>
 
@@ -674,102 +655,92 @@ sequenceDiagram
 
       <section class="grid" aria-label="Managed endpoint lifecycle">
         <article class="panel half">
-          <h2>Managed Endpoint Reconciliation</h2>
+          <h2>Managed Endpoint Sessions</h2>
           <p>
-            Managed endpoint resources are keyed by <code>(userId, environmentId)</code>. The relay
-            reserves a stable hostname and tunnel name before provisioning, then checkpoints the
-            tunnel ID, DNS record ID, and ready state in Postgres.
+            Each environment gets a deterministic endpoint ID. The shared gateway maps
+            <code>/e/:endpointId/*</code> to one Durable Object session, while Postgres stores only
+            the user/environment link and advertised endpoint.
           </p>
           <div class="flow">
             <div class="step">
-              <strong>1. Reserve deterministic allocation</strong>
-              Hostname and tunnel name derive from relay stage, cloud user, and environment ID.
+              <strong>1. Derive the endpoint</strong>
+              The endpoint ID derives from the relay namespace and environment ID.
             </div>
             <div class="step">
-              <strong>2. Reuse or create tunnel</strong>
-              Existing named tunnels are reused. Tunnel ingress accepts the shared gateway Host and
-              forwards only to the validated loopback origin.
+              <strong>2. Connect the environment</strong>
+              The built-in connector authenticates to the endpoint's Durable Object with the
+              environment credential.
             </div>
             <div class="step">
-              <strong>3. Reconcile DNS</strong>
-              Existing CNAMEs are updated and duplicate records are removed. Create conflicts are
-              recovered by listing and reconciling the winning record.
+              <strong>3. Proxy bounded traffic</strong>
+              The session multiplexes capped HTTP streams and WebSocket connections to the validated
+              loopback origin.
             </div>
             <div class="step">
-              <strong>4. Mark ready</strong>
-              Connect and status requests use only ready allocations whose hostname still matches
-              the relay-managed namespace.
+              <strong>4. Replace or disconnect</strong>
+              Relinking replaces the active connector. Unlinking revokes credentials and closes the
+              session immediately.
             </div>
           </div>
         </article>
 
         <article class="panel half">
           <h2>Unlink Cleanup</h2>
-          <p>
-            Relay unlink removes the user's managed endpoint allocation before revoking the
-            user/environment link:
-          </p>
+          <p>Relay unlink revokes the user/environment link and closes its active relay session:</p>
           <ul>
-            <li>delete the managed DNS record if present;</li>
-            <li>delete the Cloudflare tunnel if present;</li>
-            <li>remove the allocation row;</li>
             <li>revoke the user's environment link; and</li>
             <li>
               revoke the environment publication credential only after the final active link for
               that environment key disappears.
             </li>
+            <li>disconnect the environment's Durable Object relay session.</li>
           </ul>
           <p>
-            Local unlink stops the relay client and removes the locally persisted relay URL, issuer,
-            linked user, environment publication credential, cloud-mint public key, connector
-            config, and agent-activity preference.
+            Local unlink stops the built-in connector and removes the locally persisted relay URL,
+            issuer, linked user, environment publication credential, cloud-mint public key,
+            connector config, and agent-activity preference.
           </p>
         </article>
       </section>
 
-      <section class="panel" aria-label="Cloudflare tunnel operational profile">
-        <h2>Cloudflare Tunnel Operational Profile</h2>
+      <section class="panel" aria-label="Built-in relay operational profile">
+        <h2>Built-in Relay Operational Profile</h2>
         <p>
-          Managed tunnels are private application backends, not general-purpose public hosting. The
-          relay provisions one named Cloudflare tunnel and one DNS record per active
-          <code>(userId, environmentId)</code> allocation.
+          Managed endpoints use one Durable Object and one authenticated outbound connector per
+          linked environment. The connector is part of the RAS Code server; no separate connector or
+          tunnel binary is installed.
         </p>
         <ul>
           <li>
-            <strong>Lifecycle:</strong> the tunnel is created when an environment is linked, reused
-            across retry-safe reconciliation, kept for the lifetime of that link, and deleted on
-            unlink. If teardown fails, the allocation checkpoint remains so cleanup can be retried.
+            <strong>Lifecycle:</strong> the server starts the connector when it reconciles an active
+            link. Relinking replaces the existing connector, and unlink closes the Durable Object
+            session immediately.
           </li>
           <li>
-            <strong>Origin:</strong> tunnel ingress is restricted to the linked environment server's
+            <strong>Origin:</strong> the connector forwards only to the linked environment server's
             validated loopback HTTP origin. Arbitrary upstream hosts and raw TCP origins are
             rejected.
           </li>
           <li>
-            <strong>Protocols:</strong> managed endpoints carry HTTPS request/response traffic and
-            WSS connections only. Remote clients use the normal environment HTTP APIs and
-            authenticated WebSocket RPC transport through the tunnel.
+            <strong>Protocols:</strong> managed endpoints carry bounded HTTPS request/response
+            streams and WSS connections. Remote clients use the normal environment HTTP APIs and
+            authenticated WebSocket RPC transport through the relay.
           </li>
           <li>
-            <strong>Gateway traffic:</strong> the hosted relay sends sparse HTTPS health checks and
-            credential-mint requests during bootstrap, and its gateway proxies steady-state HTTPS
-            and WSS sessions to the selected managed tunnel.
+            <strong>Traffic shape:</strong> active remote sessions may keep WebSockets open and
+            exchange terminal, agent, and UI updates. Inactive connectors keep one WebSocket open
+            but do not generate application requests.
           </li>
           <li>
-            <strong>Traffic shape:</strong> expected load is interactive and user-driven. Active
-            remote sessions may keep WebSockets open and exchange terminal, agent, and UI updates;
-            inactive linked environments should carry little or no tunnel traffic.
-          </li>
-          <li>
-            <strong>Capacity planning:</strong> the project is pre-launch, so there is not yet a
-            production bandwidth baseline. Tunnel count grows with active linked user/environment
-            allocations, while bandwidth and concurrent WebSockets grow with active remote use.
+            <strong>Capacity planning:</strong> Worker request usage grows with HTTP requests and
+            WebSocket connection events, not with individual messages carried inside an accepted
+            WebSocket. Durable Object duration and network transfer grow with active remote use.
           </li>
         </ul>
       </section>
 
-      <section class="panel" aria-label="SSRF and tunnel hardening">
-        <h2>SSRF and Tunnel Hardening</h2>
+      <section class="panel" aria-label="SSRF and relay hardening">
+        <h2>SSRF and Relay Hardening</h2>
         <table>
           <thead>
             <tr>
@@ -779,9 +750,9 @@ sequenceDiagram
           </thead>
           <tbody>
             <tr>
-              <td>A client asks the relay to tunnel an arbitrary host.</td>
+              <td>A client asks the relay to forward to an arbitrary host.</td>
               <td>
-                The environment and relay both accept managed tunnel origins only for loopback hosts
+                The environment and relay both accept managed relay origins only for loopback hosts
                 and valid ports.
               </td>
             </tr>
@@ -795,8 +766,8 @@ sequenceDiagram
             <tr>
               <td>A stored endpoint is replaced with an arbitrary external URL.</td>
               <td>
-                Connect and status resolve a ready allocation from Postgres and require a hostname
-                under the configured managed endpoint zone.
+                The relay derives the endpoint from the environment ID and configured gateway. It
+                does not accept a caller-selected managed endpoint URL.
               </td>
             </tr>
             <tr>
@@ -807,7 +778,7 @@ sequenceDiagram
               </td>
             </tr>
             <tr>
-              <td>A process behind the tunnel returns attacker-controlled data.</td>
+              <td>A process behind the connector returns attacker-controlled data.</td>
               <td>
                 The relay verifies environment-signed health and mint responses against the linked
                 environment public key, expected nonce, and request binding.
@@ -821,18 +792,18 @@ sequenceDiagram
               </td>
             </tr>
             <tr>
-              <td>The relay client token leaks through process listings or shell parsing.</td>
+              <td>The connector token leaks through process listings or shell parsing.</td>
               <td>
-                The relay client is spawned without a shell and receives its connector token in
-                <code>TUNNEL_TOKEN</code>.
+                The built-in connector receives its token through in-process runtime configuration;
+                it is not passed to a child process or shell.
               </td>
             </tr>
           </tbody>
         </table>
         <div class="callout warning">
-          Managed tunnel IDs are routing identifiers, not credentials. The shared gateway preserves
-          the public Host and path for DPoP validation, and environment access still requires a
-          proof-bound credential issued by the linked environment.
+          Managed endpoint IDs are routing identifiers, not credentials. The shared gateway
+          preserves the public Host and path for DPoP validation, and environment access still
+          requires a proof-bound credential issued by the linked environment.
         </div>
       </section>
 
@@ -949,7 +920,7 @@ sequenceDiagram
             <tr>
               <td><code>POST /api/connect/relay-config</code></td>
               <td>Local environment token with <code>relay:write</code></td>
-              <td>Persist linked relay configuration and start the relay client.</td>
+              <td>Persist linked relay configuration and start the built-in connector.</td>
             </tr>
             <tr>
               <td><code>GET /api/connect/link-state</code></td>
@@ -964,7 +935,7 @@ sequenceDiagram
             <tr>
               <td><code>POST /api/connect/unlink</code></td>
               <td>Local environment token with <code>relay:write</code></td>
-              <td>Stop the relay client and clear local RAS Connect configuration.</td>
+              <td>Stop the built-in connector and clear local RAS Connect configuration.</td>
             </tr>
             <tr>
               <td><code>POST /api/t3-connect/health</code></td>
@@ -992,25 +963,24 @@ sequenceDiagram
 
       <section class="grid" aria-label="Runtime and infrastructure">
         <article class="panel half">
-          <h2>Relay Client Installation</h2>
+          <h2>Built-in Relay Connector</h2>
           <p>
-            Desktop web UI availability checks and installs are local WebSocket RPC methods:
-            <code>cloud.getRelayClientStatus</code> and streaming
-            <code>cloud.installRelayClient</code>. The install stream emits the current stage:
-            checking, waiting for lock, downloading, verifying, installing, validating, and
-            activating.
+            The connector runs inside the environment server. Runtime reconciliation starts it from
+            the relay-issued connector URL and credential, restarts it after an unexpected close,
+            and stops it when the link is disabled.
           </p>
           <p>
-            The web UI asks for confirmation before installation and displays a custom progress
-            dialog. The CLI invokes the same local relay-client service directly and reports the
-            same progress stages in the terminal.
+            The binary relay protocol batches bounded control and payload frames. It multiplexes
+            local HTTP requests and WebSocket sessions over one outbound WebSocket without a shell,
+            downloaded binary, or inbound listener.
           </p>
         </article>
 
         <article class="panel half">
           <h2>Relay Infrastructure</h2>
           <ul>
-            <li>Cloudflare Worker for the hosted relay HTTP API.</li>
+            <li>Cloudflare Worker for the hosted relay API and gateway.</li>
+            <li>Durable Objects for per-environment relay sessions.</li>
             <li>Self-hosted Postgres database named <code>ras-code-relay</code>.</li>
             <li>
               Production owns that database; every other stage gets its own
@@ -1020,7 +990,6 @@ sequenceDiagram
             <li>
               Cloudflare Hyperdrive with caching disabled and a constrained origin connection limit.
             </li>
-            <li>Cloudflare tunnel and DNS bindings for managed endpoint reconciliation.</li>
             <li>Cloudflare APNs delivery queue plus dead-letter queue.</li>
             <li>A five-minute cron job that prunes expired DPoP replay rows.</li>
             <li>PostHog OTLP traces endpoint and project token.</li>
@@ -1041,11 +1010,11 @@ sequenceDiagram
             <tr>
               <td>Relay infrastructure</td>
               <td>
-                <code>RELAY_API_ZONE_NAME</code>, <code>RELAY_TUNNEL_ZONE_NAME</code>,
-                <code>RELAY_TUNNEL_GATEWAY_DOMAIN</code>, optional
-                <code>RELAY_TUNNEL_NAMESPACE</code>, optional <code>RELAY_DOMAIN</code>,
-                <code>CLERK_PUBLISHABLE_KEY</code>, <code>CLERK_SECRET_KEY</code>,
-                <code>CLERK_JWT_AUDIENCE</code>, and APNs credentials.
+                <code>RELAY_API_ZONE_NAME</code>, <code>RELAY_GATEWAY_ZONE_NAME</code>,
+                <code>RELAY_GATEWAY_DOMAIN</code>, optional <code>RELAY_ENDPOINT_NAMESPACE</code>,
+                optional <code>RELAY_DOMAIN</code>, <code>CLERK_PUBLISHABLE_KEY</code>,
+                <code>CLERK_SECRET_KEY</code>, <code>CLERK_JWT_AUDIENCE</code>, and APNs
+                credentials.
               </td>
             </tr>
             <tr>
@@ -1084,13 +1053,13 @@ sequenceDiagram
             config.
           </li>
           <li>Validate relay URLs as secure absolute HTTPS origins before sending credentials.</li>
-          <li>Require loopback-only tunnel origins on both sides of the link-proof boundary.</li>
+          <li>Require loopback-only connector origins on both sides of the link-proof boundary.</li>
           <li>
-            Resolve managed endpoint egress from ready allocation rows, not client-supplied URLs.
+            Resolve managed endpoint egress from linked endpoint IDs, not client-supplied URLs.
           </li>
           <li>Disable redirects on relay-to-environment requests.</li>
-          <li>Validate environment-signed response proofs before consuming tunneled responses.</li>
-          <li>Keep tunnel and DNS provisioning retry-safe and deprovision them on unlink.</li>
+          <li>Validate environment-signed response proofs before consuming relayed responses.</li>
+          <li>Authenticate connector sessions and disconnect them immediately on unlink.</li>
           <li>
             Revoke shared environment publication credentials only after the final active link
             disappears.

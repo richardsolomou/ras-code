@@ -33,7 +33,7 @@ import { toastManager } from "../ui/toast";
  * Post-sign-in onboarding wizard for RAS Connect. Opens on every in-session
  * sign-in — sign-out removes the connected relay environments, so each new
  * session starts with no devices to reach. It first prompts to publish this
- * environment (managed tunnel + agent activity, both defaulting on) when the
+ * environment (managed relay + agent activity, both defaulting on) when the
  * current session is authorized to manage the relay link, then lists the
  * account's RAS Connect environments so every device can be connected right
  * away. A cold load with a restored session does not count as a sign-in.
@@ -164,7 +164,7 @@ function ConfiguredConnectOnboardingDialog() {
     }
     prefilledFromLinkStateRef.current = true;
     if (linkStateData.linked && linkStateData.cloudUserId === openForAccount) {
-      setExposeEnvironment(linkStateData.managedTunnelActive ?? linkStateData.linked);
+      setExposeEnvironment(linkStateData.managedRelayActive);
       setPublishAgentActivity(linkStateData.publishAgentActivity);
     }
   }, [linkStateData, openForAccount]);
@@ -193,7 +193,7 @@ function ConfiguredConnectOnboardingDialog() {
     }
     setIsApplying(true);
     const ok = await controller.reconcileCloudState({
-      managedTunnel: exposeEnvironment,
+      managedRelay: exposeEnvironment,
       publish: publishAgentActivity,
     });
     setIsApplying(false);

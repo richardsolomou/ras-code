@@ -14,23 +14,24 @@ import {
 import { describe, expect, it } from "@effect/vitest";
 import * as DateTime from "effect/DateTime";
 import { RELAY_HEALTH_RESPONSE_TYP, RELAY_MINT_RESPONSE_TYP } from "@ras-code/shared/relayJwt";
-import * as Deferred from "effect/Deferred";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as Fiber from "effect/Fiber";
 import * as Layer from "effect/Layer";
 import * as Redacted from "effect/Redacted";
-import * as Ref from "effect/Ref";
 import * as Result from "effect/Result";
 import * as Schema from "effect/Schema";
 import * as TestClock from "effect/testing/TestClock";
-import * as Tracer from "effect/Tracer";
 import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/unstable/http";
 
 import * as EnvironmentLinks from "./EnvironmentLinks.ts";
 import * as RelayConfiguration from "../Config.ts";
 import * as EnvironmentConnector from "./EnvironmentConnector.ts";
-import * as ManagedEndpointAllocations from "./ManagedEndpointAllocations.ts";
+import {
+  rasRelayEndpointDigestInput,
+  rasRelayEndpointForId,
+  rasRelayEndpointId,
+} from "../deploymentConfig.ts";
 
 const cloudKeyPair = NodeCrypto.generateKeyPairSync("ed25519", {
   privateKeyEncoding: { format: "pem", type: "pkcs8" },
@@ -61,6 +62,8 @@ function requestBodyText(request: HttpClientRequest.HttpClientRequest): string {
   return request.body._tag === "Uint8Array" ? new TextDecoder().decode(request.body.body) : "{}";
 }
 
+const gatewayDomain = "code-tunnels.example.test";
+const endpointNamespace = "production";
 const settings = RelayConfiguration.RelayConfiguration.of({
   relayIssuer: "https://relay.example.test",
   apns: {
@@ -76,9 +79,28 @@ const settings = RelayConfiguration.RelayConfiguration.of({
   clerkJwtAudience: "ras-code-relay",
   cloudMintPrivateKey: Redacted.make(cloudKeyPair.privateKey),
   cloudMintPublicKey: cloudKeyPair.publicKey,
-  managedEndpointBaseDomain: "example.test",
-  managedEndpointNamespace: undefined,
+  relayGatewayDomain: gatewayDomain,
+  relayEndpointNamespace: endpointNamespace,
 });
+
+function managedEndpointForKey(environmentPublicKey: string) {
+  return rasRelayEndpointForId(
+    gatewayDomain,
+    rasRelayEndpointId(
+      NodeCrypto.createHash("sha256")
+        .update(
+          rasRelayEndpointDigestInput(
+            endpointNamespace,
+            "env-connector-test",
+            environmentPublicKey,
+          ),
+        )
+        .digest("hex"),
+    ),
+  );
+}
+
+const managedEndpoint = managedEndpointForKey(environmentKeyPair.publicKey);
 
 function signTestJwt(payload: object, typ: string, privateKey: string): string {
   const header = Buffer.from(JSON.stringify({ alg: "EdDSA", typ })).toString("base64url");
@@ -162,69 +184,34 @@ function connectorTestLayer(
   ) => Effect.Effect<HttpClientResponse.HttpClientResponse>,
   options?: {
     readonly links?: EnvironmentLinks.EnvironmentLinks["Service"];
-    readonly allocations?: ManagedEndpointAllocations.ManagedEndpointAllocations["Service"];
     readonly settings?: RelayConfiguration.RelayConfiguration["Service"];
   },
 ) {
   return EnvironmentConnector.layer.pipe(
     Layer.provide(NodeCryptoLayer.layer),
     Layer.provide(Layer.succeed(EnvironmentLinks.EnvironmentLinks, options?.links ?? makeLinks())),
-    Layer.provide(
-      Layer.succeed(
-        ManagedEndpointAllocations.ManagedEndpointAllocations,
-        options?.allocations ?? makeAllocations(),
-      ),
-    ),
     Layer.provide(RelayConfiguration.layer(options?.settings ?? settings)),
     Layer.provide(Layer.succeed(HttpClient.HttpClient, HttpClient.make(execute))),
   );
 }
 
-function makeAllocations(
-  allocation: ManagedEndpointAllocations.ManagedEndpointAllocation | null = {
-    userId: "user_123",
-    environmentId: "env-connector-test",
-    hostname: "env.example.test",
-    tunnelId: "tunnel-id",
-    tunnelName: "tunnel-name",
-    dnsRecordId: "dns-record-id",
-    readyAt: "2026-05-25T00:00:00.000Z",
-    updatedAt: "2026-05-25T00:00:00.000Z",
-  },
-): ManagedEndpointAllocations.ManagedEndpointAllocations["Service"] {
-  return {
-    get: () => Effect.succeed(allocation),
-    reserve: () => Effect.die("unused"),
-    recordTunnel: () => Effect.die("unused"),
-    recordDns: () => Effect.die("unused"),
-    markReady: () => Effect.die("unused"),
-    claimRelease: () => Effect.die("unused"),
-    claimDeprovision: () => Effect.die("unused"),
-    remove: () => Effect.die("unused"),
-    removeClaimed: () => Effect.die("unused"),
-  };
-}
-
 function makeLinks(
   overrides: Partial<EnvironmentLinks.RelayLinkedEnvironmentRecord> = {},
 ): EnvironmentLinks.EnvironmentLinks["Service"] {
+  const environmentPublicKey = overrides.environmentPublicKey ?? environmentKeyPair.publicKey;
   return {
     upsert: () => Effect.void,
     listUsersForEnvironment: () => Effect.succeed([]),
     listDeliveryUsersForEnvironment: () => Effect.succeed([]),
-    listPublicKeysForEnvironment: () => Effect.succeed([environmentKeyPair.publicKey]),
+    isManagedRelayPublicKeyActive: () => Effect.succeed(true),
     listForUser: () => Effect.succeed([]),
     getForUser: () =>
       Effect.succeed({
         environmentId: "env-connector-test" as never,
         label: "Connector Test Environment",
-        endpoint: {
-          httpBaseUrl: "https://env.example.test/",
-          wsBaseUrl: "wss://env.example.test/ws",
-          providerKind: "cloudflare_tunnel",
-        },
+        endpoint: managedEndpointForKey(environmentPublicKey),
         linkedAt: "2026-05-25T00:00:00.000Z",
-        environmentPublicKey: environmentKeyPair.publicKey,
+        environmentPublicKey,
         ...overrides,
       }),
     revokeForUser: () => Effect.succeed(false),
@@ -232,58 +219,6 @@ function makeLinks(
 }
 
 describe("EnvironmentConnector", () => {
-  it.effect("loads the environment link and managed allocation concurrently", () =>
-    Effect.gen(function* () {
-      const started = yield* Ref.make(0);
-      const bothStarted = yield* Deferred.make<void>();
-      const release = yield* Deferred.make<void>();
-      const waitForPeer = Effect.gen(function* () {
-        const count = yield* Ref.updateAndGet(started, (value) => value + 1);
-        if (count === 2) {
-          yield* Deferred.succeed(bothStarted, undefined);
-        }
-        yield* Deferred.await(release);
-      });
-      const links = makeLinks();
-      const allocations = makeAllocations();
-      const execute = (request: HttpClientRequest.HttpClientRequest) =>
-        Effect.sync(() => {
-          const healthRequest = decodeHealthRequestBody(requestBodyText(request));
-          return HttpClientResponse.fromWeb(
-            request,
-            Response.json(signHealthResponse(healthRequest), { status: 200 }),
-          );
-        });
-      const status = Effect.gen(function* () {
-        const connector = yield* EnvironmentConnector.EnvironmentConnector;
-        return yield* connector.status({
-          userId: "user_123",
-          environmentId: "env-connector-test" as never,
-        });
-      }).pipe(
-        Effect.provide(
-          connectorTestLayer(execute, {
-            links: {
-              ...links,
-              getForUser: (input) => waitForPeer.pipe(Effect.andThen(links.getForUser(input))),
-            },
-            allocations: {
-              ...allocations,
-              get: (input) => waitForPeer.pipe(Effect.andThen(allocations.get(input))),
-            },
-          }),
-        ),
-      );
-
-      const fiber = yield* Effect.forkChild(status);
-      yield* Deferred.await(bothStarted);
-      yield* Deferred.succeed(release, undefined);
-      yield* Fiber.join(fiber);
-
-      expect(yield* Ref.get(started)).toBe(2);
-    }),
-  );
-
   it.effect("checks linked environment health through the managed endpoint", () => {
     const seenUrls: Array<string> = [];
     const seenProofs: Array<RelayCloudEnvironmentHealthProofPayload> = [];
@@ -305,7 +240,7 @@ describe("EnvironmentConnector", () => {
         environmentId: "env-connector-test",
       });
 
-      expect(seenUrls).toEqual(["https://env.example.test/api/connect/health"]);
+      expect(seenUrls).toEqual([`${managedEndpoint.httpBaseUrl}api/connect/health`]);
       expect(seenProofs[0]).toMatchObject({
         iss: "https://relay.example.test",
         aud: "ras-env:env-connector-test",
@@ -324,13 +259,7 @@ describe("EnvironmentConnector", () => {
     }).pipe(Effect.provide(connectorTestLayer(execute)));
   });
 
-  it.effect("sends health requests to the environment hostname, not the gateway", () => {
-    // The gateway domain is served by the relay worker itself, and a same-zone
-    // fetch bypasses the worker, so minting through the advertised URL never
-    // reaches the tunnel.
-    const gatewayDomain = "code-tunnels.example.test";
-    const hostname = "code-abcdef0123456789.example.test";
-    const endpointId = "abcdef0123456789";
+  it.effect("derives health request URLs from relay configuration", () => {
     const seenUrls: Array<string> = [];
     const execute = (request: HttpClientRequest.HttpClientRequest) =>
       Effect.sync(() => {
@@ -349,28 +278,39 @@ describe("EnvironmentConnector", () => {
         environmentId: "env-connector-test",
       });
 
-      expect(seenUrls).toEqual([`https://${hostname}/api/connect/health`]);
+      expect(seenUrls).toEqual([`${managedEndpoint.httpBaseUrl}api/connect/health`]);
+    }).pipe(Effect.provide(connectorTestLayer(execute)));
+  });
+
+  it.effect("rejects a stored managed endpoint that does not match relay configuration", () => {
+    let requestCount = 0;
+    const execute = () =>
+      Effect.sync(() => {
+        requestCount += 1;
+        throw new Error("unexpected request");
+      });
+
+    return Effect.gen(function* () {
+      const connector = yield* EnvironmentConnector.EnvironmentConnector;
+      const result = yield* Effect.result(
+        connector.status({ userId: "user_123", environmentId: "env-connector-test" }),
+      );
+
+      expect(Result.isFailure(result)).toBe(true);
+      if (Result.isFailure(result) && isEnvironmentConnectNotAuthorized(result.failure)) {
+        expect(result.failure.reason).toBe("managed_endpoint_mismatch");
+      }
+      expect(requestCount).toBe(0);
     }).pipe(
       Effect.provide(
         connectorTestLayer(execute, {
           links: makeLinks({
             endpoint: {
-              httpBaseUrl: `https://${gatewayDomain}/e/${endpointId}/`,
-              wsBaseUrl: `wss://${gatewayDomain}/e/${endpointId}/ws`,
-              providerKind: "cloudflare_tunnel",
+              httpBaseUrl: "https://attacker.example.test/",
+              wsBaseUrl: "wss://attacker.example.test/ws",
+              providerKind: "ras_relay",
             },
           }),
-          allocations: makeAllocations({
-            userId: "user_123",
-            environmentId: "env-connector-test" as never,
-            hostname,
-            tunnelId: "tunnel-id",
-            tunnelName: "tunnel-name",
-            dnsRecordId: "dns-record-id",
-            readyAt: "2026-05-25T00:00:00.000Z",
-            updatedAt: "2026-05-25T00:00:00.000Z",
-          }),
-          settings: { ...settings, managedEndpointGatewayDomain: gatewayDomain },
         }),
       ),
     );
@@ -413,118 +353,6 @@ describe("EnvironmentConnector", () => {
               wsBaseUrl: "wss://127.0.0.1/ws",
               providerKind: "manual",
             },
-          }),
-        }),
-      ),
-    );
-  });
-
-  it.effect("rejects stale managed endpoints before sending a mint request", () => {
-    let requestCount = 0;
-    const spans: Array<Tracer.NativeSpan> = [];
-    const tracer = Tracer.make({
-      span: (options) => {
-        const span = new Tracer.NativeSpan(options);
-        spans.push(span);
-        return span;
-      },
-    });
-    const execute = () =>
-      Effect.sync(() => {
-        requestCount += 1;
-        throw new Error("unexpected request");
-      });
-
-    return Effect.gen(function* () {
-      const connector = yield* EnvironmentConnector.EnvironmentConnector;
-      const result = yield* Effect.result(
-        connector.connect({
-          userId: "user_123",
-          environmentId: "env-connector-test",
-          clientProofKeyThumbprint: "client-proof-key-thumbprint",
-        }),
-      );
-
-      expect(Result.isFailure(result)).toBe(true);
-      if (Result.isFailure(result)) {
-        expect(isEnvironmentConnectNotAuthorized(result.failure)).toBe(true);
-        if (isEnvironmentConnectNotAuthorized(result.failure)) {
-          expect(result.failure).toMatchObject({
-            operation: "connect",
-            reason: "managed_endpoint_mismatch",
-          });
-        }
-      }
-      const resolutionSpan = spans.find(
-        (span) => span.name === "relay.environment_connector.resolve_managed_endpoint",
-      );
-      expect(Object.fromEntries(resolutionSpan?.attributes ?? [])).toMatchObject({
-        "relay.authorization.allocation_hostname": "env.example.test",
-        "relay.authorization.allocation_has_ready_at": true,
-        "relay.authorization.allocation_has_tunnel_id": true,
-        "relay.authorization.allocation_has_dns_record_id": true,
-        "relay.authorization.linked_http_base_url": "https://attacker.example.test/",
-        "relay.authorization.linked_ws_base_url": "wss://attacker.example.test/ws",
-        "relay.authorization.resolved_http_base_url": "https://env.example.test/",
-        "relay.authorization.resolved_ws_base_url": "wss://env.example.test/ws",
-      });
-      expect(requestCount).toBe(0);
-    }).pipe(
-      Effect.provide(
-        connectorTestLayer(execute, {
-          links: makeLinks({
-            endpoint: {
-              httpBaseUrl: "https://attacker.example.test/",
-              wsBaseUrl: "wss://attacker.example.test/ws",
-              providerKind: "cloudflare_tunnel",
-            },
-          }),
-        }),
-      ),
-      Effect.provideService(Tracer.Tracer, tracer),
-    );
-  });
-
-  it.effect("rejects unready managed endpoint allocations before sending a request", () => {
-    let requestCount = 0;
-    const execute = () =>
-      Effect.sync(() => {
-        requestCount += 1;
-        throw new Error("unexpected request");
-      });
-
-    return Effect.gen(function* () {
-      const connector = yield* EnvironmentConnector.EnvironmentConnector;
-      const result = yield* Effect.result(
-        connector.status({
-          userId: "user_123",
-          environmentId: "env-connector-test",
-        }),
-      );
-
-      expect(Result.isFailure(result)).toBe(true);
-      if (Result.isFailure(result)) {
-        expect(isEnvironmentConnectNotAuthorized(result.failure)).toBe(true);
-        if (isEnvironmentConnectNotAuthorized(result.failure)) {
-          expect(result.failure).toMatchObject({
-            operation: "status",
-            reason: "managed_endpoint_allocation_not_ready",
-          });
-        }
-      }
-      expect(requestCount).toBe(0);
-    }).pipe(
-      Effect.provide(
-        connectorTestLayer(execute, {
-          allocations: makeAllocations({
-            userId: "user_123",
-            environmentId: "env-connector-test",
-            hostname: "env.example.test",
-            tunnelId: "tunnel-id",
-            tunnelName: "tunnel-name",
-            dnsRecordId: "dns-record-id",
-            readyAt: null,
-            updatedAt: "2026-05-25T00:00:00.000Z",
           }),
         }),
       ),
@@ -722,7 +550,7 @@ describe("EnvironmentConnector", () => {
         deviceId: "device-123",
       });
 
-      expect(seenUrls).toEqual(["https://env.example.test/api/connect/mint-credential"]);
+      expect(seenUrls).toEqual([`${managedEndpoint.httpBaseUrl}api/connect/mint-credential`]);
       expect(seenProofs[0]).toMatchObject({
         iss: "https://relay.example.test",
         aud: "ras-env:env-connector-test",
@@ -736,10 +564,7 @@ describe("EnvironmentConnector", () => {
       expect(result).toMatchObject({
         environmentId: "env-connector-test",
         credential: "pairing_credential",
-        endpoint: {
-          httpBaseUrl: "https://env.example.test/",
-          wsBaseUrl: "wss://env.example.test/ws",
-        },
+        endpoint: managedEndpoint,
       });
     }).pipe(Effect.provide(connectorTestLayer(execute)));
   });

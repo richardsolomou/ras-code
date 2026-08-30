@@ -17,7 +17,7 @@ const ENVIRONMENT_ID = EnvironmentId.make("environment-1");
 const ENDPOINT = {
   httpBaseUrl: "https://environment.example.test",
   wsBaseUrl: "wss://environment.example.test",
-  providerKind: "cloudflare_tunnel" as const,
+  providerKind: "ras_relay" as const,
 };
 const DESCRIPTOR = {
   environmentId: ENVIRONMENT_ID,

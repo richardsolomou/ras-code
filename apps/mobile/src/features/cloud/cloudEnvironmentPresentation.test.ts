@@ -14,7 +14,7 @@ function relayStatus(
     endpoint: {
       httpBaseUrl: "https://cloud.example.test/",
       wsBaseUrl: "wss://cloud.example.test/ws",
-      providerKind: "cloudflare_tunnel",
+      providerKind: "ras_relay",
     },
     status,
     checkedAt: "2026-06-05T16:49:11.000Z",

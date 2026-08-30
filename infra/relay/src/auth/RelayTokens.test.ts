@@ -29,8 +29,7 @@ const config = RelayConfiguration.RelayConfiguration.of({
   clerkJwtAudience: "ras-code-relay",
   cloudMintPrivateKey: Redacted.make(keyPair.privateKey),
   cloudMintPublicKey: keyPair.publicKey,
-  managedEndpointBaseDomain: undefined,
-  managedEndpointNamespace: undefined,
+  relayEndpointNamespace: undefined,
 });
 
 const layer = RelayTokens.layer.pipe(Layer.provide(RelayConfiguration.layer(config)));
@@ -44,7 +43,7 @@ describe("RelayTokens", () => {
         request: {
           notificationsEnabled: true,
           liveActivitiesEnabled: true,
-          managedTunnelsEnabled: true,
+          managedRelayEnabled: true,
         },
         jti: "challenge-1",
         issuedAtEpochSeconds: 100,
@@ -58,7 +57,7 @@ describe("RelayTokens", () => {
           request: {
             notificationsEnabled: true,
             liveActivitiesEnabled: true,
-            managedTunnelsEnabled: true,
+            managedRelayEnabled: true,
           },
           nowEpochSeconds: 150,
         }),
@@ -70,7 +69,7 @@ describe("RelayTokens", () => {
           request: {
             notificationsEnabled: true,
             liveActivitiesEnabled: true,
-            managedTunnelsEnabled: true,
+            managedRelayEnabled: true,
           },
           nowEpochSeconds: 150,
         }),

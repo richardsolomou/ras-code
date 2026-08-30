@@ -1,26 +1,11 @@
-import {
-  type DesktopBridge,
-  EnvironmentId,
-  type RelayClientInstallProgressEvent,
-  WS_METHODS,
-} from "@ras-code/contracts";
+import { type DesktopBridge } from "@ras-code/contracts";
 import { RelayWebClientId } from "@ras-code/contracts/relay";
 import { describe, expect, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
-import * as Stream from "effect/Stream";
-import * as SubscriptionRef from "effect/SubscriptionRef";
 import { HttpClient } from "effect/unstable/http";
 import { afterEach, beforeEach, vi } from "vite-plus/test";
-import {
-  AVAILABLE_CONNECTION_STATE,
-  EnvironmentSupervisor,
-  type PreparedConnection,
-  PrimaryConnectionTarget,
-} from "@ras-code/client-runtime/connection";
-import { type RpcSession } from "@ras-code/client-runtime/rpc";
-import { EnvironmentRegistry } from "@ras-code/client-runtime/connection";
 import { ManagedRelay } from "@ras-code/client-runtime/relay";
 import { remoteHttpClientLayer } from "@ras-code/client-runtime/rpc";
 import { __resetDesktopPrimaryAuthForTests } from "../environments/primary/desktopAuth";
@@ -43,18 +28,6 @@ const TARGET: CloudLinkTarget = {
   wsBaseUrl: "ws://127.0.0.1:3000",
 };
 
-const relayClientInstallDialog = vi.hoisted(() => ({
-  requestConfirmation: vi.fn(),
-  reportProgress: vi.fn(),
-  finish: vi.fn(),
-}));
-
-vi.mock("./relayClientInstallDialog", () => ({
-  requestRelayClientInstallConfirmation: relayClientInstallDialog.requestConfirmation,
-  reportRelayClientInstallProgress: relayClientInstallDialog.reportProgress,
-  finishRelayClientInstall: relayClientInstallDialog.finish,
-}));
-
 const createProof = vi.fn(() => Effect.succeed("dpop-proof"));
 const dpopSignerLayer = Layer.succeed(
   ManagedRelay.ManagedRelayDpopSigner,
@@ -75,65 +48,10 @@ function relayLayer() {
   );
 }
 
-function registryLayer(options?: {
-  readonly status?: { readonly status: "available"; readonly version: string };
-  readonly installEvents?: ReadonlyArray<RelayClientInstallProgressEvent>;
-}) {
-  return Layer.effect(
-    EnvironmentRegistry,
-    Effect.gen(function* () {
-      const client = {
-        [WS_METHODS.cloudGetRelayClientStatus]: () =>
-          Effect.succeed(options?.status ?? { status: "available", version: "2026.6.0" }),
-        [WS_METHODS.cloudInstallRelayClient]: () =>
-          Stream.fromIterable(options?.installEvents ?? []),
-      } as unknown as RpcSession["client"];
-      const session: RpcSession = {
-        client,
-        initialConfig: Effect.never,
-        ready: Effect.void,
-        probe: Effect.void,
-        closed: Effect.never,
-      };
-      const target = new PrimaryConnectionTarget({
-        environmentId: EnvironmentId.make(TARGET.environmentId),
-        label: TARGET.label,
-        httpBaseUrl: TARGET.httpBaseUrl,
-        wsBaseUrl: TARGET.wsBaseUrl,
-      });
-      const supervisor = EnvironmentSupervisor.of({
-        target,
-        state: yield* SubscriptionRef.make(AVAILABLE_CONNECTION_STATE),
-        session: yield* SubscriptionRef.make(Option.some(session)),
-        prepared: yield* SubscriptionRef.make(Option.none<PreparedConnection>()),
-        connect: Effect.void,
-        disconnect: Effect.void,
-        retryNow: Effect.void,
-      } satisfies EnvironmentSupervisor["Service"]);
-      const registry = {
-        run: <A, E, R>(_environmentId: EnvironmentId, effect: Effect.Effect<A, E, R>) =>
-          Effect.provideService(effect, EnvironmentSupervisor, supervisor),
-        runStream: <A, E, R>(_environmentId: EnvironmentId, stream: Stream.Stream<A, E, R>) =>
-          Stream.provideService(stream, EnvironmentSupervisor, supervisor),
-      } as unknown as EnvironmentRegistry["Service"];
-      return EnvironmentRegistry.of(registry);
-    }),
-  );
-}
-
-function services(options?: Parameters<typeof registryLayer>[0]) {
-  return Layer.mergeAll(relayLayer(), registryLayer(options));
-}
-
 function withServices<A, E>(
-  effect: Effect.Effect<
-    A,
-    E,
-    HttpClient.HttpClient | ManagedRelay.ManagedRelayClient | EnvironmentRegistry
-  >,
-  options?: Parameters<typeof registryLayer>[0],
+  effect: Effect.Effect<A, E, HttpClient.HttpClient | ManagedRelay.ManagedRelayClient>,
 ) {
-  return effect.pipe(Effect.provide(services(options)));
+  return effect.pipe(Effect.provide(relayLayer()));
 }
 
 function bodyText(body: BodyInit | null | undefined): string {
@@ -143,7 +61,6 @@ function bodyText(body: BodyInit | null | undefined): string {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.stubEnv("VITE_RAS_CODE_RELAY_URL", "https://relay.example.test");
-  relayClientInstallDialog.requestConfirmation.mockResolvedValue(true);
 });
 
 afterEach(() => {
@@ -178,7 +95,7 @@ describe("web cloud link environment client", () => {
               endpoint: {
                 httpBaseUrl: "https://desktop.example.test",
                 wsBaseUrl: "wss://desktop.example.test",
-                providerKind: "cloudflare_tunnel",
+                providerKind: "ras_relay",
               },
               linkedAt: "2026-06-06T00:00:00.000Z",
             },
@@ -204,7 +121,7 @@ describe("web cloud link environment client", () => {
           cloudUserId: "user-1",
           relayUrl: "https://relay.example.test",
           relayIssuer: "https://relay.example.test",
-          managedTunnelActive: true,
+          managedRelayActive: true,
           publishAgentActivity: false,
         }),
       );
@@ -218,7 +135,7 @@ describe("web cloud link environment client", () => {
           cloudUserId: "user-1",
           relayUrl: "https://relay.example.test",
           relayIssuer: "https://relay.example.test",
-          managedTunnelActive: true,
+          managedRelayActive: true,
           publishAgentActivity: false,
         }),
       );
@@ -236,7 +153,7 @@ describe("web cloud link environment client", () => {
           cloudUserId: "user-1",
           relayUrl: "https://relay.example.test",
           relayIssuer: "https://relay.example.test",
-          managedTunnelActive: true,
+          managedRelayActive: true,
           publishAgentActivity: false,
         }),
       );
@@ -264,7 +181,7 @@ describe("web cloud link environment client", () => {
           cloudUserId: "user-1",
           relayUrl: "https://relay.example.test",
           relayIssuer: "https://relay.example.test",
-          managedTunnelActive: true,
+          managedRelayActive: true,
           publishAgentActivity: true,
         }),
       );
@@ -307,7 +224,7 @@ describe("web cloud link environment client", () => {
             endpoint: {
               httpBaseUrl: "https://desktop.example.test",
               wsBaseUrl: "wss://desktop.example.test",
-              providerKind: "cloudflare_tunnel",
+              providerKind: "ras_relay",
             },
             endpointRuntime: null,
             relayIssuer: "https://relay.example.test",
@@ -328,7 +245,6 @@ describe("web cloud link environment client", () => {
         }),
       );
 
-      expect(relayClientInstallDialog.requestConfirmation).not.toHaveBeenCalled();
       expect(String(fetchMock.mock.calls[1]?.[0])).toBe(
         "http://127.0.0.1:3000/api/connect/link-proof",
       );
@@ -343,7 +259,7 @@ describe("web cloud link environment client", () => {
     }),
   );
 
-  it.effect("links publish-only without a managed tunnel", () =>
+  it.effect("links publish-only without managed relay access", () =>
     Effect.gen(function* () {
       const fetchMock = vi
         .fn()
@@ -385,31 +301,12 @@ describe("web cloud link environment client", () => {
 
       // @effect-diagnostics-next-line preferSchemaOverJson:off
       expect(JSON.parse(bodyText(fetchMock.mock.calls[0]?.[1]?.body))).toMatchObject({
-        managedTunnelsEnabled: false,
+        managedRelayEnabled: false,
       });
       // @effect-diagnostics-next-line preferSchemaOverJson:off
       expect(JSON.parse(bodyText(fetchMock.mock.calls[1]?.[1]?.body))).toMatchObject({
         endpoint: { providerKind: "manual" },
       });
-    }),
-  );
-
-  it.effect("installs a missing relay client before linking", () =>
-    Effect.gen(function* () {
-      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ malformed: true })));
-
-      yield* withServices(
-        linkPrimaryEnvironmentToCloud({
-          target: TARGET,
-          clerkToken: "clerk-token",
-        }),
-        {
-          status: { status: "available", version: "2026.6.0" },
-          installEvents: [],
-        },
-      ).pipe(Effect.flip);
-
-      expect(relayClientInstallDialog.requestConfirmation).not.toHaveBeenCalled();
     }),
   );
 

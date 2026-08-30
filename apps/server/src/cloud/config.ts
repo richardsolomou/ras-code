@@ -21,6 +21,10 @@ export const decodeRuntimeConfig = Schema.decodeUnknownOption(
   Schema.fromJsonString(RelayManagedEndpointRuntimeConfig),
 );
 
+export function isStaleManagedEndpointRuntimeConfig(value: string | null): boolean {
+  return value !== null && Option.isNone(decodeRuntimeConfig(value));
+}
+
 export function isAgentActivityPublishingEnabledValue(value: string | null): boolean {
   return value === "true";
 }
@@ -41,10 +45,11 @@ export const readAgentActivityPublishingActive = (
             Option.isSome(bytes) ? new TextDecoder().decode(bytes.value) : null,
           ),
         );
-    const [enabled, url, environmentCredential] = yield* Effect.all([
+    const [enabled, url, environmentCredential, endpointRuntime] = yield* Effect.all([
       readSecretString(PUBLISH_AGENT_ACTIVITY_SECRET),
       readSecretString(RELAY_URL_SECRET),
       readSecretString(RELAY_ENVIRONMENT_CREDENTIAL_SECRET),
+      readSecretString(CLOUD_ENDPOINT_RUNTIME_CONFIG),
     ]);
     // Empty strings are as unconfigured as missing files: the publisher's
     // truthiness gate skips them, so the capability must too.
@@ -53,6 +58,7 @@ export const readAgentActivityPublishingActive = (
       url !== null &&
       url !== "" &&
       environmentCredential !== null &&
-      environmentCredential !== ""
+      environmentCredential !== "" &&
+      !isStaleManagedEndpointRuntimeConfig(endpointRuntime)
     );
   }).pipe(Effect.orElseSucceed(() => false));

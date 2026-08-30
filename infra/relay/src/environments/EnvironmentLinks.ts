@@ -51,15 +51,15 @@ export class EnvironmentLinkUserListPersistenceError extends Schema.TaggedErrorC
   }
 }
 
-export class EnvironmentPublicKeyListPersistenceError extends Schema.TaggedErrorClass<EnvironmentPublicKeyListPersistenceError>()(
-  "EnvironmentPublicKeyListPersistenceError",
+export class EnvironmentManagedRelayKeyLookupPersistenceError extends Schema.TaggedErrorClass<EnvironmentManagedRelayKeyLookupPersistenceError>()(
+  "EnvironmentManagedRelayKeyLookupPersistenceError",
   {
     environmentId: Schema.String,
     cause: Schema.Defect(),
   },
 ) {
   override get message(): string {
-    return `Failed to list public keys for environment '${this.environmentId}'`;
+    return `Failed to look up a managed relay key for environment '${this.environmentId}'`;
   }
 }
 
@@ -120,9 +120,10 @@ export class EnvironmentLinks extends Context.Service<
       ReadonlyArray<AgentAwarenessDeliveryUserRecord>,
       EnvironmentLinkUserListPersistenceError
     >;
-    readonly listPublicKeysForEnvironment: (input: {
+    readonly isManagedRelayPublicKeyActive: (input: {
       readonly environmentId: string;
-    }) => Effect.Effect<ReadonlyArray<string>, EnvironmentPublicKeyListPersistenceError>;
+      readonly environmentPublicKey: string;
+    }) => Effect.Effect<boolean, EnvironmentManagedRelayKeyLookupPersistenceError>;
     readonly listForUser: (input: {
       readonly userId: string;
     }) => Effect.Effect<
@@ -132,6 +133,7 @@ export class EnvironmentLinks extends Context.Service<
     readonly getForUser: (input: {
       readonly userId: string;
       readonly environmentId: string;
+      readonly includeRevoked?: boolean;
     }) => Effect.Effect<RelayLinkedEnvironmentRecord | null, EnvironmentLinkLookupPersistenceError>;
     readonly revokeForUser: (input: {
       readonly userId: string;
@@ -185,7 +187,7 @@ const make = Effect.gen(function* () {
           endpointProviderKind: endpoint.providerKind,
           notificationsEnabled: request.notificationsEnabled,
           liveActivitiesEnabled: request.liveActivitiesEnabled,
-          managedTunnelsEnabled: request.managedTunnelsEnabled,
+          managedRelayEnabled: request.managedRelayEnabled,
           createdByDeviceId: request.deviceId ?? null,
           revokedAt: null,
           createdAt: now,
@@ -201,7 +203,7 @@ const make = Effect.gen(function* () {
             endpointProviderKind: endpoint.providerKind,
             notificationsEnabled: request.notificationsEnabled,
             liveActivitiesEnabled: request.liveActivitiesEnabled,
-            managedTunnelsEnabled: request.managedTunnelsEnabled,
+            managedRelayEnabled: request.managedRelayEnabled,
             createdByDeviceId: request.deviceId ?? null,
             revokedAt: null,
             updatedAt: now,
@@ -272,8 +274,8 @@ const make = Effect.gen(function* () {
         );
     }),
 
-    listPublicKeysForEnvironment: Effect.fn(
-      "relay.environment_links.list_public_keys_for_environment",
+    isManagedRelayPublicKeyActive: Effect.fn(
+      "relay.environment_links.is_managed_relay_public_key_active",
     )(function* (input) {
       yield* Effect.annotateCurrentSpan({ "relay.environment_id": input.environmentId });
       return yield* db
@@ -282,16 +284,17 @@ const make = Effect.gen(function* () {
         .where(
           and(
             eq(relayEnvironmentLinks.environmentId, input.environmentId),
+            eq(relayEnvironmentLinks.environmentPublicKey, input.environmentPublicKey),
+            eq(relayEnvironmentLinks.managedRelayEnabled, true),
             isNull(relayEnvironmentLinks.revokedAt),
           ),
         )
+        .limit(1)
         .pipe(
-          Effect.map((rows) => [
-            ...new Set(rows.map((row) => row.environmentPublicKey).filter((key) => key.length > 0)),
-          ]),
+          Effect.map((rows) => rows.length > 0),
           Effect.mapError(
             (cause) =>
-              new EnvironmentPublicKeyListPersistenceError({
+              new EnvironmentManagedRelayKeyLookupPersistenceError({
                 environmentId: input.environmentId,
                 cause,
               }),
@@ -360,7 +363,7 @@ const make = Effect.gen(function* () {
           and(
             eq(relayEnvironmentLinks.userId, input.userId),
             eq(relayEnvironmentLinks.environmentId, input.environmentId),
-            isNull(relayEnvironmentLinks.revokedAt),
+            ...(input.includeRevoked ? [] : [isNull(relayEnvironmentLinks.revokedAt)]),
           ),
         )
         .limit(1)

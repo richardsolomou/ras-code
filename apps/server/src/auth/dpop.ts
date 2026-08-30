@@ -2,6 +2,11 @@ import {
   type DpopVerificationFailureCode as DpopVerificationFailureCodeType,
   verifyDpopProof,
 } from "@ras-code/shared/dpop";
+import { stripManagedEndpointGatewayPrefix } from "@ras-code/shared/advertisedEndpoint";
+import {
+  parseRasRelayPublicOrigin,
+  RAS_RELAY_PUBLIC_ORIGIN_HEADER,
+} from "@ras-code/shared/rasRelayProtocol";
 import type { DpopFailureReason } from "@ras-code/contracts";
 import * as Crypto from "effect/Crypto";
 import * as DateTime from "effect/DateTime";
@@ -63,7 +68,13 @@ export const verifyRequestDpopProof = (input: {
         diagnostic: "Invalid DPoP request URL.",
       });
     }
-    const url = new URL(input.request.originalUrl, routedUrl.value.origin);
+    const relayOrigin = stripManagedEndpointGatewayPrefix(input.request.originalUrl)
+      ? input.request.headers[RAS_RELAY_PUBLIC_ORIGIN_HEADER]
+      : undefined;
+    const requestOrigin = relayOrigin
+      ? (parseRasRelayPublicOrigin(relayOrigin) ?? routedUrl.value.origin)
+      : routedUrl.value.origin;
+    const url = new URL(input.request.originalUrl, requestOrigin);
     const now = yield* DateTime.now;
     const result = verifyDpopProof({
       proof,

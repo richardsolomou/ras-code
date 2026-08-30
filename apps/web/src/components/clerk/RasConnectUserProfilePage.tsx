@@ -33,8 +33,8 @@ function linkedAtLabel(value: string): string {
 }
 
 function endpointLabel(environment: RelayClientEnvironmentRecord): string {
-  return environment.endpoint.providerKind === "cloudflare_tunnel"
-    ? "Managed tunnel"
+  return environment.endpoint.providerKind === "ras_relay"
+    ? "RAS Relay"
     : "Activity publishing only";
 }
 
@@ -86,8 +86,8 @@ export function RasConnectEnvironmentRow(props: {
                 “{environment.label}” will be removed from this account.
               </p>
               <p className="mt-4 max-w-xl text-[0.8125rem] leading-[1.125rem] text-muted-foreground">
-                RAS Connect access will be revoked, any managed tunnel will be removed, and a host
-                space will become available. Local connections on your devices are not changed.
+                RAS Connect access will be revoked and its active relay session will close. Local
+                connections on your devices are not changed.
               </p>
               <div className="mt-4 flex justify-end gap-2">
                 <Button

@@ -44,7 +44,6 @@ import {
   RelayEnvironmentLinkProofExpiredError,
   RelayEnvironmentLinkProofInvalidError,
   RelayEnvironmentLinkUnavailableError,
-  RelayEnvironmentLinkLimitExceededError,
   RelayEnvironmentPrincipal,
   type RelayEnvironmentConnectRequest,
   type RelayDpopAccessTokenScope,
@@ -64,8 +63,7 @@ import * as RelayConfiguration from "../Config.ts";
 import * as AgentActivityPublisher from "../agentActivity/AgentActivityPublisher.ts";
 import * as EnvironmentConnector from "../environments/EnvironmentConnector.ts";
 import * as EnvironmentLinker from "../environments/EnvironmentLinker.ts";
-import * as ManagedEndpointProvider from "../environments/ManagedEndpointProvider.ts";
-import * as ManagedEndpointAllocations from "../environments/ManagedEndpointAllocations.ts";
+import * as RasRelaySession from "../environments/RasRelaySession.ts";
 import * as EnvironmentPublishSignatures from "../environments/EnvironmentPublishSignatures.ts";
 import * as MobileRegistrations from "../agentActivity/MobileRegistrations.ts";
 import { withSpanAttributes } from "../observability.ts";
@@ -434,33 +432,36 @@ export const revokeEnvironmentLinkRecord = Effect.fn(
 export const unlinkEnvironmentRecord = Effect.fn("relay.api.client.unlinkEnvironmentRecord")(
   function* (input: { readonly userId: string; readonly environmentId: string }) {
     const links = yield* EnvironmentLinks.EnvironmentLinks;
-    const managedEndpointProvider = yield* ManagedEndpointProvider.ManagedEndpointProvider;
-    const deprovisionTarget = yield* managedEndpointProvider.prepareDeprovision({
+    const rasRelaySessions = yield* RasRelaySession.RasRelaySessionDirectory;
+    const activeLink = yield* links.getForUser({
       userId: input.userId,
       environmentId: input.environmentId,
     });
-    const link = yield* links.getForUser({
-      userId: input.userId,
+    const link =
+      activeLink ??
+      (yield* links.getForUser({
+        userId: input.userId,
+        environmentId: input.environmentId,
+        includeRevoked: true,
+      }));
+    if (link === null) return false;
+    const unlinked = activeLink
+      ? yield* revokeEnvironmentLinkRecord({
+          userId: input.userId,
+          environmentId: link.environmentId,
+          environmentPublicKey: link.environmentPublicKey,
+        })
+      : false;
+    const publicKeyStillActive = yield* links.isManagedRelayPublicKeyActive({
       environmentId: input.environmentId,
+      environmentPublicKey: link.environmentPublicKey,
     });
-    const unlinked =
-      link === null
-        ? false
-        : yield* revokeEnvironmentLinkRecord({
-            userId: input.userId,
-            environmentId: link.environmentId,
-            environmentPublicKey: link.environmentPublicKey,
-          });
-
-    // External teardown cannot share the SQL transaction. Run it only after
-    // revocation commits so a database failure leaves a fully usable active
-    // link. Still run teardown when the link is already revoked, allowing a
-    // retry to finish cleanup after an earlier Cloudflare failure.
-    yield* managedEndpointProvider.deprovision({
-      userId: input.userId,
-      environmentId: input.environmentId,
-      target: deprovisionTarget,
-    });
+    if (!publicKeyStillActive) {
+      yield* rasRelaySessions.disconnect({
+        environmentId: input.environmentId,
+        environmentPublicKey: link.environmentPublicKey,
+      });
+    }
     return unlinked;
   },
 );
@@ -531,7 +532,6 @@ export const clientApi = HttpApiBuilder.group(
     const relayTokens = yield* RelayTokens.RelayTokens;
     const linker = yield* EnvironmentLinker.EnvironmentLinker;
     const links = yield* EnvironmentLinks.EnvironmentLinks;
-    const managedEndpointProvider = yield* ManagedEndpointProvider.ManagedEndpointProvider;
     const devices = yield* Devices.Devices;
     return handlers
       .handle(
@@ -598,12 +598,6 @@ export const clientApi = HttpApiBuilder.group(
                 reason: "origin_not_allowed",
                 traceId,
               }),
-            ManagedTunnelLimitExceeded: (limitError, traceId) =>
-              new RelayEnvironmentLinkLimitExceededError({
-                code: "environment_link_limit_exceeded",
-                maxTunnels: limitError.maxTunnels,
-                traceId,
-              }),
             EnvironmentLinkUpsertPersistenceError: (_error, traceId) =>
               new RelayEnvironmentLinkFailedError({
                 code: "environment_link_failed",
@@ -659,28 +653,9 @@ export const clientApi = HttpApiBuilder.group(
           }).pipe(
             Effect.catchTags({
               SqlError: () => relayInternalErrorResponse("internal_error"),
-              ManagedEndpointDeprovisioningFailed: () =>
-                relayInternalErrorResponse("upstream_unavailable"),
             }),
           );
           return { ok: unlinked };
-        }, mapRelayCommonApiErrors("not_authorized")),
-      )
-      .handle(
-        "releaseEnvironmentTunnel",
-        Effect.fn("relay.api.client.releaseEnvironmentTunnel")(function* (args) {
-          const { params } = args;
-          const { userId } = yield* RelayClientPrincipal;
-          // ok mirrors whether the connector token is now dead: false means a
-          // concurrent provision kept the recorded tunnel alive, so the caller
-          // must not discard its runtime config.
-          const released = yield* managedEndpointProvider
-            .release({
-              userId,
-              environmentId: params.environmentId,
-            })
-            .pipe(Effect.catch(() => relayInternalErrorResponse("upstream_unavailable")));
-          return { ok: released };
         }, mapRelayCommonApiErrors("not_authorized")),
       );
   }),
@@ -1013,11 +988,10 @@ const RelayCommonPersistenceError = Schema.Union([
   Devices.DeviceListPersistenceError,
   LiveActivities.LiveActivityRegistrationPersistenceError,
   EnvironmentLinks.EnvironmentLinkUserListPersistenceError,
-  EnvironmentLinks.EnvironmentPublicKeyListPersistenceError,
+  EnvironmentLinks.EnvironmentManagedRelayKeyLookupPersistenceError,
   EnvironmentLinks.EnvironmentLinkListPersistenceError,
   EnvironmentLinks.EnvironmentLinkLookupPersistenceError,
   EnvironmentLinks.EnvironmentLinkRevokePersistenceError,
-  ManagedEndpointAllocations.ManagedEndpointAllocationPersistenceError,
   EnvironmentCredentials.EnvironmentCredentialAuthenticatePersistenceError,
   EnvironmentCredentials.EnvironmentCredentialRevokePersistenceError,
   DpopProofs.DpopProofReplayPersistenceError,

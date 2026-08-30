@@ -59,15 +59,25 @@ export interface ManagedEndpointGatewayPath {
   readonly downstreamPath: string;
 }
 
+const RAS_RELAY_ENDPOINT_ID = /^[a-f0-9]{16}$/u;
+
+export function parseRasRelayConnectorPath(pathname: string): string | null {
+  const prefix = "/v1/ras-relay/connect/";
+  const endpointId = pathname.startsWith(prefix) ? pathname.slice(prefix.length) : "";
+  return RAS_RELAY_ENDPOINT_ID.test(endpointId) ? endpointId : null;
+}
+
 export function parseManagedEndpointGatewayPath(
   pathname: string,
 ): ManagedEndpointGatewayPath | null {
-  const match = /^\/e\/([a-f0-9]{16})(\/.*)?$/u.exec(pathname);
+  const match = /^\/e\/([^/]+)(\/.*)?$/u.exec(pathname);
   return match
-    ? {
-        endpointId: match[1]!,
-        downstreamPath: match[2] || "/",
-      }
+    ? RAS_RELAY_ENDPOINT_ID.test(match[1]!)
+      ? {
+          endpointId: match[1]!,
+          downstreamPath: match[2] || "/",
+        }
+      : null
     : null;
 }
 

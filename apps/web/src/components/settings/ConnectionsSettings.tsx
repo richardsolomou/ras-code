@@ -197,7 +197,7 @@ const PAIRING_SCOPE_OPTIONS: ReadonlyArray<{
   {
     scope: AuthRelayWriteScope,
     title: "Manage relay",
-    description: "Change managed tunnel connectivity.",
+    description: "Change managed relay connectivity.",
   },
 ];
 
@@ -1612,7 +1612,7 @@ function ConfiguredCloudLinkRow({ canManageRelay }: { readonly canManageRelay: b
   const {
     isSignedIn,
     linkState: primaryCloudLinkState,
-    managedTunnelActive,
+    managedRelayActive,
     publishAgentActivity,
     operationError,
     reconcileCloudState,
@@ -1627,23 +1627,23 @@ function ConfiguredCloudLinkRow({ canManageRelay }: { readonly canManageRelay: b
       : null;
   const isBusy = isUpdating || isUpdatingPreference;
 
-  const updateManagedTunnel = async (enabled: boolean) => {
+  const updateManagedRelay = async (enabled: boolean) => {
     setIsUpdating(true);
-    const ok = await reconcileCloudState({ managedTunnel: enabled, publish: publishAgentActivity });
+    const ok = await reconcileCloudState({ managedRelay: enabled, publish: publishAgentActivity });
     if (ok) {
-      // Turning the tunnel off while publishing stays on downgrades the link
+      // Turning relay access off while publishing stays on downgrades the link
       // rather than removing it — say so instead of claiming an unlink.
       toastManager.add({
         type: "success",
         title: enabled
           ? "RAS Connect linked"
           : publishAgentActivity
-            ? "RAS Connect tunnel disabled"
+            ? "RAS Connect access disabled"
             : "RAS Connect unlinked",
         description: enabled
           ? "This environment is available through RAS Connect."
           : publishAgentActivity
-            ? "The managed tunnel was removed. Agent activity publishing stays on."
+            ? "Managed relay access was removed. Agent activity publishing stays on."
             : "This environment is no longer available through RAS Connect.",
       });
     }
@@ -1652,7 +1652,7 @@ function ConfiguredCloudLinkRow({ canManageRelay }: { readonly canManageRelay: b
 
   const updatePublishAgentActivity = async (enabled: boolean) => {
     setIsUpdatingPreference(true);
-    const ok = await reconcileCloudState({ managedTunnel: managedTunnelActive, publish: enabled });
+    const ok = await reconcileCloudState({ managedRelay: managedRelayActive, publish: enabled });
     if (ok) {
       toastManager.add({
         type: "success",
@@ -1671,24 +1671,24 @@ function ConfiguredCloudLinkRow({ canManageRelay }: { readonly canManageRelay: b
         <SettingsRow
           title="RAS Connect"
           description={
-            managedTunnelActive
+            managedRelayActive
               ? "This environment is available to your other devices through RAS Connect."
               : "Make this environment available to your other devices through RAS Connect."
           }
           status={operationError ?? primaryCloudLinkState.error}
           control={
             <CloudLinkSwitch
-              checked={managedTunnelActive}
+              checked={managedRelayActive}
               disabled={!canManageRelay || !isSignedIn || primaryCloudLinkState.isPending || isBusy}
               disabledReason={disabledReason}
-              onCheckedChange={(enabled) => void updateManagedTunnel(enabled)}
+              onCheckedChange={(enabled) => void updateManagedRelay(enabled)}
             />
           }
         />
       ) : null}
       <SettingsRow
         title="Publish agent activity"
-        description="Send activity from this environment to your mobile clients for push notifications and Live Activities. Works without a RAS Connect tunnel."
+        description="Send activity from this environment to your mobile clients for push notifications and Live Activities. Works without RAS Connect remote access."
         control={
           <CloudLinkSwitch
             ariaLabel="Publish agent activity to mobile clients"

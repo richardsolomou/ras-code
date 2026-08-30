@@ -2,7 +2,7 @@
 
 > For maintainers. Using RAS Code? See [docs/user](../user/).
 
-Remote environments are shipped, not planned. Direct, bearer-paired, relay-tunneled, Tailscale, and
+Remote environments are shipped, not planned. Direct, bearer-paired, relay-backed, Tailscale, and
 desktop-managed SSH access all exist today. This document describes the model they share and where
 each piece lives. For the user-facing setup guide see
 [remote access](../user/remote-access.md).
@@ -21,7 +21,7 @@ the connection layer, never by splitting the runtime.
                 │ resolves one access endpoint
 ┌───────────────▼──────────────────────────────┐
 │ Access method                                │
-│  direct ws/wss, relay tunnel,                │
+│  direct ws/wss, RAS relay,                   │
 │  Tailscale serve, desktop-managed ssh        │
 └───────────────┬──────────────────────────────┘
                 │ connects to one RAS Code server
@@ -54,7 +54,7 @@ control plane or a copy of session state.
 | ------------------------- | ------------------------------------------------------------------------ |
 | `PrimaryConnectionTarget` | The platform-managed local server (desktop backend, CLI-served web app). |
 | `BearerConnectionTarget`  | Any manually paired endpoint reached over direct HTTP/WebSocket.         |
-| `RelayConnectionTarget`   | Managed RAS Connect relay tunnels.                                       |
+| `RelayConnectionTarget`   | Managed RAS Connect relay endpoints.                                     |
 | `SshConnectionTarget`     | Desktop-managed SSH environments.                                        |
 
 Bearer, relay, and SSH are persisted; primary is platform-managed. Note that Tailscale is not a
@@ -165,13 +165,13 @@ how the server got started or who manages the process.
 It works for desktop, mobile, and web with no client-side process management. Browser security rules
 are part of it: a hosted HTTPS client cannot connect to plain `ws://` or `http://` LAN backends.
 
-### Relay-tunneled access
+### Relay-backed access
 
-Managed RAS Connect relay tunnels use `RelayConnectionTarget` and are the answer when the host is
+Managed RAS Connect relay endpoints use `RelayConnectionTarget` and are the answer when the host is
 behind NAT, inbound ports are unavailable, or mobile must reach a desktop-hosted environment. From
 the client's perspective this is still an ordinary WebSocket connection; the route is mediated. The
-relay Worker brokers credentials and routes application traffic from its shared path gateway to the
-provisioned Cloudflare tunnel for the life of the connection. See
+server opens one authenticated outbound WebSocket to the relay Worker. A Durable Object for that
+endpoint multiplexes public HTTP and WebSocket traffic over the connector. See
 [ras-connect.md](./ras-connect.md).
 
 ### Tailscale access
@@ -205,8 +205,8 @@ before reconnecting the WebSocket client.
 Launch answers a different question: how does a RAS Code server come to exist on the target machine? Keep
 it separate from access.
 
-- **Pre-existing server.** The operator already runs RAS Code and the client connects directly or through a
-  tunnel.
+- **Pre-existing server.** The operator already runs RAS Code and the client connects directly or through the
+  relay.
 - **Desktop-managed remote launch over SSH.** Desktop probes the machine, launches or reuses a remote
   server, forwards a port, and the renderer connects normally. The saved environment records that it
   came from SSH launch for reconnect and lifecycle UX only; that metadata never changes the protocol
@@ -221,7 +221,7 @@ paths differ.
 ## Security model
 
 Some environments are reachable over untrusted networks, so remote-capable environments require
-explicit authentication, tunnel exposure never relies on obscurity, and saved endpoints carry enough
+explicit authentication, relay exposure never relies on obscurity, and saved endpoints carry enough
 auth metadata to reconnect safely.
 
 WebSocket authentication is a dedicated short-lived ticket, not a token in a query string. The client

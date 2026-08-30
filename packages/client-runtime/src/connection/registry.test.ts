@@ -160,7 +160,7 @@ const makeHarness = Effect.fn("TestEnvironmentRegistry.makeHarness")(function* (
           endpoint: {
             httpBaseUrl: "https://ssh.example.test",
             wsBaseUrl: "wss://ssh.example.test",
-            providerKind: "cloudflare_tunnel",
+            providerKind: "ras_relay",
           },
           accessToken: "cached-token",
           expiresAtEpochMs: Number.MAX_SAFE_INTEGER,

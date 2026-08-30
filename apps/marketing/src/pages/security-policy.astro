@@ -21,7 +21,7 @@ const sections = [
   heading="RAS Code Security Policy"
   lede="RAS Code runs on your machines and RAS Connect is operated by one person. This policy explains how to report a vulnerability, what is in scope, and what protects you when you research in good faith."
   effectiveDate="2026-08-28"
-  lastUpdated="2026-08-28"
+  lastUpdated="2026-08-30"
   sections={sections}
 >
   <section id="introduction">
@@ -32,11 +32,11 @@ const sections = [
       it, the RAS Connect relay operated by Richard Solomou, and the RAS Code website.
     </p>
     <p>
-      RAS Connect is a control plane. It links your devices to a RAS Code server you run yourself and
-      delivers notifications; it is not in the path of your normal traffic, and it never receives your
-      prompts, source code, or agent output. Most of the execution path belongs to you: your machine,
-      your network, your repositories, and the agent providers you configure. Security here is
-      genuinely shared.
+      RAS Connect links your devices to a RAS Code server you run yourself and delivers
+      notifications. Managed endpoints carry your API and WebSocket traffic through its shared
+      relay; local-network and self-operated connections do not. Most of the execution path belongs
+      to you: your machine, your network, your repositories, and the agent providers you configure.
+      Security here is genuinely shared.
     </p>
   </section>
 
@@ -78,7 +78,7 @@ const sections = [
       <li>Environment linking, credential issuance, and the authorisation boundaries between one
         account's environments and another's;</li>
       <li>Managed endpoint provisioning, including anything that lets one account reach or affect
-        another account's tunnel or hostname;</li>
+        another account's relay endpoint or session;</li>
       <li>Notification and Live Activity delivery, including anything that leaks activity data to the
         wrong device or account;</li>
       <li>The RAS Code server, its WebSocket protocol, its pairing and token handling, and its

@@ -28,7 +28,7 @@ function cloudEnvironment(environmentId: string): RelayClientEnvironmentRecord {
     endpoint: {
       httpBaseUrl: `https://${environmentId}.cloud.example.test/`,
       wsBaseUrl: `wss://${environmentId}.cloud.example.test/ws`,
-      providerKind: "cloudflare_tunnel",
+      providerKind: "ras_relay",
     },
     linkedAt: "2026-01-01T00:00:00.000Z",
   };

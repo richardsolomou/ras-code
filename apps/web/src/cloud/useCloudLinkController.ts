@@ -19,17 +19,17 @@ import { usePrimaryCloudLinkState } from "./primaryCloudLinkState";
 import { resolveRelayClerkTokenOptions } from "./publicConfig";
 
 export interface CloudLinkDesiredState {
-  readonly managedTunnel: boolean;
+  readonly managedRelay: boolean;
   readonly publish: boolean;
 }
 
 /**
- * Drives the primary environment's RAS Connect link. RAS Connect (managed
- * tunnel) and agent-activity publishing are independent capabilities backed by
+ * Drives the primary environment's RAS Connect link. Managed relay access and
+ * agent-activity publishing are independent capabilities backed by
  * a single relay link, so consumers express the full desired state and
  * `reconcileCloudState` applies it: unlink when neither is wanted, otherwise
- * (re)link with the mode the managed-tunnel bit implies and set the publish
- * preference. Re-linking only happens when the managed-tunnel mode actually
+ * (re)link with the mode the managed-relay bit implies and set the publish
+ * preference. Re-linking only happens when the managed-relay mode actually
  * changes, so flipping publish alone is cheap.
  */
 export function useCloudLinkController() {
@@ -70,10 +70,7 @@ export function useCloudLinkController() {
     });
   };
 
-  // Older environment servers predate the managedTunnelActive field; for them a
-  // link always implies a managed tunnel, so fall back to `linked`.
-  const managedTunnelActive =
-    primaryCloudLinkState.data?.managedTunnelActive ?? primaryCloudLinkState.data?.linked ?? false;
+  const managedRelayActive = primaryCloudLinkState.data?.managedRelayActive ?? false;
   const publishAgentActivity = primaryCloudLinkState.data?.publishAgentActivity ?? false;
   const linked = primaryCloudLinkState.data?.linked ?? false;
 
@@ -85,7 +82,7 @@ export function useCloudLinkController() {
       return false;
     }
     const tokenResult = await settlePromise(() => getToken(resolveRelayClerkTokenOptions()));
-    const wantsLink = desired.managedTunnel || desired.publish;
+    const wantsLink = desired.managedRelay || desired.publish;
 
     // A failure after this point may follow a partially applied mutation (e.g.
     // the link succeeded but the preference update did not), so every exit —
@@ -115,11 +112,11 @@ export function useCloudLinkController() {
         reportUpdateFailure(new Error("Sign in to RAS Connect before enabling this."));
         return false;
       }
-      if (!linked || managedTunnelActive !== desired.managedTunnel) {
+      if (!linked || managedRelayActive !== desired.managedRelay) {
         const linkResult = await linkPrimaryEnvironment({
           target,
           clerkToken,
-          mode: desired.managedTunnel ? "managed" : "publish_only",
+          mode: desired.managedRelay ? "managed" : "publish_only",
         });
         if (linkResult._tag === "Failure") {
           if (!isAtomCommandInterrupted(linkResult)) {
@@ -155,7 +152,7 @@ export function useCloudLinkController() {
     isSignedIn,
     linkState: primaryCloudLinkState,
     linked,
-    managedTunnelActive,
+    managedRelayActive,
     publishAgentActivity,
     operationError,
     reconcileCloudState,

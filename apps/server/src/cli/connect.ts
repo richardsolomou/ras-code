@@ -1,12 +1,6 @@
-import {
-  AuthRelayWriteScope,
-  EnvironmentHttpApi,
-  type RelayClientInstallProgressEvent,
-  type RelayClientInstallProgressStage,
-} from "@ras-code/contracts";
+import { AuthRelayWriteScope, EnvironmentHttpApi } from "@ras-code/contracts";
 import { RelayOkResponse } from "@ras-code/contracts/relay";
 import { HostProcessPlatform } from "@ras-code/shared/hostProcess";
-import * as RelayClient from "@ras-code/shared/relayClient";
 import { withRelayClientTracing } from "@ras-code/shared/relayTracing";
 import * as Cause from "effect/Cause";
 import * as Config from "effect/Config";
@@ -154,32 +148,6 @@ interface CloudCliStatus {
   readonly cloudUserId: string | null;
   readonly relayUrl: string | null;
   readonly publishAgentActivity: boolean;
-  readonly relayClient: RelayClient.RelayClientStatus;
-}
-
-function formatRelayClientStatus(executable: RelayClient.RelayClientStatus): ReadonlyArray<string> {
-  switch (executable.status) {
-    case "available": {
-      const source =
-        executable.source === "path"
-          ? "PATH"
-          : executable.source === "managed"
-            ? "managed install"
-            : "configured override";
-      return [
-        `  Relay client: available via ${source}`,
-        `    Path: ${executable.executablePath}`,
-        `    Version: ${executable.version}`,
-      ];
-    }
-    case "missing":
-      return ["  Relay client: not installed"];
-    case "unsupported":
-      return [
-        `  Relay client: unsupported on ${executable.platform}-${executable.arch}`,
-        `    Managed version: ${executable.version}`,
-      ];
-  }
 }
 
 function formatCloudStatus(status: CloudCliStatus, options?: { readonly json?: boolean }): string {
@@ -197,7 +165,7 @@ function formatCloudStatus(status: CloudCliStatus, options?: { readonly json?: b
     : !status.desired
       ? "Run `ras connect link` to enable RAS Connect."
       : !status.linked
-        ? "Start RAS Code to provision the environment link and launch its managed tunnel."
+        ? "Start RAS Code to provision the environment link and launch its relay."
         : undefined;
 
   return [
@@ -207,64 +175,11 @@ function formatCloudStatus(status: CloudCliStatus, options?: { readonly json?: b
     `  Environment link: ${provisioned}`,
     `  Relay: ${status.relayUrl ?? "not provisioned"}`,
     `  Publish agent activity: ${status.publishAgentActivity ? "enabled" : "disabled"}`,
-    ...formatRelayClientStatus(status.relayClient),
     ...(nextStep ? ["", `Next: ${nextStep}`] : []),
   ].join("\n");
 }
 
 const CLOUD_CLI_LIVE_SERVER_TIMEOUT = Duration.seconds(5);
-
-const confirmRelayClientInstall = (version: string) =>
-  Prompt.run(
-    Prompt.confirm({
-      message: `The RAS Code relay client is required for RAS Connect. Download and install version ${version}?`,
-      initial: false,
-    }),
-  );
-
-function relayClientInstallProgressMessage(stage: RelayClientInstallProgressStage): string {
-  switch (stage) {
-    case "checking":
-      return "Checking existing installation";
-    case "waiting_for_lock":
-      return "Waiting for installation lock";
-    case "downloading":
-      return "Downloading";
-    case "verifying":
-      return "Verifying download";
-    case "installing":
-      return "Installing";
-    case "validating":
-      return "Validating executable";
-    case "activating":
-      return "Activating installation";
-  }
-}
-
-const reportRelayClientInstallProgress = (event: RelayClientInstallProgressEvent) =>
-  event.type === "progress"
-    ? Console.log(`Relay client: ${relayClientInstallProgressMessage(event.stage)}...`)
-    : Effect.void;
-
-export const acquireRelayClientForLink = Effect.fn("cloud.cli.acquire_relay_client_for_link")(
-  function* <ConfirmError, ConfirmContext>(
-    relayClient: RelayClient.RelayClient["Service"],
-    confirmInstall: (version: string) => Effect.Effect<boolean, ConfirmError, ConfirmContext>,
-    reportProgress: (event: RelayClientInstallProgressEvent) => Effect.Effect<void>,
-  ) {
-    const executable = yield* relayClient.resolve;
-    if (executable.status === "available") {
-      return Option.some(executable);
-    }
-    if (executable.status === "unsupported") {
-      return Option.some(yield* relayClient.installWithProgress(reportProgress));
-    }
-    if (!(yield* confirmInstall(executable.version))) {
-      return Option.none();
-    }
-    return Option.some(yield* relayClient.installWithProgress(reportProgress));
-  },
-);
 
 const withCloudCliSessionToken = <A, E, R>(
   environmentAuth: EnvironmentAuth.EnvironmentAuth["Service"],
@@ -368,7 +283,7 @@ export const reportCloudDisconnectResults = Effect.fn("cloud.cli.report_disconne
         input.liveResult.cause,
       );
       yield* Console.warn(
-        "RAS Connect is disabled, but the running server could not stop its tunnel.\nRestart that server to stop the connector.",
+        "RAS Connect is disabled, but the running server could not stop its connector.\nRestart that server to stop the connector.",
       );
     } else {
       yield* Console.log("RAS Connect is disabled locally.");
@@ -424,7 +339,6 @@ const runCloudCommand = Effect.fn("cloud.cli.run_cloud_command")(function* <A, E
     E,
     | ServerSecretStore.ServerSecretStore
     | CliTokenManager.CloudCliTokenManager
-    | RelayClient.RelayClient
     | EnvironmentAuth.EnvironmentAuth
     | BootService.BootService
     | Crypto.Crypto
@@ -447,7 +361,6 @@ const runCloudCommand = Effect.fn("cloud.cli.run_cloud_command")(function* <A, E
       Layer.provide(ServerSecretStore.layer),
       Layer.provide(ExternalLauncher.layer),
     ),
-    RelayClient.layerCloudflared({ baseDir: config.baseDir }),
     EnvironmentAuth.runtimeLayer,
     ServerEnvironment.layer.pipe(Layer.provide(ServerSecretStore.layer)),
     bootServiceLayer(config),
@@ -462,29 +375,11 @@ const runCloudCommand = Effect.fn("cloud.cli.run_cloud_command")(function* <A, E
 
 const connectedAs = (identity: string | null): string => (identity ? ` as ${identity}` : "");
 
-export function formatRelayClientReady(version: string): string {
-  return `✓ Relay client ready · cloudflared ${version}`;
-}
-
 const linkEnvironmentForConnect = Effect.fn("cloud.cli.link_environment")(function* (options: {
   readonly headless: boolean;
   readonly publishOnly?: boolean;
 }) {
   const publishOnly = options.publishOnly ?? false;
-  if (!publishOnly) {
-    const relayClient = yield* RelayClient.RelayClient;
-    const installed = yield* acquireRelayClientForLink(
-      relayClient,
-      confirmRelayClientInstall,
-      reportRelayClientInstallProgress,
-    );
-    if (Option.isNone(installed)) {
-      yield* Console.log("RAS Connect setup cancelled. The relay client was not installed.");
-      return null;
-    }
-    yield* Console.log(formatRelayClientReady(installed.value.version));
-  }
-
   const identity = yield* authorizeCli(options);
   yield* CliState.setCliDesiredCloudLink(true, publishOnly ? "publish_only" : "managed");
   if (publishOnly) {
@@ -516,7 +411,7 @@ const connectLinkCommand = Command.make("link", {
   headless: headlessFlag,
   publishOnly: Flag.boolean("publish-only").pipe(
     Flag.withDescription(
-      "Link to publish agent activity only — no managed tunnel. Reach this environment out of band (e.g. Tailscale).",
+      "Link to publish agent activity only — no managed relay access. Reach this environment out of band (e.g. Tailscale).",
     ),
     Flag.withDefault(false),
   ),
@@ -532,7 +427,7 @@ const connectLinkCommand = Command.make("link", {
           const serveCommand = yield* resolveCliCommand("serve");
           yield* Console.log(
             flags.publishOnly
-              ? `✓ Authorized${connectedAs(linked.identity)}\n\nNext\n  Start RAS Code to publish agent activity (no managed tunnel).`
+              ? `✓ Authorized${connectedAs(linked.identity)}\n\nNext\n  Start RAS Code to publish agent activity (no managed relay access).`
               : `✓ Authorized${connectedAs(linked.identity)}\n\nNext\n  Start the server with \`${serveCommand}\` to make this machine reachable.`,
           );
         }
@@ -545,15 +440,14 @@ const connectStatusCommand = Command.make("status", {
   ...projectLocationFlags,
   json: jsonFlag,
 }).pipe(
-  Command.withDescription("Show persisted RAS Connect and relay client state."),
+  Command.withDescription("Show persisted RAS Connect and relay state."),
   Command.withHandler((flags) =>
     runCloudCommand(
       flags,
       Effect.gen(function* () {
         const secrets = yield* ServerSecretStore.ServerSecretStore;
-        const relayClient = yield* RelayClient.RelayClient;
         const tokens = yield* CliTokenManager.CloudCliTokenManager;
-        const [desired, authenticated, cloudUserId, relayUrl, publishAgentActivity, executable] =
+        const [desired, authenticated, cloudUserId, relayUrl, publishAgentActivity] =
           yield* Effect.all(
             [
               CliState.readCliDesiredCloudLink,
@@ -561,7 +455,6 @@ const connectStatusCommand = Command.make("status", {
               secrets.get(CLOUD_LINKED_USER_ID),
               secrets.get(RELAY_URL_SECRET),
               secrets.get(PUBLISH_AGENT_ACTIVITY_SECRET),
-              relayClient.resolve,
             ],
             { concurrency: "unbounded" },
           );
@@ -574,7 +467,6 @@ const connectStatusCommand = Command.make("status", {
           publishAgentActivity: isPublishAgentActivityEnabledValue(
             Option.isSome(publishAgentActivity) ? bytesToString(publishAgentActivity.value) : null,
           ),
-          relayClient: executable,
         };
         yield* Console.log(formatCloudStatus(status, { json: flags.json }));
       }),
@@ -607,10 +499,7 @@ const connectPublishCommand = Command.make("publish", {
           stringToBytes(enabled ? "true" : "false"),
         );
         if (!enabled) {
-          // If enabling scheduled a publish-only link that hasn't been
-          // provisioned yet, disabling must cancel it too — otherwise the next
-          // start still links an environment whose only purpose was publishing.
-          // A pending managed link is left alone; it exists for the tunnel.
+          // Only cancel publish-only intent; a managed link also enables remote access.
           const linkedNow = Option.isSome(yield* secrets.get(CLOUD_LINKED_USER_ID));
           if (!linkedNow && (yield* CliState.readCliDesiredLinkMode) === "publish_only") {
             yield* CliState.setCliDesiredCloudLink(false);
@@ -648,7 +537,7 @@ const connectPublishCommand = Command.make("publish", {
         }
         yield* CliState.setCliDesiredCloudLink(true, "publish_only");
         yield* Console.log(
-          "Restart RAS Code to finish authorizing this environment to publish (no managed tunnel is created).",
+          "Restart RAS Code to finish authorizing this environment to publish (managed relay access stays off).",
         );
       }),
     ),

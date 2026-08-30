@@ -2,6 +2,7 @@ import {
   RelayEnvironmentLinkProofPayload,
   RelayEnvironmentLinkProofInvalidReason,
   type RelayEnvironmentLinkRequest,
+  type RelayManagedEndpointRuntimeConfig,
 } from "@ras-code/contracts/relay";
 import {
   decodeRelayJwt,
@@ -20,6 +21,7 @@ import * as RelayTokens from "../auth/RelayTokens.ts";
 import * as EnvironmentCredentials from "./EnvironmentCredentials.ts";
 import * as EnvironmentLinks from "./EnvironmentLinks.ts";
 import * as ManagedEndpointProvider from "./ManagedEndpointProvider.ts";
+import * as RasRelaySession from "./RasRelaySession.ts";
 import * as RelayConfiguration from "../Config.ts";
 
 export class EnvironmentLinkProofExpired extends Schema.TaggedErrorClass<EnvironmentLinkProofExpired>()(
@@ -67,6 +69,7 @@ export type EnvironmentLinkError =
   | EnvironmentLinkProofInvalid
   | DpopProofs.DpopProofReplayPersistenceError
   | EnvironmentLinks.EnvironmentLinkUpsertPersistenceError
+  | EnvironmentLinks.EnvironmentLinkLookupPersistenceError
   | EnvironmentCredentials.EnvironmentCredentialCreatePersistenceError
   | ManagedEndpointProvider.ManagedEndpointProviderError;
 
@@ -80,9 +83,7 @@ export class EnvironmentLinker extends Context.Service<
       {
         readonly environmentId: RelayEnvironmentLinkProofPayload["environmentId"];
         readonly endpoint: RelayEnvironmentLinkProofPayload["endpoint"];
-        readonly endpointRuntime:
-          | ManagedEndpointProvider.ManagedEndpointProvisioningResult["runtime"]
-          | null;
+        readonly endpointRuntime: RelayManagedEndpointRuntimeConfig | null;
         readonly environmentCredential: string;
       },
       EnvironmentLinkError
@@ -97,7 +98,7 @@ function proofAuthorizesRequestedCapabilities(
   request: RelayEnvironmentLinkRequest,
 ): boolean {
   const scopes = new Set(proof.scopes);
-  if (request.managedTunnelsEnabled && !scopes.has("managed_tunnels")) {
+  if (request.managedRelayEnabled && !scopes.has("managed_relay")) {
     return false;
   }
   return !(
@@ -123,9 +124,7 @@ function normalizeHostname(hostname: string): string {
     .replace(/^\[(.*)\]$/u, "$1");
 }
 
-function isLoopbackManagedTunnelOrigin(
-  origin: RelayEnvironmentLinkProofPayload["origin"],
-): boolean {
+function isLoopbackManagedRelayOrigin(origin: RelayEnvironmentLinkProofPayload["origin"]): boolean {
   const hostname = normalizeHostname(origin.localHttpHost);
   return (
     (hostname === "127.0.0.1" || hostname === "::1" || hostname === "localhost") &&
@@ -141,6 +140,7 @@ const make = Effect.gen(function* () {
   const managedEndpointProvider = yield* ManagedEndpointProvider.ManagedEndpointProvider;
   const proofReplay = yield* DpopProofs.DpopProofReplay;
   const relayTokens = yield* RelayTokens.RelayTokens;
+  const rasRelaySessions = yield* RasRelaySession.RasRelaySessionDirectory;
   const config = yield* RelayConfiguration.RelayConfiguration;
 
   return EnvironmentLinker.of({
@@ -174,7 +174,7 @@ const make = Effect.gen(function* () {
         "relay.environment_id": candidate.environmentId,
         "relay.link.notifications_enabled": input.request.notificationsEnabled,
         "relay.link.live_activities_enabled": input.request.liveActivitiesEnabled,
-        "relay.link.managed_tunnels_enabled": input.request.managedTunnelsEnabled,
+        "relay.link.managed_relay_enabled": input.request.managedRelayEnabled,
       });
       if (candidate.exp <= nowSeconds) {
         return yield* new EnvironmentLinkProofExpired({
@@ -230,7 +230,7 @@ const make = Effect.gen(function* () {
         request: {
           notificationsEnabled: input.request.notificationsEnabled,
           liveActivitiesEnabled: input.request.liveActivitiesEnabled,
-          managedTunnelsEnabled: input.request.managedTunnelsEnabled,
+          managedRelayEnabled: input.request.managedRelayEnabled,
         },
         nowEpochSeconds: nowSeconds,
       });
@@ -279,7 +279,7 @@ const make = Effect.gen(function* () {
           stage: "consume_challenge_nonce",
         });
       }
-      if (input.request.managedTunnelsEnabled && !isLoopbackManagedTunnelOrigin(verified.origin)) {
+      if (input.request.managedRelayEnabled && !isLoopbackManagedRelayOrigin(verified.origin)) {
         return yield* new EnvironmentLinkProofInvalid({
           userId: input.userId,
           environmentId: verified.environmentId,
@@ -287,40 +287,20 @@ const make = Effect.gen(function* () {
           stage: "validate_origin",
         });
       }
-      // Downgrading a managed link to publish-only must release the tunnel and
-      // DNS that were provisioned for it — nothing else cleans them up until a
-      // full unlink. Best effort: a cleanup failure must not block the link
-      // itself, and the provider treats an absent allocation as already
-      // deprovisioned, so retrying on every non-tunnel link is cheap.
-      if (!input.request.managedTunnelsEnabled) {
-        yield* managedEndpointProvider
-          .deprovision({
-            userId: input.userId,
-            environmentId: verified.environmentId,
-          })
-          .pipe(
-            Effect.tapError((error) =>
-              Effect.logWarning("managed endpoint deprovision on publish-only link failed", {
-                environmentId: verified.environmentId,
-                errorTag: error._tag,
-              }),
-            ),
-            Effect.ignore,
-          );
-      }
-      const provisioned = input.request.managedTunnelsEnabled
+      const provisioned = input.request.managedRelayEnabled
         ? yield* managedEndpointProvider.provision({
             userId: input.userId,
             environmentId: verified.environmentId,
+            environmentPublicKey: verified.environmentPublicKey,
             origin: verified.origin,
           })
         : null;
       const endpoint = provisioned?.endpoint ?? verified.endpoint;
       // The secure-endpoint requirement only matters when the relay advertises
-      // this endpoint for other devices to reach (managed tunnel). Publish-only
+      // this endpoint for other devices to reach (managed relay). Publish-only
       // links are reached out of band (e.g. Tailscale) and their stored endpoint
       // is never used for routing, so a nominal endpoint is acceptable.
-      if (input.request.managedTunnelsEnabled && !isSecureManagedEndpoint(endpoint)) {
+      if (input.request.managedRelayEnabled && !isSecureManagedEndpoint(endpoint)) {
         return yield* new EnvironmentLinkProofInvalid({
           userId: input.userId,
           environmentId: verified.environmentId,
@@ -328,15 +308,44 @@ const make = Effect.gen(function* () {
           stage: "validate_endpoint",
         });
       }
+      const replacedLink = yield* links.getForUser({
+        userId: input.userId,
+        environmentId: verified.environmentId,
+      });
       yield* links.upsert({ ...input, proof: verified, endpoint });
+      if (replacedLink?.endpoint.providerKind === "ras_relay") {
+        const replacedKeyStillActive = yield* links
+          .isManagedRelayPublicKeyActive({
+            environmentId: verified.environmentId,
+            environmentPublicKey: replacedLink.environmentPublicKey,
+          })
+          .pipe(
+            Effect.tapError((cause) =>
+              Effect.logWarning("Could not verify whether a replaced relay key remains active", {
+                environmentId: verified.environmentId,
+                cause,
+              }),
+            ),
+            Effect.orElseSucceed(() => false),
+          );
+        if (!replacedKeyStillActive) {
+          yield* rasRelaySessions.disconnect({
+            environmentId: verified.environmentId,
+            environmentPublicKey: replacedLink.environmentPublicKey,
+          });
+        }
+      }
       const environmentCredential = yield* credentials.create({
         environmentId: verified.environmentId,
         environmentPublicKey: verified.environmentPublicKey,
       });
+      const endpointRuntime: RelayManagedEndpointRuntimeConfig | null = provisioned
+        ? { ...provisioned.runtime, connectorToken: environmentCredential }
+        : null;
       return {
         environmentId: verified.environmentId,
         endpoint,
-        endpointRuntime: provisioned?.runtime ?? null,
+        endpointRuntime,
         environmentCredential,
       };
     }),
