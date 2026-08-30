@@ -35,7 +35,12 @@ import { legacyProjectCwdPreferenceKey, useUiStateStore } from "../uiStateStore"
 import { useClientSettings } from "./useSettings";
 import { toastManager } from "../components/ui/toast";
 import { useOpenDraftInPane } from "./useOpenThreadInPane";
-import { isCompanionVisible, selectFocusedThread, useChatPaneStore } from "../chatPaneStore";
+import {
+  isCompanionVisible,
+  planRoutedDraftOpen,
+  selectFocusedThread,
+  useChatPaneStore,
+} from "../chatPaneStore";
 
 interface NewThreadWorkspaceOptions {
   branch?: string | null;
@@ -248,6 +253,8 @@ export function useNewThreadHandler() {
         : null;
       if (emptyStoredDraftThread) {
         return (async () => {
+          const draftWasRoutedAtStart =
+            routeTarget?.kind === "draft" && routeTarget.draftId === emptyStoredDraftThread.draftId;
           const isDraftAlreadyOpen =
             currentRouteTarget?.kind === "draft" &&
             currentRouteTarget.draftId === emptyStoredDraftThread.draftId;
@@ -281,6 +288,7 @@ export function useNewThreadHandler() {
             // the winner already did this work.
             const routeTargetNow = getCurrentRouteTarget();
             const openedMeanwhile =
+              !draftWasRoutedAtStart &&
               routeTargetNow?.kind === "draft" &&
               routeTargetNow.draftId === emptyStoredDraftThread.draftId;
             const promotedMeanwhile =
@@ -365,6 +373,9 @@ export function useNewThreadHandler() {
             routeTargetAfterWrites?.kind === "draft" &&
             routeTargetAfterWrites.draftId === emptyStoredDraftThread.draftId
           ) {
+            const latestPaneState = useChatPaneStore.getState();
+            const nextLayout = planRoutedDraftOpen(latestPaneState, openInPane);
+            if (nextLayout !== latestPaneState) latestPaneState.applyLayout(nextLayout);
             return opened;
           }
           await openDraftInPane(emptyStoredDraftThread.draftId, {

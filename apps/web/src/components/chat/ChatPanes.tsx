@@ -461,10 +461,10 @@ export function ChatPanes({ children }: { children: ReactNode }) {
   const knownThreadKeys = useMemo(() => new Set(threadRefs.map(scopedThreadKey)), [threadRefs]);
 
   useLayoutEffect(() => {
-    const openedFromPane = takeRouteOpenPane(routeId);
     const previous = previousRouteRef.current;
     previousRouteRef.current = { routeId, routed };
     if (!previous) return;
+    const openedFromPane = previous.routeId === routeId ? null : takeRouteOpenPane(routeId);
     const paneState = useChatPaneStore.getState();
     const nextLayout = planRouteChange({
       layout: paneState,

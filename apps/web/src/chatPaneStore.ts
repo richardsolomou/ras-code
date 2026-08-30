@@ -231,6 +231,18 @@ export function planThreadDrop(input: {
   });
 }
 
+export function planRoutedDraftOpen(
+  layout: ChatPaneMeasuredLayout,
+  openedFromPane: FocusedPane,
+): ChatPaneLayout {
+  if (openedFromPane !== "companion" || !isCompanionVisible(layout)) return layout;
+  return {
+    ...layout,
+    companionSide: oppositePaneSide(layout.companionSide),
+    focusedPane: "routed",
+  };
+}
+
 /** Places drafts and already-visible threads in the pane that opened them. */
 export function planRouteChange(input: {
   layout: ChatPaneMeasuredLayout;

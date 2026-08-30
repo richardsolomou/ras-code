@@ -12,6 +12,7 @@ import {
   openDraftInFocusedPane,
   planThreadDrop,
   planPaneSplit,
+  planRoutedDraftOpen,
   planRouteChange,
   planThreadOpen,
   reconcileCompanion,
@@ -408,6 +409,22 @@ describe("planRouteChange", () => {
         nextRouted: gamma,
       }),
     ).toBe(layout);
+  });
+});
+
+describe("planRoutedDraftOpen", () => {
+  it("moves an already-routed draft into the companion's screen position", () => {
+    expect(
+      planRoutedDraftOpen(
+        splitLayout({ companionSide: "right", focusedPane: "companion" }),
+        "companion",
+      ),
+    ).toEqual(splitLayout({ companionSide: "left", focusedPane: "routed" }));
+  });
+
+  it("keeps an already-routed draft in place when the routed pane opened it", () => {
+    const layout = splitLayout({ focusedPane: "routed" });
+    expect(planRoutedDraftOpen(layout, "routed")).toBe(layout);
   });
 });
 
