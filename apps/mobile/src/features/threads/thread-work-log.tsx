@@ -50,6 +50,7 @@ function ShimmerWorkContent(props: {
   readonly onTextLayout?: ComponentProps<typeof Text>["onTextLayout"];
   readonly showIcon: boolean;
 }) {
+  const highlightedColor = useThemeColor("--color-foreground");
   return (
     <View className="flex-row items-center gap-1.5">
       <View className="h-6 w-6 shrink-0 items-center justify-center">
@@ -58,9 +59,7 @@ function ShimmerWorkContent(props: {
             name={props.icon}
             size={14}
             weight="medium"
-            {...(props.highlighted
-              ? { tintColorClassName: "accent-foreground" as const }
-              : { tintColor: props.iconSubtleColor })}
+            tintColor={props.highlighted ? highlightedColor : props.iconSubtleColor}
             type="monochrome"
           />
         ) : null}

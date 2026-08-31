@@ -29,6 +29,9 @@ public class RasCodeComposerEditorModule: Module {
       Prop("editable") { (view: RasCodeComposerEditorView, editable: Bool) in
         view.setEditable(editable)
       }
+      Prop("readOnly") { (view: RasCodeComposerEditorView, readOnly: Bool) in
+        view.setReadOnly(readOnly)
+      }
       Prop("scrollEnabled") { (view: RasCodeComposerEditorView, scrollEnabled: Bool) in
         view.setScrollEnabled(scrollEnabled)
       }
