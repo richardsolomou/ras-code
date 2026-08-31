@@ -41,9 +41,16 @@ jobs:
         uses: voidzero-dev/setup-vp@v1
         with:
           node-version-file: package.json
-          cache: true
+          # No dependency cache: this job installs a filtered subset of the
+          # workspace, and setup-vp saves whatever store the first job to finish
+          # produced under the lockfile-wide key. A partial store then poisons
+          # every full install after it. Only full-install jobs cache.
+          cache: false
           run-install: |
             args:
+              # The stack builds the site itself, so the app's own toolchain
+              # (Astro) has to be installed alongside the infra package.
+              - --filter=@ras-code/marketing...
               - --filter=ras-code-marketing-infra...
 
       - name: Configure Alchemy credentials
