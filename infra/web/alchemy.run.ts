@@ -57,6 +57,12 @@ export default Alchemy.Stack(
         // serves the shell for app routes and redirects the legacy root
         // entry points.
         notFoundHandling: "none",
+        // The Worker serves the shell by asking the asset layer for
+        // `<base>index.html`. Under the default handling that request is
+        // answered with a redirect back to `<base>`, which the Worker returns
+        // and the browser follows straight back into the Worker — a loop.
+        // Serving the file as named breaks it.
+        htmlHandling: "none",
         // Assets are served before the Worker, so the router never sees a
         // request whose path exactly matches a built file. Alchemy does not
         // currently forward this to Cloudflare (deployed config reports

@@ -21,6 +21,14 @@ const CHANNEL_COOKIE_MAX_AGE = 31_536_000;
  */
 const LEGACY_ROOT_PATHS = ["/pair", "/connect", "/__ras-code/channel"];
 
+/** The prefix without its trailing slash, which is a valid app URL too. */
+const HOSTED_APP_BASE_PATH_BARE = HOSTED_APP_BASE_PATH.slice(0, -1);
+
+/** Whether a request is for the app rather than whatever else shares the host. */
+export function isHostedAppPath(pathname: string): boolean {
+  return pathname === HOSTED_APP_BASE_PATH_BARE || pathname.startsWith(HOSTED_APP_BASE_PATH);
+}
+
 export type Channel = "latest" | "canary";
 
 export interface WebRouterConfig {
@@ -144,7 +152,7 @@ export default {
         // Only asset misses reach the Worker, so an app route that matched no
         // file is a client-side route: hand back the shell and let the router
         // resolve it. Anything outside the prefix is not ours to serve.
-        if (!url.pathname.startsWith(HOSTED_APP_BASE_PATH)) {
+        if (!isHostedAppPath(url.pathname)) {
           return env.ASSETS.fetch(request);
         }
         const shell = new URL(`${HOSTED_APP_BASE_PATH}index.html`, url.origin);
