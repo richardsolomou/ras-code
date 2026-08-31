@@ -131,7 +131,9 @@ Required GitHub Actions secrets:
 Required GitHub Actions variables:
 
 - `CLOUDFLARE_ACCOUNT_ID`
-- `RAS_CODE_WEB_ROUTER_URL`: set to `https://code.ras.sh` for the RAS-hosted deployment.
+- `RAS_CODE_WEB_ROUTER_URL`: set to `https://code.ras.sh/app` for the RAS-hosted
+  deployment. It carries the app's path prefix because clients bake it in as
+  their hosted app URL; the stack itself reads only the hostname from it.
 - `RAS_CODE_WEB_CANARY_DOMAIN`: set to `code-canary.ras.sh` for the RAS-hosted deployment.
 - `RAS_CODE_WEB_ZONE_ID`: the zone the router domain belongs to, which the stable
   channel's routes attach to.
