@@ -2,20 +2,22 @@
  * Post-pick checks for the upstream sync.
  *
  * A cherry-pick that applies without conflicts still leaves the tree wrong in ways git cannot see:
- * upstream's package names survive in files that never conflicted, and upstream's directory names
- * arrive as new paths. Both compile-break or silently resurrect upstream's layout, and neither shows
- * up until a full typecheck runs, which is usually several changes later.
+ * upstream's package names survive in files that never conflicted, upstream's identifier namespaces
+ * survive inside string literals, and upstream's directory names arrive as new paths. These
+ * compile-break, silently resurrect upstream's layout, or simply never surface, and none of them
+ * shows up until a full typecheck runs, which is usually several changes later.
  */
 
 const UPSTREAM_PACKAGE_SCOPES = ["@t3tools/", "@t3-code/"] as const;
 const UPSTREAM_PATH_MARKERS = ["oxlint-plugin-t3code", "apps/t3code", "packages/t3code"] as const;
 
 /**
- * Effect service keys upstream namespaces under `t3/`. The compiler only complains once the
- * package that owns the file is typechecked, so a pick lands and the error surfaces wherever
- * someone next runs a full check.
+ * Identifier namespaces upstream scopes under `t3.` or `t3/`: Effect service keys, atom runtime
+ * ids, `Symbol.for` keys. Nothing complains until the owning package is typechecked, or never, so
+ * a pick lands and the upstream name stays. Upstream hosts and AWS instance types spell `t3.` too,
+ * so a hit needs a second namespace segment.
  */
-const UPSTREAM_SERVICE_KEY = /(?:>\(\)\(|Context\.Tag\()\s*"t3\//u;
+const UPSTREAM_NAMESPACE = /["'`]t3[./][a-z][\w-]*[./]/u;
 
 /**
  * Files whose contents are *supposed* to name upstream, so a hit there is correct rather than a
@@ -32,7 +34,7 @@ export interface UpstreamResidue {
   readonly path: string;
   readonly line: number;
   readonly marker: string;
-  readonly kind: "import" | "path" | "serviceKey";
+  readonly kind: "import" | "path" | "namespace";
 }
 
 export function isContentExempt(path: string): boolean {
@@ -50,8 +52,8 @@ export function findImportResidue(path: string, contents: string): ReadonlyArray
         found.push({ path, line: index + 1, marker, kind: "import" });
       }
     }
-    if (UPSTREAM_SERVICE_KEY.test(line)) {
-      found.push({ path, line: index + 1, marker: "t3/", kind: "serviceKey" });
+    if (UPSTREAM_NAMESPACE.test(line)) {
+      found.push({ path, line: index + 1, marker: "t3.", kind: "namespace" });
     }
   });
   return found;
@@ -77,12 +79,12 @@ export function findPathResidue(paths: ReadonlyArray<string>): ReadonlyArray<Ups
 
 export function formatResidue(residue: ReadonlyArray<UpstreamResidue>): string {
   if (residue.length === 0) {
-    return "No upstream residue: package scopes and directory names are all ours.";
+    return "No upstream residue: package scopes, identifier namespaces, and directory names are all ours.";
   }
   const lines = residue.map((item) => {
     if (item.kind === "path") return `  ${item.path} — upstream path name '${item.marker}'`;
-    if (item.kind === "serviceKey") {
-      return `  ${item.path}:${item.line} — Effect service key namespaced '${item.marker}'`;
+    if (item.kind === "namespace") {
+      return `  ${item.path}:${item.line} — identifier namespaced under upstream '${item.marker}'`;
     }
     return `  ${item.path}:${item.line} — upstream package scope '${item.marker}'`;
   });

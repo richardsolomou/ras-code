@@ -59,7 +59,7 @@ One rule keeps `diverged` from rotting: **a surface we are migrating toward is n
 node scripts/upstream-sync.ts verify
 ```
 
-A cherry-pick that reports no conflict can still leave the tree wrong, because git only reports overlapping edits. `verify` fails when the tree still names upstream: package scopes (`@t3tools/...`) surviving in files no conflict touched, or upstream directory names arriving as new paths. Both compile-break or resurrect upstream's layout, and neither shows up until a full typecheck runs — usually several changes later.
+A cherry-pick that reports no conflict can still leave the tree wrong, because git only reports overlapping edits. `verify` fails when the tree still names upstream: package scopes (`@t3tools/...`) surviving in files no conflict touched, identifier namespaces (`"t3.mobile.connection-runtime"`, `"t3/provider/OpenCodeServerOwner"`) surviving inside string literals, or upstream directory names arriving as new paths. These compile-break, resurrect upstream's layout, or never surface at all, and none of them shows up until a full typecheck runs — usually several changes later.
 
 It exempts the rebrand map and its fixtures, which name upstream deliberately. A bare `grep | xargs` over the tree does not, and rewriting them breaks the map.
 

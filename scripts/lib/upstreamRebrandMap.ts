@@ -23,7 +23,8 @@ export const preservedPatterns: ReadonlyArray<RegExp> = [
   /refs\/t3\/[\w-]+/g,
   /\bt3-chat-dark\b/g,
   /\bt3-chat\b/g,
-  /\b[\w-]*\.?t3\.codes\b/g,
+  /\b[\w-]*\.?t3\.(?:codes|chat|tools|sh)\b/g,
+  /\bt3\.(?:nano|micro|small|medium|large|xlarge|\d+xlarge)\b/g,
   /\bpingdotgg\/t3code\b/g,
   /\bt3_relay\b/g,
 ];
@@ -144,6 +145,11 @@ const textRules: ReadonlyArray<RebrandRule> = [
     pattern: /\bt3_/g,
     replacement: "ras_code_",
     description: "snake_case identifiers",
+  },
+  {
+    pattern: /(?<=["'`])t3(?=[./][a-z])/g,
+    replacement: "ras-code",
+    description: "product-scoped identifier namespaces in string literals",
   },
   {
     pattern: /~\/\.t3\b/g,
