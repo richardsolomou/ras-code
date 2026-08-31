@@ -44,7 +44,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@callstack/liquid-glass": "^0.7.1",
     "@clerk/expo": "catalog:",
     "@effect/atom-react": "catalog:",
     "@expo-google-fonts/barlow": "^0.4.1",

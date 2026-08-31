@@ -4,6 +4,9 @@ RAS Code Mobile uses the same appearance as the desktop and web apps. Color is r
 
 Text is set in Barlow, with Barlow Semi Condensed in tracked caps for legends.
 
+On supported iOS versions, the new-task and thread composers, working timer, and scroll-to-end
+button use the system glass material. Other platforms use a themed background.
+
 RAS Code includes one light theme and one dark theme. They apply throughout the app, including code reviews, file previews, the terminal, native headers, and sheets.
 
 To change the color scheme:
