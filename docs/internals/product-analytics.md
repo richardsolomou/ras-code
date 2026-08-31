@@ -1,17 +1,19 @@
+<!-- markdownlint-disable MD013 -->
+
 # PostHog telemetry
 
-RAS Code sends anonymous telemetry to PostHog. The server uses the first available hashed Codex account ID, hashed Claude user ID, or installation-scoped anonymous ID as the distinct ID. Authenticated web and desktop clients load the browser SDK only after the server confirms that telemetry is enabled. `RAS_CODE_TELEMETRY_ENABLED=false` disables every telemetry product in this document.
+RAS Code sends telemetry to PostHog through server, browser, and mobile SDKs. The server uses the first available hashed Codex account ID, hashed Claude user ID, or installation-scoped anonymous ID as the distinct ID. Authenticated web and desktop clients load the browser SDK only after the server confirms that telemetry is enabled. `RAS_CODE_TELEMETRY_ENABLED=false` disables server, web, and desktop telemetry. Mobile telemetry is configured separately through `EXPO_PUBLIC_POSTHOG_API_KEY` and `EXPO_PUBLIC_POSTHOG_HOST`.
 
 ## Products
 
 | Product           | What RAS Code sends                                                                                                                                                      |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Product analytics | Server, provider, authenticated client, normalized pageview, and structural autocapture events.                                                                          |
+| Product analytics | Server, provider, authenticated client, normalized pageview, structural autocapture, and mobile screen events.                                                           |
 | Web analytics     | Normalized authenticated pageviews and privacy-safe web performance events from web and desktop clients.                                                                 |
-| Session replay    | Authenticated web and desktop sessions with all text, inputs, element attributes, network data, console output, and fonts excluded or masked.                            |
+| Session replay    | Authenticated web and desktop sessions, plus official mobile builds. Text, inputs, images, system views, network data, console output, and fonts are excluded or masked. |
 | Heatmaps          | Click and pointer coordinates grouped under normalized synthetic routes.                                                                                                 |
 | Feature flags     | Server-side evaluation of the `ras-code-ai-observability` kill switch every five minutes.                                                                                |
-| Error tracking    | Unhandled server and browser exceptions plus generic provider failure exceptions. Messages, source context, local paths, and local variables are removed before capture. |
+| Error tracking    | Unhandled server and browser exceptions, generic provider failures, and uncaught mobile JavaScript exceptions and rejections. Server and browser errors are redacted.    |
 | LLM analytics     | One prompt-free `$ai_generation` event for every completed, failed, cancelled, or aborted provider turn.                                                                 |
 | Logs              | Allowlisted provider completion, abort, and failure records over OTLP. Arbitrary application logs are not exported.                                                      |
 | Metrics           | Provider turn count, duration, token count, and reported cost with low-cardinality provider, state, and direction attributes.                                            |
@@ -31,10 +33,24 @@ Browser requests use `/t` through the Vite proxy in development and `https://t.r
 | `RAS_CODE_POSTHOG_LOGS_URL`              | `<host>/i/v1/logs`            | Overrides the OTLP/HTTP logs endpoint.                                                                               |
 | `RAS_CODE_TELEMETRY_FLUSH_BATCH_SIZE`    | `20`                          | Sets the PostHog event flush threshold.                                                                              |
 | `RAS_CODE_TELEMETRY_MAX_BUFFERED_EVENTS` | `1000`                        | Bounds the PostHog event queue and provider-turn telemetry state.                                                    |
+| `EXPO_PUBLIC_POSTHOG_API_KEY`            | Unset                         | Selects the PostHog project for the mobile SDK. The token is public and ingest-only.                                 |
+| `EXPO_PUBLIC_POSTHOG_HOST`               | Unset                         | Selects the PostHog origin for the mobile SDK. Both mobile variables are required.                                   |
 
 Create a boolean feature flag with the key `ras-code-ai-observability` and enable it for 100% of users. Setting it to `false` stops new `$ai_generation` events without changing product events, logs, metrics, or error tracking. A missing flag or failed evaluation leaves AI observability enabled so a PostHog outage cannot change provider behavior. Generation events carry the exact evaluated flag value.
 
 Enable Session Replay in the PostHog project before release. The client respects the project-side replay switch and sampling configuration, then applies the masking rules below. Heatmap capture is enabled in the client and does not depend on the project-side heatmap switch.
+
+## Mobile SDK
+
+Official mobile builds initialize the PostHog React Native SDK when both public mobile variables are present. Source builds without either variable do not initialize it.
+
+RAS Code reports stable top-level route names as screen events. SDK lifecycle capture is disabled because its app-open event can contain the initial deep-link URL. The app never sends route parameters, environment identifiers, thread identifiers, file paths, or URLs as screen properties.
+
+When RAS Connect is configured, Clerk account transitions identify the PostHog person by Clerk user ID. Signing out resets the SDK identity. Signed-out use remains associated with the SDK's device-scoped anonymous ID.
+
+Session replay masks text, images, and sandboxed system views. Console capture and network telemetry are disabled so logs, request URLs, and request metadata do not enter replay. Touch autocapture is also disabled. Error tracking captures uncaught JavaScript exceptions and unhandled promise rejections. Release properties attach the Expo update ID, channel, and runtime version to mobile events.
+
+The Expo config plugin adds native replay support and EAS Build source-map upload hooks. The Metro wrapper injects the debug ID used to match Hermes bundles to their source maps. EAS supplies the public client configuration and the build-only `POSTHOG_CLI_*` credentials.
 
 ## AI generation events
 
@@ -48,7 +64,7 @@ Browser error capture uses the same rules. Browser builds retain source maps loc
 
 Authenticated web and desktop clients collect one pageview per normalized route, tag name and structural position for autocaptured interactions, Web Vitals without attribution, pointer coordinates for heatmaps, and a layout-only session replay. Dynamic route segments become `:id`, query strings and fragments are removed, and URLs use the synthetic `app.ras-code.local` host.
 
-All replay text, input values, and element attributes are masked. Network bodies, network headers, console logs, JSON-LD, and fonts are not recorded. The event sanitizer independently removes referrers, element text and attributes, exception messages, source context, and absolute paths before sending data. Mobile does not load the browser SDK; its existing OTLP traces and server-side authenticated client events remain available.
+All replay text, input values, and element attributes are masked. Network bodies, network headers, console logs, JSON-LD, and fonts are not recorded. The event sanitizer independently removes referrers, element text and attributes, exception messages, source context, and absolute paths before sending data. Mobile does not load the browser SDK. It uses the separately configured React Native SDK described above, and its existing OTLP traces and server-side authenticated client events remain available.
 
 ## Client events
 
@@ -145,7 +161,9 @@ connection. Browser clients use user-agent data for broad OS, browser, phone,
 and tablet groups. They do not infer CPU architecture or an exact OS version
 from `navigator.platform`.
 
-This telemetry does not collect raw URLs, secrets, prompts, responses, provider error text, abort reasons, IP address properties, source context, local variables, absolute source paths, or user-assigned device names. It measures authenticated product use and aggregate provider runtime behavior. It does not measure a person who visits the hosted app without connecting to a server.
+Server and browser telemetry does not collect raw URLs, secrets, prompts, responses, provider error text, abort reasons, IP address properties, source context, local variables, absolute source paths, or user-assigned device names. It measures authenticated product use and aggregate provider runtime behavior. It does not measure a person who visits the hosted app without connecting to a server.
+
+The mobile SDK also measures signed-out app use. It sends app and device metadata supplied by the SDK, screen events, masked replay data, and exception details. It does not intentionally capture prompts, source code, file contents, images, logs, or network telemetry.
 
 The new fields start with the first client and server release that contains
 this metadata path. Historical events cannot reliably identify the client OS,
