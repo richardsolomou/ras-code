@@ -122,7 +122,9 @@ describe("project file query refresh", () => {
     atomHooks.registry = registry;
     let renderedContents: string | null = null;
 
-    const render = (mutationId: string | null) => {
+    // Named as a hook so `react/rules-of-hooks` reads it as one: the harness
+    // calls it once per simulated render.
+    const useRenderQuery = (mutationId: string | null) => {
       reactHooks.beginRender();
       const query = useProjectFileQuery(environmentId, "/repo", "src/preview.ts");
       renderedContents = query.data?.contents ?? null;
@@ -134,22 +136,22 @@ describe("project file query refresh", () => {
     };
 
     try {
-      render(null);
+      useRenderQuery(null);
       await flushEffects();
       expect(requests).toHaveLength(1);
 
-      render("mutation-1");
+      useRenderQuery("mutation-1");
       await flushEffects();
       expect(requests).toHaveLength(2);
 
       requests[1]!.resolve(file("fresh"));
       await flushEffects();
-      render("mutation-1");
+      useRenderQuery("mutation-1");
       expect(renderedContents).toBe("fresh");
 
       requests[0]!.resolve(file("stale"));
       await flushEffects();
-      render("mutation-1");
+      useRenderQuery("mutation-1");
       expect(renderedContents).toBe("fresh");
     } finally {
       unmount();
