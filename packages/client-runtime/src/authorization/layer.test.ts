@@ -1,4 +1,8 @@
-import { AuthStandardClientScopes, EnvironmentId } from "@ras-code/contracts";
+import {
+  AuthStandardClientScopes,
+  EnvironmentId,
+  type ExecutionEnvironmentDescriptor,
+} from "@ras-code/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -30,7 +34,7 @@ const DESCRIPTOR = {
   capabilities: {
     repositoryIdentity: true,
   },
-};
+} satisfies ExecutionEnvironmentDescriptor;
 const BOOTSTRAP: RemoteEnvironmentAuthorization.RelayEnvironmentAuthorization = {
   environmentId: ENVIRONMENT_ID,
   endpoint: ENDPOINT,
@@ -78,6 +82,7 @@ const authInvalid = () =>
 
 const makeHarness = Effect.fn("TestRemoteAuthorization.makeHarness")(function* (input: {
   readonly initialToken?: TokenStore.RemoteDpopAccessToken;
+  readonly bootstrap?: RemoteEnvironmentAuthorization.RelayEnvironmentAuthorization;
   readonly responses: ReadonlyArray<Response>;
 }) {
   const tokens = yield* Ref.make(
@@ -143,7 +148,7 @@ const makeHarness = Effect.fn("TestRemoteAuthorization.makeHarness")(function* (
     ),
   );
   const obtainBootstrap = Ref.update(bootstrapCalls, (count) => count + 1).pipe(
-    Effect.as(BOOTSTRAP),
+    Effect.as(input.bootstrap ?? BOOTSTRAP),
   );
 
   return {
@@ -307,6 +312,29 @@ describe("RemoteEnvironmentAuthorization", () => {
         }),
       );
       expect(harness.fetch.calls).toHaveLength(3);
+    }),
+  );
+
+  it.effect("skips the descriptor request when the relay already supplied a signed one", () =>
+    Effect.gen(function* () {
+      const harness = yield* makeHarness({
+        bootstrap: { ...BOOTSTRAP, descriptor: DESCRIPTOR },
+        responses: [accessToken("fresh-access-token"), websocketTicket("fresh-ticket")],
+      });
+
+      const authorized = yield* Effect.gen(function* () {
+        const remote = yield* RemoteEnvironmentAuthorization.RemoteEnvironmentAuthorization;
+        return yield* remote.authorizeDpop({
+          expectedEnvironmentId: ENVIRONMENT_ID,
+          obtainBootstrap: harness.obtainBootstrap,
+        });
+      }).pipe(Effect.provide(harness.layer));
+
+      expect(authorized.label).toBe(DESCRIPTOR.label);
+      expect(harness.fetch.calls.map(([url]) => String(url))).toEqual([
+        "https://environment.example.test/oauth/token",
+        "https://environment.example.test/api/auth/websocket-ticket",
+      ]);
     }),
   );
 

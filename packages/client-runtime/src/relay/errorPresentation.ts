@@ -43,7 +43,7 @@ export function relayProtectedErrorMessage(error: RelayProtectedError): string {
       }
       return `Relay rejected the environment connection request (${error.reason}).`;
     case "RelayEnvironmentEndpointUnavailableError":
-      return `Relay could not reach the environment endpoint (${error.reason}).`;
+      return error.detail ?? `Relay could not reach the environment endpoint (${error.reason}).`;
     case "RelayEnvironmentEndpointTimedOutError":
       return "Relay timed out while contacting the environment endpoint.";
     case "RelayEnvironmentLinkFailedError":

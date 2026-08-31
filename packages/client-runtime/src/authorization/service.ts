@@ -36,6 +36,8 @@ export interface RelayEnvironmentAuthorization {
   readonly environmentId: EnvironmentId;
   readonly endpoint: RelayManagedEndpoint;
   readonly credential: string;
+  /** Supplied by environments new enough to sign it into the mint response. */
+  readonly descriptor?: ExecutionEnvironmentDescriptor | undefined;
 }
 
 export interface AuthorizedRemoteEnvironment {
@@ -249,10 +251,14 @@ export const make = Effect.gen(function* () {
         "connection.remote_token_cache": "miss",
       });
       const bootstrap = yield* input.obtainBootstrap;
-      const descriptor = yield* fetchDescriptor(bootstrap.endpoint.httpBaseUrl).pipe(
-        Effect.provideService(HttpClient.HttpClient, httpClient),
-        Effect.withSpan("environment.authorization.descriptor"),
-      );
+      // The relay verified this descriptor against the environment's signature,
+      // so trust it and skip a round trip back through the same tunnel.
+      const descriptor =
+        bootstrap.descriptor ??
+        (yield* fetchDescriptor(bootstrap.endpoint.httpBaseUrl).pipe(
+          Effect.provideService(HttpClient.HttpClient, httpClient),
+          Effect.withSpan("environment.authorization.descriptor"),
+        ));
       if (descriptor.environmentId !== input.expectedEnvironmentId) {
         return yield* environmentMismatchError({
           expected: input.expectedEnvironmentId,

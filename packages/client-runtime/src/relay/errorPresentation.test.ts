@@ -1,4 +1,7 @@
-import { RelayAuthInvalidError } from "@ras-code/contracts/relay";
+import {
+  RelayAuthInvalidError,
+  RelayEnvironmentEndpointUnavailableError,
+} from "@ras-code/contracts/relay";
 import { describe, expect, it } from "@effect/vitest";
 
 import {
@@ -53,5 +56,30 @@ describe("relayProtectedErrorMessage", () => {
     });
 
     expect(relayProtectedErrorMessage(error)).toBe("Relay rejected the cloud session token.");
+  });
+
+  it("explains an unreachable endpoint with the detail the relay worked out", () => {
+    const error = new RelayEnvironmentEndpointUnavailableError({
+      code: "environment_endpoint_unavailable",
+      reason: "endpoint_request_failed",
+      detail: "The environment is offline: its RAS Code server is not connected to the relay.",
+      traceId: "trace-1",
+    });
+
+    expect(relayProtectedErrorMessage(error)).toBe(
+      "The environment is offline: its RAS Code server is not connected to the relay.",
+    );
+  });
+
+  it("falls back to the reason code when an older relay sends no detail", () => {
+    const error = new RelayEnvironmentEndpointUnavailableError({
+      code: "environment_endpoint_unavailable",
+      reason: "endpoint_response_invalid",
+      traceId: "trace-1",
+    });
+
+    expect(relayProtectedErrorMessage(error)).toBe(
+      "Relay could not reach the environment endpoint (endpoint_response_invalid).",
+    );
   });
 });

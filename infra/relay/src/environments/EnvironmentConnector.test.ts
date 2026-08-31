@@ -11,6 +11,7 @@ import {
   RelayEnvironmentMintResponse,
   RelayEnvironmentMintResponseProofPayload,
 } from "@ras-code/contracts/relay";
+import { EnvironmentHttpInternalServerError, EnvironmentId } from "@ras-code/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as DateTime from "effect/DateTime";
 import { RELAY_HEALTH_RESPONSE_TYP, RELAY_MINT_RESPONSE_TYP } from "@ras-code/shared/relayJwt";
@@ -22,7 +23,12 @@ import * as Redacted from "effect/Redacted";
 import * as Result from "effect/Result";
 import * as Schema from "effect/Schema";
 import * as TestClock from "effect/testing/TestClock";
-import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/unstable/http";
+import {
+  HttpClient,
+  HttpClientError,
+  HttpClientRequest,
+  HttpClientResponse,
+} from "effect/unstable/http";
 
 import * as EnvironmentLinks from "./EnvironmentLinks.ts";
 import * as RelayConfiguration from "../Config.ts";
@@ -138,8 +144,17 @@ function signMintResponse(
     credential: payload.credential,
     expiresAt: DateTime.formatIso(DateTime.makeUnsafe(payload.exp * 1_000)),
     proof: signTestJwt(payload, RELAY_MINT_RESPONSE_TYP, privateKey),
+    ...(payload.descriptor ? { descriptor: payload.descriptor } : {}),
   };
 }
+
+const mintDescriptor = {
+  environmentId: EnvironmentId.make("env-connector-test"),
+  label: "Connector test environment",
+  platform: { os: "linux", arch: "x64" },
+  serverVersion: "0.0.0-test",
+  capabilities: { repositoryIdentity: true },
+} satisfies RelayEnvironmentMintResponseProofPayload["descriptor"];
 
 function signHealthResponse(
   request: RelayCloudEnvironmentHealthRequest,
@@ -525,6 +540,122 @@ describe("EnvironmentConnector", () => {
         }),
       ),
     );
+  });
+
+  it.effect("forwards the descriptor the environment signed into its mint response", () => {
+    const execute = (request: HttpClientRequest.HttpClientRequest) =>
+      Effect.sync(() => {
+        const mintRequest = decodeMintRequestBody(requestBodyText(request));
+        return HttpClientResponse.fromWeb(
+          request,
+          Response.json(signMintResponse(mintRequest, { descriptor: mintDescriptor }), {
+            status: 200,
+          }),
+        );
+      });
+
+    return Effect.gen(function* () {
+      const connector = yield* EnvironmentConnector.EnvironmentConnector;
+      const result = yield* connector.connect({
+        userId: "user_123",
+        environmentId: "env-connector-test",
+        clientProofKeyThumbprint: "client-proof-key-thumbprint",
+      });
+
+      expect(result.descriptor).toEqual(mintDescriptor);
+    }).pipe(Effect.provide(connectorTestLayer(execute)));
+  });
+
+  it.effect("rejects a mint response whose descriptor was not the one signed", () => {
+    const execute = (request: HttpClientRequest.HttpClientRequest) =>
+      Effect.sync(() => {
+        const mintRequest = decodeMintRequestBody(requestBodyText(request));
+        return HttpClientResponse.fromWeb(
+          request,
+          Response.json(
+            {
+              ...signMintResponse(mintRequest, { descriptor: mintDescriptor }),
+              descriptor: { ...mintDescriptor, label: "Impostor environment" },
+            },
+            { status: 200 },
+          ),
+        );
+      });
+
+    return Effect.gen(function* () {
+      const connector = yield* EnvironmentConnector.EnvironmentConnector;
+      const result = yield* Effect.exit(
+        connector.connect({
+          userId: "user_123",
+          environmentId: "env-connector-test",
+          clientProofKeyThumbprint: "client-proof-key-thumbprint",
+        }),
+      );
+
+      expect(result._tag).toBe("Failure");
+      if (result._tag === "Failure") {
+        expect(result.cause.toString()).toContain("EnvironmentMintResponseInvalid");
+      }
+    }).pipe(Effect.provide(connectorTestLayer(execute)));
+  });
+
+  it("names the environment offline when the gateway reports 503", () => {
+    const request = HttpClientRequest.get("https://gateway.example/e/endpoint/api/connect");
+    const cause = new HttpClientError.HttpClientError({
+      reason: new HttpClientError.StatusCodeError({
+        request,
+        response: HttpClientResponse.fromWeb(
+          request,
+          new Response("Environment is offline.", { status: 503 }),
+        ),
+      }),
+    });
+
+    expect(EnvironmentConnector.environmentRequestFailureDetail(cause)).toBe(
+      "The environment is offline: its RAS Code server is not connected to the relay.",
+    );
+  });
+
+  it("passes through the message of a declared environment error", () => {
+    expect(
+      EnvironmentConnector.environmentRequestFailureDetail(
+        new EnvironmentHttpInternalServerError({ message: "Environment is unavailable." }),
+      ),
+    ).toBe("Environment is unavailable.");
+  });
+
+  it("names the transport failure when the environment cannot be reached at all", () => {
+    const request = HttpClientRequest.get("https://gateway.example/e/endpoint/api/connect");
+    const cause = new HttpClientError.HttpClientError({
+      reason: new HttpClientError.TransportError({ request, cause: new Error("dns failure") }),
+    });
+
+    expect(EnvironmentConnector.environmentRequestFailureDetail(cause)).toBe(
+      "The environment endpoint request failed (TransportError).",
+    );
+  });
+
+  it.effect("reports offline status when the gateway reports 503", () => {
+    const execute = (request: HttpClientRequest.HttpClientRequest) =>
+      Effect.succeed(
+        HttpClientResponse.fromWeb(
+          request,
+          new Response("Environment is offline.", { status: 503 }),
+        ),
+      );
+
+    return Effect.gen(function* () {
+      const connector = yield* EnvironmentConnector.EnvironmentConnector;
+      const result = yield* connector.status({
+        userId: "user_123",
+        environmentId: "env-connector-test",
+      });
+
+      expect(result).toMatchObject({
+        status: "offline",
+        error: "The environment is offline: its RAS Code server is not connected to the relay.",
+      });
+    }).pipe(Effect.provide(connectorTestLayer(execute)));
   });
 
   it.effect("mints a one-time environment credential through the linked endpoint", () => {

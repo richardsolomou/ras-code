@@ -30,9 +30,13 @@ function listenHttp(server: NodeHttp.Server) {
   });
 }
 
-function listenWebSocketServer() {
+function listenWebSocketServer(options?: { readonly autoPong?: boolean }) {
   return Effect.callback<NodeSocket.NodeWS.WebSocketServer, Error>((resume) => {
-    const server = new NodeSocket.NodeWS.WebSocketServer({ host: "127.0.0.1", port: 0 });
+    const server = new NodeSocket.NodeWS.WebSocketServer({
+      host: "127.0.0.1",
+      port: 0,
+      ...(options?.autoPong === undefined ? {} : { autoPong: options.autoPong }),
+    });
     server.once("listening", () => resume(Effect.succeed(server)));
     server.once("error", (cause) => resume(Effect.fail(cause)));
   });
@@ -434,4 +438,54 @@ describe("RasRelayConnector", () => {
   it("accepts the advertised file attachment size", () => {
     expect(RAS_RELAY_MAX_STREAM_BYTES).toBeGreaterThanOrEqual(PROVIDER_SEND_TURN_MAX_FILE_BYTES);
   });
+
+  it.live("closes the connector when the relay stops answering keepalive pings", () =>
+    Effect.gen(function* () {
+      const relayServer = yield* listenWebSocketServer({ autoPong: false });
+      yield* Effect.addFinalizer(() => closeWebSocketServer(relayServer));
+
+      const connector = yield* RasRelayConnector.start(
+        {
+          providerKind: "ras_relay",
+          connectorToken: "connector-token",
+          connectorUrl: `ws://127.0.0.1:${portOf(relayServer)}/v1/ras-relay/connect/endpoint`,
+          localHttpHost: "127.0.0.1",
+          localHttpPort: 1,
+        },
+        { keepAliveIntervalMillis: 25 },
+      );
+      yield* Effect.addFinalizer(() => connector.close);
+
+      yield* connector.closed.pipe(
+        Effect.timeoutOrElse({
+          duration: "3 seconds",
+          orElse: () => Effect.die(new Error("Connector stayed open without a pong")),
+        }),
+      );
+      expect(yield* connector.isRunning).toBe(false);
+    }).pipe(Effect.scoped),
+  );
+
+  it.live("keeps the connector open while the relay answers keepalive pings", () =>
+    Effect.gen(function* () {
+      const relayServer = yield* listenWebSocketServer();
+      yield* Effect.addFinalizer(() => closeWebSocketServer(relayServer));
+
+      const connector = yield* RasRelayConnector.start(
+        {
+          providerKind: "ras_relay",
+          connectorToken: "connector-token",
+          connectorUrl: `ws://127.0.0.1:${portOf(relayServer)}/v1/ras-relay/connect/endpoint`,
+          localHttpHost: "127.0.0.1",
+          localHttpPort: 1,
+        },
+        { keepAliveIntervalMillis: 25 },
+      );
+      yield* Effect.addFinalizer(() => connector.close);
+
+      yield* Effect.sleep("250 millis");
+
+      expect(yield* connector.isRunning).toBe(true);
+    }).pipe(Effect.scoped),
+  );
 });

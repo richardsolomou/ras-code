@@ -13,6 +13,13 @@ import * as ServerSecretStore from "../auth/ServerSecretStore.ts";
 import { CLOUD_ENDPOINT_RUNTIME_CONFIG, decodeRuntimeConfig } from "./config.ts";
 import * as RasRelayConnector from "./RasRelayConnector.ts";
 
+/**
+ * Recovery has to stay well inside the time it takes someone to pick up their
+ * phone and give up on an environment, so the connector backs off to half a
+ * minute instead of the several minutes an uncapped doubling reaches.
+ */
+const CONNECTOR_RETRY_MAX_DELAY_SECONDS = 30;
+
 function bytesToString(bytes: Uint8Array): string {
   return new TextDecoder().decode(bytes);
 }
@@ -155,7 +162,7 @@ export const make = Effect.gen(function* () {
 
   retryConnector = Effect.fnUntraced(function* (configKey, generation, attempt) {
     for (let currentAttempt = attempt; ; currentAttempt += 1) {
-      const delaySeconds = Math.min(300, 2 ** Math.min(currentAttempt, 8));
+      const delaySeconds = Math.min(CONNECTOR_RETRY_MAX_DELAY_SECONDS, 2 ** currentAttempt);
       const jitterMillis = yield* Random.nextIntBetween(0, Math.min(1_000, delaySeconds * 250), {
         halfOpen: true,
       });

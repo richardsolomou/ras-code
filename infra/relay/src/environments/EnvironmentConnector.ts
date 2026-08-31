@@ -156,10 +156,34 @@ const isEnvironmentHealthError = Schema.is(
   ]),
 );
 
+/**
+ * The managed gateway answers 503 when no connector is attached, which is the
+ * everyday case of the environment's machine being asleep, offline, or still
+ * reconnecting. It is worth telling apart from a genuine endpoint fault.
+ */
+const ENVIRONMENT_OFFLINE_STATUS = 503;
+const ENVIRONMENT_OFFLINE_DETAIL =
+  "The environment is offline: its RAS Code server is not connected to the relay.";
+
+function isEnvironmentOfflineCause(cause: unknown): boolean {
+  return (
+    HttpClientError.isHttpClientError(cause) &&
+    cause.response?.status === ENVIRONMENT_OFFLINE_STATUS
+  );
+}
+
 function environmentHealthRequestFailureMessage(cause: unknown): string {
+  if (isEnvironmentOfflineCause(cause)) return ENVIRONMENT_OFFLINE_DETAIL;
   return isEnvironmentHealthError(cause)
     ? `Managed endpoint health request failed: ${cause.message}`
     : "Managed endpoint health request failed.";
+}
+
+/** Plain-language cause for a connect attempt, mirroring how status reports one. */
+export function environmentRequestFailureDetail(cause: unknown): string {
+  if (isEnvironmentOfflineCause(cause)) return ENVIRONMENT_OFFLINE_DETAIL;
+  if (isEnvironmentHealthError(cause)) return cause.message;
+  return `The environment endpoint request failed (${environmentHealthRequestFailureReason(cause)}).`;
 }
 
 function environmentHealthRequestFailureReason(cause: unknown): string {
@@ -231,6 +255,7 @@ function verifyEnvironmentResponse(input: {
         proof.requestNonce === input.requestNonce &&
         proof.clientProofKeyThumbprint === input.clientProofKeyThumbprint &&
         proof.credential === input.response.credential &&
+        stableStringify(proof.descriptor) === stableStringify(input.response.descriptor) &&
         Option.match(DateTime.make(input.response.expiresAt), {
           onNone: () => false,
           onSome: (expiresAt) => Math.floor(expiresAt.epochMilliseconds / 1_000) === proof.exp,
@@ -617,6 +642,7 @@ const make = Effect.gen(function* () {
         endpoint,
         credential: decoded.credential,
         expiresAt: decoded.expiresAt,
+        ...(decoded.descriptor ? { descriptor: decoded.descriptor } : {}),
       };
     }),
   });

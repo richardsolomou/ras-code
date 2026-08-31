@@ -2749,13 +2749,19 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
       const body = yield* responseJsonEffect<{
         readonly credential?: string;
         readonly proof?: string;
+        readonly descriptor?: unknown;
       }>(response);
       assert.equal(typeof body.credential, "string");
       assert.equal(typeof body.proof, "string");
-      assert.equal(
-        decodeCompactJwtPayload<{ readonly requestNonce?: string }>(body.proof!).requestNonce,
-        "cloud-mint-nonce-documented-endpoint",
-      );
+      const mintProof = decodeCompactJwtPayload<{
+        readonly requestNonce?: string;
+        readonly descriptor?: unknown;
+      }>(body.proof!);
+      assert.equal(mintProof.requestNonce, "cloud-mint-nonce-documented-endpoint");
+      // Signed into the proof so the relay can hand it to clients in place of a
+      // second round trip back through the tunnel.
+      assert.deepStrictEqual(body.descriptor, testEnvironmentDescriptor);
+      assert.deepStrictEqual(mintProof.descriptor, testEnvironmentDescriptor);
     }).pipe(Effect.provide(NodeHttpServer.layerTest)),
   );
 
