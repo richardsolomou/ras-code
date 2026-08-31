@@ -4,6 +4,7 @@ import {
   channelCookie,
   proxyUrl,
   readChannelCookie,
+  isHostedAppPath,
   legacyRedirectLocation,
   routeRequest,
   type WebRouterConfig,
@@ -67,6 +68,26 @@ describe("routeRequest", () => {
     expect(
       route("https://code-canary.ras.sh/", "ras_code_web_channel=canary", CANARY_DEPLOYMENT),
     ).toEqual({ kind: "assets" });
+  });
+});
+
+describe("isHostedAppPath", () => {
+  it("claims the prefix without its trailing slash, which is a real app URL", () => {
+    expect(isHostedAppPath("/app")).toBe(true);
+  });
+
+  it("claims everything under the prefix", () => {
+    expect(isHostedAppPath("/app/")).toBe(true);
+    expect(isHostedAppPath("/app/settings")).toBe(true);
+  });
+
+  it("leaves the marketing site's paths alone", () => {
+    expect(isHostedAppPath("/")).toBe(false);
+    expect(isHostedAppPath("/privacy-policy")).toBe(false);
+  });
+
+  it("does not claim a sibling path that merely starts with the same letters", () => {
+    expect(isHostedAppPath("/apple")).toBe(false);
   });
 });
 
