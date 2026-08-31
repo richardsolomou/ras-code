@@ -1,5 +1,9 @@
 import { isToolLifecycleItemType, type ToolLifecycleItemType } from "@ras-code/contracts";
 
+export function isWorktreeSetupActivity(kind: string): boolean {
+  return kind === "setup-script.requested" || kind === "setup-script.started";
+}
+
 export interface WorkLogPresentationEntry {
   readonly label: string;
   readonly toolTitle?: string;
