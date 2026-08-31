@@ -4,8 +4,8 @@ import LegalPage from "../components/LegalPage.astro";
 const sections = [
   ["introduction", "Introduction"],
   ["scope", "What this policy covers"],
-  ["information", "Information RAS Connect processes"],
-  ["not-collected", "What RAS Connect does not store"],
+  ["information", "Information I process"],
+  ["not-collected", "What I do not store"],
   ["traffic", "How your traffic reaches your server"],
   ["site", "The RAS Code website"],
   ["uses", "How the information is used"],
@@ -24,9 +24,9 @@ const sections = [
   title="Privacy Policy — RAS Code"
   description="What RAS Code and RAS Connect process and store, and how to exercise your data protection rights."
   heading="RAS Code Privacy Policy"
-  lede="RAS Code is open-source software that runs on your own machines and sends opt-out anonymous telemetry. RAS Connect is an optional hosted service, operated by Richard Solomou as an individual, that links your devices to your own RAS Code server and delivers mobile notifications. This policy describes both."
+  lede="RAS Code is open-source software that runs on your own machines and sends opt-out anonymous telemetry. RAS Connect is an optional hosted service, operated by Richard Solomou as an individual, that links your devices to your own RAS Code server and delivers mobile notifications. This policy also covers analytics, masked session replay, and error reporting in official RAS Code mobile builds."
   effectiveDate="2026-08-28"
-  lastUpdated="2026-08-30"
+  lastUpdated="2026-08-31"
   sections={sections}
 >
   <section id="introduction">
@@ -40,8 +40,11 @@ const sections = [
     <p>
       RAS Code itself is MIT-licensed software that you download and run. Its server sends anonymous
       product and reliability telemetry to PostHog by default, whether or not you sign in to RAS
-      Connect. You can disable it completely with <code>RAS_CODE_TELEMETRY_ENABLED=false</code>.
-      Signing in to RAS Connect is optional.
+      Connect. You can disable server, web, and desktop telemetry with
+      <code>RAS_CODE_TELEMETRY_ENABLED=false</code>. Official mobile builds can send the limited
+      analytics, masked replay, and error information described below whether or not you sign in.
+      Source builds without the PostHog mobile configuration do not send mobile telemetry. Signing
+      in to RAS Connect is optional.
     </p>
   </section>
 
@@ -52,8 +55,9 @@ const sections = [
       This policy covers RAS Connect: the hosted relay that links RAS Code environments to your
       account, issues short-lived connection credentials, provisions managed network endpoints, and
       delivers push notifications and Live Activities to the RAS Code mobile app. It also covers the
-      RAS Code marketing website, and anonymous telemetry sent by the RAS Code server and its
-      authenticated web and desktop clients.
+      RAS Code marketing website, anonymous telemetry sent by the RAS Code server and its
+      authenticated web and desktop clients, and analytics, session replay, and error reporting in
+      official mobile builds.
     </p>
     <p>
       This policy does not cover the coding agents, model providers, repositories, or operating
@@ -66,7 +70,7 @@ const sections = [
 
   <section id="information">
     <p class="section-number">03</p>
-    <h2>Information RAS Connect Processes</h2>
+    <h2>Information I Process</h2>
 
     <h3>Account Information</h3>
     <p>
@@ -148,11 +152,26 @@ const sections = [
       JSON-LD, and fonts are not recorded. The mobile client does not load the browser telemetry
       SDK.
     </p>
+
+    <h3>Mobile App Analytics, Replay, and Errors</h3>
+    <p>
+      Official mobile builds send stable screen names, app and operating-system versions, device type
+      and model, locale, timezone, and an app-scoped identifier to PostHog. If you sign in to RAS
+      Connect, the app identifies the PostHog record with your Clerk account identifier. It resets
+      that identity when you sign out.
+    </p>
+    <p>
+      Session replay records a visual representation of navigation and interactions. Text, images,
+      and system views are masked before upload. Console logs and network telemetry are disabled.
+      Error reporting sends uncaught JavaScript exception messages, stack traces, and unhandled
+      promise rejections. Release identifiers are attached so a report can be matched to the mobile
+      build or update that caused it.
+    </p>
   </section>
 
   <section id="not-collected">
     <p class="section-number">04</p>
-    <h2>What RAS Connect Does Not Store</h2>
+    <h2>What I Do Not Store</h2>
     <p>
       When you use a managed endpoint, the relay temporarily processes the API and WebSocket payloads
       needed to carry traffic between your client and server. It does not persist normal traffic
@@ -173,6 +192,11 @@ const sections = [
       Anonymous RAS Code telemetry does not contain prompts, agent responses, repository contents,
       terminal output, raw URLs, IP address properties, secrets, provider error text, abort reasons,
       local variables, source context, or absolute source paths.
+    </p>
+    <p>
+      Mobile analytics does not include console logs, request URLs, network metadata, touch
+      autocapture events, prompts, source code, file contents, or uploaded images. Session replay
+      masks text and images, and does not include console logs or network telemetry.
     </p>
   </section>
 
@@ -212,21 +236,21 @@ const sections = [
       <li>To provision and tear down managed endpoints you request;</li>
       <li>To compose and deliver the notifications and Live Activities you enable;</li>
       <li>To diagnose failures, keep the service reliable, and investigate abuse or security issues;</li>
-      <li>To understand which RAS Code clients and provider features are used;</li>
+      <li>To understand which RAS Code clients and provider features are used and improve them;</li>
       <li>To respond to you when you get in touch; and</li>
       <li>To comply with legal obligations.</li>
     </ul>
     <p>
       Under GDPR and UK GDPR terms, the legal bases are performance of a contract for operating the
-      features you enable, legitimate interests for reliability, abuse prevention, and security, and
-      legal obligation where the law requires it.
+      features you enable, legitimate interests for product improvement, reliability, abuse
+      prevention, and security, and legal obligation where the law requires it.
     </p>
   </section>
 
   <section id="sharing">
     <p class="section-number">08</p>
     <h2>Service Providers and Disclosures</h2>
-    <p>RAS Connect is built on the following providers, and no others:</p>
+    <p>RAS Code and RAS Connect use the following providers, and no others:</p>
     <ul class="provider-list">
       <li>
         <strong>Clerk</strong> <em>(Clerk, Inc.)</em>.<br />
@@ -249,7 +273,8 @@ const sections = [
       </li>
       <li>
         <strong>PostHog</strong> <em>(PostHog, Inc.)</em>.<br />
-        Stores the operational request traces and anonymous RAS Code telemetry described above.<br />
+        Stores the operational request traces, anonymous RAS Code telemetry, mobile analytics,
+        masked session replays, and error reports described above.<br />
         <a href="https://posthog.com/privacy">https://posthog.com/privacy</a>
       </li>
       <li>
@@ -290,6 +315,10 @@ const sections = [
     <p>
       Anonymous RAS Code telemetry follows the retention configured for the PostHog project. You can
       stop future collection by disabling telemetry before starting the server.
+    </p>
+    <p>
+      Mobile analytics events, session replays, and error reports follow the retention settings of
+      the PostHog project and can be deleted on request.
     </p>
     <p>
       To delete your RAS Connect account and everything associated with it, email

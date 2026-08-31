@@ -1,10 +1,10 @@
 const fs = require("node:fs");
 const path = require("node:path");
-const { getDefaultConfig } = require("expo/metro-config");
+const { getPostHogExpoConfig } = require("posthog-react-native/metro");
 const { withUniwindConfig } = require("uniwind/metro");
 
 /** @type {import("expo/metro-config").MetroConfig} */
-const config = getDefaultConfig(__dirname);
+const config = getPostHogExpoConfig(__dirname);
 const workspaceRoot = path.resolve(__dirname, "../..");
 const escapedWorkspaceRoot = workspaceRoot.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const mobileShikiRoot = path.dirname(require.resolve("shiki/package.json", { paths: [__dirname] }));

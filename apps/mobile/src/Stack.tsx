@@ -16,6 +16,7 @@ import { useResolveClassNames } from "uniwind";
 
 import { AppText as Text } from "./components/AppText";
 import { getCompactBrandHeaderOptions } from "./components/CompactBrandTitle";
+import { capturePostHogScreen } from "./features/analytics/posthogClient";
 import { ArchivedThreadsRouteScreen } from "./features/archive/ArchivedThreadsRouteScreen";
 import { useAgentNotificationNavigation } from "./features/agent-awareness/notificationNavigation";
 import { ConnectOnboardingRouteScreen } from "./features/cloud/ConnectOnboardingRouteScreen";
@@ -378,8 +379,13 @@ function RootStackLayout(props: {
   useConnectOnboardingNavigation();
   // Launcher app shortcuts: routes shortcut taps and tracks opened threads.
   useAppShortcuts(props.state);
+  const topRouteName = props.state.routes[props.state.index]?.name;
   useEffect(() => {
-    const topRouteName = props.state.routes[props.state.index]?.name;
+    if (topRouteName) {
+      capturePostHogScreen(topRouteName);
+    }
+  }, [topRouteName]);
+  useEffect(() => {
     const transition = transitionIncomingSharePresentation(sharePresentationRef.current, {
       isShareSheetPresented: topRouteName === "NewTaskSheet",
       pendingShareId: pendingShare?.id ?? null,

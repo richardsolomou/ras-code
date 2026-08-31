@@ -18,6 +18,7 @@ import {
   setAgentAwarenessRelayTokenProvider,
   unregisterAgentAwarenessDeviceForCurrentUser,
 } from "../agent-awareness/remoteRegistration";
+import { transitionPostHogUser } from "../analytics/posthogClient";
 import { clearConnectOnboardingRequest, requestConnectOnboarding } from "./connectOnboarding";
 import { resolveCloudPublicConfig, resolveRelayClerkTokenOptions } from "./publicConfig";
 
@@ -67,6 +68,7 @@ function CloudAuthBridge(props: { readonly children: ReactNode }) {
     const previousObservedAccount = observedAccountRef.current;
     const nextAccount = isSignedIn && userId ? userId : null;
     observedAccountRef.current = nextAccount;
+    transitionPostHogUser(previousObservedAccount, nextAccount);
 
     // Every sign-in or account switch that completes during this session (a
     // cold start observes undefined → account and must not re-prompt) requests

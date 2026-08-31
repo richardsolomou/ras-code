@@ -10,6 +10,7 @@ import { createStaticNavigation } from "@react-navigation/native";
 
 import { RegistryContext } from "@effect/atom-react";
 import { ConfirmDialogHost } from "./components/ConfirmDialogHost";
+import { PostHogAppProvider } from "./features/analytics/PostHogAppProvider";
 import { CloudAuthProvider } from "./features/cloud/CloudAuthProvider";
 import { prepareNativeShowcaseCapture } from "./features/showcase/nativeShowcaseScene";
 import { IncomingShareProvider } from "./features/sharing/IncomingShareProvider";
@@ -60,13 +61,15 @@ function SplashScreenCoordinator() {
 
 export default function App() {
   return (
-    <RegistryContext.Provider value={appAtomRegistry}>
-      <CloudAuthProvider>
-        <AppearancePreferencesProvider>
-          <AppContent />
-        </AppearancePreferencesProvider>
-      </CloudAuthProvider>
-    </RegistryContext.Provider>
+    <PostHogAppProvider>
+      <RegistryContext.Provider value={appAtomRegistry}>
+        <CloudAuthProvider>
+          <AppearancePreferencesProvider>
+            <AppContent />
+          </AppearancePreferencesProvider>
+        </CloudAuthProvider>
+      </RegistryContext.Provider>
+    </PostHogAppProvider>
   );
 }
 
