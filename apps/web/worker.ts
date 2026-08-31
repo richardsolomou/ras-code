@@ -149,11 +149,13 @@ export default {
       case "proxy":
         return fetch(new Request(proxyUrl(url, action.origin), request));
       case "assets": {
-        // Only asset misses reach the Worker, so an app route that matched no
-        // file is a client-side route: hand back the shell and let the router
-        // resolve it. Anything outside the prefix is not ours to serve.
-        if (!isHostedAppPath(url.pathname)) {
-          return env.ASSETS.fetch(request);
+        // Ask for the real file first. Whether the asset layer runs before the
+        // Worker is not ours to control, so serving the shell without looking
+        // would shadow every script, style, and icon under the prefix with
+        // HTML. Only a genuine miss inside the app is a client-side route.
+        const asset = await env.ASSETS.fetch(request);
+        if (asset.status !== 404 || !isHostedAppPath(url.pathname)) {
+          return asset;
         }
         const shell = new URL(`${HOSTED_APP_BASE_PATH}index.html`, url.origin);
         return env.ASSETS.fetch(new Request(shell, request));
