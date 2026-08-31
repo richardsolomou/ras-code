@@ -731,36 +731,6 @@
       "reviewedAt": "2026-08-31T12:20:33.545Z"
     },
     {
-      "upstream": "30175a8af04c0daa359652b5e8dc8230b40b462a",
-      "pr": 8734,
-      "title": "fix(web): restore unified activity logs and composer banners",
-      "decision": "deferred",
-      "ours": null,
-      "intent": "Composer banners and the activity log unify into one dock: a ComposerBannerStack fed by banner items from the thread view, replacing the hand-built composer top drawer, the separate thread-sync pill and the per-banner components.",
-      "reason": "Our composer top drawer carries surfaces upstream's stack has no slot for yet — the pending fallback-offer panel and actions, the collapsed-mobile controls, and the tasks drawer with its shoulder badges. Landing the stack means re-expressing all of them as banner items across ChatView and ComposerBanner, which is its own change and needs a real browser pass to judge.",
-      "reviewedAt": "2026-08-31T12:21:26.494Z"
-    },
-    {
-      "upstream": "9842518c9a0af14fb3a3e90993692a6e34032682",
-      "pr": 8850,
-      "title": "fix(web): address composer banner review follow-ups",
-      "decision": "deferred",
-      "ours": null,
-      "intent": "Review follow-ups on the unified composer banner: the stack collapses to a single row when banners overlap, the server-update banner names the pending version, and the dock keeps its own stacking context.",
-      "reason": "Applies only on top of the deferred #8734 — ComposerBanner, ComposerServerUpdateStatus and ComposerSurface do not exist here. Lands with it.",
-      "reviewedAt": "2026-08-31T12:21:42.854Z"
-    },
-    {
-      "upstream": "3f62e6fa65c2a2a91a367be4ee95da1b50007bde",
-      "pr": 8855,
-      "title": "fix(web): widen sync banners and simplify the working timer",
-      "decision": "adapted",
-      "ours": "d1a6badb25a9dc18a430cb97a684ec53ce0451db",
-      "intent": "The composer's loading and syncing banner fills the available width beside the stash tab, and task progress moves above the composer.",
-      "reason": "Landed only the working-timer half: the timeline row now shows elapsed time with no plan-step label. The banner-width half needs ComposerBanner from the deferred #8734 and lands with it.",
-      "reviewedAt": "2026-08-31T12:22:42.004Z"
-    },
-    {
       "upstream": "3958111057c10c10350dd9c20ec2a2df00f504be",
       "pr": 8839,
       "title": "fix(preview): improve browser recording quality",
@@ -786,6 +756,33 @@
       "ours": "fc73c7375dc22fb7dfe7477f8bcaf12fbe15c18e",
       "reason": "Kept our typography paragraph in the appearance doc and restated upstream's glass sentence alongside it.",
       "reviewedAt": "2026-08-31T12:24:46.945Z"
+    },
+    {
+      "upstream": "30175a8af04c0daa359652b5e8dc8230b40b462a",
+      "pr": 8734,
+      "title": "fix(web): restore unified activity logs and composer banners",
+      "decision": "adapted",
+      "ours": "4920f05cd0d787e7aa67863b248bc068fe58391a",
+      "reason": "Adopted the banner dock wholesale. Upstream's ComposerBanner already had slots for the collapsed-mobile controls and the tasks drawer, so only our pending fallback offer needed porting: it gets its own Banner.Row beside the approval row and widens the dock's warning variant.",
+      "reviewedAt": "2026-08-31T12:53:38.473Z"
+    },
+    {
+      "upstream": "9842518c9a0af14fb3a3e90993692a6e34032682",
+      "pr": 8850,
+      "title": "fix(web): address composer banner review follow-ups",
+      "decision": "adopted",
+      "ours": "feaa7ec58ab6f14089d8e6342d0190236742af37",
+      "reason": "Clean pick once #8734 landed.",
+      "reviewedAt": "2026-08-31T12:53:40.953Z"
+    },
+    {
+      "upstream": "3f62e6fa65c2a2a91a367be4ee95da1b50007bde",
+      "pr": 8855,
+      "title": "fix(web): widen sync banners and simplify the working timer",
+      "decision": "adapted",
+      "ours": "d1a6badb25a9dc18a430cb97a684ec53ce0451db",
+      "reason": "Landed in two commits: the working-timer half with the pick, and the banner-width half in dde641749 once #8734 provided ComposerBanner.",
+      "reviewedAt": "2026-08-31T12:53:43.471Z"
     }
   ]
 }
