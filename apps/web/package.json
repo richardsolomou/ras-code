@@ -6,7 +6,7 @@
   "scripts": {
     "build": "vp build",
     "build:ghostty-wasm": "bash scripts/build-libghostty-wasm.sh",
-    "build:hosted": "vp build && node ../../scripts/apply-web-brand-assets.ts --channel \"${VITE_HOSTED_APP_CHANNEL:-latest}\" apps/web/dist/app",
+    "build:hosted": "vp build && node ../../scripts/apply-web-brand-assets.ts --channel \"${VITE_HOSTED_APP_CHANNEL:-latest}\" --target-directory apps/web/dist/app",
     "dev": "vp dev",
     "preview": "vp preview",
     "test": "vp test run --passWithNoTests --project unit",
