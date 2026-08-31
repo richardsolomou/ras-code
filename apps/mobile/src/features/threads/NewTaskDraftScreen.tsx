@@ -36,6 +36,7 @@ import {
 import { AndroidScreenHeader } from "../../components/AndroidScreenHeader";
 import { ComposerAttachmentButton } from "../../components/ComposerAttachmentButton";
 import { ComposerAttachmentStrip } from "../../components/ComposerAttachmentStrip";
+import { VideoPreviewModal, type VideoPreviewSource } from "../../components/VideoPreviewModal";
 import { ProviderIcon } from "../../components/ProviderIcon";
 import { SymbolView } from "../../components/AppSymbol";
 import { AppText as Text } from "../../components/AppText";
@@ -61,6 +62,7 @@ import {
   convertPastedImagesToAttachments,
   pickComposerFiles,
   pickComposerMedia,
+  type DraftComposerFileAttachment,
 } from "../../lib/composerImages";
 import { useScaledTextRole } from "../settings/appearance/useScaledTextRole";
 import { useAppearancePreferences } from "../settings/appearance/AppearancePreferencesProvider";
@@ -152,6 +154,23 @@ export function NewTaskDraftScreen(props: {
   const promptInputRef = useRef<ComposerEditorHandle>(null);
   const loadedBranchesProjectKeyRef = useRef<string | null>(null);
   const [isComposerFocused, setIsComposerFocused] = useState(false);
+  const [previewVideo, setPreviewVideo] = useState<VideoPreviewSource | null>(null);
+  const wasFocusedBeforeVideoRef = useRef(false);
+  const openVideoPreview = useCallback(
+    (attachment: DraftComposerFileAttachment, sourceIdentifier: string) => {
+      wasFocusedBeforeVideoRef.current = isComposerFocused;
+      setPreviewVideo((current) => current ?? { type: "local", attachment, sourceIdentifier });
+    },
+    [isComposerFocused],
+  );
+  const closeVideoPreview = useCallback(() => {
+    setPreviewVideo(null);
+    if (wasFocusedBeforeVideoRef.current) {
+      setTimeout(() => {
+        if (navigation.isFocused()) promptInputRef.current?.focus();
+      }, 100);
+    }
+  }, [navigation]);
   const settingsSheetPresentation = useThreadSettingsSheetPresentation({
     editorRef: promptInputRef,
     isEditorFocused: isComposerFocused,
@@ -1188,6 +1207,9 @@ export function NewTaskDraftScreen(props: {
                   ? () => undefined
                   : flow.removeAttachment
               }
+              onPressVideo={
+                isComposerInteractionLocked || voiceInput.isBusy ? undefined : openVideoPreview
+              }
             />
           </View>
         ) : null}
@@ -1276,6 +1298,7 @@ export function NewTaskDraftScreen(props: {
           </ComposerDictationToolbar>
         </Animated.View>
       </ComposerSurface>
+      <VideoPreviewModal source={previewVideo} onRequestClose={closeVideoPreview} />
     </View>
   );
 

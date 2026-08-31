@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "9b2d04317c68233782e0630464ac86d77d0686f3",
+  "lastReviewed": "ef84bc9873a6c4565fbeb64dce3f552570e95a2d",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -783,6 +783,123 @@
       "ours": "d1a6badb25a9dc18a430cb97a684ec53ce0451db",
       "reason": "Landed in two commits: the working-timer half with the pick, and the banner-width half in dde641749 once #8734 provided ComposerBanner.",
       "reviewedAt": "2026-08-31T12:53:43.471Z"
+    },
+    {
+      "upstream": "f86c5e8c8700b76250ed1073700a5b9db47e2d57",
+      "pr": 8634,
+      "title": "fix(server): skip IDE detection in Claude probes",
+      "decision": "adopted",
+      "ours": "36296b0213aa6aebc6d587f81dd885cc2f1d08de",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T12:21:19.132Z"
+    },
+    {
+      "upstream": "ad38700ac678b8c8a0310d434a44d94a7ee6a47f",
+      "pr": 8917,
+      "title": "chore(macroscope): review diagnostic overrides",
+      "decision": "obsolete",
+      "ours": null,
+      "reason": "Upstream review-bot configuration (.macroscope/, .coderabbit.yaml), which we do not carry.",
+      "reviewedAt": "2026-09-02T12:20:40.939Z"
+    },
+    {
+      "upstream": "2921050c698fb195e2f5590b7cfab8fdfe0ec729",
+      "pr": 8905,
+      "title": "fix(contracts): accept CLI event origins",
+      "decision": "adopted",
+      "ours": "e048282b246c432950908988024a82a608cc2875",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T12:21:21.632Z"
+    },
+    {
+      "upstream": "bba79cc254b65969bde6b6bfc3032c3b5b9316ae",
+      "pr": 8904,
+      "title": "fix(web): hide invalid slash skill completions",
+      "decision": "adopted",
+      "ours": "aa10003301f7d072619984b3df3468c428f0983e",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T12:21:24.052Z"
+    },
+    {
+      "upstream": "746c932e164d49ddb4ac98a42176194b11bf0699",
+      "pr": 8914,
+      "title": "fix(mobile): defer draft navigation until submission completes",
+      "decision": "adopted",
+      "ours": "e64b80450a939a378126bbfc79a71000586d2c1d",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T12:21:26.500Z"
+    },
+    {
+      "upstream": "4e8e64fc065a4a72535eee5fe60b689f5b48d35c",
+      "pr": 8933,
+      "title": "chore: disable CodeRabbit review status",
+      "decision": "obsolete",
+      "ours": null,
+      "reason": "Upstream review-bot configuration (.macroscope/, .coderabbit.yaml), which we do not carry.",
+      "reviewedAt": "2026-09-02T12:20:43.268Z"
+    },
+    {
+      "upstream": "038bf3739b871a56b2defdb09605344801448ced",
+      "pr": 8934,
+      "title": "Delete app.json",
+      "decision": "adopted",
+      "ours": "515a5449bebc5187a193f37b247164043d4566f7",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T12:21:28.964Z"
+    },
+    {
+      "upstream": "35da5813315dc4e0c20602ed1918ceccc916b7eb",
+      "pr": 8868,
+      "title": "fix(web): show scrollbar for wide markdown tables",
+      "decision": "adopted",
+      "ours": "32a93e930c170fd0165c9b2c22b55c522c06cf61",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T12:21:31.479Z"
+    },
+    {
+      "upstream": "5ce92c2f192040bf77c0211fa33bf03c74c031ef",
+      "pr": 8932,
+      "title": "fix(mobile): shimmer active tool rows",
+      "decision": "adopted",
+      "ours": "0d77de7bedc469f2ea613753416960fe0db37172",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T12:21:33.997Z"
+    },
+    {
+      "upstream": "4a9d2d0ced2a2b899dbee9e4a5162fd83f81edb8",
+      "pr": 8626,
+      "title": "chore(deps): bump Electron to 43.4.1",
+      "decision": "adopted",
+      "ours": "2e7354c76522b5ee8c7c92a2cf200a495763900e",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T12:21:36.415Z"
+    },
+    {
+      "upstream": "ef84bc9873a6c4565fbeb64dce3f552570e95a2d",
+      "pr": 8922,
+      "title": "fix(chat): smooth worktree setup status",
+      "decision": "adapted",
+      "ours": "250357b72516b032ec50262aa1c28f82011562fc",
+      "reason": "Kept our useThemeColor hooks over upstream's useUniwindTheme lookup, our extra ChatView imports, and added our checkpointTurnCountByAssistantMessageId to the new timeline fixtures.",
+      "reviewedAt": "2026-09-02T12:24:41.798Z"
+    },
+    {
+      "upstream": "0df043fd4eaa190eb491a3060836156eb0ae915e",
+      "pr": null,
+      "title": "Add auto_review configuration to coderabbit.yaml",
+      "decision": "obsolete",
+      "ours": null,
+      "reason": "Upstream review-bot configuration (.macroscope/, .coderabbit.yaml), which we do not carry.",
+      "reviewedAt": "2026-09-02T12:20:45.652Z"
+    },
+    {
+      "upstream": "85b656ff300f71060ad6305c7e1e29a72b442ce9",
+      "pr": null,
+      "title": "style: format CodeRabbit configuration",
+      "decision": "obsolete",
+      "ours": null,
+      "reason": "Upstream review-bot configuration (.macroscope/, .coderabbit.yaml), which we do not carry.",
+      "reviewedAt": "2026-09-02T12:20:48.038Z"
     }
   ]
 }
