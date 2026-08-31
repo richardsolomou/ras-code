@@ -139,6 +139,31 @@ describe("CloudManagedEndpointRuntime", () => {
     }),
   );
 
+  it.effect("keeps retrying a persistently failing connector at the capped delay", () =>
+    Effect.gen(function* () {
+      let starts = 0;
+      const runtime = yield* buildRuntime(() =>
+        Effect.gen(function* () {
+          starts += 1;
+          return yield* new RasRelayConnector.RasRelayConnectorStartError({
+            stage: "open-connector",
+            cause: "offline",
+          });
+        }),
+      );
+
+      yield* runtime.applyConfig(rasConfig("token"));
+      // Long enough for the doubling to saturate at the cap.
+      for (let attempt = 0; attempt < 20; attempt += 1) {
+        yield* TestClock.adjust("31 seconds");
+      }
+      const saturated = starts;
+      yield* TestClock.adjust("31 seconds");
+
+      expect(starts).toBe(saturated + 1);
+    }),
+  );
+
   it.effect("does not retry a connector after its desired config changes", () =>
     Effect.gen(function* () {
       const starts: Array<string> = [];

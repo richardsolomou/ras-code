@@ -892,6 +892,7 @@ const cloudMintCredentialHandler = Effect.fn("environment.cloud.mintCredential")
     }
 
     const keyPair = yield* getOrCreateEnvironmentKeyPairFromSecretStore(dependencies.secrets);
+    const descriptor = yield* dependencies.environment.getDescriptor;
     const issued = yield* dependencies.environmentAuth.createPairingLink({
       scopes: AuthStandardClientScopes,
       subject: "cloud-connect",
@@ -910,6 +911,7 @@ const cloudMintCredentialHandler = Effect.fn("environment.cloud.mintCredential")
       clientProofKeyThumbprint: proof.clientProofKeyThumbprint,
       requestNonce: proof.nonce,
       credential: issued.credential,
+      descriptor,
     } satisfies RelayEnvironmentMintResponseProofPayload;
     const responseProof = yield* signRelayJwt({
       privateKey: keyPair.privateKey,
@@ -927,6 +929,7 @@ const cloudMintCredentialHandler = Effect.fn("environment.cloud.mintCredential")
       credential: issued.credential,
       expiresAt: DateTime.formatIso(issued.expiresAt),
       proof: responseProof,
+      descriptor,
     } satisfies RelayEnvironmentMintResponseShape;
 
     yield* appendCloudCredentialResponseHeaders;

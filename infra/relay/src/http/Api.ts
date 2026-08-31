@@ -760,10 +760,11 @@ export const dpopClientApi = HttpApiBuilder.group(
                 reason: error.reason,
                 traceId,
               }),
-            EnvironmentMintRequestFailed: (_error, traceId) =>
+            EnvironmentMintRequestFailed: (error, traceId) =>
               new RelayEnvironmentEndpointUnavailableError({
                 code: "environment_endpoint_unavailable",
                 reason: "endpoint_request_failed",
+                detail: EnvironmentConnector.environmentRequestFailureDetail(error.cause),
                 traceId,
               }),
             EnvironmentMintRequestTimedOut: (_error, traceId) =>
@@ -803,10 +804,11 @@ export const dpopClientApi = HttpApiBuilder.group(
                 reason: error.reason,
                 traceId,
               }),
-            EnvironmentMintRequestFailed: (_error, traceId) =>
+            EnvironmentMintRequestFailed: (error, traceId) =>
               new RelayEnvironmentEndpointUnavailableError({
                 code: "environment_endpoint_unavailable",
                 reason: "endpoint_request_failed",
+                detail: EnvironmentConnector.environmentRequestFailureDetail(error.cause),
                 traceId,
               }),
             EnvironmentMintRequestTimedOut: (_error, traceId) =>

@@ -409,6 +409,8 @@ export class RelayEnvironmentEndpointUnavailableError extends Schema.TaggedError
   {
     code: Schema.Literal("environment_endpoint_unavailable"),
     reason: RelayEnvironmentEndpointUnavailableReason,
+    /** Plain-language cause, when the relay could tell one apart. */
+    detail: Schema.optional(TrimmedNonEmptyString),
     traceId: TrimmedNonEmptyString,
   },
   { httpApiStatus: 502 },
@@ -723,6 +725,8 @@ export const RelayEnvironmentConnectResponse = Schema.Struct({
   endpoint: RelayManagedEndpoint,
   credential: TrimmedNonEmptyString,
   expiresAt: TrimmedNonEmptyString,
+  /** Saves the client a descriptor round trip. Absent from older environments. */
+  descriptor: Schema.optional(ExecutionEnvironmentDescriptor),
 });
 export type RelayEnvironmentConnectResponse = typeof RelayEnvironmentConnectResponse.Type;
 
@@ -804,6 +808,7 @@ export const RelayEnvironmentMintResponseProofPayload = Schema.Struct({
   clientProofKeyThumbprint: TrimmedNonEmptyString,
   requestNonce: TrimmedNonEmptyString,
   credential: TrimmedNonEmptyString,
+  descriptor: Schema.optional(ExecutionEnvironmentDescriptor),
 });
 export type RelayEnvironmentMintResponseProofPayload =
   typeof RelayEnvironmentMintResponseProofPayload.Type;
@@ -812,6 +817,7 @@ export const RelayEnvironmentMintResponse = Schema.Struct({
   credential: TrimmedNonEmptyString,
   expiresAt: TrimmedNonEmptyString,
   proof: TrimmedNonEmptyString,
+  descriptor: Schema.optional(ExecutionEnvironmentDescriptor),
 });
 export type RelayEnvironmentMintResponse = typeof RelayEnvironmentMintResponse.Type;
 

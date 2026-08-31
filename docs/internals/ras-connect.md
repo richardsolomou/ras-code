@@ -116,6 +116,28 @@ the managed endpoint configuration preserves the original public URL for DPoP va
 replace this with forwarded-host headers; those headers are client-controlled and deliberately
 ignored by environment authentication.
 
+### Connector liveness
+
+Nothing above the socket can tell a healthy idle connector from a dead one, so the environment
+server pings the relay every 20 seconds and terminates the socket when a ping goes unanswered for a
+whole interval. Cloudflare answers WebSocket protocol pings automatically without waking the Durable
+Object, so this costs no relay compute. The probe exists because a suspended laptop or a network
+change leaves the TCP connection half-open: `readyState` still reports `OPEN`, no `close` event ever
+fires, and without the ping the connector would stay wedged until the process restarted.
+
+A closed connector is restarted by the supervisor in `ManagedEndpointRuntime`, which backs off by
+doubling up to 30 seconds. The cap matters more than the curve: while the connector is detached the
+Durable Object answers `503` and every client sees the environment as offline, so recovery has to
+finish inside the time someone spends waiting on their phone.
+
+### Connect round trips
+
+The relay's mint response carries the environment descriptor, signed into the same proof as the
+credential, and the relay verifies it against the environment's key before forwarding it. Clients
+use that descriptor instead of fetching one over the tunnel, which removes a round trip from every
+cold connect. The field is optional in both directions: environments that predate it omit it, and
+clients fall back to fetching the descriptor themselves.
+
 Using `ras.sh` for both `RELAY_API_ZONE_NAME` and `RELAY_GATEWAY_ZONE_NAME`, with
 `code-tunnels.ras.sh` as `RELAY_GATEWAY_DOMAIN`, keeps every Cloudflare edge hostname at the
 first subdomain level covered by Universal SSL. No Advanced Certificate Manager wildcard is needed.

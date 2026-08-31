@@ -99,6 +99,11 @@ Use `ras connect status`, `ras connect unlink`, and `ras connect logout` to insp
 link. RAS Connect must be configured by the distributor or self-hosting operator; source builds
 without public Clerk and relay configuration leave the cloud controls disabled.
 
+A linked environment is reachable only while its machine is awake and its server is running. When a
+laptop suspends or changes network, the environment shows as offline and connecting to it reports
+that its RAS Code server is not connected to the relay. The server reconnects on its own once the
+machine is back, normally within a minute; you do not need to restart it.
+
 ### Option 2: Headless Server (CLI)
 
 Use this when you want to run the server without a GUI, for example on a remote machine over SSH.

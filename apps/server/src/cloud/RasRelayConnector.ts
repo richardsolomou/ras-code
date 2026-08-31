@@ -20,7 +20,9 @@ import {
   type RasRelayMessage,
 } from "@ras-code/shared/rasRelayProtocol";
 import * as Deferred from "effect/Deferred";
+import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
+import * as Fiber from "effect/Fiber";
 import * as Schema from "effect/Schema";
 import * as Stream from "effect/Stream";
 import { FetchHttpClient, HttpClient, HttpClientRequest, HttpMethod } from "effect/unstable/http";
@@ -140,8 +142,23 @@ export function rasRelayWebSocketBufferHasCapacity(
   );
 }
 
+/**
+ * Cloudflare answers WebSocket protocol pings automatically, without waking the
+ * Durable Object, so a ping left unanswered for a whole interval means the
+ * socket is half-open. That is the usual aftermath of a laptop suspending or
+ * switching networks: the TCP connection is dead but neither side has noticed,
+ * so nothing would otherwise restart the connector.
+ */
+export const RAS_RELAY_CONNECTOR_KEEPALIVE_INTERVAL_MS = 20_000;
+
+export interface RasRelayConnectorOptions {
+  /** Overridable so tests do not have to wait out the production interval. */
+  readonly keepAliveIntervalMillis?: number;
+}
+
 export const start = Effect.fn("RasRelayConnector.start")(function* (
   config: RelayManagedEndpointRuntimeConfig,
+  options?: RasRelayConnectorOptions,
 ) {
   const origin = localOrigin(config);
   if (config.providerKind !== "ras_relay" || !origin) {
@@ -162,6 +179,32 @@ export const start = Effect.fn("RasRelayConnector.start")(function* (
     perMessageDeflate: false,
   });
   connector.binaryType = "arraybuffer";
+
+  let awaitingPong = false;
+  const noteConnectorAlive = () => {
+    awaitingPong = false;
+  };
+  const keepAliveFiber = runFork(
+    Effect.sync(() => {
+      if (connector.readyState !== NodeSocket.NodeWS.WebSocket.OPEN) return;
+      if (awaitingPong) {
+        // terminate() rather than close(): a half-open socket never completes
+        // the closing handshake, and the supervisor only restarts on "close".
+        connector.terminate();
+        return;
+      }
+      awaitingPong = true;
+      connector.ping();
+    }).pipe(
+      Effect.delay(
+        Duration.millis(
+          options?.keepAliveIntervalMillis ?? RAS_RELAY_CONNECTOR_KEEPALIVE_INTERVAL_MS,
+        ),
+      ),
+      Effect.forever,
+    ),
+  );
+  const stopKeepAlive = () => runFork(Fiber.interrupt(keepAliveFiber));
 
   let outgoing: Array<RasRelayFrame> = [];
   let outgoingBytes = RAS_RELAY_BATCH_HEADER_BYTES;
@@ -524,12 +567,14 @@ export const start = Effect.fn("RasRelayConnector.start")(function* (
   });
 
   connector.once("open", () => runFork(Deferred.succeed(opened, undefined)));
+  connector.on("pong", noteConnectorAlive);
   connector.once("error", (cause) =>
     runFork(
       Deferred.fail(opened, new RasRelayConnectorStartError({ stage: "open-connector", cause })),
     ),
   );
   connector.on("message", (data, binary) => {
+    noteConnectorAlive();
     if (!binary) {
       connector.close(1008, "Invalid RAS relay message");
       return;
@@ -548,6 +593,7 @@ export const start = Effect.fn("RasRelayConnector.start")(function* (
     );
   });
   connector.once("close", () => {
+    stopKeepAlive();
     for (const request of requests.values()) releaseRequestBytes(request);
     requests.clear();
     for (const cancellation of inFlightHttpRequests.values()) {
@@ -571,10 +617,16 @@ export const start = Effect.fn("RasRelayConnector.start")(function* (
           cause: "RAS relay connector timed out",
         }),
     }),
-    Effect.tapError(() => Effect.sync(() => connector.close())),
+    Effect.tapError(() =>
+      Effect.sync(() => {
+        stopKeepAlive();
+        connector.close();
+      }),
+    ),
   );
 
   const close = Effect.sync(() => {
+    stopKeepAlive();
     flushScheduled = false;
     connector.close(1000, "Connector stopped");
     for (const local of localSockets.values()) {
