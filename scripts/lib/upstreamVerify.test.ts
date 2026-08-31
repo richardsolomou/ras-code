@@ -37,7 +37,7 @@ describe("findImportResidue", () => {
   });
 });
 
-describe("findImportResidue, service keys", () => {
+describe("findImportResidue, identifier namespaces", () => {
   it("catches an Effect service key still namespaced under upstream", () => {
     const found = findImportResidue(
       "apps/server/src/provider/OpenCodeServerOwner.ts",
@@ -47,10 +47,16 @@ describe("findImportResidue, service keys", () => {
       {
         path: "apps/server/src/provider/OpenCodeServerOwner.ts",
         line: 1,
-        marker: "t3/",
-        kind: "serviceKey",
+        marker: "t3.",
+        kind: "namespace",
       },
     ]);
+  });
+
+  it("catches a dotted namespace on a line with no service-key constructor", () => {
+    expect(
+      findImportResidue("a.ts", '  const key = Symbol.for("t3.mobile.hot-atom-runtimes");'),
+    ).toEqual([{ path: "a.ts", line: 1, marker: "t3.", kind: "namespace" }]);
   });
 
   it("leaves our own namespace alone", () => {
@@ -63,9 +69,27 @@ describe("findImportResidue, service keys", () => {
     expect(findImportResidue("a.ts", 'const path = "/.well-known/t3/environment";')).toEqual([]);
     expect(findImportResidue("a.ts", 'const ref = "refs/t3/checkpoints";')).toEqual([]);
   });
+
+  it("does not fire on upstream hosts or instance types, which have no second segment", () => {
+    expect(findImportResidue("a.ts", 'const url = "t3.chat";')).toEqual([]);
+    expect(findImportResidue("a.ts", 'const size = "t3.micro";')).toEqual([]);
+  });
 });
 
 describe("findPathResidue", () => {
+  it("catches a renamed directory that git could not follow", () => {
+    expect(
+      findPathResidue(["apps/mobile/modules/t3-composer-editor/ios/T3ComposerEditorModule.swift"]),
+    ).toEqual([
+      {
+        path: "apps/mobile/modules/t3-composer-editor/ios/T3ComposerEditorModule.swift",
+        line: 0,
+        marker: "apps/mobile/modules/t3-",
+        kind: "path",
+      },
+    ]);
+  });
+
   it("catches an upstream directory that arrived as a new path", () => {
     expect(findPathResidue(["oxlint-plugin-t3code/rules/no-escape-hatches.ts"])).toEqual([
       {

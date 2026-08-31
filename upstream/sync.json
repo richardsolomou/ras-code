@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "660cddd3bc9801e089afcabba11c62f41aeac5c3",
+  "lastReviewed": "9b2d04317c68233782e0630464ac86d77d0686f3",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -485,6 +485,304 @@
       "intent": "Mobile themes compile to semantic adaptive tokens, so a registered theme drives colour everywhere instead of dark:/light: utilities guessing at it. Ships the generator (scripts/generate-uniwind-themes.mts), the mobileTheme runtime and variables modules, useUniwindTheme, and the no-mobile-uniwind-theme-escape-hatches lint rule; retires apps/mobile/src/lib/useThemeColor.ts.",
       "reason": "We are adopting Uniwind rather than keeping our useThemeColor approach: the token system is the better structure and we should express the RAS Code palette through it. Deferred only because it wants its own change, generating our palette as adaptive tokens across 111 files.",
       "reviewedAt": "2026-08-29T17:11:51.094Z"
+    },
+    {
+      "upstream": "72c44a847c0a76f33b0d21f47548125b7032ec35",
+      "pr": 8018,
+      "title": "perf(desktop): skip duplicate browser updates",
+      "decision": "adopted",
+      "ours": "dc4dadabe232032cc08d5701121fbfff9a3264db",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-31T11:46:42.450Z"
+    },
+    {
+      "upstream": "c0e09f323ac9f6bf4b9119cbad841db3379588d6",
+      "pr": 8501,
+      "title": "fix(web): render nested markdown images correctly",
+      "decision": "adapted",
+      "ours": "eb3f684d89b5e554df755f2081d0f4f505db618e",
+      "reason": "Kept our image fallback that names the failure reason and path, and added upstream's copy metadata and authored sizing on top.",
+      "reviewedAt": "2026-08-31T11:49:09.938Z"
+    },
+    {
+      "upstream": "3d32797f6f4614205debf8a61f09e950f5f9a81c",
+      "pr": 8693,
+      "title": "fix(web): unify activity logs and composer banners",
+      "decision": "skipped",
+      "ours": null,
+      "reason": "Upstream reverted it wholesale in #8733 before we reviewed it; the surviving design lands in #8734.",
+      "reviewedAt": "2026-08-31T11:49:24.665Z"
+    },
+    {
+      "upstream": "1f8ed54add4133ac39effceded8fc1fff12d8e03",
+      "pr": 8694,
+      "title": "fix(mobile): reduce dev-client reload and Metro startup cost",
+      "decision": "adapted",
+      "ours": "4cb9179488dac130cc8db29de4c8d964e486c93b",
+      "reason": "Adopted the per-icon Tabler imports and the AppSymbol.ios split, but kept SymbolView unwrapped: withUniwind belongs to the deferred #7327. Renamed the new t3.mobile.* runtime ids to ras-code.mobile.*; regenerated the lockfile rather than merging it.",
+      "reviewedAt": "2026-08-31T11:54:51.307Z"
+    },
+    {
+      "upstream": "8dcb96314c976899e4df6951fb9af03131c2a46f",
+      "pr": 8733,
+      "title": "revert(web): restore previous composer banners",
+      "decision": "skipped",
+      "ours": null,
+      "reason": "Revert of #8693, which we also skipped; the pair cancels exactly on apps/web.",
+      "reviewedAt": "2026-08-31T11:49:27.078Z"
+    },
+    {
+      "upstream": "2daff8c25adf701fddd062ae93b94cc57d420ec2",
+      "pr": 8738,
+      "title": "test(web): remove tests for unreachable helpers",
+      "decision": "adopted",
+      "ours": "f3bc8da6bd75e25a56296e33c964575696b4b09c",
+      "reason": "Clean pick; mergiraf resolved the providerUpdateDismissal overlap and the web typecheck confirms nothing else used the removed helpers.",
+      "reviewedAt": "2026-08-31T11:57:10.887Z"
+    },
+    {
+      "upstream": "f15680bd3c08a154bacb9b4d163cc8608a310970",
+      "pr": 8793,
+      "title": "feat(mobile): update tool summaries and chat transitions",
+      "decision": "adapted",
+      "ours": "5a0c6baf65987e96d5687e27e0df8acd5c73d06f",
+      "intent": "Work-log rows carry upstream's shimmer, tool-group summaries and animated detail disclosure, and shell command labels move into client-runtime so web and mobile share them. Our two-line clamp survives for rows whose summary needs it.",
+      "reason": "Took upstream's work-log renderer wholesale (ThreadFeed already calls it with the new props) and re-expressed its Uniwind adaptive tokens and active: variant in our vocabulary; kept our maxLines rows, composer shadow wrapper, fallback-offer card and conflict suggestion.",
+      "reviewedAt": "2026-08-31T12:04:27.921Z"
+    },
+    {
+      "upstream": "ac4aae101d060b5355a5de58e23c7387886d9021",
+      "pr": 8688,
+      "title": "feat(web): play video attachments in chat",
+      "decision": "adapted",
+      "ours": "6a96feb8b5791f771e5d46faf38f201a48b266ad",
+      "reason": "Clean apart from the ChatComposer import block; also rebranded the media-src scheme upstream added to the Electron CSP test.",
+      "reviewedAt": "2026-08-31T12:05:48.778Z"
+    },
+    {
+      "upstream": "7980dfddb193864e07a5bcc013b0ccb93fb4300c",
+      "pr": 8741,
+      "title": "fix(web,mobile): snooze menu no longer offers the same wake time twice",
+      "decision": "adopted",
+      "ours": "aae6dad388d33597dfd667e000ee2cce315a1ca5",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-31T12:06:00.418Z"
+    },
+    {
+      "upstream": "7880a6e583f8a04db2eaeef2366ce9c81c3f7bec",
+      "pr": 8392,
+      "title": "fix(grok): allow model changes in existing threads",
+      "decision": "adopted",
+      "ours": "c8d6299362af5bb8cc7068b55b9d1cc337d663fd",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-31T12:06:09.439Z"
+    },
+    {
+      "upstream": "86c9a9288b5704e79bbe68fb0834d56036456f3e",
+      "pr": 8237,
+      "title": "feat(mobile): pick, share, and receive files in threads",
+      "decision": "adapted",
+      "ours": "56863420317275064860924cb40ffcd0d18e65c9",
+      "reason": "Kept the new-task composer free of the plan-mode toggle we removed in #23, and renamed the new on-device attachment directories (t3-composer-attachments, t3-attachment-downloads) to ours.",
+      "reviewedAt": "2026-08-31T12:08:01.574Z"
+    },
+    {
+      "upstream": "6e324b9bbfc72e694c3c16abeb59716c37fc02d5",
+      "pr": 8799,
+      "title": "fix(web): reduce title bar scroll fade height",
+      "decision": "adopted",
+      "ours": "a0cfb67c5a530d4cdf9a3e8a39d118e57ba38e67",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-31T12:08:15.650Z"
+    },
+    {
+      "upstream": "12fe2d6d03062c5d7fc3beff168f8c4af1235b50",
+      "pr": 8746,
+      "title": "fix(windows): strip quotes from repaired PATH",
+      "decision": "adopted",
+      "ours": "213259f6aa7bbccecfaf924eee7ccaf5d95a55d9",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-31T12:08:23.989Z"
+    },
+    {
+      "upstream": "8f525af5afa93dff58775030d9b503d3bda36b7b",
+      "pr": 8807,
+      "title": "fix(web): open agent images in expanded preview",
+      "decision": "adopted",
+      "ours": "93534f61d5d794142db7d2f9abaa25bf95c64e3d",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-31T12:08:40.501Z"
+    },
+    {
+      "upstream": "60f2ce0279d524bd70a573f6e0b6e9fab56e4b3e",
+      "pr": 8804,
+      "title": "fix(git): follow repository instructions in generated source control text",
+      "decision": "adopted",
+      "ours": "84ac607d2e4a4fce672b4a2ddfad3e09f7662e45",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-31T12:10:23.552Z"
+    },
+    {
+      "upstream": "9072aa1fd711170af425bf6a1a2828d0d54bbfa6",
+      "pr": 8806,
+      "title": "fix(server): stop overpricing cached Claude tokens",
+      "decision": "adopted",
+      "ours": "8e2eabab171448d2a49df221647094a322d3d168",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-31T12:10:30.974Z"
+    },
+    {
+      "upstream": "5885a68adb61805460047512040838bbb5e7ed65",
+      "pr": 8811,
+      "title": "fix(web): keep image preview above sidebar control",
+      "decision": "adopted",
+      "ours": "bbc6929ddaa5dcd7b8dbe06f3712a04fee9d9cec",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-31T12:11:09.399Z"
+    },
+    {
+      "upstream": "e09b88b6a51bb7e4309498f01c2f36bf5ada43f4",
+      "pr": 8803,
+      "title": "fix(web): keep right panel synced with agent edits",
+      "decision": "adopted",
+      "ours": "e07795577ea0bbf3c3fbe3906c5175cad460bc79",
+      "reason": "Clean pick; the new hook and query-state files needed the rebrand, which no conflict would have shown.",
+      "reviewedAt": "2026-08-31T12:11:11.871Z"
+    },
+    {
+      "upstream": "c1e70b5f8c93428c1fe7af62f24ee6ff2bffff6e",
+      "pr": 8584,
+      "title": "fix(web,mobile): render Codex citations and artifact templates",
+      "decision": "adapted",
+      "ours": "a066a0da61de35148de0882027174eeff352aa60",
+      "reason": "Kept our assistant-message revert/fork props (the merge silently reinstated onRevertUserMessage) and rendered the artifact-card symbol through useThemeColor instead of the Uniwind tintColorClassName that lands with #7327.",
+      "reviewedAt": "2026-08-31T12:13:56.078Z"
+    },
+    {
+      "upstream": "e4f7b14fab0850bff134a3f6bfaf5b71cc8ac9fc",
+      "pr": 8814,
+      "title": "chore: add Windows setup script to t3.json",
+      "decision": "adapted",
+      "ours": "9973ad3100c83e4b61349190b9b7ac5d8d05dd40",
+      "reason": "Ported into ras.json by hand — git saw a delete/modify against t3.json — with RAS_CODE_PROJECT_ROOT for the symlink targets.",
+      "reviewedAt": "2026-08-31T12:14:21.342Z"
+    },
+    {
+      "upstream": "17c48f7fc1af66110706b013bf41901ebcd8aedb",
+      "pr": 8828,
+      "title": "fix(web): fold interim turn responses",
+      "decision": "adopted",
+      "ours": "617dafc209069cc5d87649b898f34a08fdb26bb5",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-31T12:14:39.211Z"
+    },
+    {
+      "upstream": "8b817cbcaad71a53e2ef73f3881067f8aa8094bc",
+      "pr": 8840,
+      "title": "fix(web): use circle alert for failed tool calls",
+      "decision": "adopted",
+      "ours": "e2f6e1a66bae2426ebb1abbd17802129c378ca62",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-31T12:14:41.768Z"
+    },
+    {
+      "upstream": "352710d497cc640553e3e18e23fb5a5f3f890466",
+      "pr": 8614,
+      "title": "feat(mobile): add offline iPhone voice input",
+      "decision": "adapted",
+      "ours": "f535438779fda18107a46188d206d25998078e08",
+      "reason": "Ported the composer-editor readOnly prop into our renamed Swift module by hand (git missed that rename), kept the new-task composer free of the plan-mode toggle, and rendered the dictation control and work-log shimmer through useThemeColor instead of the Uniwind tintColorClassName that lands with #7327.",
+      "reviewedAt": "2026-08-31T12:18:49.521Z"
+    },
+    {
+      "upstream": "cefec32d6fc5d14f03e110ebdde534bdbcc9b62b",
+      "pr": 8790,
+      "title": "fix(web): prevent pull request metadata overlap",
+      "decision": "adopted",
+      "ours": "d2f4931db1de68721fb70de2ed96c27091466596",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-31T12:19:00.290Z"
+    },
+    {
+      "upstream": "7963ac7404ff2196c3e8e4198ecc02a5e742b0a1",
+      "pr": null,
+      "title": "chore(release): prepare v0.0.37",
+      "decision": "skipped",
+      "ours": null,
+      "reason": "Upstream's own release version bump. Our package versions are set by release.yml's finalize job against our tags, so tracking theirs would couple our release cadence to upstream's.",
+      "reviewedAt": "2026-08-31T12:19:18.183Z"
+    },
+    {
+      "upstream": "e3dcc1615c9167048ecfe536f87ad1d353fa8a49",
+      "pr": 8843,
+      "title": "Add mobile composer attachment menu with video support",
+      "decision": "adapted",
+      "ours": "d3263c9a546faf0cdefd2e965c0fbd9224d97991",
+      "reason": "Kept our on-device attachment directory name and rendered the new attachment/action button symbols through useThemeColor instead of the Uniwind tintColorClassName that lands with #7327.",
+      "reviewedAt": "2026-08-31T12:20:14.348Z"
+    },
+    {
+      "upstream": "f9137a0c89f6190d27813bb46dbb6d1bb796f080",
+      "pr": null,
+      "title": "fix(mobile): map native menu icon colors explicitly",
+      "decision": "adopted",
+      "ours": "663aae965319a5adbd1a8b814a01863af8e42d6e",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-31T12:20:33.545Z"
+    },
+    {
+      "upstream": "3958111057c10c10350dd9c20ec2a2df00f504be",
+      "pr": 8839,
+      "title": "fix(preview): improve browser recording quality",
+      "decision": "adapted",
+      "ours": "807b5930b350d0f4dcbccb0527e6af902fd52860",
+      "reason": "Kept the settings tests free of the glass-opacity and appearance-contrast cases we removed in #23, and imported useUpdatePrimarySettings, which our IntegrationsSettings did not already pull in.",
+      "reviewedAt": "2026-08-31T12:23:44.317Z"
+    },
+    {
+      "upstream": "e9c4775e8738381140af4e5248507b15fc1cd491",
+      "pr": 8856,
+      "title": "fix(web): mark pull request links as external",
+      "decision": "adopted",
+      "ours": "64eecf8d8da877321e6bd731e64f1933cd38e620",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-08-31T12:24:44.391Z"
+    },
+    {
+      "upstream": "9b2d04317c68233782e0630464ac86d77d0686f3",
+      "pr": 8862,
+      "title": "fix(mobile): replace Callstack glass with Expo glass",
+      "decision": "adapted",
+      "ours": "fc73c7375dc22fb7dfe7477f8bcaf12fbe15c18e",
+      "reason": "Kept our typography paragraph in the appearance doc and restated upstream's glass sentence alongside it.",
+      "reviewedAt": "2026-08-31T12:24:46.945Z"
+    },
+    {
+      "upstream": "30175a8af04c0daa359652b5e8dc8230b40b462a",
+      "pr": 8734,
+      "title": "fix(web): restore unified activity logs and composer banners",
+      "decision": "adapted",
+      "ours": "4920f05cd0d787e7aa67863b248bc068fe58391a",
+      "reason": "Adopted the banner dock wholesale. Upstream's ComposerBanner already had slots for the collapsed-mobile controls and the tasks drawer, so only our pending fallback offer needed porting: it gets its own Banner.Row beside the approval row and widens the dock's warning variant.",
+      "reviewedAt": "2026-08-31T12:53:38.473Z"
+    },
+    {
+      "upstream": "9842518c9a0af14fb3a3e90993692a6e34032682",
+      "pr": 8850,
+      "title": "fix(web): address composer banner review follow-ups",
+      "decision": "adopted",
+      "ours": "feaa7ec58ab6f14089d8e6342d0190236742af37",
+      "reason": "Clean pick once #8734 landed.",
+      "reviewedAt": "2026-08-31T12:53:40.953Z"
+    },
+    {
+      "upstream": "3f62e6fa65c2a2a91a367be4ee95da1b50007bde",
+      "pr": 8855,
+      "title": "fix(web): widen sync banners and simplify the working timer",
+      "decision": "adapted",
+      "ours": "d1a6badb25a9dc18a430cb97a684ec53ce0451db",
+      "reason": "Landed in two commits: the working-timer half with the pick, and the banner-width half in dde641749 once #8734 provided ComposerBanner.",
+      "reviewedAt": "2026-08-31T12:53:43.471Z"
     }
   ]
 }

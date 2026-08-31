@@ -14,7 +14,15 @@ Use this skill for the web client. For iOS Simulator, Android Emulator, or physi
    - Use the repository's ignored `.ras-code` directory for reusable worktree-local state.
    - Use `mktemp -d /tmp/ras-code-test.XXXXXX` for disposable state and retain the printed absolute path.
 3. Start the full web stack with `vp run dev`. Add `--share` when the user needs to open it from another tailnet device. In a linked worktree it defaults to that worktree's gitignored `.ras-code`; pass `--home-dir <base-dir>` only when the test needs a different isolated directory.
-4. Keep the terminal session alive and read the selected server port, web port, base directory, and pairing URL from its output.
+4. Keep the terminal session alive. Redirect its output to a log file and read back only the lines you need; never stream the dev log into the transcript or print the whole file. It writes about 500 bytes before it is ready, then roughly 2.5 KB per idle minute of Vite chatter, so every re-read of the whole file costs more than the last.
+
+   ```bash
+   vp run dev > /tmp/ras-dev.log 2>&1 &
+   until grep -q '/pair#token=' /tmp/ras-dev.log; do sleep 2; done
+   grep -E '\[dev-runner\]|Local: |pairingUrl:' /tmp/ras-dev.log
+   ```
+
+   Those three lines carry the base directory and server port, the web origin, and the pairing URL. Keep the process id from `$!` so you can stop exactly the process you started.
 
 Treat a base directory as disposable only when it was created or deliberately selected for the current test. Never delete or directly seed the shared `~/.ras-code` directory. Prefer starting with a new temporary base directory over clearing state of uncertain ownership.
 
@@ -31,6 +39,24 @@ The dev runner disables browser auto-open by default. Do not pass `--browser` du
 When another person will use the printed pairing URL, first open the shared origin without the pairing path or fragment in the controlled browser and confirm the RAS Code app loads. This browser navigation is required even when curl succeeds because browsers block some otherwise reachable ports before making a network request.
 
 Do not open the other person's complete pairing URL during this reachability check; doing so consumes its one-time token. If the agent also needs an authenticated browser, create and consume a separate pairing token, then leave a fresh token for the other person.
+
+## Keep the verification loop cheap
+
+`preview_snapshot` is by far the most expensive call in this skill: one call returns a PNG screenshot, the full semantic element list, diagnostics, and action history. Its sibling tools each say "use snapshot first to inspect the page", which turns a ten-step flow into ten snapshots and dominates the cost of a session. Do not carry that habit into this skill.
+
+Budget one snapshot when you first reach a screen you have not seen, and one at the end as visual evidence. Drive and check everything in between with calls that return only what you asked for:
+
+| To do this               | Use                                                                        | Not                                |
+| ------------------------ | -------------------------------------------------------------------------- | ---------------------------------- |
+| Wait for a state         | `preview_wait_for` with `locator`, `text`, or `urlIncludes`                | a snapshot poll                    |
+| Assert a value           | `preview_evaluate` returning only the fields under test                    | reading it out of a snapshot       |
+| Find a locator           | `preview_evaluate` over `document.querySelectorAll`                        | scanning the semantic element list |
+| Confirm the page moved   | `preview_status`                                                           | a snapshot                         |
+| Capture motion or timing | `preview_recording_start` and `preview_recording_stop`, which write a file | a burst of snapshots               |
+
+Return the smallest projection that answers the question. `(() => ({ open: !!document.querySelector("[data-chat-composer-top-drawer]") }))()` costs a few tokens; reading the same fact out of a snapshot costs thousands.
+
+`preview_snapshot` needs a visible preview surface. It fails outright in a background-only session — one opened with `open: false`, or any session with no preview attached. Treat the failure as a signal to assert with `preview_evaluate`, not as something to retry.
 
 ## Preserve the environment while iterating
 

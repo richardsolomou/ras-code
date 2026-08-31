@@ -23,7 +23,8 @@ export const preservedPatterns: ReadonlyArray<RegExp> = [
   /refs\/t3\/[\w-]+/g,
   /\bt3-chat-dark\b/g,
   /\bt3-chat\b/g,
-  /\b[\w-]*\.?t3\.codes\b/g,
+  /\b[\w-]*\.?t3\.(?:codes|chat|tools|sh)\b/g,
+  /\bt3\.(?:nano|micro|small|medium|large|xlarge|\d+xlarge)\b/g,
   /\bpingdotgg\/t3code\b/g,
   /\bt3_relay\b/g,
 ];
@@ -121,9 +122,10 @@ const textRules: ReadonlyArray<RebrandRule> = [
     description: "Android package names",
   },
   {
-    pattern: /\bt3-(composer-editor|markdown-text|native-controls|review-diff|terminal)\b/g,
+    pattern:
+      /\bt3-(composer-editor|markdown-text|native-controls|review-diff|terminal|composer-attachments|attachment-downloads)\b/g,
     replacement: "ras-code-$1",
-    description: "mobile native module directories",
+    description: "mobile native module and on-device data directories",
   },
   {
     pattern: /\bt3-sqlite-state\b/g,
@@ -144,6 +146,11 @@ const textRules: ReadonlyArray<RebrandRule> = [
     pattern: /\bt3_/g,
     replacement: "ras_code_",
     description: "snake_case identifiers",
+  },
+  {
+    pattern: /(?<=["'`])t3(?=[./][a-z])/g,
+    replacement: "ras-code",
+    description: "product-scoped identifier namespaces in string literals",
   },
   {
     pattern: /~\/\.t3\b/g,

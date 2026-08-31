@@ -32,6 +32,22 @@ describe("rebrandText", () => {
     assert.strictEqual(rebrandText("T3_CHAT_THEME_ID"), "RAS_CODE_THEME_ID");
   });
 
+  it("rewrites a product-scoped identifier namespace", () => {
+    assert.strictEqual(
+      rebrandText('Symbol.for("t3.mobile.hot-atom-runtimes")'),
+      'Symbol.for("ras-code.mobile.hot-atom-runtimes")',
+    );
+    assert.strictEqual(
+      rebrandText('>()("t3/provider/OpenCodeServerOwner") {}'),
+      '>()("ras-code/provider/OpenCodeServerOwner") {}',
+    );
+  });
+
+  it("leaves upstream hosts and AWS instance types spelled t3 alone", () => {
+    assert.strictEqual(rebrandText('url: "t3.chat"'), 'url: "t3.chat"');
+    assert.strictEqual(rebrandText('instanceType: "t3.micro"'), 'instanceType: "t3.micro"');
+  });
+
   it("rewrites the product name", () => {
     assert.strictEqual(rebrandText("Welcome to T3 Code."), "Welcome to RAS Code.");
   });

@@ -1,5 +1,5 @@
 import { GlassView, isGlassEffectAPIAvailable } from "expo-glass-effect";
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 import {
   Platform,
   View,
@@ -12,6 +12,7 @@ import { useThemeColor } from "../lib/useThemeColor";
 import { useAppearancePreferences } from "../features/settings/appearance/AppearancePreferencesProvider";
 
 interface GlassSurfaceProps extends Omit<ViewProps, "className"> {
+  readonly ref?: Ref<View>;
   readonly children: ReactNode;
   readonly glassEffectStyle?: "clear" | "regular" | "none";
   readonly tintColor?: ColorValue;
@@ -21,6 +22,7 @@ interface GlassSurfaceProps extends Omit<ViewProps, "className"> {
 }
 
 export function GlassSurface({
+  ref,
   children,
   glassEffectStyle = "regular",
   chrome = "default",
@@ -61,6 +63,7 @@ export function GlassSurface({
     return (
       <GlassView
         {...props}
+        ref={ref}
         glassEffectStyle={glassEffectStyle}
         tintColor={String(tintColor ?? glassTint)}
         colorScheme={isDarkMode ? "dark" : "light"}
@@ -72,7 +75,7 @@ export function GlassSurface({
   }
 
   return (
-    <View {...props} style={[surfaceStyle, fallbackStyle, style]}>
+    <View {...props} ref={ref} style={[surfaceStyle, fallbackStyle, style]}>
       {children}
     </View>
   );
