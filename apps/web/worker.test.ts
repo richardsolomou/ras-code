@@ -9,6 +9,7 @@ import {
   routeRequest,
   type WebRouterConfig,
 } from "./worker.ts";
+import worker from "./worker.ts";
 
 const ROUTER: WebRouterConfig = {
   routerHost: "code.ras.sh",
@@ -153,5 +154,42 @@ describe("proxyUrl", () => {
     expect(
       proxyUrl(new URL("https://code.ras.sh/app/threads/1?tab=diff"), "https://code-canary.ras.sh"),
     ).toBe("https://code-canary.ras.sh/app/threads/1?tab=diff");
+  });
+});
+
+describe("asset serving", () => {
+  const shellBody = "<!doctype html>";
+  const makeEnv = (files: Record<string, string>) => ({
+    ASSETS: {
+      fetch: (request: Request) => {
+        const path = new URL(request.url).pathname;
+        return Promise.resolve(
+          path in files
+            ? new Response(files[path], { status: 200 })
+            : new Response("not found", { status: 404 }),
+        );
+      },
+    },
+  });
+
+  const fetchPath = (files: Record<string, string>, path: string) =>
+    worker.fetch(new Request(`https://code.ras.sh${path}`), makeEnv(files) as never);
+
+  it("serves a real file under the prefix instead of the shell", async () => {
+    const response = await fetchPath(
+      { "/app/index.html": shellBody, "/app/assets/main.js": "console.log(1)" },
+      "/app/assets/main.js",
+    );
+    expect(await response.text()).toBe("console.log(1)");
+  });
+
+  it("falls back to the shell for a client-side route", async () => {
+    const response = await fetchPath({ "/app/index.html": shellBody }, "/app/settings");
+    expect(await response.text()).toBe(shellBody);
+  });
+
+  it("does not hand the shell to a path outside the app", async () => {
+    const response = await fetchPath({ "/app/index.html": shellBody }, "/somewhere-else");
+    expect(response.status).toBe(404);
   });
 });

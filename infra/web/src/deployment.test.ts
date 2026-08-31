@@ -75,12 +75,19 @@ describe("hostedAppRoutePatterns", () => {
   it("keeps the legacy entry points shipped clients still address", () => {
     expect(hostedAppRoutePatterns("code.ras.sh")).toEqual(
       expect.arrayContaining([
-        "code.ras.sh/pair",
-        "code.ras.sh/connect",
-        "code.ras.sh/connect/*",
+        "code.ras.sh/pair*",
+        "code.ras.sh/connect*",
         "code.ras.sh/__ras-code/*",
       ]),
     );
+  });
+
+  it("matches legacy entry points carrying a query, which pairing links always do", () => {
+    for (const pattern of hostedAppRoutePatterns("code.ras.sh")) {
+      if (pattern.startsWith("code.ras.sh/pair")) {
+        expect(pattern.endsWith("*")).toBe(true);
+      }
+    }
   });
 
   it("claims nothing the marketing site serves", () => {

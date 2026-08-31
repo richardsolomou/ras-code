@@ -104,9 +104,10 @@ export function hostedAppRoutePatterns(routerHost: string): ReadonlyArray<string
   return [
     `${routerHost}/app`,
     `${routerHost}/app/*`,
-    `${routerHost}/pair`,
-    `${routerHost}/connect`,
-    `${routerHost}/connect/*`,
+    // Trailing wildcards, because an exact pattern does not match once a query
+    // string is present and a pairing link always carries `?host=`.
+    `${routerHost}/pair*`,
+    `${routerHost}/connect*`,
     `${routerHost}/__ras-code/*`,
   ];
 }
