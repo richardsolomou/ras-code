@@ -122,9 +122,10 @@ const textRules: ReadonlyArray<RebrandRule> = [
     description: "Android package names",
   },
   {
-    pattern: /\bt3-(composer-editor|markdown-text|native-controls|review-diff|terminal)\b/g,
+    pattern:
+      /\bt3-(composer-editor|markdown-text|native-controls|review-diff|terminal|composer-attachments|attachment-downloads)\b/g,
     replacement: "ras-code-$1",
-    description: "mobile native module directories",
+    description: "mobile native module and on-device data directories",
   },
   {
     pattern: /\bt3-sqlite-state\b/g,

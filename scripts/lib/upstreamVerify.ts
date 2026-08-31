@@ -9,7 +9,13 @@
  */
 
 const UPSTREAM_PACKAGE_SCOPES = ["@t3tools/", "@t3-code/"] as const;
-const UPSTREAM_PATH_MARKERS = ["oxlint-plugin-t3code", "apps/t3code", "packages/t3code"] as const;
+const UPSTREAM_PATH_MARKERS = [
+  "oxlint-plugin-t3code",
+  "apps/t3code",
+  "packages/t3code",
+  "apps/mobile/modules/t3-",
+  ".agents/skills/test-t3-",
+] as const;
 
 /**
  * Identifier namespaces upstream scopes under `t3.` or `t3/`: Effect service keys, atom runtime

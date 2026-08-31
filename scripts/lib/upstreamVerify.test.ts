@@ -77,6 +77,19 @@ describe("findImportResidue, identifier namespaces", () => {
 });
 
 describe("findPathResidue", () => {
+  it("catches a renamed directory that git could not follow", () => {
+    expect(
+      findPathResidue(["apps/mobile/modules/t3-composer-editor/ios/T3ComposerEditorModule.swift"]),
+    ).toEqual([
+      {
+        path: "apps/mobile/modules/t3-composer-editor/ios/T3ComposerEditorModule.swift",
+        line: 0,
+        marker: "apps/mobile/modules/t3-",
+        kind: "path",
+      },
+    ]);
+  });
+
   it("catches an upstream directory that arrived as a new path", () => {
     expect(findPathResidue(["oxlint-plugin-t3code/rules/no-escape-hatches.ts"])).toEqual([
       {
