@@ -1,3 +1,5 @@
+<!-- markdownlint-disable MD013 -->
+
 # Telemetry
 
 RAS Code sends anonymous product and reliability telemetry to PostHog by default. Its server uses a hashed provider account identifier when one is available, or an installation-scoped anonymous identifier. It does not create a PostHog person profile.
