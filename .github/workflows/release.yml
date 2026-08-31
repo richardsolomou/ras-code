@@ -1120,6 +1120,7 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
       RAS_CODE_WEB_ROUTER_URL: ${{ vars.RAS_CODE_WEB_ROUTER_URL }}
       RAS_CODE_WEB_CANARY_DOMAIN: ${{ vars.RAS_CODE_WEB_CANARY_DOMAIN }}
+      RAS_CODE_WEB_ZONE_ID: ${{ vars.RAS_CODE_WEB_ZONE_ID }}
       ALCHEMY_TELEMETRY_DISABLED: "1"
     steps:
       - name: Checkout
@@ -1185,6 +1186,12 @@ jobs:
 
           if [[ -z "${RAS_CODE_WEB_ROUTER_URL:-}" || -z "${RAS_CODE_WEB_CANARY_DOMAIN:-}" ]]; then
             echo "Missing one or more required hosted web variables: RAS_CODE_WEB_ROUTER_URL, RAS_CODE_WEB_CANARY_DOMAIN." >&2
+            exit 1
+          fi
+
+          # Only the stable channel attaches Worker routes, so only it needs the zone.
+          if [[ "${{ needs.preflight.outputs.release_channel }}" == "stable" && -z "${RAS_CODE_WEB_ZONE_ID:-}" ]]; then
+            echo "Missing required hosted web variable: RAS_CODE_WEB_ZONE_ID." >&2
             exit 1
           fi
 
