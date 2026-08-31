@@ -50,9 +50,11 @@ export const applyWebBrandAssetsCommand = Command.make(
       Flag.withDescription("Hosted release channel to map to a web asset brand."),
       Flag.optional,
     ),
-    targetDirectory: Argument.string("target-directory").pipe(
-      Argument.withDescription("Output directory that contains the hosted web build assets."),
-      Argument.optional,
+    // A flag, not a second positional: `brand` is itself optional, so a lone
+    // positional binds to it and a directory is read as a brand name.
+    targetDirectory: Flag.string("target-directory").pipe(
+      Flag.withDescription("Output directory that contains the hosted web build assets."),
+      Flag.optional,
     ),
   },
   ({ brand, channel, targetDirectory }) =>
