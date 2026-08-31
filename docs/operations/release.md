@@ -141,10 +141,12 @@ Worker custom domains, which Alchemy attaches:
 - `code-canary.ras.sh`: the canary channel, served by the `canary` stage. Canary
   needs its own name because the router proxies to it.
 
-The marketing site claims that hostname by deploying `infra/marketing` with
-`RAS_CODE_MARKETING_DOMAIN=code.ras.sh`; without it the site is reachable only at
-its generated `workers.dev` URL and the app's routes have nothing to sit in front
-of. The marketing site owns `code.ras.sh` as its custom domain, so the stable channel
+The marketing site claims that hostname through
+`.github/workflows/deploy-marketing.yml`, which deploys `infra/marketing` with
+the `RAS_CODE_MARKETING_DOMAIN` repository variable set to `code.ras.sh`. Without
+that variable the site is reachable only at its generated `workers.dev` URL and
+the app's routes have nothing to sit in front of. The workflow runs on changes
+under `apps/marketing/` or `infra/marketing/`, and on demand. The marketing site owns `code.ras.sh` as its custom domain, so the stable channel
 is attached to that hostname with Worker routes instead: `/app` and `/app/*` for
 the app itself, plus `/pair`, `/connect`, `/connect/*`, and `/__ras-code/*`, which
 the Worker redirects under the prefix for clients that still address them at the
