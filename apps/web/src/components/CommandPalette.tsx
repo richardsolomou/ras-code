@@ -32,7 +32,7 @@ import {
   type SourceControlRepositoryInfo,
   PRIMARY_LOCAL_ENVIRONMENT_ID,
 } from "@ras-code/contracts";
-import { useNavigate, useParams } from "@tanstack/react-router";
+import { useLocation, useNavigate, useParams } from "@tanstack/react-router";
 import * as Option from "effect/Option";
 import {
   ArrowLeftIcon,
@@ -142,6 +142,8 @@ import { AzureDevOpsIcon, BitbucketIcon, GitHubIcon, GitLabIcon } from "./Icons"
 import { ProjectFavicon } from "./ProjectFavicon";
 import { ProjectFilePicker } from "./files/ProjectFilePicker";
 import { ProjectContentSearchDialog } from "./search/ProjectContentSearchDialog";
+import { useAvailableSettingsSearchItems } from "./settings/useAvailableSettingsSearchItems";
+import { searchSettings, SETTINGS_SECTION_LABELS } from "./settings/settingsSearch";
 import {
   COMMAND_PALETTE_META_ICON_CLASS,
   CommandPaletteMetaDot,
@@ -550,6 +552,7 @@ function OpenCommandPaletteDialog(props: {
 }) {
   const navigate = useNavigate();
   const openThreadInPane = useOpenThreadInPane();
+  const pathname = useLocation({ select: (location) => location.pathname });
   const { clearOpenIntent, openIntent, openOverlayMode, setOpen } = props;
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);
@@ -572,6 +575,7 @@ function OpenCommandPaletteDialog(props: {
   const { environments } = useEnvironments();
   const desktopLocalBootstraps = useDesktopLocalBootstraps();
   const primaryEnvironmentId = usePrimaryEnvironmentId();
+  const availableSettingsSearchItems = useAvailableSettingsSearchItems();
   const { activeDraftThread, activeThread, defaultProjectRef, handleNewThread } =
     useHandleNewThread();
   const projects = useProjects();
@@ -1646,7 +1650,19 @@ function OpenCommandPaletteDialog(props: {
     actionItems.push({
       kind: "action",
       value: "action:project-settings",
-      searchTerms: ["project", "settings", "scripts", "model", "grouping", "checkout"],
+      searchTerms: [
+        "project",
+        "settings",
+        "name",
+        "icon",
+        "scripts",
+        "model",
+        "workspace",
+        "grouping",
+        "checkout",
+        "remove",
+        "ras.json",
+      ],
       title: "Project settings",
       description: contextualProjectGroup.displayName,
       icon: <FolderIcon className={ITEM_ICON_CLASS} />,
@@ -1660,6 +1676,25 @@ function OpenCommandPaletteDialog(props: {
   }
 
   const rootGroups = buildRootGroups({ actionItems, recentThreadItems });
+  const settingsSearchItems: CommandPaletteActionItem[] = searchSettings(
+    deferredQuery,
+    availableSettingsSearchItems,
+  ).map((item) => ({
+    kind: "action",
+    value: `setting:${item.id}`,
+    searchTerms: [item.title, SETTINGS_SECTION_LABELS[item.to], ...(item.searchTerms ?? [])],
+    title: item.title,
+    description: `Settings · ${SETTINGS_SECTION_LABELS[item.to]}`,
+    icon: <SettingsIcon className={ITEM_ICON_CLASS} />,
+    run: async () => {
+      await navigate({
+        to: item.to,
+        hash: item.targetId ?? item.id,
+        replace: pathname === item.to,
+        hashScrollIntoView: false,
+      });
+    },
+  }));
   const sourceSelectionViewValue =
     addProjectEnvironmentId === null ? null : `sources:${addProjectEnvironmentId}`;
   const activeGroups =
@@ -1677,6 +1712,7 @@ function OpenCommandPaletteDialog(props: {
     query: deferredQuery,
     isInSubmenu: currentView !== null,
     projectSearchItems: projectSearchItems,
+    settingsSearchItems,
     threadSearchItems: allThreadItems,
   });
 
