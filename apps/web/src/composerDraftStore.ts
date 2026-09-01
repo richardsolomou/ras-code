@@ -2051,6 +2051,19 @@ function persistedComposerDraftHasUserContent(draft: PersistedComposerThreadDraf
   );
 }
 
+function restorePendingModelIntentFromLegacyExplicitDrafts(
+  draftsByThreadKey: PersistedComposerDraftStoreState["draftsByThreadKey"],
+): PersistedComposerDraftStoreState["draftsByThreadKey"] {
+  return Object.fromEntries(
+    Object.entries(draftsByThreadKey).map(([threadKey, draft]) => [
+      threadKey,
+      draft.modelSelectionExplicit === true && persistedComposerDraftHasUserContent(draft)
+        ? { ...draft, modelSelectionIntentPending: true }
+        : draft,
+    ]),
+  );
+}
+
 function stripLegacyModelSeedsFromEmptyDraftSessions(
   draftsByThreadKey: PersistedComposerDraftStoreState["draftsByThreadKey"],
   draftThreadsByThreadKey: PersistedComposerDraftStoreState["draftThreadsByThreadKey"],
@@ -2079,14 +2092,19 @@ function stripLegacyModelSeedsFromEmptyDraftSessions(
 
 function migratePersistedComposerDraftStoreState(
   persistedState: unknown,
+  persistedVersion: number,
 ): PersistedComposerDraftStoreState {
   const normalized = normalizeCurrentPersistedComposerDraftStoreState(persistedState);
+  const draftsByThreadKey = stripLegacyModelSeedsFromEmptyDraftSessions(
+    normalized.draftsByThreadKey,
+    normalized.draftThreadsByThreadKey,
+  );
   return {
     ...normalized,
-    draftsByThreadKey: stripLegacyModelSeedsFromEmptyDraftSessions(
-      normalized.draftsByThreadKey,
-      normalized.draftThreadsByThreadKey,
-    ),
+    draftsByThreadKey:
+      persistedVersion < COMPOSER_DRAFT_STORAGE_VERSION
+        ? restorePendingModelIntentFromLegacyExplicitDrafts(draftsByThreadKey)
+        : draftsByThreadKey,
   };
 }
 

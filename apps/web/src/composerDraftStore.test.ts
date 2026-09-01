@@ -2498,6 +2498,46 @@ describe("composerDraftStore model seed migration", () => {
     }
   });
 
+  it("restores pending model intent for a v9 explicit draft with unsent content", async () => {
+    vi.useFakeTimers();
+    try {
+      const selection = modelSelection(CODEX_DRIVER, "gpt-5.6-sol");
+      const storage = useComposerDraftStore.persist.getOptions().storage;
+      expect(storage).toBeDefined();
+      storage?.setItem(COMPOSER_DRAFT_STORAGE_KEY, {
+        version: 9,
+        state: {
+          draftsByThreadKey: {
+            [serverThreadKey]: {
+              prompt: "send this with the selected model",
+              attachments: [],
+              modelSelectionByProvider: { [CODEX_INSTANCE]: selection },
+              activeProvider: CODEX_INSTANCE,
+              modelSelectionExplicit: true,
+            },
+          },
+          draftThreadsByThreadKey: {},
+          logicalProjectDraftThreadKeyByLogicalProjectKey: {},
+          stickyModelSelectionByProvider: {},
+          stickyActiveProvider: null,
+        },
+      } as never);
+      await vi.advanceTimersByTimeAsync(300);
+
+      await useComposerDraftStore.persist.rehydrate();
+
+      expect(draftByKey(serverThreadKey)).toMatchObject({
+        prompt: "send this with the selected model",
+        modelSelectionByProvider: { [CODEX_INSTANCE]: selection },
+        activeProvider: CODEX_INSTANCE,
+        modelSelectionExplicit: true,
+        modelSelectionIntentPending: true,
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("keeps v8 file-only draft sessions and their seeded models", async () => {
     vi.useFakeTimers();
     try {
