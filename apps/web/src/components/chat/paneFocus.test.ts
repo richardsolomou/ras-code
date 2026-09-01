@@ -15,9 +15,14 @@ function focusTarget(connected = true) {
   } as unknown as HTMLElement;
 }
 
-function paneRoot(input: { remembered?: HTMLElement; fallback?: HTMLElement | null }) {
+function paneRoot(input: {
+  remembered?: HTMLElement;
+  fallback?: HTMLElement | null;
+  selected?: Node;
+}) {
   return {
-    contains: (target: HTMLElement) => target === input.remembered,
+    contains: (target: HTMLElement | Node) =>
+      target === input.remembered || (input.selected !== undefined && target === input.selected),
     querySelector: vi.fn((selector: string) => {
       expect(selector).toBe(PANE_DEFAULT_FOCUS_SELECTOR);
       return input.fallback ?? null;
@@ -46,12 +51,27 @@ describe("restorePaneFocus", () => {
   });
 });
 
+function textSelection(input: { collapsed?: boolean; within?: Node } = {}) {
+  const node = input.within ?? ({} as Node);
+  return {
+    isCollapsed: input.collapsed ?? false,
+    rangeCount: 1,
+    getRangeAt: () => ({ commonAncestorContainer: node }) as Range,
+  } as unknown as Selection;
+}
+
 describe("restorePaneFocusAfterClick", () => {
   it("restores the pane after a click on non-focusable content", () => {
     const remembered = focusTarget();
 
     expect(
-      restorePaneFocusAfterClick(paneRoot({ remembered }), {} as EventTarget, null, remembered),
+      restorePaneFocusAfterClick(
+        paneRoot({ remembered }),
+        {} as EventTarget,
+        null,
+        remembered,
+        null,
+      ),
     ).toBe(true);
     expect(remembered.focus).toHaveBeenCalledWith({ preventScroll: true });
   });
@@ -63,9 +83,9 @@ describe("restorePaneFocusAfterClick", () => {
     );
     const target = { closest } as unknown as EventTarget;
 
-    expect(restorePaneFocusAfterClick(paneRoot({ remembered }), target, null, remembered)).toBe(
-      false,
-    );
+    expect(
+      restorePaneFocusAfterClick(paneRoot({ remembered }), target, null, remembered, null),
+    ).toBe(false);
     expect(closest).toHaveBeenCalledOnce();
     expect(remembered.focus).not.toHaveBeenCalled();
   });
@@ -79,9 +99,57 @@ describe("restorePaneFocusAfterClick", () => {
         {} as EventTarget,
         remembered,
         remembered,
+        null,
       ),
     ).toBe(false);
     expect(remembered.focus).not.toHaveBeenCalled();
+  });
+
+  it("keeps text the click left selected in the pane", () => {
+    const remembered = focusTarget();
+    const selected = {} as Node;
+
+    expect(
+      restorePaneFocusAfterClick(
+        paneRoot({ remembered, selected }),
+        {} as EventTarget,
+        null,
+        remembered,
+        textSelection({ within: selected }),
+      ),
+    ).toBe(false);
+    expect(remembered.focus).not.toHaveBeenCalled();
+  });
+
+  it("restores the pane when the click only moved the caret", () => {
+    const remembered = focusTarget();
+    const selected = {} as Node;
+
+    expect(
+      restorePaneFocusAfterClick(
+        paneRoot({ remembered, selected }),
+        {} as EventTarget,
+        null,
+        remembered,
+        textSelection({ within: selected, collapsed: true }),
+      ),
+    ).toBe(true);
+    expect(remembered.focus).toHaveBeenCalledWith({ preventScroll: true });
+  });
+
+  it("restores the pane when the selected text sits in another pane", () => {
+    const remembered = focusTarget();
+
+    expect(
+      restorePaneFocusAfterClick(
+        paneRoot({ remembered }),
+        {} as EventTarget,
+        null,
+        remembered,
+        textSelection(),
+      ),
+    ).toBe(true);
+    expect(remembered.focus).toHaveBeenCalledWith({ preventScroll: true });
   });
 });
 

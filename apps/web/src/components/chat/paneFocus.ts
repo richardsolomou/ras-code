@@ -14,11 +14,22 @@ export function restorePaneFocus(root: HTMLElement, remembered: HTMLElement | nu
   return true;
 }
 
+/**
+ * Whether the pane holds live selected text. Moving focus collapses it, so an
+ * implicit restore has to stand down: a drag that selects transcript text ends
+ * in a click, and the user wants the highlight, not the composer caret.
+ */
+export function paneHasTextSelection(root: HTMLElement, selection: Selection | null): boolean {
+  if (selection === null || selection.isCollapsed || selection.rangeCount === 0) return false;
+  return root.contains(selection.getRangeAt(0).commonAncestorContainer);
+}
+
 export function restorePaneFocusAfterClick(
   root: HTMLElement,
   target: EventTarget | null,
   activeElement: Element | null,
   remembered: HTMLElement | null,
+  selection: Selection | null,
 ): boolean {
   if (
     target !== null &&
@@ -30,6 +41,7 @@ export function restorePaneFocusAfterClick(
     return false;
   }
   if (root.contains(activeElement)) return false;
+  if (paneHasTextSelection(root, selection)) return false;
   return restorePaneFocus(root, remembered);
 }
 

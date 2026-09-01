@@ -48,6 +48,7 @@ import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import {
   PaneFocusProvider,
   PaneIsRoutedProvider,
+  paneHasTextSelection,
   registerPaneFocusRestorer,
   restorePaneFocus,
   restorePaneFocusAfterClick,
@@ -93,6 +94,7 @@ function usePaneFocusHandlers(pane: FocusedPane, memoryRef: MutableRefObject<Pan
         event.target,
         document.activeElement,
         memoryRef.current[pane],
+        window.getSelection(),
       );
     },
     [memoryRef, pane],
@@ -535,6 +537,7 @@ export function ChatPanes({ children }: { children: ReactNode }) {
         rowNodeRef.current?.querySelector<HTMLElement>(`[data-chat-pane="${focused}"]`) ??
         rowNodeRef.current?.querySelector<HTMLElement>('[data-chat-pane="routed"]');
       if (!root) return;
+      if (paneHasTextSelection(root, window.getSelection())) return;
       const pane = root.dataset.chatPane === "companion" ? "companion" : "routed";
       restorePaneFocus(root, focusMemoryRef.current[pane]);
     };
