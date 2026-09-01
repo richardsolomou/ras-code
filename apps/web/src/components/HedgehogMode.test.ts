@@ -1,45 +1,33 @@
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 
-import {
-  getHedgehogModeAssetsUrl,
-  mountHedgehogMode,
-  type HedgehogModeMountOptions,
-} from "./HedgehogMode";
+import { getHedgehogModeAssetsUrl, mountHedgehogMode } from "./HedgehogMode";
 
 class FakeCanvas extends EventTarget {}
 
 function makeGame(input?: { readonly renderError?: Error }) {
   const canvas = new FakeCanvas();
-  const sprite = { updateSprite: vi.fn() };
   const game = {
     app: {
       canvas,
       renderer: { context: { isLost: false } },
     },
     destroy: vi.fn(),
-    getAllHedgehogs: () => [sprite],
     render: input?.renderError
       ? vi.fn().mockRejectedValue(input.renderError)
       : vi.fn().mockResolvedValue(undefined),
   };
-  let constructorOptions:
-    | (HedgehogModeMountOptions & { onQuit: (activeGame: typeof game) => void })
-    | undefined;
-  function FakeHedgehogMode(
-    this: unknown,
-    options: HedgehogModeMountOptions & { onQuit: (activeGame: typeof game) => void },
-  ) {
-    constructorOptions = options;
+  function FakeHedgehogMode(this: unknown) {
     return game;
   }
   const load = vi.fn(async () => ({
     HedgeHogMode: FakeHedgehogMode,
   }));
-  return { canvas, constructorOptions: () => constructorOptions, game, load, sprite };
+  return { canvas, game, load };
 }
 
 afterEach(() => {
   vi.useRealTimers();
+  vi.unstubAllGlobals();
 });
 
 describe("hedgehog mode", () => {
@@ -58,7 +46,6 @@ describe("hedgehog mode", () => {
       {
         assetsUrl: "https://ras-code.test/hedgehog-mode",
         onContextLost,
-        onQuit: vi.fn(),
       },
       fixture.load as never,
     );
@@ -76,26 +63,25 @@ describe("hedgehog mode", () => {
     expect(onContextLost).toHaveBeenCalledOnce();
   });
 
-  it("waves before quitting and cancels a pending quit when destroyed", async () => {
-    vi.useFakeTimers();
-    const fixture = makeGame();
-    const onQuit = vi.fn();
-    const handle = await mountHedgehogMode(
-      {} as HTMLDivElement,
-      { assetsUrl: "/hedgehog-mode", onQuit },
-      fixture.load as never,
-    );
-
-    fixture.constructorOptions()?.onQuit(fixture.game);
-    expect(fixture.sprite.updateSprite).toHaveBeenCalledWith("wave", {
-      reset: true,
-      loop: false,
+  it("removes package global listeners when destroyed", async () => {
+    const fakeWindow = Object.assign(new EventTarget(), {
+      cancelAnimationFrame: vi.fn(),
     });
-    expect(onQuit).not.toHaveBeenCalled();
+    const addListener = vi.spyOn(fakeWindow, "addEventListener");
+    const removeListener = vi.spyOn(fakeWindow, "removeEventListener");
+    vi.stubGlobal("window", fakeWindow);
 
-    handle.destroy();
-    vi.advanceTimersByTime(1_000);
-    expect(onQuit).not.toHaveBeenCalled();
+    const { HedgeHogMode } = await import("@posthog/hedgehog-mode");
+    const game = new HedgeHogMode({ assetsUrl: "/hedgehog-mode" });
+    const internals = game as unknown as {
+      app: { destroy(): void };
+      runner: { frameRequestId: null };
+    };
+    internals.app = { destroy: vi.fn() };
+    internals.runner = { frameRequestId: null };
+    game.destroy();
+
+    expect(removeListener).toHaveBeenCalledTimes(addListener.mock.calls.length);
   });
 
   it("destroys a game whose render fails", async () => {
@@ -105,7 +91,7 @@ describe("hedgehog mode", () => {
     await expect(
       mountHedgehogMode(
         {} as HTMLDivElement,
-        { assetsUrl: "/hedgehog-mode", onQuit: vi.fn() },
+        { assetsUrl: "/hedgehog-mode" },
         fixture.load as never,
       ),
     ).rejects.toBe(renderError);

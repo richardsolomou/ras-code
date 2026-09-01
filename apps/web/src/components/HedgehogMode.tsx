@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-import { useClientSettings, useUpdateClientSettings } from "../hooks/useSettings";
+import { useClientSettings } from "../hooks/useSettings";
 
 const MAX_CONTEXT_LOSS_REMOUNTS = 3;
 const REMOUNT_DELAY_MS = 2_000;
@@ -15,7 +15,6 @@ export interface HedgehogModeHandle {
 
 export interface HedgehogModeMountOptions {
   readonly assetsUrl: string;
-  readonly onQuit: () => void;
   readonly onContextLost?: () => void;
 }
 
@@ -36,15 +35,8 @@ export async function mountHedgehogMode(
   load: LoadHedgehogMode = loadHedgehogMode,
 ): Promise<HedgehogModeHandle> {
   const { HedgeHogMode } = await load();
-  let quitTimer: ReturnType<typeof setTimeout> | null = null;
   const game = new HedgeHogMode({
     assetsUrl: options.assetsUrl,
-    onQuit: (activeGame) => {
-      activeGame.getAllHedgehogs().forEach((hedgehog) => {
-        hedgehog.updateSprite("wave", { reset: true, loop: false });
-      });
-      quitTimer = setTimeout(options.onQuit, 1_000);
-    },
   });
 
   try {
@@ -60,7 +52,6 @@ export async function mountHedgehogMode(
 
   return {
     destroy: () => {
-      if (quitTimer) clearTimeout(quitTimer);
       canvas.removeEventListener("webglcontextlost", notifyContextLost);
       game.destroy();
     },
@@ -75,7 +66,6 @@ export async function mountHedgehogMode(
 
 export function HedgehogMode() {
   const enabled = useClientSettings((settings) => settings.hedgehogMode);
-  const updateSettings = useUpdateClientSettings();
   const containerRef = useRef<HTMLDivElement>(null);
   const [gameDead, setGameDead] = useState(false);
 
@@ -106,7 +96,6 @@ export function HedgehogMode() {
       if (cancelled || handle) return;
       void mountHedgehogMode(container, {
         assetsUrl: getHedgehogModeAssetsUrl(),
-        onQuit: () => updateSettings({ hedgehogMode: false }),
         onContextLost: handleContextLost,
       })
         .then((mountedHandle) => {
@@ -152,7 +141,7 @@ export function HedgehogMode() {
       if (remountTimer) clearTimeout(remountTimer);
       destroyGame();
     };
-  }, [enabled, gameDead, updateSettings]);
+  }, [enabled, gameDead]);
 
   return (
     <div

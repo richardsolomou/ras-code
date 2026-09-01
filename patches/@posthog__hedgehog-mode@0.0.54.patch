@@ -1,0 +1,90 @@
+diff --git a/dist/index-C71vDVIs.js b/dist/index-C71vDVIs.js
+index 5c17d3e1906553f262da78f59e820f880161e841..9d7daff02002f5a5c13a00a5920dc01f7328146b 100644
+--- a/dist/index-C71vDVIs.js
++++ b/dist/index-C71vDVIs.js
+@@ -14366,7 +14366,7 @@ class br {
+     }, f = (c) => {
+       c.pointerId === r && (this.isDragging || this.onClick(), this.isDragging = !1, s && ke.World.remove(this.game.engine.world, s), window.removeEventListener("pointermove", n), window.removeEventListener("pointerup", f), window.removeEventListener("pointercancel", f), document.removeEventListener("touchmove", l));
+     };
+-    window.addEventListener("pointermove", n), window.addEventListener("pointerup", f), window.addEventListener("pointercancel", f), document.addEventListener("touchmove", l, { passive: !1 });
++    this.game.addGlobalListener(window, "pointermove", n), this.game.addGlobalListener(window, "pointerup", f), this.game.addGlobalListener(window, "pointercancel", f), this.game.addGlobalListener(document, "touchmove", l, { passive: !1 });
+   }
+   // Whether the actor should be clamped/wrapped to the screen edges. Subclasses
+   // can opt out (e.g. while tethered to a web, so wrapping doesn't teleport the
+@@ -18337,7 +18337,7 @@ class Ax {
+       const y = r[h.key] ?? h.key;
+       t.has(y) && (t.delete(y), (m = f[y]) == null || m.off(h));
+     };
+-    return window.addEventListener("keydown", c), window.addEventListener("keyup", d), () => {
++    return this.actor.game.addGlobalListener(window, "keydown", c), this.actor.game.addGlobalListener(window, "keyup", d), () => {
+       window.removeEventListener("keydown", c), window.removeEventListener("keyup", d);
+     };
+   }
+@@ -18907,7 +18907,7 @@ class Xx {
+       a.pointerId === this.activePointerId && ((s = this.activeWeb) == null || s.moveAnchor({ x: a.clientX, y: a.clientY }));
+     }, this.onPointerUp = (a) => {
+       a.pointerId === this.activePointerId && this.endSling();
+-    }, window.addEventListener("pointerdown", this.onPointerDown);
++    }, this.game.addGlobalListener(window, "pointerdown", this.onPointerDown);
+   }
+   endSling() {
+     var t;
+@@ -19529,7 +19529,7 @@ class tv {
+         t.slice(-f.keys.length).join("") === f.keys.join("") && (f.action(), t.splice(-f.keys.length));
+       });
+     };
+-    return window.addEventListener("keydown", s), () => {
++    return this.game.addGlobalListener(window, "keydown", s), () => {
+       window.removeEventListener("keydown", s);
+     };
+   }
+@@ -19685,16 +19685,21 @@ class rv extends br {
+ }
+ class sv {
+   constructor(t) {
+-    this.options = t, this.elements = [], this.totalElapsedTime = 0, this.pointerEventsEnabled = !1, this.isDebugging = !1, this.spritesManager = new bx(t), this.setupDebugListeners();
++    this.options = t, this.elements = [], this.totalElapsedTime = 0, this.pointerEventsEnabled = !1, this.isDebugging = !1, this.cleanupListeners = [], this.spritesManager = new bx(t), this.setupDebugListeners();
+   }
+   destroy() {
+-    this.syncPlatformsInterval && clearInterval(this.syncPlatformsInterval), ut.Runner.stop(this.runner), this.app.destroy({
++    this.cleanupListeners.splice(0).forEach((t) => t()), this.syncPlatformsInterval && clearInterval(this.syncPlatformsInterval), ut.Runner.stop(this.runner), this.app.destroy({
+       removeView: !0
+     }), this.debugRender && (ut.Render.stop(this.debugRender), ke.World.clear(this.engine.world, !1), ke.Engine.clear(this.engine), this.debugRender.canvas.remove(), this.debugRender.canvas = document.createElement("canvas"), this.debugRender.context = this.debugRender.canvas.getContext("2d"), this.debugRender.textures = {});
+   }
++  addGlobalListener(t, r, a, s) {
++    t.addEventListener(r, a, s);
++    const n = () => t.removeEventListener(r, a, s);
++    return this.cleanupListeners.push(n), n;
++  }
+   setupDebugListeners() {
+     let t = 0;
+-    window.addEventListener("keydown", (r) => {
++    this.addGlobalListener(window, "keydown", (r) => {
+       var a;
+       r.key === "d" && r.ctrlKey ? (t++, t === 5 && (t = 0, this.isDebugging = !this.isDebugging, (a = this.debugRender) != null && a.canvas && (this.debugRender.canvas.style.opacity = this.isDebugging ? "0.5" : "0"))) : t = 0;
+     });
+@@ -19764,9 +19769,10 @@ class sv {
+       resizeTo: window,
+       resolution: window.devicePixelRatio || 1,
+       autoDensity: !0,
++      autoStart: !1,
+       antialias: !1,
+       roundPixels: !1
+-    }), await this.spritesManager.load(), t.appendChild(this.app.canvas), this.app.stage.eventMode = "static", this.app.stage.hitArea = this.app.screen, window.addEventListener("resize", () => this.resize()), this.options.platforms && (this.syncPlatformsInterval = setInterval(
++    }), await this.spritesManager.load(), t.appendChild(this.app.canvas), this.app.stage.eventMode = "static", this.app.stage.hitArea = this.app.screen, this.addGlobalListener(window, "resize", () => this.resize()), this.options.platforms && (this.syncPlatformsInterval = setInterval(
+       () => this.syncPlatforms(),
+       this.options.platforms.syncFrequency ?? 200
+     ), this.syncPlatforms()), this.debugRender = ut.Render.create({
+@@ -19784,9 +19790,10 @@ class sv {
+       }
+     });
+     const r = this.debugRender.canvas;
+-    r.style.position = "absolute", r.style.top = "0", r.style.left = "0", r.style.pointerEvents = "none", r.style.opacity = this.isDebugging ? "0.5" : "0", ut.Runner.run(this.runner, this.engine), ut.Render.run(this.debugRender), document.addEventListener("mousemove", (a) => {
++    r.style.position = "absolute", r.style.top = "0", r.style.left = "0", r.style.pointerEvents = "none", r.style.opacity = this.isDebugging ? "0.5" : "0", ut.Runner.run(this.runner, this.engine), this.addGlobalListener(document, "mousemove", (a) => {
+       this.mousePosition = { x: a.clientX, y: a.clientY };
+-    }), window.addEventListener(
++    }), this.addGlobalListener(
++      window,
+       "pointerdown",
+       (a) => {
+         const s = { x: a.clientX, y: a.clientY };

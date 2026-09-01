@@ -6,4 +6,4 @@ Hedgehog mode adds a small playable hedgehog that walks around the RAS Code wind
 
 Open **Settings → Appearance**, find **Fun**, and turn on **Hedgehog mode**. The game is loaded only after you enable it and can take a few seconds to appear.
 
-Use the in-game quit control or turn the setting off to remove the hedgehog. The preference is stored on the current device and does not affect mobile.
+Turn the setting off to remove the hedgehog. The preference is stored on the current device and does not affect mobile.

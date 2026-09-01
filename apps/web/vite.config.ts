@@ -52,12 +52,12 @@ const configuredHostedAppUrl = process.env.VITE_HOSTED_APP_URL?.trim() || undefi
 // stay at "/" — `infra/web` sets this for the builds it publishes.
 const appBasePath = process.env.VITE_APP_BASE?.trim() || "/";
 const sourcemapEnv = process.env.RAS_CODE_WEB_SOURCEMAP?.trim().toLowerCase();
-const hedgehogModeEntryPath = NodeModule.createRequire(import.meta.url).resolve(
-  "@posthog/hedgehog-mode",
+const hedgehogModePackagePath = NodeModule.createRequire(import.meta.url).resolve(
+  "@posthog/hedgehog-mode/package.json",
 );
 const hedgehogModeAssetsDirectory = NodePath.resolve(
-  NodePath.dirname(hedgehogModeEntryPath),
-  "../assets",
+  NodePath.dirname(hedgehogModePackagePath),
+  "assets",
 );
 const hedgehogModeAssets = [
   { fileName: "sprites.json", contentType: "application/json" },
