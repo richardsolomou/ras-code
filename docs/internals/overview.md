@@ -7,7 +7,7 @@ RAS Code is a server runtime that owns agent sessions, workspaces, and version c
 execution boundary: every provider process, terminal, git operation, and filesystem read happens
 there, never in the client.
 
-```
+```text
 ┌────────────────────────────────────────────────┐
 │ Clients: apps/web, apps/desktop, apps/mobile   │
 │ shared runtime: packages/client-runtime        │
