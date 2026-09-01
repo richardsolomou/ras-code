@@ -121,9 +121,15 @@ ignored by environment authentication.
 Nothing above the socket can tell a healthy idle connector from a dead one, so the environment
 server pings the relay every 20 seconds and terminates the socket when a ping goes unanswered for a
 whole interval. Cloudflare answers WebSocket protocol pings automatically without waking the Durable
-Object, so this costs no relay compute. The probe exists because a suspended laptop or a network
-change leaves the TCP connection half-open: `readyState` still reports `OPEN`, no `close` event ever
-fires, and without the ping the connector would stay wedged until the process restarted.
+Object, so this costs no relay compute; a measured round trip is around 20ms.
+
+The probe exists because a connector socket can go half-open without either end noticing:
+`readyState` still reports `OPEN`, no `close` event ever fires, and the connector stays wedged until
+the process restarts. Suspending a laptop or changing network does this, but so does an ordinary
+long-lived connection being dropped upstream — an always-on wired host lost its connector that way
+after five hours of silence, having logged nothing. Pinging on an interval also stops the socket
+from ever being idle long enough to be dropped, so the probe prevents the failure as well as
+detecting it.
 
 A closed connector is restarted by the supervisor in `ManagedEndpointRuntime`, which backs off by
 doubling up to 30 seconds. The cap matters more than the curve: while the connector is detached the

@@ -15,13 +15,13 @@ RAS Code works with the platforms your team already uses:
 
 ### Start Projects from Anywhere
 
-**Clone repositories directly**
+#### Clone repositories directly
 
 - Open the Command Palette (`Cmd/Ctrl + K`) → **Add Project**
 - Choose **GitHub repository**, **GitLab repository**, **Bitbucket repository**, **Azure DevOps repository**, or paste any **Git URL**
 - Enter the repository path (`owner/repo`, `group/project`, `workspace/repository`, or `project/repository`) or a full Git URL, pick a destination, and start coding
 
-**Publish local projects to the cloud**
+#### Publish local projects to the cloud
 
 - Have a local Git repository without a remote?
 - Use the **Publish Repository** action to create a new hosted repository (GitHub, GitLab, Bitbucket, or Azure DevOps), add it as your origin remote, and push, in one flow
@@ -29,7 +29,7 @@ RAS Code works with the platforms your team already uses:
 
 ### Manage Code Reviews Without Context Switching
 
-**Create pull requests while you work**
+#### Create pull requests while you work
 
 - Push a branch and create a pull request from the Git actions controls in the toolbar
 - Pull requests created by an agent or custom skill are linked to their thread automatically after
@@ -39,7 +39,7 @@ RAS Code works with the platforms your team already uses:
   `AGENTS.md` along with recent commit subjects. Claude writers also follow `CLAUDE.md`
 - Supports GitHub Pull Requests, GitLab Merge Requests, Bitbucket Pull Requests, and Azure DevOps Pull Requests
 
-**Stay on top of open reviews**
+#### Stay on top of open reviews
 
 - See if your current branch already has an open PR/MR
 - Open several reviews from the **Pull requests** page as tabs in the right panel
@@ -57,7 +57,7 @@ RAS Code works with the platforms your team already uses:
   writes a request to watch the checks and review comments, push fixes, and report back when it is
   ready to merge. The merge itself stays with you
 
-**Fix what you wrote, in place**
+#### Fix what you wrote, in place
 
 - Rewrite a pull request's title and description from the review itself, in Markdown, with a
   preview before you save
@@ -80,13 +80,17 @@ Run a quick **Rescan** after setting up a new machine or changing credentials.
 ### For GitHub (Recommended for most users)
 
 1. Install the GitHub CLI (version 2.81.0 or newer) on the machine running RAS Code:
+
    ```bash
    brew install gh
    ```
+
 2. Sign in:
+
    ```bash
    gh auth login
    ```
+
 3. Open **Settings → Source Control** in RAS Code and verify GitHub shows as authenticated
 
 You can now clone, publish, and create pull requests.
@@ -94,13 +98,17 @@ You can now clone, publish, and create pull requests.
 ### For GitLab
 
 1. Install the GitLab CLI:
+
    ```bash
    brew install glab
    ```
+
 2. Authenticate:
+
    ```bash
    glab auth login
    ```
+
 3. Check **Settings → Source Control** to confirm the connection
 
 ### For Bitbucket
@@ -129,14 +137,19 @@ Control settings**.
 ### For Azure DevOps
 
 1. Install Azure CLI:
+
    ```bash
    brew install azure-cli
    ```
+
 2. Add the DevOps extension:
+
    ```bash
    az extension add --name azure-devops
    ```
+
 3. Sign in:
+
    ```bash
    az login
    ```
