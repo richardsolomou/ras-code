@@ -11,7 +11,15 @@ export interface DockIconColors {
 
 export type DockIconContext = Pick<
   CanvasRenderingContext2D,
-  "fillStyle" | "globalAlpha" | "clearRect" | "beginPath" | "roundRect" | "fill"
+  | "fillStyle"
+  | "clearRect"
+  | "beginPath"
+  | "roundRect"
+  | "rect"
+  | "fill"
+  | "clip"
+  | "save"
+  | "restore"
 >;
 
 export const DOCK_ICON_SIZE = 1024;
@@ -21,13 +29,20 @@ export const DOCK_ICON_SIZE = 1024;
 const PLATE_INSET = 100;
 const PLATE_RADIUS = 185;
 
-const MARK_CANVAS = 128;
+// The activity field as `assets/*/app-icon.icon/Assets/text.svg` authors it, on
+// the 128-unit canvas every brand layer shares: a 16-unit cell pattern from
+// (10, 10) painted across a box inset 2 units. The pattern lays a ring of cells
+// around the 7x7 field that the box and the plate corners cut into slivers, so
+// the field reaches the plate edge instead of floating inside a margin.
+const ART_CANVAS = 128;
+const FIELD_INSET = 2;
 const CELL = 12;
 const CELL_RADIUS = 2;
 const CELL_PITCH = 16;
-const GRID_INSET = 10;
+const GRID_ORIGIN = 10;
 const COLUMNS = 7;
 const ROWS = 7;
+
 const ACTIVE_CELLS = new Map<string, keyof Pick<DockIconColors, "low" | "medium" | "high">>([
   ["2,1", "high"],
   ["3,1", "medium"],
@@ -41,36 +56,50 @@ const ACTIVE_CELLS = new Map<string, keyof Pick<DockIconColors, "low" | "medium"
   ["4,5", "low"],
 ]);
 
-const MARK_SCALE = (DOCK_ICON_SIZE - PLATE_INSET * 2) / MARK_CANVAS;
+const ART_SCALE = (DOCK_ICON_SIZE - PLATE_INSET * 2) / ART_CANVAS;
+
+function toCanvas(art: number): number {
+  return PLATE_INSET + art * ART_SCALE;
+}
 
 export function drawDockIcon(context: DockIconContext, colors: DockIconColors): void {
   const plateSize = DOCK_ICON_SIZE - PLATE_INSET * 2;
   context.clearRect(0, 0, DOCK_ICON_SIZE, DOCK_ICON_SIZE);
-  context.globalAlpha = 1;
   context.fillStyle = colors.plate;
   context.beginPath();
   context.roundRect(PLATE_INSET, PLATE_INSET, plateSize, plateSize, PLATE_RADIUS);
   context.fill();
 
-  const cell = CELL * MARK_SCALE;
-  const pitch = CELL_PITCH * MARK_SCALE;
-  const origin = PLATE_INSET + GRID_INSET * MARK_SCALE;
-  for (let row = 0; row < ROWS; row += 1) {
-    for (let column = 0; column < COLUMNS; column += 1) {
+  context.save();
+  context.beginPath();
+  context.roundRect(PLATE_INSET, PLATE_INSET, plateSize, plateSize, PLATE_RADIUS);
+  context.clip();
+  context.beginPath();
+  context.rect(
+    toCanvas(FIELD_INSET),
+    toCanvas(FIELD_INSET),
+    (ART_CANVAS - FIELD_INSET * 2) * ART_SCALE,
+    (ART_CANVAS - FIELD_INSET * 2) * ART_SCALE,
+  );
+  context.clip();
+
+  const cell = CELL * ART_SCALE;
+  for (let row = -1; row <= ROWS; row += 1) {
+    for (let column = -1; column <= COLUMNS; column += 1) {
       const level = ACTIVE_CELLS.get(`${column},${row}`);
       context.fillStyle = level === undefined ? colors.empty : colors[level];
       context.beginPath();
       context.roundRect(
-        origin + column * pitch,
-        origin + row * pitch,
+        toCanvas(GRID_ORIGIN + column * CELL_PITCH),
+        toCanvas(GRID_ORIGIN + row * CELL_PITCH),
         cell,
         cell,
-        CELL_RADIUS * MARK_SCALE,
+        CELL_RADIUS * ART_SCALE,
       );
       context.fill();
     }
   }
-  context.globalAlpha = 1;
+  context.restore();
 }
 
 export function resolveDockIconColors(): DockIconColors | null {

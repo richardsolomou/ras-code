@@ -42,7 +42,7 @@ approval or an answer. The badge clears as you handle them.
 ## Dock icon
 
 On macOS, the desktop app's dock icon wears your current theme: the tile takes the app's background
-color and the lamps take the color of the RAS Code mark in the sidebar. It follows you as you switch
+color and the cells take the color of the RAS Code mark in the sidebar. It follows you as you switch
 themes or move between light and dark, and it goes back to the standard icon when the app is closed.
 
 ## On your phone
