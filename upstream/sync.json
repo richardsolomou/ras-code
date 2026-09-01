@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "85b656ff300f71060ad6305c7e1e29a72b442ce9",
+  "lastReviewed": "42a8fd5103b4af57b16be721a9864ca3a5c18c5b",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -972,6 +972,42 @@
       "ours": null,
       "reason": "Upstream review-bot configuration (.macroscope/, .coderabbit.yaml), which we do not carry.",
       "reviewedAt": "2026-09-02T12:20:48.038Z"
+    },
+    {
+      "upstream": "9bc7a56848eb7c7546605e54ff02c6abea176f96",
+      "pr": 8978,
+      "title": "feat(mobile): upload attachments while composing",
+      "decision": "adapted",
+      "ours": "18e33f4044f3f01e412da910e7b913f3695c5441",
+      "reason": "Rebrand-only conflict in docs/user/composer.md; renamed the new upload cache-file prefix to ours.",
+      "reviewedAt": "2026-09-02T12:32:07.986Z"
+    },
+    {
+      "upstream": "9ecfc07a8b3acadd1612665b6e24425f625480de",
+      "pr": 8984,
+      "title": "fix(chat): keep agent activity visible between actions",
+      "decision": "adopted",
+      "ours": "6df1d871a632243eb0dfa415a173b0dec43dea91",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T12:32:15.135Z"
+    },
+    {
+      "upstream": "c78ae50a5a5fdf8f42d0aaa0103b26ee836f0cfc",
+      "pr": 8085,
+      "title": "fix(server): isolate remote web session cookies",
+      "decision": "adapted",
+      "ours": "90fb6ced9ad3134a927d67037bded9bdfec6d38c",
+      "reason": "Kept our ras_session cookie name and our test fixture paths, and merged a duplicated server.test.ts import the pick introduced.",
+      "reviewedAt": "2026-09-02T12:37:23.778Z"
+    },
+    {
+      "upstream": "42a8fd5103b4af57b16be721a9864ca3a5c18c5b",
+      "pr": 8812,
+      "title": "feat(pull-requests): link GitHub references in markdown",
+      "decision": "adopted",
+      "ours": "a28e78b42d1f74a939be26c925cd4e3980927c0b",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T12:37:35.313Z"
     }
   ]
 }
