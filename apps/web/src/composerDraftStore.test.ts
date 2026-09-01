@@ -1835,6 +1835,19 @@ describe("composerDraftStore modelSelection", () => {
     expect(draftFor(threadId, TEST_ENVIRONMENT_ID)?.modelSelectionExplicit).toBeUndefined();
   });
 
+  it("consumes explicit model intent after the selection is committed", () => {
+    const store = useComposerDraftStore.getState();
+    const selection = modelSelection(CODEX_DRIVER, "gpt-5.4");
+    store.setModelSelection(threadRef, selection, { explicit: true });
+    store.setPrompt(threadRef, "send this");
+
+    store.clearComposerContent(threadRef);
+    expect(draftFor(threadId, TEST_ENVIRONMENT_ID)?.modelSelectionExplicit).toBe(true);
+
+    store.setModelSelection(threadRef, selection, { replaceOptions: true });
+    expect(draftFor(threadId, TEST_ENVIRONMENT_ID)?.modelSelectionExplicit).toBeUndefined();
+  });
+
   it("persists the explicit marker through storage round-trips", async () => {
     vi.useFakeTimers();
     try {

@@ -6263,6 +6263,10 @@ function ChatViewContent(
       });
       if (settingsResult._tag === "Failure") {
         failure = settingsResult;
+      } else {
+        setComposerDraftModelSelection(composerDraftTarget, ctxSelectedModelSelection, {
+          replaceOptions: true,
+        });
       }
     }
 
@@ -6773,6 +6777,9 @@ function ChatViewContent(
         settingsResult._tag === "Failure" ? settingsResult : null;
 
       if (failure === null) {
+        setComposerDraftModelSelection(composerDraftTarget, ctxSelectedModelSelection, {
+          replaceOptions: true,
+        });
         // Keep the mode toggle and plan-follow-up banner in sync immediately
         // while the same-thread implementation turn is starting.
         setComposerDraftInteractionMode(
@@ -6832,6 +6839,7 @@ function ChatViewContent(
       activeProposedPlan,
       acknowledgeActiveThreadWoke,
       beginLocalDispatch,
+      composerDraftTarget,
       isConnecting,
       isSendBusy,
       isServerThread,
@@ -6841,6 +6849,7 @@ function ChatViewContent(
       runtimeMode,
       scrollToEnd,
       setComposerDraftInteractionMode,
+      setComposerDraftModelSelection,
       setThreadError,
       startThreadTurn,
       environmentId,

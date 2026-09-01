@@ -985,20 +985,18 @@ describe("isComposerModelSelectionIntentPending", () => {
         routeKind: "draft",
         selectionExplicit: false,
         draftModelSelection: primary,
-        threadModelSelection: primary,
       }),
     ).toBe(true);
   });
 
-  it("consumes explicit intent once the server thread reflects it", () => {
+  it("keeps a fresh explicit switch to the persisted primary pending", () => {
     expect(
       isComposerModelSelectionIntentPending({
         routeKind: "server",
         selectionExplicit: true,
         draftModelSelection: primary,
-        threadModelSelection: primary,
       }),
-    ).toBe(false);
+    ).toBe(true);
   });
 
   it("keeps an unsent explicit model change pending", () => {
@@ -1010,7 +1008,6 @@ describe("isComposerModelSelectionIntentPending", () => {
           instanceId: ProviderInstanceId.make("posthog_gateway"),
           model: "anthropic/claude-sonnet-4-6",
         },
-        threadModelSelection: primary,
       }),
     ).toBe(true);
   });

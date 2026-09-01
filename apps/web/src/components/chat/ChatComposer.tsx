@@ -972,17 +972,23 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     routeKind,
     selectionExplicit: composerDraft.modelSelectionExplicit === true,
     draftModelSelection,
-    threadModelSelection: activeThreadModelSelection,
   });
   const selectedProviderByThreadId = hasPendingModelSelectionIntent
     ? (composerDraft.activeProvider ?? null)
     : null;
+  const previousActiveThreadProviderInstanceIdRef = useRef(
+    activeThreadModelSelection?.instanceId ?? null,
+  );
   useEffect(() => {
+    const providerChanged =
+      previousActiveThreadProviderInstanceIdRef.current !== activeThreadProviderInstanceId;
+    previousActiveThreadProviderInstanceIdRef.current = activeThreadProviderInstanceId;
     if (
       routeKind !== "server" ||
+      !providerChanged ||
+      activeThreadProviderInstanceId === activeThreadModelSelection?.instanceId ||
       composerDraft.modelSelectionExplicit !== true ||
-      !draftModelSelection ||
-      hasPendingModelSelectionIntent
+      !draftModelSelection
     ) {
       return;
     }
@@ -990,10 +996,11 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
       replaceOptions: true,
     });
   }, [
+    activeThreadModelSelection?.instanceId,
+    activeThreadProviderInstanceId,
     composerDraft.modelSelectionExplicit,
     composerDraftTarget,
     draftModelSelection,
-    hasPendingModelSelectionIntent,
     routeKind,
     setComposerDraftModelSelection,
   ]);
