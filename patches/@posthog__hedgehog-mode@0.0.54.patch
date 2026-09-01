@@ -1,5 +1,5 @@
 diff --git a/dist/index-C71vDVIs.js b/dist/index-C71vDVIs.js
-index 5c17d3e1906553f262da78f59e820f880161e841..34b492de04a92280f6eb15283934e92f627b2de3 100644
+index 5c17d3e1906553f262da78f59e820f880161e841..246e9f36338630d621543825316dd1334bf9647b 100644
 --- a/dist/index-C71vDVIs.js
 +++ b/dist/index-C71vDVIs.js
 @@ -14344,7 +14344,7 @@ class br {
@@ -23,25 +23,59 @@ index 5c17d3e1906553f262da78f59e820f880161e841..34b492de04a92280f6eb15283934e92f
    }
    // Whether the actor should be clamped/wrapped to the screen edges. Subclasses
    // can opt out (e.g. while tethered to a web, so wrapping doesn't teleport the
-@@ -18337,7 +18337,7 @@ class Ax {
+@@ -18244,7 +18244,7 @@ class Tx {
+ }
+ class Ax {
+   constructor(t) {
+-    this.actor = t, this.setupKeyboardListeners();
++    this.actor = t, this.cleanup = this.setupKeyboardListeners();
+   }
+   setupKeyboardListeners() {
+     const t = /* @__PURE__ */ new Set(), r = {
+@@ -18337,10 +18337,14 @@ class Ax {
        const y = r[h.key] ?? h.key;
        t.has(y) && (t.delete(y), (m = f[y]) == null || m.off(h));
      };
 -    return window.addEventListener("keydown", c), window.addEventListener("keyup", d), () => {
-+    return this.actor.game.addGlobalListener(window, "keydown", c), this.actor.game.addGlobalListener(window, "keyup", d), () => {
-       window.removeEventListener("keydown", c), window.removeEventListener("keyup", d);
+-      window.removeEventListener("keydown", c), window.removeEventListener("keyup", d);
++    const h = [this.actor.game.addGlobalListener(window, "keydown", c), this.actor.game.addGlobalListener(window, "keyup", d)];
++    return () => {
++      h.splice(0).forEach((y) => y()), n && clearInterval(n), clearTimeout(l);
      };
    }
-@@ -18907,7 +18907,7 @@ class Xx {
++  destroy() {
++    this.cleanup();
++  }
+ }
+ const iu = [
+   {
+@@ -18907,14 +18911,14 @@ class Xx {
        a.pointerId === this.activePointerId && ((s = this.activeWeb) == null || s.moveAnchor({ x: a.clientX, y: a.clientY }));
      }, this.onPointerUp = (a) => {
        a.pointerId === this.activePointerId && this.endSling();
 -    }, window.addEventListener("pointerdown", this.onPointerDown);
-+    }, this.game.addGlobalListener(window, "pointerdown", this.onPointerDown);
++    }, this.removePointerDown = this.game.addGlobalListener(window, "pointerdown", this.onPointerDown);
    }
    endSling() {
      var t;
-@@ -19529,7 +19529,7 @@ class tv {
+     (t = this.activeWeb) == null || t.release(), this.activeWeb = void 0, this.activePointerId = void 0, window.removeEventListener("pointermove", this.onPointerMove), window.removeEventListener("pointerup", this.onPointerUp), window.removeEventListener("pointercancel", this.onPointerUp);
+   }
+   destroy() {
+-    this.endSling(), window.removeEventListener("pointerdown", this.onPointerDown);
++    this.endSling(), this.removePointerDown();
+   }
+ }
+ class Kx {
+@@ -19230,7 +19234,7 @@ class pn extends br {
+   }
+   beforeUnload() {
+     var t;
+-    (t = this.ability) == null || t.destroy(), this.ai.enable(!1), Object.values(this.accessorySprites).forEach((r) => {
++    this.controls.destroy(), (t = this.ability) == null || t.destroy(), this.ai.enable(!1), Object.values(this.accessorySprites).forEach((r) => {
+       this.game.app.stage.removeChild(r);
+     });
+   }
+@@ -19529,7 +19533,7 @@ class tv {
          t.slice(-f.keys.length).join("") === f.keys.join("") && (f.action(), t.splice(-f.keys.length));
        });
      };
@@ -50,7 +84,7 @@ index 5c17d3e1906553f262da78f59e820f880161e841..34b492de04a92280f6eb15283934e92f
        window.removeEventListener("keydown", s);
      };
    }
-@@ -19685,16 +19685,31 @@ class rv extends br {
+@@ -19685,16 +19689,31 @@ class rv extends br {
  }
  class sv {
    constructor(t) {
@@ -86,7 +120,7 @@ index 5c17d3e1906553f262da78f59e820f880161e841..34b492de04a92280f6eb15283934e92f
        var a;
        r.key === "d" && r.ctrlKey ? (t++, t === 5 && (t = 0, this.isDebugging = !this.isDebugging, (a = this.debugRender) != null && a.canvas && (this.debugRender.canvas.style.opacity = this.isDebugging ? "0.5" : "0"))) : t = 0;
      });
-@@ -19764,9 +19779,10 @@ class sv {
+@@ -19764,9 +19783,10 @@ class sv {
        resizeTo: window,
        resolution: window.devicePixelRatio || 1,
        autoDensity: !0,
@@ -98,7 +132,7 @@ index 5c17d3e1906553f262da78f59e820f880161e841..34b492de04a92280f6eb15283934e92f
        () => this.syncPlatforms(),
        this.options.platforms.syncFrequency ?? 200
      ), this.syncPlatforms()), this.debugRender = ut.Render.create({
-@@ -19784,9 +19800,10 @@ class sv {
+@@ -19784,9 +19804,10 @@ class sv {
        }
      });
      const r = this.debugRender.canvas;
@@ -111,3 +145,12 @@ index 5c17d3e1906553f262da78f59e820f880161e841..34b492de04a92280f6eb15283934e92f
        "pointerdown",
        (a) => {
          const s = { x: a.clientX, y: a.clientY };
+@@ -19797,7 +19818,7 @@ class sv {
+           }
+       },
+       { capture: !0 }
+-    ), new tv(this), ei.ticker.remove(ei.updateRoot), this.elements.push(new Qx(this)), this.stateManager = new iv(this, this.options);
++    ), ei.ticker.remove(ei.updateRoot), this.elements.push(new Qx(this)), this.stateManager = new iv(this, this.options);
+   }
+   onCollisionStart(t) {
+     t.pairs.forEach((r) => {
