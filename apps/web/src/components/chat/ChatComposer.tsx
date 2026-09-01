@@ -19,6 +19,7 @@ import {
   PROVIDER_SEND_TURN_MAX_IMAGE_BYTES,
 } from "@ras-code/contracts";
 import type { EnvironmentConnectionPresentation } from "@ras-code/client-runtime/connection";
+import { resolveActiveProviderInstanceId } from "@ras-code/client-runtime/provider-fallback";
 import { serializeComposerFileLink } from "@ras-code/shared/composerTrigger";
 import { createModelSelection, normalizeModelSlug } from "@ras-code/shared/model";
 import {
@@ -321,7 +322,7 @@ import {
 } from "../../providerInstances";
 import { type AppModelOption, getAppModelOptionsForInstance } from "../../modelSelection";
 import type { UnifiedSettings } from "@ras-code/contracts/settings";
-import { latestFallbackNotice, usageLimitPill } from "../settings/providerUsageLimit.logic";
+import { usageLimitPill } from "../settings/providerUsageLimit.logic";
 import { formatShortTimestamp } from "../../timestampFormat";
 import { type SessionPhase, type Thread, videoMimeType } from "../../types";
 import type { PendingUserInputDraftAnswer } from "../../pendingUserInput";
@@ -952,20 +953,13 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
       ),
     [providerStatuses, settings],
   );
-  const engagedFallback = useMemo(
-    () => latestFallbackNotice(activeThread?.activities ?? []),
-    [activeThread?.activities],
-  );
-  const activeFallbackInstanceId =
-    engagedFallback !== null &&
-    activeThread?.session?.providerInstanceId === engagedFallback.fallbackInstanceId
-      ? activeThread.session.providerInstanceId
-      : null;
+  const activeThreadProviderInstanceId = activeThread
+    ? resolveActiveProviderInstanceId(activeThread)
+    : null;
   const selectedProviderByThreadId = composerDraft.activeProvider ?? null;
   const threadProvider =
-    activeFallbackInstanceId ??
+    activeThreadProviderInstanceId ??
     activeThreadModelSelection?.instanceId ??
-    activeThread?.session?.providerInstanceId ??
     activeDefaultModelSelection?.instanceId ??
     null;
   const explicitSelectedInstanceId = selectedProviderByThreadId ?? threadProvider;
@@ -981,27 +975,19 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
   const requestedDriverKind: ProviderDriverKind = lockedProvider ?? unlockedSelectedProvider;
   const lockedContinuationGroupKey = useMemo((): string | null => {
     if (!lockedProvider || !activeThread) return null;
-    const lockedInstanceId =
-      activeThreadModelSelection?.instanceId ?? activeThread.session?.providerInstanceId;
+    const lockedInstanceId = resolveActiveProviderInstanceId(activeThread);
     if (!lockedInstanceId) return null;
     return (
       providerInstanceEntries.find((entry) => entry.instanceId === lockedInstanceId)
         ?.continuationGroupKey ?? null
     );
-  }, [
-    activeThread,
-    activeThreadModelSelection?.instanceId,
-    lockedProvider,
-    providerInstanceEntries,
-  ]);
+  }, [activeThread, lockedProvider, providerInstanceEntries]);
 
-  // An explicit draft wins; otherwise prefer the active fallback before persisted thread state.
+  // An explicit draft wins; otherwise use the provider serving the live session.
   const selectedInstanceId = useMemo<ProviderInstanceId>(() => {
     const candidates: Array<string | null | undefined> = [
       composerDraft.activeProvider,
-      activeFallbackInstanceId,
-      activeThreadModelSelection?.instanceId,
-      activeThread?.session?.providerInstanceId,
+      activeThreadProviderInstanceId,
       activeDefaultModelSelection?.instanceId,
     ];
     for (const candidate of candidates) {
@@ -1030,9 +1016,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     );
   }, [
     activeDefaultModelSelection?.instanceId,
-    activeFallbackInstanceId,
-    activeThread?.session?.providerInstanceId,
-    activeThreadModelSelection?.instanceId,
+    activeThreadProviderInstanceId,
     composerDraft.activeProvider,
     lockedContinuationGroupKey,
     lockedProvider,

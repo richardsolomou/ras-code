@@ -14,6 +14,7 @@ import {
   type ThreadId,
 } from "@ras-code/contracts";
 import { safeErrorLogAttributes } from "@ras-code/client-runtime/errors";
+import { resolveActiveProviderInstanceId } from "@ras-code/client-runtime/provider-fallback";
 import {
   codexFeedbackMessage,
   parseCodexFeedbackCommand,
@@ -208,7 +209,7 @@ export function useThreadComposerState() {
     }
 
     const provider = selectedEnvironmentRuntime?.serverConfig?.providers.find(
-      (entry) => entry.instanceId === thread.modelSelection.instanceId,
+      (entry) => entry.instanceId === resolveActiveProviderInstanceId(thread),
     );
     const feedbackCommand =
       attachments.length === 0 &&

@@ -1,6 +1,6 @@
 import * as React from "react";
 import { defaultAnimateLayoutChanges, type AnimateLayoutChanges } from "@dnd-kit/sortable";
-import type { ContextMenuItem, ProviderInstanceId } from "@ras-code/contracts";
+import type { ContextMenuItem } from "@ras-code/contracts";
 import type { SidebarProjectSortOrder, SidebarThreadSortOrder } from "@ras-code/contracts/settings";
 import {
   activeThreadAnchorTimestampMs,
@@ -23,26 +23,6 @@ export const THREAD_JUMP_HINT_SHOW_DELAY_MS = 200;
 // so this limit is a direct renderer-heap and server-load multiplier — keep
 // it small; cold opens still render instantly from the cached snapshot.
 export const SIDEBAR_THREAD_PREWARM_LIMIT = 3;
-
-export function resolveSidebarThreadProviderInstanceId(thread: {
-  readonly modelSelection: { readonly instanceId: ProviderInstanceId };
-  readonly session: {
-    readonly providerInstanceId?: ProviderInstanceId | null | undefined;
-  } | null;
-}): ProviderInstanceId {
-  return thread.session?.providerInstanceId ?? thread.modelSelection.instanceId;
-}
-
-export function resolveSidebarThreadModel<T extends { readonly slug: string }>(
-  models: ReadonlyArray<T>,
-  selectedSlug: string,
-  matchNamespacedSlug: boolean,
-): T | undefined {
-  const exact = models.find((model) => model.slug === selectedSlug);
-  if (exact || !matchNamespacedSlug) return exact;
-  const bareSlug = selectedSlug.slice(selectedSlug.lastIndexOf("/") + 1);
-  return models.find((model) => model.slug.slice(model.slug.lastIndexOf("/") + 1) === bareSlug);
-}
 
 // The list already reaches its destination through sortable transforms while
 // the pointer is down. dnd-kit's default also animates the committed DOM order

@@ -7,6 +7,7 @@ import type {
   RuntimeMode,
   ServerConfig as RasCodeServerConfig,
 } from "@ras-code/contracts";
+import { resolveActiveProviderModelSelection } from "@ras-code/client-runtime/provider-fallback";
 import { StackActions, useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { ReactNode } from "react";
 import {
@@ -58,7 +59,11 @@ import {
 } from "../../components/ComposerToolbar";
 import { ProviderIcon } from "../../components/ProviderIcon";
 import type { DraftComposerAttachment } from "../../lib/composerImages";
-import { buildModelOptions, groupByProvider } from "../../lib/modelOptions";
+import {
+  buildModelOptions,
+  filterStartedThreadProviderGroups,
+  groupByProvider,
+} from "../../lib/modelOptions";
 import { useScaledTextRole } from "../settings/appearance/useScaledTextRole";
 import { useAppearancePreferences } from "../settings/appearance/AppearancePreferencesProvider";
 import type { RemoteClientConnectionState } from "../../lib/connection";
@@ -354,7 +359,14 @@ export const ThreadComposer = memo(function ThreadComposer(props: ThreadComposer
 
   const sendLabel =
     props.connectionState !== "connected" || props.queueCount > 0 ? "Queue" : "Send";
-  const currentModelSelection = props.selectedThread.modelSelection;
+  const currentModelSelection = useMemo(
+    () =>
+      resolveActiveProviderModelSelection(
+        props.selectedThread,
+        props.serverConfig?.providers ?? [],
+      ),
+    [props.selectedThread, props.serverConfig?.providers],
+  );
   const currentRuntimeMode = props.selectedThread.runtimeMode;
   const connectionStatus = composerConnectionStatus({
     connectionError: props.connectionError,
@@ -367,11 +379,10 @@ export const ThreadComposer = memo(function ThreadComposer(props: ThreadComposer
   const selectedProviderStatus = useMemo(() => {
     if (!props.serverConfig) return null;
     return (
-      props.serverConfig.providers.find(
-        (p) => p.instanceId === props.selectedThread.modelSelection.instanceId,
-      ) ?? null
+      props.serverConfig.providers.find((p) => p.instanceId === currentModelSelection.instanceId) ??
+      null
     );
-  }, [props.serverConfig, props.selectedThread.modelSelection.instanceId]);
+  }, [currentModelSelection.instanceId, props.serverConfig]);
   const composerOwnerKey = scopedThreadKey(props.environmentId, props.selectedThread.id);
 
   const composerMenu = useComposerCommandMenu({
@@ -475,11 +486,14 @@ export const ThreadComposer = memo(function ThreadComposer(props: ThreadComposer
     [props.serverConfig, currentModelSelection],
   );
   const providerGroups = useMemo(() => groupByProvider(modelOptions), [modelOptions]);
-  // An existing thread is bound to its harness: sessions can't move between
-  // provider instances, so the picker only offers the thread's own group.
   const threadProviderGroups = useMemo(
-    () => providerGroups.filter((group) => group.providerKey === currentModelSelection.instanceId),
-    [providerGroups, currentModelSelection.instanceId],
+    () =>
+      filterStartedThreadProviderGroups({
+        groups: providerGroups,
+        currentSelection: currentModelSelection,
+        currentDriver: selectedProviderStatus?.driver,
+      }),
+    [currentModelSelection, providerGroups, selectedProviderStatus?.driver],
   );
   const currentModelOption =
     modelOptions.find(

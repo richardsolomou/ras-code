@@ -896,6 +896,28 @@ describe("getStartedThreadModelChangeBlockReason", () => {
     });
   });
 
+  it("uses the live fallback instance when checking gateway shape changes", () => {
+    expect(
+      getStartedThreadModelChangeBlockReason({
+        providers,
+        hasStartedSession: true,
+        currentModelSelection: {
+          instanceId: ProviderInstanceId.make("claudeAgent"),
+          model: "claude-opus-4-6",
+        },
+        currentProviderInstanceId: ProviderInstanceId.make("posthog_gateway"),
+        nextModelSelection: {
+          instanceId: ProviderInstanceId.make("posthog_gateway"),
+          model: "zai-org/glm-5.3-flash",
+        },
+      }),
+    ).toEqual({
+      title: "Start a new chat to change models",
+      description:
+        "PostHog AI Gateway cannot switch between Claude and open models in the same conversation.",
+    });
+  });
+
   it("blocks switching an open gateway session to a Claude model", () => {
     expect(
       getStartedThreadModelChangeBlockReason({

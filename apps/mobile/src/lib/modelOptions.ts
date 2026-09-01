@@ -9,6 +9,7 @@ import {
   buildProviderOptionSelectionsFromDescriptors,
   getProviderOptionDescriptors,
 } from "@ras-code/shared/model";
+import { isPostHogGatewayCrossShapeModelChange } from "@ras-code/shared/posthogGateway";
 
 export type ModelOption = {
   readonly key: string;
@@ -28,6 +29,28 @@ export type ProviderGroup = {
   readonly providerLabel: string;
   readonly models: ReadonlyArray<ModelOption>;
 };
+
+export function filterStartedThreadProviderGroups(input: {
+  readonly groups: ReadonlyArray<ProviderGroup>;
+  readonly currentSelection: ModelSelection;
+  readonly currentDriver: string | undefined;
+}): ReadonlyArray<ProviderGroup> {
+  return input.groups
+    .filter((group) => group.providerKey === input.currentSelection.instanceId)
+    .map((group) => ({
+      ...group,
+      models: group.models.filter(
+        (option) =>
+          !isPostHogGatewayCrossShapeModelChange({
+            currentDriver: input.currentDriver,
+            currentModel: input.currentSelection.model,
+            nextDriver: option.providerDriver,
+            nextModel: option.selection.model,
+          }),
+      ),
+    }))
+    .filter((group) => group.models.length > 0);
+}
 
 /** What a provider instance is called on screen: its own name, its driver's, then its id. */
 export function providerDisplayLabel(provider: {

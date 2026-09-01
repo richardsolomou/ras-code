@@ -5,6 +5,7 @@ import {
   gatewayBaseUrl,
   gatewayKey,
   gatewayModelShape,
+  isPostHogGatewayCrossShapeModelChange,
   posthogGatewayCodexLaunchArgs,
 } from "./posthogGateway.ts";
 
@@ -81,6 +82,41 @@ describe("gatewayModelShape", () => {
 
   it("does not mistake a vendor named after Claude for an Anthropic model", () => {
     expect(gatewayModelShape("claudette/claudia-1")).toBe("openai");
+  });
+});
+
+describe("isPostHogGatewayCrossShapeModelChange", () => {
+  it("blocks a Claude thread from moving to an open gateway model", () => {
+    expect(
+      isPostHogGatewayCrossShapeModelChange({
+        currentDriver: "claudeAgent",
+        currentModel: "claude-opus-4-6",
+        nextDriver: "posthogGateway",
+        nextModel: "zai-org/glm-5.3-flash",
+      }),
+    ).toBe(true);
+  });
+
+  it("allows a Claude thread to continue on a Claude gateway model", () => {
+    expect(
+      isPostHogGatewayCrossShapeModelChange({
+        currentDriver: "claudeAgent",
+        currentModel: "claude-opus-4-6",
+        nextDriver: "posthogGateway",
+        nextModel: "anthropic/claude-sonnet-4-6",
+      }),
+    ).toBe(false);
+  });
+
+  it("blocks an open gateway session from moving to Claude", () => {
+    expect(
+      isPostHogGatewayCrossShapeModelChange({
+        currentDriver: "posthogGateway",
+        currentModel: "zai-org/glm-5.3-flash",
+        nextDriver: "claudeAgent",
+        nextModel: "claude-opus-4-6",
+      }),
+    ).toBe(true);
   });
 });
 

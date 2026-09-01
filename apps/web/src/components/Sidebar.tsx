@@ -89,6 +89,10 @@ import { releaseComposerDraftUploads } from "../lib/composerDraftUploads";
 import { readLocalApi } from "../localApi";
 import { getProjectOrderKey, selectProjectGroupingSettings } from "../logicalProject";
 import {
+  resolveActiveProviderInstanceId,
+  resolveActiveProviderModelSelection,
+} from "@ras-code/client-runtime/provider-fallback";
+import {
   buildSidebarProjectSnapshots,
   type SidebarProjectSnapshot,
 } from "../sidebarProjectGrouping";
@@ -128,9 +132,7 @@ import {
   reduceSidebarProjectScopeMenuState,
   resolveAdjacentThreadId,
   resolveSettledTimestamp,
-  resolveSidebarThreadModel,
   resolveSidebarThreadStatus,
-  resolveSidebarThreadProviderInstanceId,
   searchSidebarThreadsByTitle,
   shouldCreateNewThreadInCurrentProject,
   resolveWorkingStartedAt,
@@ -996,22 +998,22 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: {
     threadKey,
   ]);
 
-  const modelInstanceId = resolveSidebarThreadProviderInstanceId(thread);
+  const modelInstanceId = resolveActiveProviderInstanceId(thread);
   const providerEntry = props.providerEntryByInstanceId.get(modelInstanceId) ?? null;
   const driverKind = providerEntry?.driverKind ?? null;
   const showInstanceBadge =
     providerEntry !== null &&
     shouldShowInstanceBadge(providerEntry, props.providerEntryByInstanceId.values());
-  const selectedModel = providerEntry
-    ? resolveSidebarThreadModel(
-        providerEntry.models,
-        thread.modelSelection.model,
-        providerEntry.driverKind === "posthogGateway",
-      )
-    : undefined;
+  const activeModelSelection = resolveActiveProviderModelSelection(
+    thread,
+    props.providerEntryByInstanceId.values(),
+  );
+  const selectedModel = providerEntry?.models.find(
+    (model) => model.slug === activeModelSelection.model,
+  );
   const modelLabel = selectedModel
     ? getTriggerDisplayModelLabel(selectedModel)
-    : thread.modelSelection.model;
+    : activeModelSelection.model;
 
   const isRemote =
     props.currentEnvironmentId !== null && thread.environmentId !== props.currentEnvironmentId;
@@ -1713,21 +1715,21 @@ const SidebarSearchResultRow = memo(function SidebarSearchResultRow(props: {
     activeThreadBranch: thread.branch,
     currentGitBranch: gitStatus.data?.refName ?? null,
   });
-  const modelInstanceId = resolveSidebarThreadProviderInstanceId(thread);
+  const modelInstanceId = resolveActiveProviderInstanceId(thread);
   const providerEntry = props.providerEntryByInstanceId.get(modelInstanceId) ?? null;
   const showInstanceBadge =
     providerEntry !== null &&
     shouldShowInstanceBadge(providerEntry, props.providerEntryByInstanceId.values());
-  const selectedModel = providerEntry
-    ? resolveSidebarThreadModel(
-        providerEntry.models,
-        thread.modelSelection.model,
-        providerEntry.driverKind === "posthogGateway",
-      )
-    : undefined;
+  const activeModelSelection = resolveActiveProviderModelSelection(
+    thread,
+    props.providerEntryByInstanceId.values(),
+  );
+  const selectedModel = providerEntry?.models.find(
+    (model) => model.slug === activeModelSelection.model,
+  );
   const modelLabel = selectedModel
     ? getTriggerDisplayModelLabel(selectedModel)
-    : thread.modelSelection.model;
+    : activeModelSelection.model;
   const runningTerminalIds = useThreadRunningTerminalIds({
     environmentId: thread.environmentId,
     threadId: thread.id,

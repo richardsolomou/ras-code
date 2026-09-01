@@ -20,8 +20,6 @@ import {
   isTrailingDoubleClick,
   orderItemsByPreferredIds,
   resolveProjectStatusIndicator,
-  resolveSidebarThreadModel,
-  resolveSidebarThreadProviderInstanceId,
   resolveThreadRowClassName,
   resolveSidebarThreadStatus,
   resolveThreadStatusPill,
@@ -57,49 +55,6 @@ import {
 } from "../types";
 
 const localEnvironmentId = EnvironmentId.make("environment-local");
-
-describe("resolveSidebarThreadProviderInstanceId", () => {
-  it("shows the provider that owns the active session", () => {
-    expect(
-      resolveSidebarThreadProviderInstanceId({
-        modelSelection: { instanceId: ProviderInstanceId.make("claudeAgent") },
-        session: { providerInstanceId: ProviderInstanceId.make("posthog_gateway") },
-      }),
-    ).toBe("posthog_gateway");
-  });
-
-  it("uses the persisted selection before a session starts", () => {
-    expect(
-      resolveSidebarThreadProviderInstanceId({
-        modelSelection: { instanceId: ProviderInstanceId.make("claudeAgent") },
-        session: null,
-      }),
-    ).toBe("claudeAgent");
-  });
-});
-
-describe("resolveSidebarThreadModel", () => {
-  const models = [
-    { slug: "anthropic/claude-sonnet-4-5", name: "Claude Sonnet 4.5" },
-    { slug: "claude-sonnet-4-5", name: "Exact Claude" },
-  ];
-
-  it("prefers an exact slug", () => {
-    expect(resolveSidebarThreadModel(models, "claude-sonnet-4-5", false)?.name).toBe(
-      "Exact Claude",
-    );
-  });
-
-  it("matches a namespaced gateway slug by its bare id", () => {
-    expect(resolveSidebarThreadModel([models[0]!], "claude-sonnet-4-5", true)?.name).toBe(
-      "Claude Sonnet 4.5",
-    );
-  });
-
-  it("does not match bare ids for other providers", () => {
-    expect(resolveSidebarThreadModel([models[0]!], "claude-sonnet-4-5", false)).toBeUndefined();
-  });
-});
 
 describe("animatePinnedLayoutChanges", () => {
   const baseArgs: Parameters<AnimateLayoutChanges>[0] = {

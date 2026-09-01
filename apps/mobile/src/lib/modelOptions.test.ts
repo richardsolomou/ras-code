@@ -4,6 +4,7 @@ import { ProviderInstanceId, type ModelSelection, type ServerConfig } from "@ras
 
 import {
   buildModelOptions,
+  filterStartedThreadProviderGroups,
   groupByProvider,
   resolveDefaultableModelSelection,
   resolveNewTaskModelSelection,
@@ -145,6 +146,56 @@ describe("mobile model options", () => {
 
     expect(option?.capabilities?.optionDescriptors?.[0]?.id).toBe("serviceTier");
     expect(option?.selection.options).toEqual([{ id: "serviceTier", value: "default" }]);
+  });
+
+  it("keeps a started gateway thread on its current harness shape", () => {
+    const config = {
+      providers: [
+        {
+          instanceId: "posthog_gateway",
+          driver: "posthogGateway",
+          displayName: "PostHog AI Gateway",
+          enabled: true,
+          installed: true,
+          auth: { status: "authenticated" },
+          models: [
+            {
+              slug: "zai-org/glm-5.3-flash",
+              name: "GLM-5.3 Flash",
+              isCustom: false,
+              capabilities: null,
+            },
+            {
+              slug: "openai/gpt-5.4",
+              name: "GPT-5.4",
+              isCustom: false,
+              capabilities: null,
+            },
+            {
+              slug: "anthropic/claude-sonnet-4-6",
+              name: "Claude Sonnet 4.6",
+              isCustom: false,
+              capabilities: null,
+            },
+          ],
+        },
+      ],
+    } as unknown as ServerConfig;
+    const currentSelection = {
+      instanceId: ProviderInstanceId.make("posthog_gateway"),
+      model: "zai-org/glm-5.3-flash",
+    };
+
+    const groups = filterStartedThreadProviderGroups({
+      groups: groupByProvider(buildModelOptions(config, currentSelection)),
+      currentSelection,
+      currentDriver: "posthogGateway",
+    });
+
+    expect(groups[0]?.models.map((model) => model.selection.model)).toEqual([
+      "zai-org/glm-5.3-flash",
+      "openai/gpt-5.4",
+    ]);
   });
 
   it("rejects stored selections whose provider is not usable", () => {

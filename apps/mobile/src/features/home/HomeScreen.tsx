@@ -7,6 +7,7 @@ import {
   type EnvironmentThreadSearchMatch,
 } from "@ras-code/client-runtime/state/thread-search";
 import { sortPinnedThreadsByOrderKey } from "@ras-code/client-runtime/state/thread-sort";
+import { resolveActiveProviderInstanceId } from "@ras-code/client-runtime/provider-fallback";
 import type {
   EnvironmentId,
   SidebarProjectGroupingMode,
@@ -786,7 +787,7 @@ export function HomeScreen(props: HomeScreenProps) {
             serverConfigs
               .get(thread.environmentId)
               ?.providers.find(
-                (provider) => provider.instanceId === thread.modelSelection.instanceId,
+                (provider) => provider.instanceId === resolveActiveProviderInstanceId(thread),
               )?.driver ?? null
           }
           environmentLabel={
