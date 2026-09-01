@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "31c1c5996f88e3acf1566adc11c9b51ac7561554",
+  "lastReviewed": "85b656ff300f71060ad6305c7e1e29a72b442ce9",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -891,6 +891,69 @@
       "ours": "c1e187b21e6ff7651ea09039953ac8095ac295c4",
       "reason": "Renamed the new iOS presentation classes and files to RasCodeNative*, re-expressed our useThemeColor subtle background on upstream's extracted ComposerAttachmentThumbnail, and renamed the new temp-directory prefix.",
       "reviewedAt": "2026-09-02T12:28:39.866Z"
+    },
+    {
+      "upstream": "f47e74004af232f0e3df8dc10093601d1c2c3ea3",
+      "pr": 8851,
+      "title": "fix(web): prevent chat metadata overlap",
+      "decision": "adopted",
+      "ours": "f15880d41abe5a1d913ed8f80d03a30a5bce4fe6",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T12:30:59.660Z"
+    },
+    {
+      "upstream": "6d15c5bbc3f3c331a7466bb94c17413a35f7b659",
+      "pr": 8540,
+      "title": "fix(server): preserve usage cache outside walked roots",
+      "decision": "adopted",
+      "ours": "280416a8f67631102e05050ff38e05989184fcbc",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T12:31:02.216Z"
+    },
+    {
+      "upstream": "f8e4accf27415eb9f7f4106087d2a1b0186d66b9",
+      "pr": 8959,
+      "title": "feat(mobile): add native image and PDF previews",
+      "decision": "adapted",
+      "ours": "e0d32b70cb11a7025410f141a4bbf5ca93fd6048",
+      "reason": "Renamed the new iOS file-presentation class and its temp directory prefix, and expressed upstream's tintColorClassName icon tints as our useThemeColor tintColor values.",
+      "reviewedAt": "2026-09-02T12:30:39.399Z"
+    },
+    {
+      "upstream": "41adccc83e819c286dcdf32cd8b5f55af8bb0b49",
+      "pr": 8898,
+      "title": "fix(server): allow long thread IDs in HTTP routes",
+      "decision": "adopted",
+      "ours": "b72eb726fcc8c30bd8ed6075c9ec958b79f9fd3c",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T12:31:10.015Z"
+    },
+    {
+      "upstream": "929f7e6479d00754dee4e4554b24b25478b8064d",
+      "pr": 8748,
+      "title": "fix(shared): preserve Windows shell PATH priority",
+      "decision": "adopted",
+      "ours": "31a76dd3c5c6d09e3736f85f624ddef43e6e4671",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T12:31:13.021Z"
+    },
+    {
+      "upstream": "c50b0b4ef8d61ffe3de1cfa6249f906709f7da1f",
+      "pr": 8881,
+      "title": "fix(web): make WSL settings searchable",
+      "decision": "adopted",
+      "ours": "a94581058efd96d9c38daa2ec82a8d5ab3d7b192",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T12:31:16.144Z"
+    },
+    {
+      "upstream": "17f00f60248374aafa2efb9b54ff08ce52e60a0a",
+      "pr": 8889,
+      "title": "feat(web): add expand/collapse all control to the files surface",
+      "decision": "adopted",
+      "ours": "f4e87c60947b603ef09ce90381e9d89baa2d14bb",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T12:31:19.236Z"
     },
     {
       "upstream": "0df043fd4eaa190eb491a3060836156eb0ae915e",

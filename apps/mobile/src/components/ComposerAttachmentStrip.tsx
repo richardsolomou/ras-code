@@ -11,8 +11,14 @@ import { PresentationSource } from "./NativePresentation";
 import type { FilePreviewSource } from "./FilePreviewModal";
 import { isPdfFile } from "../lib/filePreview";
 import { useThemeColor } from "../lib/useThemeColor";
+import type { EnvironmentId } from "@ras-code/contracts";
+import {
+  retryComposerAttachmentUpload,
+  useComposerAttachmentUploadState,
+} from "../state/composer-attachment-uploads";
 
 export interface ComposerAttachmentStripProps {
+  readonly environmentId?: EnvironmentId;
   /** Attachments to display. */
   readonly attachments: ReadonlyArray<DraftComposerAttachment>;
   /** Called when the user removes an attachment. */
@@ -31,7 +37,8 @@ export interface ComposerAttachmentStripProps {
   readonly removeButtonPlacement?: "overlay" | "gutter";
 }
 
-export function ComposerAttachmentThumbnail(props: {
+type ComposerAttachmentThumbnailProps = {
+  readonly environmentId?: EnvironmentId;
   readonly attachment: DraftComposerAttachment;
   readonly size: number;
   readonly borderRadius: number;
@@ -41,7 +48,47 @@ export function ComposerAttachmentThumbnail(props: {
     attachment: DraftComposerFileAttachment,
     sourceIdentifier: string,
   ) => void;
-}) {
+};
+
+export function ComposerAttachmentThumbnail(props: ComposerAttachmentThumbnailProps) {
+  const upload = useComposerAttachmentUploadState(props.environmentId, props.attachment.id);
+  return (
+    <View style={{ width: props.size, height: props.size }}>
+      <ComposerAttachmentContent {...props} />
+      {upload && upload.status !== "ready" ? (
+        <Pressable
+          accessibilityRole={upload.status === "failed" ? "button" : "text"}
+          accessibilityLabel={
+            upload.status === "failed"
+              ? `Retry uploading ${props.attachment.name}`
+              : `Uploading ${props.attachment.name}, ${Math.floor(upload.progress * 100)}%`
+          }
+          accessibilityHint={upload.status === "failed" ? upload.reason : undefined}
+          disabled={upload.status !== "failed"}
+          onPress={() =>
+            props.environmentId &&
+            retryComposerAttachmentUpload(props.environmentId, props.attachment.id)
+          }
+          className="absolute bottom-0.5 left-0.5 flex-row items-center gap-0.5 rounded-full bg-black/70 px-1 py-0.5"
+        >
+          <SymbolView
+            name={upload.status === "failed" ? "arrow.clockwise" : "arrow.up"}
+            size={props.compact ? 8 : 10}
+            tintColor="#ffffff"
+            type="monochrome"
+          />
+          {!props.compact ? (
+            <Text className="text-2xs text-white">
+              {upload.status === "failed" ? "Retry" : `${Math.floor(upload.progress * 100)}%`}
+            </Text>
+          ) : null}
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
+function ComposerAttachmentContent(props: ComposerAttachmentThumbnailProps) {
   const { attachment } = props;
   const subtleBg = useThemeColor("--color-subtle");
   const style = { width: props.size, height: props.size, borderRadius: props.borderRadius };
@@ -215,6 +262,7 @@ export function ComposerAttachmentStrip(props: ComposerAttachmentStripProps) {
             }}
           >
             <ComposerAttachmentThumbnail
+              environmentId={props.environmentId}
               attachment={attachment}
               size={size}
               borderRadius={radius}
