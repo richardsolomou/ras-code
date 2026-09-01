@@ -4,6 +4,30 @@ import { getHedgehogModeAssetsUrl, mountHedgehogMode } from "./HedgehogMode";
 
 class FakeCanvas extends EventTarget {}
 
+async function makeDestroyablePackageGame() {
+  const fakeWindow = Object.assign(new EventTarget(), {
+    cancelAnimationFrame: vi.fn(),
+  });
+  const addListener = vi.spyOn(fakeWindow, "addEventListener");
+  const removeListener = vi.spyOn(fakeWindow, "removeEventListener");
+  vi.stubGlobal("window", fakeWindow);
+
+  const { HedgeHogMode } = await import("@posthog/hedgehog-mode");
+  const game = new HedgeHogMode({ assetsUrl: "/hedgehog-mode" });
+  const appDestroy = vi.fn();
+  const internals = game as unknown as {
+    addGlobalListener(target: EventTarget, type: string, listener: EventListener): () => void;
+    app: { destroy: typeof appDestroy };
+    cleanupListeners: Array<() => void>;
+    elements: Array<{ beforeUnload?(): void }>;
+    runner: { frameRequestId: null };
+  };
+  internals.app = { destroy: appDestroy };
+  internals.runner = { frameRequestId: null };
+
+  return { addListener, appDestroy, fakeWindow, game, internals, removeListener };
+}
+
 function makeGame(input?: { readonly renderError?: Error }) {
   const canvas = new FakeCanvas();
   const game = {
@@ -64,24 +88,37 @@ describe("hedgehog mode", () => {
   });
 
   it("removes package global listeners when destroyed", async () => {
-    const fakeWindow = Object.assign(new EventTarget(), {
-      cancelAnimationFrame: vi.fn(),
-    });
-    const addListener = vi.spyOn(fakeWindow, "addEventListener");
-    const removeListener = vi.spyOn(fakeWindow, "removeEventListener");
-    vi.stubGlobal("window", fakeWindow);
-
-    const { HedgeHogMode } = await import("@posthog/hedgehog-mode");
-    const game = new HedgeHogMode({ assetsUrl: "/hedgehog-mode" });
-    const internals = game as unknown as {
-      app: { destroy(): void };
-      runner: { frameRequestId: null };
-    };
-    internals.app = { destroy: vi.fn() };
-    internals.runner = { frameRequestId: null };
+    const { addListener, game, removeListener } = await makeDestroyablePackageGame();
     game.destroy();
 
     expect(removeListener).toHaveBeenCalledTimes(addListener.mock.calls.length);
+  });
+
+  it("runs element cleanup and destroys stage children", async () => {
+    const { appDestroy, game, internals } = await makeDestroyablePackageGame();
+    const beforeUnload = vi.fn();
+    internals.elements = [{ beforeUnload }];
+
+    game.destroy();
+
+    expect({
+      appDestroy: appDestroy.mock.calls,
+      beforeUnload: beforeUnload.mock.calls.length,
+    }).toEqual({
+      appDestroy: [[{ removeView: true }, { children: true }]],
+      beforeUnload: 1,
+    });
+  });
+
+  it("forgets listeners removed before game teardown", async () => {
+    const { fakeWindow, game, internals } = await makeDestroyablePackageGame();
+    const listenerCount = internals.cleanupListeners.length;
+    const remove = internals.addGlobalListener(fakeWindow, "pointermove", vi.fn());
+
+    remove();
+
+    expect(internals.cleanupListeners).toHaveLength(listenerCount);
+    game.destroy();
   });
 
   it("destroys a game whose render fails", async () => {

@@ -1,13 +1,25 @@
 diff --git a/dist/index-C71vDVIs.js b/dist/index-C71vDVIs.js
-index 5c17d3e1906553f262da78f59e820f880161e841..9d7daff02002f5a5c13a00a5920dc01f7328146b 100644
+index 5c17d3e1906553f262da78f59e820f880161e841..34b492de04a92280f6eb15283934e92f627b2de3 100644
 --- a/dist/index-C71vDVIs.js
 +++ b/dist/index-C71vDVIs.js
-@@ -14366,7 +14366,7 @@ class br {
+@@ -14344,7 +14344,7 @@ class br {
+     if (!this.isInteractive)
+       return;
+     const r = t.pointerId, a = { x: t.clientX, y: t.clientY };
+-    let s = null;
++    let s = null, u = [];
+     const n = (c) => {
+       if (c.pointerId === r) {
+         if (!s) {
+@@ -14364,9 +14364,9 @@ class br {
+     }, l = (c) => {
+       this.isDragging && c.preventDefault();
      }, f = (c) => {
-       c.pointerId === r && (this.isDragging || this.onClick(), this.isDragging = !1, s && ke.World.remove(this.game.engine.world, s), window.removeEventListener("pointermove", n), window.removeEventListener("pointerup", f), window.removeEventListener("pointercancel", f), document.removeEventListener("touchmove", l));
+-      c.pointerId === r && (this.isDragging || this.onClick(), this.isDragging = !1, s && ke.World.remove(this.game.engine.world, s), window.removeEventListener("pointermove", n), window.removeEventListener("pointerup", f), window.removeEventListener("pointercancel", f), document.removeEventListener("touchmove", l));
++      c.pointerId === r && (this.isDragging || this.onClick(), this.isDragging = !1, s && ke.World.remove(this.game.engine.world, s), u.splice(0).forEach((d) => d()));
      };
 -    window.addEventListener("pointermove", n), window.addEventListener("pointerup", f), window.addEventListener("pointercancel", f), document.addEventListener("touchmove", l, { passive: !1 });
-+    this.game.addGlobalListener(window, "pointermove", n), this.game.addGlobalListener(window, "pointerup", f), this.game.addGlobalListener(window, "pointercancel", f), this.game.addGlobalListener(document, "touchmove", l, { passive: !1 });
++    u.push(this.game.addGlobalListener(window, "pointermove", n), this.game.addGlobalListener(window, "pointerup", f), this.game.addGlobalListener(window, "pointercancel", f), this.game.addGlobalListener(document, "touchmove", l, { passive: !1 }));
    }
    // Whether the actor should be clamped/wrapped to the screen edges. Subclasses
    // can opt out (e.g. while tethered to a web, so wrapping doesn't teleport the
@@ -38,7 +50,7 @@ index 5c17d3e1906553f262da78f59e820f880161e841..9d7daff02002f5a5c13a00a5920dc01f
        window.removeEventListener("keydown", s);
      };
    }
-@@ -19685,16 +19685,21 @@ class rv extends br {
+@@ -19685,16 +19685,31 @@ class rv extends br {
  }
  class sv {
    constructor(t) {
@@ -47,15 +59,26 @@ index 5c17d3e1906553f262da78f59e820f880161e841..9d7daff02002f5a5c13a00a5920dc01f
    }
    destroy() {
 -    this.syncPlatformsInterval && clearInterval(this.syncPlatformsInterval), ut.Runner.stop(this.runner), this.app.destroy({
-+    this.cleanupListeners.splice(0).forEach((t) => t()), this.syncPlatformsInterval && clearInterval(this.syncPlatformsInterval), ut.Runner.stop(this.runner), this.app.destroy({
++    this.cleanupListeners.splice(0).forEach((t) => t()), this.elements.splice(0).forEach((t) => {
++      var r;
++      return (r = t.beforeUnload) == null ? void 0 : r.call(t);
++    }), this.syncPlatformsInterval && clearInterval(this.syncPlatformsInterval), ut.Runner.stop(this.runner), this.app.destroy({
        removeView: !0
-     }), this.debugRender && (ut.Render.stop(this.debugRender), ke.World.clear(this.engine.world, !1), ke.Engine.clear(this.engine), this.debugRender.canvas.remove(), this.debugRender.canvas = document.createElement("canvas"), this.debugRender.context = this.debugRender.canvas.getContext("2d"), this.debugRender.textures = {});
-   }
+-    }), this.debugRender && (ut.Render.stop(this.debugRender), ke.World.clear(this.engine.world, !1), ke.Engine.clear(this.engine), this.debugRender.canvas.remove(), this.debugRender.canvas = document.createElement("canvas"), this.debugRender.context = this.debugRender.canvas.getContext("2d"), this.debugRender.textures = {});
++    }, { children: !0 }), this.debugRender && (ut.Render.stop(this.debugRender), ke.World.clear(this.engine.world, !1), ke.Engine.clear(this.engine), this.debugRender.canvas.remove(), this.debugRender.canvas = document.createElement("canvas"), this.debugRender.context = this.debugRender.canvas.getContext("2d"), this.debugRender.textures = {});
++  }
 +  addGlobalListener(t, r, a, s) {
 +    t.addEventListener(r, a, s);
-+    const n = () => t.removeEventListener(r, a, s);
-+    return this.cleanupListeners.push(n), n;
-+  }
++    let n = !0;
++    const l = () => {
++      if (!n)
++        return;
++      n = !1, t.removeEventListener(r, a, s);
++      const f = this.cleanupListeners.indexOf(l);
++      f !== -1 && this.cleanupListeners.splice(f, 1);
++    };
++    return this.cleanupListeners.push(l), l;
+   }
    setupDebugListeners() {
      let t = 0;
 -    window.addEventListener("keydown", (r) => {
@@ -63,7 +86,7 @@ index 5c17d3e1906553f262da78f59e820f880161e841..9d7daff02002f5a5c13a00a5920dc01f
        var a;
        r.key === "d" && r.ctrlKey ? (t++, t === 5 && (t = 0, this.isDebugging = !this.isDebugging, (a = this.debugRender) != null && a.canvas && (this.debugRender.canvas.style.opacity = this.isDebugging ? "0.5" : "0"))) : t = 0;
      });
-@@ -19764,9 +19769,10 @@ class sv {
+@@ -19764,9 +19779,10 @@ class sv {
        resizeTo: window,
        resolution: window.devicePixelRatio || 1,
        autoDensity: !0,
@@ -75,7 +98,7 @@ index 5c17d3e1906553f262da78f59e820f880161e841..9d7daff02002f5a5c13a00a5920dc01f
        () => this.syncPlatforms(),
        this.options.platforms.syncFrequency ?? 200
      ), this.syncPlatforms()), this.debugRender = ut.Render.create({
-@@ -19784,9 +19790,10 @@ class sv {
+@@ -19784,9 +19800,10 @@ class sv {
        }
      });
      const r = this.debugRender.canvas;
