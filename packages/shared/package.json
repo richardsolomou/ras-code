@@ -247,6 +247,10 @@
       "types": "./src/posthog.ts",
       "import": "./src/posthog.ts"
     },
+    "./desktopAppControl": {
+      "types": "./src/desktopAppControl.ts",
+      "import": "./src/desktopAppControl.ts"
+    },
     "./claudeCompaction": {
       "types": "./src/claudeCompaction.ts",
       "import": "./src/claudeCompaction.ts"

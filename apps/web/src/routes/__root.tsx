@@ -18,6 +18,7 @@ import { CommandPalette } from "../components/CommandPalette";
 import { ConfirmDialogHost } from "../components/ConfirmDialogHost";
 import { ConnectOnboardingDialog } from "../components/cloud/ConnectOnboardingDialog";
 import { SshPasswordPromptDialog } from "../components/desktop/SshPasswordPromptDialog";
+import { DesktopAppActivationCoordinator } from "../components/desktop/DesktopAppActivationCoordinator";
 import { ProviderUpdateLaunchNotification } from "../components/ProviderUpdateLaunchNotification";
 import { NotificationCoordinator } from "~/notifications/NotificationCoordinator";
 import { SlowRpcRequestToastCoordinator } from "../components/SlowRpcRequestToastCoordinator";
@@ -138,6 +139,7 @@ function RootRouteView() {
         <DocumentTitleSync />
         <FontAppearanceSync />
         {primaryEnvironmentAuthenticated ? <AuthenticatedTracingBootstrap /> : null}
+        {primaryEnvironmentAuthenticated ? <DesktopAppActivationCoordinator /> : null}
         <PostHogBrowserTelemetry authGateStatus={authGateState.status} />
         <ConnectOnboardingDialog />
         <SshPasswordPromptDialog />

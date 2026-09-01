@@ -30,6 +30,26 @@ is the fix. To recover a machine that cannot start well enough to upgrade itself
 cd ~/.ras-code/runtime/versions/<version>/node_modules/node-pty && node-gyp rebuild
 ```
 
+## Open a project in the desktop app
+
+When the RAS Code desktop app is running on the same machine, open the current directory with:
+
+```bash
+npx t3 app
+```
+
+Pass a path to open another directory:
+
+```bash
+npx t3 app ../my-project
+```
+
+The command adds the directory as a project when needed, focuses the desktop app, and opens a new
+thread. It does not launch the desktop app, open a browser, or start a RAS Code server. A background
+server does not count as the desktop app. The command also rejects SSH sessions because a remote
+shell cannot focus a local desktop window. The CLI package and the running desktop app must both
+include `t3 app` support.
+
 ## Desktop App
 
 Download the latest release from
@@ -53,11 +73,11 @@ yay -S ras-code-canary-bin
 ### Windows Subsystem for Linux
 
 When the desktop app runs a WSL backend, it installs the matching server runtime into
-`~/.t3/wsl-runtime` inside the selected distro. The first launch after installing or updating T3
+`~/.ras-code/wsl-runtime` inside the selected distro. The first launch after installing or updating T3
 Code may take a little longer while that release's runtime is extracted. Later launches reuse the
 Linux-local copy so startup does not depend on reading application files through `/mnt/c`. After a
-successful launch, T3 Code keeps the current runtime and one previous runtime for rollback and
-removes older caches automatically. If a cached runtime stops working, T3 Code launches from the
+successful launch, RAS Code keeps the current runtime and one previous runtime for rollback and
+removes older caches automatically. If a cached runtime stops working, RAS Code launches from the
 application files under `/mnt/c` instead and reinstalls the runtime on the next launch.
 
 ## Providers

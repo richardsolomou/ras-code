@@ -23,7 +23,7 @@ import {
   selectProjectGroupingSettings,
 } from "../logicalProject";
 import { resolveDefaultThreadEnvMode } from "@ras-code/shared/threadEnvMode";
-import { readThreadShell, useProjects, useThread } from "../state/entities";
+import { readProjects, readThreadShell, useProjects, useThread } from "../state/entities";
 import {
   hasExplicitComposerModelSelection,
   resolveNewDraftStartFromOrigin,
@@ -62,7 +62,6 @@ function pickExplicitWorkspaceOptions(options: NewThreadWorkspaceOptions | undef
 }
 
 export function useNewThreadHandler() {
-  const projects = useProjects();
   // New-thread defaults are a user preference, and the settings UI only ever
   // edits the primary environment's settings.json. Reading the target
   // environment's own settings here would silently reset remote projects to
@@ -91,6 +90,7 @@ export function useNewThreadHandler() {
       // prepared checkout, a task to write — addresses that one rather than looking the project
       // up again and finding whichever draft it happens to hold.
     ): Promise<{ draftId: DraftId; threadId: ThreadId } | null> => {
+      const projects = readProjects();
       const {
         getComposerDraft,
         getDraftSessionByLogicalProjectKey,
@@ -443,7 +443,6 @@ export function useNewThreadHandler() {
       openDraftInPane,
       primaryServerSettings,
       projectGroupingSettings,
-      projects,
     ],
   );
 }
