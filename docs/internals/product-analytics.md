@@ -58,6 +58,8 @@ The Expo config plugin adds native replay support and EAS Build source-map uploa
 
 The PostHog SDK captures uncaught exceptions and unhandled rejections. A `before_send` hook replaces exception messages with `Redacted exception`, removes source context and variables, and reduces source paths to their final filename while retaining frame locations for grouping.
 
+Provider failures are captured once per turn: a Codex failure surfaces as both a `runtime.error` and a failed `turn.completed`, so the telemetry service opens only the first as an issue. Each such exception carries a stable `$exception_fingerprint` and a generic `$issue_name` (for example `Provider turn failed (codex)`), so occurrences group into one issue across releases without depending on the bundled stack frame line, and the issue stays readable even though its message is redacted. The provider error text itself is never sent.
+
 Browser error capture uses the same rules. Browser builds retain source maps locally, but release automation must inject and upload them with the PostHog CLI before stack traces can be resolved in PostHog. Uploading requires a personal API key and is not part of the public runtime configuration.
 
 ## Browser collection
