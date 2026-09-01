@@ -1579,6 +1579,8 @@ export function GeneralSettingsPanel() {
   const serverConfig = useSettingsEnvironmentConfig();
   const observability = serverConfig?.observability ?? null;
   const serverProviders = serverConfig?.providers ?? EMPTY_SERVER_PROVIDERS;
+  const supportsAutoSettlement =
+    serverConfig?.environment.capabilities.threadAutoSettlement === true;
   const diagnosticsDescription = formatDiagnosticsDescription({
     localTracingEnabled: observability?.localTracingEnabled ?? false,
     otlpTracesEnabled: observability?.otlpTracesEnabled ?? false,
@@ -1672,72 +1674,77 @@ export function GeneralSettingsPanel() {
           }
         />
 
-        <SettingsRow
-          {...searchableSetting("auto-settle-merged-threads")}
-          description="Settle a thread when its pull request merges. Closed pull requests still settle automatically."
-          resetAction={
-            settings.sidebarAutoSettleOnMerge !==
-            DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleOnMerge ? (
-              <SettingResetButton
-                label="auto-settle on merge"
-                onClick={() =>
-                  updateSettings({
-                    sidebarAutoSettleOnMerge: DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleOnMerge,
-                  })
-                }
-              />
-            ) : null
-          }
-          control={
-            <Switch
-              checked={settings.sidebarAutoSettleOnMerge}
-              onCheckedChange={(checked) =>
-                updateSettings({ sidebarAutoSettleOnMerge: Boolean(checked) })
+        {supportsAutoSettlement ? (
+          <>
+            <SettingsRow
+              {...searchableSetting("auto-settle-merged-threads")}
+              description="Settle a thread when its pull request merges. Closed pull requests still settle automatically."
+              resetAction={
+                settings.sidebarAutoSettleOnMerge !==
+                DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleOnMerge ? (
+                  <SettingResetButton
+                    label="auto-settle on merge"
+                    onClick={() =>
+                      updateSettings({
+                        sidebarAutoSettleOnMerge: DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleOnMerge,
+                      })
+                    }
+                  />
+                ) : null
               }
-              aria-label="Auto-settle merged threads"
+              control={
+                <Switch
+                  checked={settings.sidebarAutoSettleOnMerge}
+                  onCheckedChange={(checked) =>
+                    updateSettings({ sidebarAutoSettleOnMerge: Boolean(checked) })
+                  }
+                  aria-label="Auto-settle merged threads"
+                />
+              }
             />
-          }
-        />
 
-        <SettingsRow
-          {...searchableSetting("auto-settle-inactive-threads")}
-          description="Sidebar threads with no activity for this long settle automatically."
-          resetAction={
-            settings.sidebarAutoSettleAfterDays !==
-            DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleAfterDays ? (
-              <SettingResetButton
-                label="auto-settle"
-                onClick={() =>
-                  updateSettings({
-                    sidebarAutoSettleAfterDays: DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleAfterDays,
-                  })
+            <SettingsRow
+              {...searchableSetting("auto-settle-inactive-threads")}
+              description="Sidebar threads with no activity for this long settle automatically."
+              resetAction={
+                settings.sidebarAutoSettleAfterDays !==
+                DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleAfterDays ? (
+                  <SettingResetButton
+                    label="auto-settle"
+                    onClick={() =>
+                      updateSettings({
+                        sidebarAutoSettleAfterDays:
+                          DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleAfterDays,
+                      })
+                    }
+                  />
+                ) : null
+              }
+              control={
+                <Switch
+                  checked={settings.sidebarAutoSettleAfterDays !== null}
+                  onCheckedChange={(checked) =>
+                    updateSettings({
+                      sidebarAutoSettleAfterDays: checked ? AUTO_SETTLE_DEFAULT_DAYS : null,
+                    })
+                  }
+                  aria-label="Auto-settle inactive threads"
+                />
+              }
+            />
+            {settings.sidebarAutoSettleAfterDays !== null ? (
+              <SettingsRow
+                title={searchableSetting("days-before-auto-settle").title}
+                description="Any new activity un-settles a thread automatically."
+                control={
+                  <AutoSettleDaysInput
+                    value={settings.sidebarAutoSettleAfterDays}
+                    onCommit={(days) => updateSettings({ sidebarAutoSettleAfterDays: days })}
+                  />
                 }
               />
-            ) : null
-          }
-          control={
-            <Switch
-              checked={settings.sidebarAutoSettleAfterDays !== null}
-              onCheckedChange={(checked) =>
-                updateSettings({
-                  sidebarAutoSettleAfterDays: checked ? AUTO_SETTLE_DEFAULT_DAYS : null,
-                })
-              }
-              aria-label="Auto-settle inactive threads"
-            />
-          }
-        />
-        {settings.sidebarAutoSettleAfterDays !== null ? (
-          <SettingsRow
-            title={searchableSetting("days-before-auto-settle").title}
-            description="Any new activity un-settles a thread automatically."
-            control={
-              <AutoSettleDaysInput
-                value={settings.sidebarAutoSettleAfterDays}
-                onCommit={(days) => updateSettings({ sidebarAutoSettleAfterDays: days })}
-              />
-            }
-          />
+            ) : null}
+          </>
         ) : null}
 
         <SettingsRow

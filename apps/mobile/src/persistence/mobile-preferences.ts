@@ -31,7 +31,6 @@ export interface Preferences {
   /** @deprecated Kept temporarily so older OTA bundles retain the selected mode. */
   readonly projectGroupingEnabled?: boolean;
   readonly projectGroupingMode?: SidebarProjectGroupingMode;
-  readonly autoSettleOnMerge?: boolean;
   /** Undefined preserves the default expanded Settled shelf. */
   readonly threadListV2SettledShelfExpanded?: boolean;
   /** Undefined preserves the default collapsed Snoozed shelf. */
@@ -91,7 +90,6 @@ function sanitizePreferences(parsed: Preferences): Preferences {
     collapsedProjectGroups?: readonly string[];
     projectGroupingEnabled?: boolean;
     projectGroupingMode?: SidebarProjectGroupingMode;
-    autoSettleOnMerge?: boolean;
     threadListV2SettledShelfExpanded?: boolean;
     threadListV2SnoozedShelfExpanded?: boolean;
   } = {};
@@ -154,9 +152,6 @@ function sanitizePreferences(parsed: Preferences): Preferences {
     parsed.projectGroupingMode === "separate"
   ) {
     preferences.projectGroupingMode = parsed.projectGroupingMode;
-  }
-  if (typeof parsed.autoSettleOnMerge === "boolean") {
-    preferences.autoSettleOnMerge = parsed.autoSettleOnMerge;
   }
   if (typeof parsed.threadListV2SettledShelfExpanded === "boolean") {
     preferences.threadListV2SettledShelfExpanded = parsed.threadListV2SettledShelfExpanded;

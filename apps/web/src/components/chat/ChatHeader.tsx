@@ -11,7 +11,6 @@ import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
 } from "@ras-code/client-runtime/state/runtime";
-import type { ChangeRequestSettleSource } from "@ras-code/client-runtime/state/thread-settled";
 import { ChevronDownIcon } from "lucide-react";
 import {
   memo,
@@ -57,8 +56,6 @@ interface ChatHeaderProps {
   forkedFromTitle?: string;
   /** Drafts have no server thread yet, so the title carries no action menu. */
   isServerThread: boolean;
-  /** PR feeding the settled classification, resolved by ChatView. */
-  changeRequest: ChangeRequestSettleSource | null;
   activeProjectName: string | undefined;
   activeProjectCwd: string | null;
   activeProjectFaviconPath: string | null;
@@ -134,7 +131,6 @@ export const ChatHeader = memo(function ChatHeader({
   forkedFrom,
   forkedFromTitle,
   isServerThread,
-  changeRequest,
   activeProjectName,
   activeProjectCwd,
   activeProjectFaviconPath,
@@ -215,7 +211,6 @@ export const ChatHeader = memo(function ChatHeader({
   const { openMenu, closeMenu } = useThreadActionMenu({
     threadRef: isServerThread ? activeThreadRef : null,
     projectCwd: activeProjectCwd,
-    changeRequest,
     onStartRename: startRename,
   });
   const titleButtonRef = useRef<HTMLButtonElement | null>(null);
