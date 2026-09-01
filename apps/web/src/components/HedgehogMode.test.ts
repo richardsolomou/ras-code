@@ -16,10 +16,16 @@ async function makeDestroyablePackageGame() {
   const game = new HedgeHogMode({ assetsUrl: "/hedgehog-mode" });
   const appDestroy = vi.fn();
   const internals = game as unknown as {
+    addElementTimeout(
+      element: object,
+      callback: () => void,
+      delay: number,
+    ): ReturnType<typeof setTimeout>;
     addGlobalListener(target: EventTarget, type: string, listener: EventListener): () => void;
     app: { destroy: typeof appDestroy };
     cleanupListeners: Array<() => void>;
     elements: Array<{ beforeUnload?(): void }>;
+    removeElement(element: object): void;
     runner: { frameRequestId: null };
   };
   internals.app = { destroy: appDestroy };
@@ -108,6 +114,25 @@ describe("hedgehog mode", () => {
       appDestroy: [[{ removeView: true }, { children: true }]],
       beforeUnload: 1,
     });
+  });
+
+  it("cancels element timeouts and ignores late removals after teardown", async () => {
+    vi.useFakeTimers();
+    const { game, internals } = await makeDestroyablePackageGame();
+    const beforeUnload = vi.fn();
+    const timeoutCallback = vi.fn();
+    const element = { beforeUnload };
+    internals.elements = [element];
+    internals.addElementTimeout(element, timeoutCallback, 1_000);
+
+    game.destroy();
+    vi.advanceTimersByTime(1_000);
+    internals.removeElement(element);
+
+    expect({
+      beforeUnload: beforeUnload.mock.calls.length,
+      timeoutCallback: timeoutCallback.mock.calls.length,
+    }).toEqual({ beforeUnload: 1, timeoutCallback: 0 });
   });
 
   it("forgets listeners removed before game teardown", async () => {

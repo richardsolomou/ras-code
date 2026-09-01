@@ -1,5 +1,5 @@
 diff --git a/dist/index-C71vDVIs.js b/dist/index-C71vDVIs.js
-index 5c17d3e1906553f262da78f59e820f880161e841..246e9f36338630d621543825316dd1334bf9647b 100644
+index 5c17d3e1906553f262da78f59e820f880161e841..6eab9f67d5e696712a8c1d8c8cc0d733bb0e2b31 100644
 --- a/dist/index-C71vDVIs.js
 +++ b/dist/index-C71vDVIs.js
 @@ -14344,7 +14344,7 @@ class br {
@@ -23,6 +23,15 @@ index 5c17d3e1906553f262da78f59e820f880161e841..246e9f36338630d621543825316dd133
    }
    // Whether the actor should be clamped/wrapped to the screen edges. Subclasses
    // can opt out (e.g. while tethered to a web, so wrapping doesn't teleport the
+@@ -18149,7 +18149,7 @@ class kr extends br {
+     }, this.fadeValue = 0, this.collisionFilter = {
+       category: _e.PROJECTILE,
+       mask: _e.PLATFORM | _e.GROUND
+-    }, this.loadSprite("overlays/fire/tile"), this.isInteractive = !1, this.sprite.anchor.set(0.5, 0), this.setScale(0.4), setTimeout(() => {
++    }, this.loadSprite("overlays/fire/tile"), this.isInteractive = !1, this.sprite.anchor.set(0.5, 0), this.setScale(0.4), this.game.addElementTimeout(this, () => {
+       ei.to(this, {
+         fadeValue: 1,
+         duration: 1,
 @@ -18244,7 +18244,7 @@ class Tx {
  }
  class Ax {
@@ -66,6 +75,15 @@ index 5c17d3e1906553f262da78f59e820f880161e841..246e9f36338630d621543825316dd133
    }
  }
  class Kx {
+@@ -19080,7 +19084,7 @@ class pn extends br {
+     this.overlayAnimation && this.sprite.removeChild(this.overlayAnimation), this.overlayAnimation = void 0;
+   }
+   setOnFire(t = 3) {
+-    this.isDead || (clearTimeout(this.fireTimer), this.fireTimer = setTimeout(() => {
++    this.isDead || (this.game.clearElementTimeout(this, this.fireTimer), this.fireTimer = this.game.addElementTimeout(this, () => {
+       if (t <= 1) {
+         this.clearOverlayAnimation(), this.fireTimer = void 0;
+         return;
 @@ -19230,7 +19234,7 @@ class pn extends br {
    }
    beforeUnload() {
@@ -84,22 +102,47 @@ index 5c17d3e1906553f262da78f59e820f880161e841..246e9f36338630d621543825316dd133
        window.removeEventListener("keydown", s);
      };
    }
-@@ -19685,16 +19689,31 @@ class rv extends br {
+@@ -19671,7 +19675,7 @@ class rv extends br {
+     }), this.setVelocity({
+       x: (0.5 - Math.random()) * 5,
+       y: -5
+-    }), setTimeout(() => {
++    }), this.game.addElementTimeout(this, () => {
+       ei.to(this.sprite, {
+         alpha: 0,
+         duration: 5,
+@@ -19685,16 +19689,47 @@ class rv extends br {
  }
  class sv {
    constructor(t) {
 -    this.options = t, this.elements = [], this.totalElapsedTime = 0, this.pointerEventsEnabled = !1, this.isDebugging = !1, this.spritesManager = new bx(t), this.setupDebugListeners();
-+    this.options = t, this.elements = [], this.totalElapsedTime = 0, this.pointerEventsEnabled = !1, this.isDebugging = !1, this.cleanupListeners = [], this.spritesManager = new bx(t), this.setupDebugListeners();
++    this.options = t, this.elements = [], this.totalElapsedTime = 0, this.pointerEventsEnabled = !1, this.isDebugging = !1, this.isDestroyed = !1, this.cleanupListeners = [], this.elementTimeouts = /* @__PURE__ */ new Map(), this.spritesManager = new bx(t), this.setupDebugListeners();
    }
    destroy() {
 -    this.syncPlatformsInterval && clearInterval(this.syncPlatformsInterval), ut.Runner.stop(this.runner), this.app.destroy({
-+    this.cleanupListeners.splice(0).forEach((t) => t()), this.elements.splice(0).forEach((t) => {
-+      var r;
-+      return (r = t.beforeUnload) == null ? void 0 : r.call(t);
-+    }), this.syncPlatformsInterval && clearInterval(this.syncPlatformsInterval), ut.Runner.stop(this.runner), this.app.destroy({
++    this.isDestroyed || (this.isDestroyed = !0, this.cleanupListeners.splice(0).forEach((t) => t()), this.elements.splice(0).forEach((t) => this.cleanupElement(t)), this.syncPlatformsInterval && clearInterval(this.syncPlatformsInterval), ut.Runner.stop(this.runner), this.app.destroy({
        removeView: !0
 -    }), this.debugRender && (ut.Render.stop(this.debugRender), ke.World.clear(this.engine.world, !1), ke.Engine.clear(this.engine), this.debugRender.canvas.remove(), this.debugRender.canvas = document.createElement("canvas"), this.debugRender.context = this.debugRender.canvas.getContext("2d"), this.debugRender.textures = {});
-+    }, { children: !0 }), this.debugRender && (ut.Render.stop(this.debugRender), ke.World.clear(this.engine.world, !1), ke.Engine.clear(this.engine), this.debugRender.canvas.remove(), this.debugRender.canvas = document.createElement("canvas"), this.debugRender.context = this.debugRender.canvas.getContext("2d"), this.debugRender.textures = {});
++    }, { children: !0 }), this.debugRender && (ut.Render.stop(this.debugRender), ke.World.clear(this.engine.world, !1), ke.Engine.clear(this.engine), this.debugRender.canvas.remove(), this.debugRender.canvas = document.createElement("canvas"), this.debugRender.context = this.debugRender.canvas.getContext("2d"), this.debugRender.textures = {}));
++  }
++  addElementTimeout(t, r, a) {
++    let s = this.elementTimeouts.get(t);
++    s || (s = /* @__PURE__ */ new Set(), this.elementTimeouts.set(t, s));
++    const n = setTimeout(() => {
++      s.delete(n), s.size || this.elementTimeouts.delete(t), r();
++    }, a);
++    return s.add(n), n;
++  }
++  clearElementTimeout(t, r) {
++    if (r === void 0)
++      return;
++    clearTimeout(r);
++    const a = this.elementTimeouts.get(t);
++    a?.delete(r), a != null && a.size === 0 && this.elementTimeouts.delete(t);
++  }
++  cleanupElement(t) {
++    var r;
++    this.elementTimeouts.get(t)?.forEach(clearTimeout), this.elementTimeouts.delete(t), ei.killTweensOf(t), t.sprite && (ei.killTweensOf(t.sprite), ei.killTweensOf(t.sprite.scale)), (r = t.beforeUnload) == null || r.call(t);
 +  }
 +  addGlobalListener(t, r, a, s) {
 +    t.addEventListener(r, a, s);
@@ -120,7 +163,7 @@ index 5c17d3e1906553f262da78f59e820f880161e841..246e9f36338630d621543825316dd133
        var a;
        r.key === "d" && r.ctrlKey ? (t++, t === 5 && (t = 0, this.isDebugging = !this.isDebugging, (a = this.debugRender) != null && a.canvas && (this.debugRender.canvas.style.opacity = this.isDebugging ? "0.5" : "0"))) : t = 0;
      });
-@@ -19764,9 +19783,10 @@ class sv {
+@@ -19764,9 +19799,10 @@ class sv {
        resizeTo: window,
        resolution: window.devicePixelRatio || 1,
        autoDensity: !0,
@@ -132,7 +175,7 @@ index 5c17d3e1906553f262da78f59e820f880161e841..246e9f36338630d621543825316dd133
        () => this.syncPlatforms(),
        this.options.platforms.syncFrequency ?? 200
      ), this.syncPlatforms()), this.debugRender = ut.Render.create({
-@@ -19784,9 +19804,10 @@ class sv {
+@@ -19784,9 +19820,10 @@ class sv {
        }
      });
      const r = this.debugRender.canvas;
@@ -145,7 +188,7 @@ index 5c17d3e1906553f262da78f59e820f880161e841..246e9f36338630d621543825316dd133
        "pointerdown",
        (a) => {
          const s = { x: a.clientX, y: a.clientY };
-@@ -19797,7 +19818,7 @@ class sv {
+@@ -19797,7 +19834,7 @@ class sv {
            }
        },
        { capture: !0 }
@@ -154,3 +197,13 @@ index 5c17d3e1906553f262da78f59e820f880161e841..246e9f36338630d621543825316dd133
    }
    onCollisionStart(t) {
      t.pairs.forEach((r) => {
+@@ -19826,8 +19863,7 @@ class sv {
+     this.engine.timing.timeScale = t, ei.globalTimeline.timeScale(t);
+   }
+   removeElement(t) {
+-    var r;
+-    (r = t.beforeUnload) == null || r.call(t), t.rigidBody && ke.Composite.remove(this.engine.world, t.rigidBody), t.sprite && this.app.stage.removeChild(t.sprite), this.elements = this.elements.filter((a) => a != t), this.log(`Removed element. Elements left: ${this.elements.length}`);
++    this.elements.includes(t) && (this.cleanupElement(t), t.rigidBody && ke.Composite.remove(this.engine.world, t.rigidBody), t.sprite && this.app.stage.removeChild(t.sprite), this.elements = this.elements.filter((r) => r != t), this.log(`Removed element. Elements left: ${this.elements.length}`));
+   }
+   resize() {
+     !this.debugRender || !this.ref || (this.debugRender.bounds.max.x = this.ref.clientWidth, this.debugRender.bounds.max.y = this.ref.clientHeight, this.debugRender.options.width = this.ref.clientWidth, this.debugRender.options.height = this.ref.clientHeight, this.debugRender.canvas.width = this.ref.clientWidth, this.debugRender.canvas.height = this.ref.clientHeight, ke.Render.setPixelRatio(this.debugRender, window.devicePixelRatio));
