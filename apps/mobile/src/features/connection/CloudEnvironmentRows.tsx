@@ -3,6 +3,7 @@ import { SymbolView } from "../../components/AppSymbol";
 import {
   connectionStatusText,
   type EnvironmentConnectionPhase,
+  type EnvironmentConnectionPresentation,
 } from "@ras-code/client-runtime/connection";
 import type { EnvironmentId } from "@ras-code/contracts";
 import { useCallback, useState } from "react";
@@ -213,6 +214,7 @@ function ConnectedCloudEnvironmentRow(props: {
       connectionError={props.environment.connectionError}
       connectionErrorTraceId={props.environment.connectionErrorTraceId}
       connectionState={props.environment.connectionState}
+      connectionStage={props.environment.connectionStage}
       errorExpanded={props.errorExpanded}
       label={props.environment.environmentLabel}
       onValueChange={(enabled) => {
@@ -248,6 +250,7 @@ function CloudEnvironmentRow(props: {
       connectionError={presentation.connectionError}
       connectionErrorTraceId={presentation.connectionErrorTraceId}
       connectionState={presentation.connectionState}
+      connectionStage={null}
       errorExpanded={props.errorExpanded}
       label={props.environment.environment.label}
       onValueChange={(enabled) => {
@@ -267,6 +270,7 @@ function CloudEnvironmentRowShell(props: {
   readonly connectionError: string | null;
   readonly connectionErrorTraceId: string | null;
   readonly connectionState: EnvironmentConnectionPhase;
+  readonly connectionStage?: EnvironmentConnectionPresentation["stage"];
   readonly disabled?: boolean;
   readonly errorExpanded: boolean;
   readonly label: string;
@@ -283,6 +287,7 @@ function CloudEnvironmentRowShell(props: {
     props.statusText ??
     connectionStatusText({
       phase: props.connectionState,
+      stage: props.connectionStage ?? null,
       error: props.connectionError,
       traceId: props.connectionErrorTraceId,
     });

@@ -9,14 +9,26 @@ import { AppText as Text } from "../../components/AppText";
 import { copyTextWithHaptic } from "../../lib/copyTextWithHaptic";
 import { useThemeColor } from "../../lib/useThemeColor";
 
-function noticeTitle(phase: EnvironmentConnectionPhase, environmentLabel: string): string {
+function noticeTitle(
+  phase: EnvironmentConnectionPhase,
+  environmentLabel: string,
+  stage: EnvironmentConnectionPresentation["stage"],
+): string {
   switch (phase) {
     case "offline":
       return "You are offline";
     case "connecting":
-      return `Connecting to ${environmentLabel}...`;
     case "reconnecting":
-      return `Reconnecting to ${environmentLabel}...`;
+      switch (stage) {
+        case "preparing":
+          return `Authorizing with ${environmentLabel}...`;
+        case "synchronizing":
+          return `Syncing with ${environmentLabel}...`;
+        default:
+          return phase === "connecting"
+            ? `Connecting to ${environmentLabel}...`
+            : `Reconnecting to ${environmentLabel}...`;
+      }
     case "error":
       return `${environmentLabel} is unavailable`;
     case "available":
@@ -74,7 +86,7 @@ export function EnvironmentConnectionNotice(props: {
         )}
 
         <Text className="text-center text-lg font-ras-code-bold text-foreground">
-          {noticeTitle(props.connection.phase, props.environmentLabel)}
+          {noticeTitle(props.connection.phase, props.environmentLabel, props.connection.stage)}
         </Text>
         <Text className="text-center text-sm leading-normal text-foreground-muted">
           {noticeDetail(props.connection.phase, props.resourceName, props.connection.error)}

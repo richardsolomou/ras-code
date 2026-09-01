@@ -33,6 +33,7 @@ import {
   WS_METHODS,
   WsRpcGroup,
   EditorId,
+  AuthStandardClientScopes,
 } from "@ras-code/contracts";
 import {
   computeDpopAccessTokenHash,
@@ -1197,6 +1198,8 @@ const makeCloudMintCredentialRequest = (input: {
   readonly issuedAt: string;
   readonly expiresAt: string;
   readonly scope?: ReadonlyArray<"environment:connect">;
+  readonly sessionScopes?: ReadonlyArray<string>;
+  readonly clientMetadata?: { readonly deviceType?: string; readonly os?: string };
 }) => {
   const payload = {
     iss: input.issuer ?? "https://relay.example.test",
@@ -1212,6 +1215,8 @@ const makeCloudMintCredentialRequest = (input: {
     iat: Math.floor(DateTime.makeUnsafe(input.issuedAt).epochMilliseconds / 1_000),
     exp: Math.floor(DateTime.makeUnsafe(input.expiresAt).epochMilliseconds / 1_000),
     scope: input.scope ?? ["environment:connect"],
+    ...(input.sessionScopes ? { sessionScopes: input.sessionScopes } : {}),
+    ...(input.clientMetadata ? { clientMetadata: input.clientMetadata } : {}),
   } as const;
   const header = Buffer.from(
     JSON.stringify({ alg: "EdDSA", typ: RELAY_MINT_REQUEST_TYP }),
@@ -2763,6 +2768,163 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
       assert.deepStrictEqual(body.descriptor, testEnvironmentDescriptor);
       assert.deepStrictEqual(mintProof.descriptor, testEnvironmentDescriptor);
     }).pipe(Effect.provide(NodeHttpServer.layerTest)),
+  );
+
+  it.effect("bundles a ready DPoP session when the relay forwards session scopes", () =>
+    Effect.gen(function* () {
+      yield* buildAppUnderTest();
+
+      const cloudKeyPair = NodeCrypto.generateKeyPairSync("ed25519", {
+        privateKeyEncoding: { format: "pem", type: "pkcs8" },
+        publicKeyEncoding: { format: "pem", type: "spki" },
+      });
+      const ownerCookie = yield* getAuthenticatedSessionCookieHeader();
+      const relayConfigUrl = yield* getHttpServerUrl("/api/connect/relay-config");
+      const relayConfigResponse = yield* fetchEffect(relayConfigUrl, {
+        method: "POST",
+        headers: {
+          cookie: ownerCookie,
+          "content-type": "application/json",
+        },
+        body: jsonRequestBody({
+          relayUrl: "https://relay.example.test",
+          cloudUserId: "user_123",
+          environmentCredential: "t3env_test_credential",
+          cloudMintPublicKey: cloudKeyPair.publicKey,
+          endpointRuntime: null,
+        }),
+      });
+      assert.equal(relayConfigResponse.status, 200);
+
+      const clientKeyPair = NodeCrypto.generateKeyPairSync("ec", { namedCurve: "P-256" });
+      const clientPublicJwk = clientKeyPair.publicKey.export({ format: "jwk" }) as DpopPublicJwk;
+      const clientThumbprint = computeDpopJwkThumbprint(clientPublicJwk);
+
+      const now = yield* DateTime.now;
+      const request = makeCloudMintCredentialRequest({
+        privateKey: cloudKeyPair.privateKey,
+        environmentId: testEnvironmentDescriptor.environmentId,
+        clientProofKeyThumbprint: clientThumbprint,
+        jti: "cloud-mint-jti-bundled-session",
+        nonce: "cloud-mint-nonce-bundled-session",
+        issuedAt: DateTime.formatIso(now),
+        expiresAt: DateTime.formatIso(DateTime.add(now, { minutes: 5 })),
+        sessionScopes: [...AuthStandardClientScopes],
+        clientMetadata: { deviceType: "mobile", os: "iOS" },
+      });
+      const mintUrl = yield* getHttpServerUrl("/api/connect/mint-credential");
+      const response = yield* fetchEffect(mintUrl, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: jsonRequestBody(request),
+      });
+
+      assert.equal(response.status, 200);
+      const body = yield* responseJsonEffect<{
+        readonly credential?: string;
+        readonly proof?: string;
+        readonly session?: {
+          readonly accessToken: string;
+          readonly tokenType: string;
+          readonly expiresInSeconds: number;
+          readonly scope: string;
+          readonly wsTicket: string;
+          readonly wsTicketExpiresAt: string;
+        };
+      }>(response);
+      assert.equal(body.credential, undefined);
+      assert.ok(body.session);
+      assert.equal(body.session.tokenType, "DPoP");
+      assert.equal(body.session.scope, AuthStandardClientScopes.join(" "));
+      assert.ok(body.session.expiresInSeconds > 0);
+      assert.equal(typeof body.session.wsTicket, "string");
+      const mintProof = decodeCompactJwtPayload<{
+        readonly credential?: string;
+        readonly session?: unknown;
+      }>(body.proof!);
+      assert.equal(mintProof.credential, undefined);
+      assert.deepStrictEqual(mintProof.session, body.session);
+
+      // The bundled token is DPoP-bound to the thumbprint the relay attested.
+      const sessionUrl = yield* getHttpServerUrl("/api/auth/session");
+      const sessionProof = makeDpopProof({
+        method: "GET",
+        url: sessionUrl,
+        iat: Math.floor(now.epochMilliseconds / 1_000),
+        jti: "bundled-session-proof",
+        accessToken: body.session.accessToken,
+        privateKey: clientKeyPair.privateKey,
+        publicJwk: clientPublicJwk,
+      });
+      const sessionResponse = yield* fetchEffect(sessionUrl, {
+        headers: {
+          authorization: `DPoP ${body.session.accessToken}`,
+          dpop: sessionProof.proof,
+        },
+      });
+      const sessionState = yield* responseJsonEffect<{
+        readonly authenticated: boolean;
+        readonly sessionMethod?: string;
+      }>(sessionResponse);
+      assert.equal(sessionState.authenticated, true);
+      assert.equal(sessionState.sessionMethod, "dpop-access-token");
+    }).pipe(Effect.provide(NodeHttpServer.layerTest)),
+  );
+
+  it.effect(
+    "falls back to a mint credential when requested session scopes exceed the standard set",
+    () =>
+      Effect.gen(function* () {
+        yield* buildAppUnderTest();
+
+        const cloudKeyPair = NodeCrypto.generateKeyPairSync("ed25519", {
+          privateKeyEncoding: { format: "pem", type: "pkcs8" },
+          publicKeyEncoding: { format: "pem", type: "spki" },
+        });
+        const ownerCookie = yield* getAuthenticatedSessionCookieHeader();
+        const relayConfigUrl = yield* getHttpServerUrl("/api/connect/relay-config");
+        const relayConfigResponse = yield* fetchEffect(relayConfigUrl, {
+          method: "POST",
+          headers: {
+            cookie: ownerCookie,
+            "content-type": "application/json",
+          },
+          body: jsonRequestBody({
+            relayUrl: "https://relay.example.test",
+            cloudUserId: "user_123",
+            environmentCredential: "t3env_test_credential",
+            cloudMintPublicKey: cloudKeyPair.publicKey,
+            endpointRuntime: null,
+          }),
+        });
+        assert.equal(relayConfigResponse.status, 200);
+
+        const now = yield* DateTime.now;
+        const request = makeCloudMintCredentialRequest({
+          privateKey: cloudKeyPair.privateKey,
+          environmentId: testEnvironmentDescriptor.environmentId,
+          clientProofKeyThumbprint: "client-proof-key-thumbprint",
+          jti: "cloud-mint-jti-oversized-scopes",
+          nonce: "cloud-mint-nonce-oversized-scopes",
+          issuedAt: DateTime.formatIso(now),
+          expiresAt: DateTime.formatIso(DateTime.add(now, { minutes: 5 })),
+          sessionScopes: [...AuthStandardClientScopes, "access:write"],
+        });
+        const mintUrl = yield* getHttpServerUrl("/api/connect/mint-credential");
+        const response = yield* fetchEffect(mintUrl, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: jsonRequestBody(request),
+        });
+
+        assert.equal(response.status, 200);
+        const body = yield* responseJsonEffect<{
+          readonly credential?: string;
+          readonly session?: unknown;
+        }>(response);
+        assert.equal(typeof body.credential, "string");
+        assert.equal(body.session, undefined);
+      }).pipe(Effect.provide(NodeHttpServer.layerTest)),
   );
 
   it.effect("serves signed RAS Connect environment health checks", () =>

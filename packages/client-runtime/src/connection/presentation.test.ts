@@ -58,6 +58,7 @@ describe("connection presentation", () => {
   it("distinguishes initial connection, reconnect, and retry errors", () => {
     expect(presentConnectionState(supervisorState({ phase: "connecting", attempt: 1 }))).toEqual({
       phase: "connecting",
+      stage: "preparing",
       error: null,
       traceId: null,
     });
@@ -75,6 +76,7 @@ describe("connection presentation", () => {
       ),
     ).toEqual({
       phase: "reconnecting",
+      stage: "preparing",
       error: "Socket closed.",
       traceId: "trace-previous",
     });
@@ -93,6 +95,7 @@ describe("connection presentation", () => {
       ),
     ).toEqual({
       phase: "reconnecting",
+      stage: null,
       error: "Disconnected.",
       traceId: "trace-1",
     });
@@ -114,6 +117,7 @@ describe("connection presentation", () => {
       ),
     ).toEqual({
       phase: "reconnecting",
+      stage: "opening",
       error: "Relay connection timed out.",
       traceId: "trace-retry",
     });
@@ -123,9 +127,33 @@ describe("connection presentation", () => {
     expect(connectionPhaseMessage("connected", TARGET.label, "offline")).toBe("You are offline");
   });
 
+  it("narrates the live attempt stage while connecting", () => {
+    expect(
+      connectionStatusText({ phase: "connecting", stage: "preparing", error: null, traceId: null }),
+    ).toBe("Authorizing...");
+    expect(
+      connectionStatusText({
+        phase: "connecting",
+        stage: "synchronizing",
+        error: null,
+        traceId: null,
+      }),
+    ).toBe("Syncing...");
+    expect(
+      connectionStatusText({ phase: "connecting", stage: null, error: null, traceId: null }),
+    ).toBe("Connecting...");
+    expect(connectionPhaseMessage("connecting", TARGET.label, "online", "preparing")).toBe(
+      `Authorizing with ${TARGET.label}...`,
+    );
+    expect(connectionPhaseMessage("reconnecting", TARGET.label, "online", null)).toBe(
+      `Reconnecting to ${TARGET.label}...`,
+    );
+  });
+
   it("combines reconnect progress with the latest failure", () => {
     const connection = {
       phase: "reconnecting",
+      stage: null,
       error: "Relay request timed out.",
       traceId: "trace-retry",
     } as const;
@@ -146,6 +174,7 @@ describe("connection presentation", () => {
       ),
     ).toEqual({
       phase: "offline",
+      stage: null,
       error: null,
       traceId: null,
     });
@@ -162,6 +191,7 @@ describe("connection presentation", () => {
       ),
     ).toEqual({
       phase: "connected",
+      stage: null,
       error: null,
       traceId: null,
     });
@@ -180,6 +210,7 @@ describe("connection presentation", () => {
       ),
     ).toEqual({
       phase: "available",
+      stage: null,
       error: null,
       traceId: null,
     });

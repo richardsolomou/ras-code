@@ -2,7 +2,7 @@ import type { ServerConfig } from "@ras-code/contracts";
 import * as Option from "effect/Option";
 
 import type { ConnectionCatalogEntry } from "./catalog.ts";
-import type { NetworkStatus, SupervisorConnectionState } from "./model.ts";
+import type { ConnectionAttemptStage, NetworkStatus, SupervisorConnectionState } from "./model.ts";
 
 export type EnvironmentConnectionPhase =
   | "available"
@@ -14,6 +14,8 @@ export type EnvironmentConnectionPhase =
 
 export interface EnvironmentConnectionPresentation {
   readonly phase: EnvironmentConnectionPhase;
+  /** Live progress of the in-flight attempt; null outside an attempt. */
+  readonly stage: ConnectionAttemptStage | null;
   readonly error: string | null;
   readonly traceId: string | null;
 }
@@ -29,29 +31,44 @@ export function presentConnectionState(
 ): EnvironmentConnectionPresentation {
   switch (state.phase) {
     case "available":
-      return { phase: "available", error: null, traceId: null };
+      return { phase: "available", stage: null, error: null, traceId: null };
     case "offline":
-      return { phase: "offline", error: null, traceId: null };
+      return { phase: "offline", stage: null, error: null, traceId: null };
     case "connecting":
       return {
         phase: state.attempt <= 1 && state.lastFailure === null ? "connecting" : "reconnecting",
+        stage: state.stage,
         error: state.lastFailure?.message ?? null,
         traceId: state.lastFailure?.traceId ?? null,
       };
     case "connected":
-      return { phase: "connected", error: null, traceId: null };
+      return { phase: "connected", stage: null, error: null, traceId: null };
     case "backoff":
       return {
         phase: "reconnecting",
+        stage: null,
         error: state.lastFailure?.message ?? null,
         traceId: state.lastFailure?.traceId ?? null,
       };
     case "blocked":
       return {
         phase: "error",
+        stage: null,
         error: state.lastFailure?.message ?? null,
         traceId: state.lastFailure?.traceId ?? null,
       };
+  }
+}
+
+/** Live label for an in-flight attempt, so a slow connect reads as progress. */
+export function connectionStageText(stage: ConnectionAttemptStage): string {
+  switch (stage) {
+    case "preparing":
+      return "Authorizing...";
+    case "opening":
+      return "Opening a connection...";
+    case "synchronizing":
+      return "Syncing...";
   }
 }
 
@@ -62,11 +79,12 @@ export function connectionStatusText(connection: EnvironmentConnectionPresentati
     case "offline":
       return "Offline";
     case "connecting":
-      return "Connecting...";
+      return connection.stage ? connectionStageText(connection.stage) : "Connecting...";
     case "reconnecting":
-      return connection.error
-        ? `Failed to connect. Reconnecting... Reason: ${connection.error}`
-        : "Reconnecting...";
+      if (connection.error) {
+        return `Failed to connect. Reconnecting... Reason: ${connection.error}`;
+      }
+      return connection.stage ? connectionStageText(connection.stage) : "Reconnecting...";
     case "connected":
       return "Connected";
     case "error":
@@ -110,6 +128,7 @@ export function connectionPhaseMessage(
   phase: EnvironmentConnectionPhase,
   label: string,
   networkStatus: NetworkStatus,
+  stage?: ConnectionAttemptStage | null,
 ): string {
   if (networkStatus === "offline" || phase === "offline") {
     return "You are offline";
@@ -118,9 +137,17 @@ export function connectionPhaseMessage(
     case "available":
       return "Available";
     case "connecting":
-      return `Connecting to ${label}...`;
     case "reconnecting":
-      return `Reconnecting to ${label}...`;
+      switch (stage) {
+        case "preparing":
+          return `Authorizing with ${label}...`;
+        case "synchronizing":
+          return `Syncing with ${label}...`;
+        default:
+          return phase === "connecting"
+            ? `Connecting to ${label}...`
+            : `Reconnecting to ${label}...`;
+      }
     case "connected":
       return "Connected";
     case "error":

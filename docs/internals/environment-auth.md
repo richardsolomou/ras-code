@@ -104,6 +104,12 @@ appends only that ticket to the socket URL as `wsTicket`. This keeps long-lived
 tokens and browser cookies out of WebSocket URLs while letting the handshake
 authenticate.
 
+Relay connects can skip both round trips above: when the relay's mint request
+carries `sessionScopes`, `EnvironmentAuth.issueRelayClientSession` issues the
+DPoP session and its first WebSocket ticket in the same mint response, bound to
+the thumbprint the relay attested. See
+[ras-connect.md](./ras-connect.md#connect-round-trips).
+
 The ticket carries its session's scopes; each RPC method then enforces
 `orchestration:read`, `orchestration:operate`, `terminal:operate`,
 `review:write`, `relay:write`, or `access:read` as appropriate, through

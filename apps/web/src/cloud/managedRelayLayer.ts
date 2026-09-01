@@ -12,6 +12,7 @@ import {
   writeStoredBrowserDpopKey,
   type BrowserDpopKey,
 } from "./dpop";
+import { managedRelayAccessTokenStore } from "./managedRelayTokenStore";
 
 export const relayDpopSignerLayer = Layer.effect(
   ManagedRelay.ManagedRelayDpopSigner,
@@ -77,6 +78,8 @@ export const relayDpopSignerLayer = Layer.effect(
 );
 
 export const managedRelayClientLayer = (relayUrl: string) =>
-  ManagedRelay.layer({ relayUrl, clientId: RelayWebClientId }).pipe(
-    Layer.provideMerge(relayDpopSignerLayer),
-  );
+  ManagedRelay.layer({
+    relayUrl,
+    clientId: RelayWebClientId,
+    accessTokenStore: managedRelayAccessTokenStore,
+  }).pipe(Layer.provideMerge(relayDpopSignerLayer));

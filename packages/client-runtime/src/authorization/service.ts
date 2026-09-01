@@ -3,8 +3,13 @@ import {
   EnvironmentId,
   type ExecutionEnvironmentDescriptor,
 } from "@ras-code/contracts";
-import type { RelayManagedEndpoint } from "@ras-code/contracts/relay";
+import type {
+  RelayEnvironmentBundledSession,
+  RelayManagedEndpoint,
+} from "@ras-code/contracts/relay";
+import { oauthScopeSetEquals } from "@ras-code/shared/oauthScope";
 import {
+  buildRemoteWebSocketConnectionUrl,
   exchangeRemoteDpopAccessToken,
   type RemoteEnvironmentAuthError,
   resolveRemoteDpopWebSocketConnectionUrl,
@@ -35,9 +40,15 @@ import type { PreparedHttpAuthorization } from "../connection/model.ts";
 export interface RelayEnvironmentAuthorization {
   readonly environmentId: EnvironmentId;
   readonly endpoint: RelayManagedEndpoint;
-  readonly credential: string;
+  /** Absent when the environment bundled a ready session instead. */
+  readonly credential?: string | undefined;
   /** Supplied by environments new enough to sign it into the mint response. */
   readonly descriptor?: ExecutionEnvironmentDescriptor | undefined;
+  /**
+   * A ready access token plus websocket ticket minted alongside the connect
+   * response, saving the token-exchange and ticket round trips.
+   */
+  readonly session?: RelayEnvironmentBundledSession | undefined;
 }
 
 export interface AuthorizedRemoteEnvironment {
@@ -76,6 +87,24 @@ function mapDpopSocketError(error: RemoteEnvironmentAuthError | ConnectionAttemp
   return error._tag === "ConnectionTransientError" || error._tag === "ConnectionBlockedError"
     ? error
     : mapRemoteDpopEnvironmentError(error);
+}
+
+/**
+ * The environment answered but would not honor the cached token, so only a
+ * fresh credential can help. Timeouts, network faults, and 5xx-shaped noise
+ * are not evidence against the token and must not evict it.
+ */
+function isCachedTokenRejection(error: RemoteEnvironmentAuthError | ConnectionAttemptError) {
+  switch (error._tag) {
+    case "EnvironmentAuthInvalidError":
+    case "EnvironmentScopeRequiredError":
+    case "EnvironmentOperationForbiddenError":
+    case "EnvironmentRequestInvalidError":
+    case "EnvironmentResourceNotFoundError":
+      return true;
+    default:
+      return false;
+  }
 }
 
 const fetchDescriptor = Effect.fn("clientRuntime.connection.remote.fetchDescriptor")(function* (
@@ -223,10 +252,23 @@ export const make = Effect.gen(function* () {
         yield* Effect.annotateCurrentSpan({
           "connection.remote_token_cache": "hit",
         });
-        const cachedSocket = yield* createDpopSocketUrl(
+        let cachedSocket = yield* createDpopSocketUrl(
           cached.value,
           CACHED_ENDPOINT_SOCKET_TIMEOUT_MS,
         ).pipe(Effect.result);
+        if (
+          Result.isFailure(cachedSocket) &&
+          cachedSocket.failure._tag !== "ConnectionBlockedError" &&
+          !isCachedTokenRejection(cachedSocket.failure)
+        ) {
+          // One slow round trip (a hibernated relay session, a waking laptop)
+          // is not evidence against the token; retry once with the patient
+          // default budget before giving up on the attempt.
+          yield* Effect.annotateCurrentSpan({
+            "connection.remote_token_cache.retry": true,
+          });
+          cachedSocket = yield* createDpopSocketUrl(cached.value).pipe(Effect.result);
+        }
         if (Result.isSuccess(cachedSocket)) {
           return {
             environmentId: cached.value.environmentId,
@@ -239,12 +281,15 @@ export const make = Effect.gen(function* () {
             },
           };
         }
-        if (cachedSocket.failure._tag === "ConnectionBlockedError") {
+        if (isCachedTokenRejection(cachedSocket.failure)) {
+          yield* tokenStore
+            .remove(input.expectedEnvironmentId)
+            .pipe(Effect.withSpan("environment.authorization.accessToken.remove"));
+        } else {
+          // The token is still presumed good; fail the attempt and let the
+          // supervisor retry instead of paying the full cold connect.
           return yield* mapDpopSocketError(cachedSocket.failure);
         }
-        yield* tokenStore
-          .remove(input.expectedEnvironmentId)
-          .pipe(Effect.withSpan("environment.authorization.accessToken.remove"));
       }
 
       yield* Effect.annotateCurrentSpan({
@@ -263,6 +308,47 @@ export const make = Effect.gen(function* () {
         return yield* environmentMismatchError({
           expected: input.expectedEnvironmentId,
           actual: descriptor.environmentId,
+        });
+      }
+      // A bundled session skips the token-exchange and websocket-ticket round
+      // trips entirely; the mint already bound the token to our proof key.
+      if (bootstrap.session && oauthScopeSetEquals(bootstrap.session.scope, presentation.scopes)) {
+        yield* Effect.annotateCurrentSpan({
+          "connection.remote_bootstrap": "bundled_session",
+        });
+        const issuedAt = yield* Clock.currentTimeMillis;
+        const token = new TokenStore.RemoteDpopAccessToken({
+          environmentId: descriptor.environmentId,
+          label: descriptor.label,
+          endpoint: bootstrap.endpoint,
+          accessToken: bootstrap.session.accessToken,
+          expiresAtEpochMs: issuedAt + bootstrap.session.expiresInSeconds * 1_000,
+          dpopThumbprint: thumbprint,
+        });
+        const socketUrl = buildRemoteWebSocketConnectionUrl({
+          wsBaseUrl: bootstrap.endpoint.wsBaseUrl,
+          wsTicket: bootstrap.session.wsTicket,
+          clientMetadata: presentation.metadata,
+          connectionMethod: "relay",
+        });
+        yield* tokenStore
+          .put(token)
+          .pipe(Effect.withSpan("environment.authorization.accessToken.persist"));
+        return {
+          environmentId: descriptor.environmentId,
+          label: descriptor.label,
+          httpBaseUrl: bootstrap.endpoint.httpBaseUrl,
+          socketUrl,
+          httpAuthorization: {
+            _tag: "Dpop" as const,
+            accessToken: token.accessToken,
+          },
+        };
+      }
+      if (bootstrap.credential === undefined) {
+        return yield* new ConnectionBlockedError({
+          reason: "configuration",
+          detail: "The relay bootstrap carried neither a credential nor a usable session.",
         });
       }
       const bootstrapProof = yield* signer

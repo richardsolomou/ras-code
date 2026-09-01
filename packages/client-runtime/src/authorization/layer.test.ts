@@ -400,7 +400,7 @@ describe("RemoteEnvironmentAuthorization", () => {
     }),
   );
 
-  it.effect("refreshes a cached endpoint after its first transient failure", () =>
+  it.effect("retries a slow cached-token ticket once and connects without a fresh mint", () =>
     Effect.gen(function* () {
       const cached = new TokenStore.RemoteDpopAccessToken({
         environmentId: ENVIRONMENT_ID,
@@ -414,9 +414,7 @@ describe("RemoteEnvironmentAuthorization", () => {
         initialToken: cached,
         responses: [
           new Response("endpoint unavailable", { status: 503 }),
-          Response.json(DESCRIPTOR),
-          accessToken("replacement-access-token"),
-          websocketTicket("replacement-ticket"),
+          websocketTicket("cached-ticket-retry"),
         ],
       });
 
@@ -428,14 +426,130 @@ describe("RemoteEnvironmentAuthorization", () => {
         });
       }).pipe(Effect.provide(harness.layer));
 
-      expect(authorized.socketUrl).toContain("wsTicket=replacement-ticket");
-      expect(yield* Ref.get(harness.bootstrapCalls)).toBe(1);
+      expect(authorized.socketUrl).toContain("wsTicket=cached-ticket-retry");
+      expect(yield* Ref.get(harness.bootstrapCalls)).toBe(0);
       expect((yield* Ref.get(harness.tokens)).get(ENVIRONMENT_ID)).toEqual(
         expect.objectContaining({
-          accessToken: "replacement-access-token",
+          accessToken: "cached-access-token",
         }),
       );
-      expect(harness.fetch.calls).toHaveLength(4);
+      expect(harness.fetch.calls).toHaveLength(2);
+    }),
+  );
+
+  it.effect("keeps the cached token when the environment stays unreachable", () =>
+    Effect.gen(function* () {
+      const cached = new TokenStore.RemoteDpopAccessToken({
+        environmentId: ENVIRONMENT_ID,
+        label: DESCRIPTOR.label,
+        endpoint: ENDPOINT,
+        accessToken: "cached-access-token",
+        expiresAtEpochMs: Number.MAX_SAFE_INTEGER,
+        dpopThumbprint: "thumbprint-1",
+      });
+      const harness = yield* makeHarness({
+        initialToken: cached,
+        responses: [
+          new Response("endpoint unavailable", { status: 503 }),
+          new Response("endpoint unavailable", { status: 503 }),
+        ],
+      });
+
+      const failure = yield* Effect.gen(function* () {
+        const remote = yield* RemoteEnvironmentAuthorization.RemoteEnvironmentAuthorization;
+        return yield* remote.authorizeDpop({
+          expectedEnvironmentId: ENVIRONMENT_ID,
+          obtainBootstrap: harness.obtainBootstrap,
+        });
+      }).pipe(Effect.provide(harness.layer), Effect.flip);
+
+      expect(failure).toEqual(
+        expect.objectContaining({
+          _tag: "ConnectionTransientError",
+          reason: "remote-unavailable",
+        }),
+      );
+      expect(yield* Ref.get(harness.bootstrapCalls)).toBe(0);
+      expect((yield* Ref.get(harness.tokens)).get(ENVIRONMENT_ID)).toEqual(
+        expect.objectContaining({
+          accessToken: "cached-access-token",
+        }),
+      );
+      expect(harness.fetch.calls).toHaveLength(2);
+    }),
+  );
+
+  it.effect("connects through a bundled session without any environment round trips", () =>
+    Effect.gen(function* () {
+      const harness = yield* makeHarness({
+        bootstrap: {
+          environmentId: ENVIRONMENT_ID,
+          endpoint: ENDPOINT,
+          descriptor: DESCRIPTOR,
+          session: {
+            accessToken: "bundled-access-token",
+            tokenType: "DPoP",
+            expiresInSeconds: 3_600,
+            scope: AuthStandardClientScopes.join(" "),
+            wsTicket: "bundled-ticket",
+            wsTicketExpiresAt: "2026-06-06T01:00:00.000Z",
+          },
+        },
+        responses: [],
+      });
+
+      const authorized = yield* Effect.gen(function* () {
+        const remote = yield* RemoteEnvironmentAuthorization.RemoteEnvironmentAuthorization;
+        return yield* remote.authorizeDpop({
+          expectedEnvironmentId: ENVIRONMENT_ID,
+          obtainBootstrap: harness.obtainBootstrap,
+        });
+      }).pipe(Effect.provide(harness.layer));
+
+      expect(authorized.socketUrl).toContain("wsTicket=bundled-ticket");
+      expect(authorized.httpAuthorization).toEqual({
+        _tag: "Dpop",
+        accessToken: "bundled-access-token",
+      });
+      expect((yield* Ref.get(harness.tokens)).get(ENVIRONMENT_ID)).toEqual(
+        expect.objectContaining({
+          accessToken: "bundled-access-token",
+        }),
+      );
+      expect(harness.fetch.calls).toHaveLength(0);
+    }),
+  );
+
+  it.effect("falls back to the credential exchange when bundled scopes do not match", () =>
+    Effect.gen(function* () {
+      const harness = yield* makeHarness({
+        bootstrap: {
+          environmentId: ENVIRONMENT_ID,
+          endpoint: ENDPOINT,
+          credential: "relay-bootstrap",
+          descriptor: DESCRIPTOR,
+          session: {
+            accessToken: "narrow-access-token",
+            tokenType: "DPoP",
+            expiresInSeconds: 3_600,
+            scope: "orchestration:read",
+            wsTicket: "narrow-ticket",
+            wsTicketExpiresAt: "2026-06-06T01:00:00.000Z",
+          },
+        },
+        responses: [accessToken("exchanged-access-token"), websocketTicket("exchanged-ticket")],
+      });
+
+      const authorized = yield* Effect.gen(function* () {
+        const remote = yield* RemoteEnvironmentAuthorization.RemoteEnvironmentAuthorization;
+        return yield* remote.authorizeDpop({
+          expectedEnvironmentId: ENVIRONMENT_ID,
+          obtainBootstrap: harness.obtainBootstrap,
+        });
+      }).pipe(Effect.provide(harness.layer));
+
+      expect(authorized.socketUrl).toContain("wsTicket=exchanged-ticket");
+      expect(harness.fetch.calls).toHaveLength(2);
     }),
   );
 

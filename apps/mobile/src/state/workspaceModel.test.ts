@@ -39,6 +39,7 @@ function environment(
     },
     connection: {
       phase,
+      stage: null,
       error: phase === "error" ? "Connection failed." : null,
       traceId: phase === "error" ? "trace-1" : null,
     },

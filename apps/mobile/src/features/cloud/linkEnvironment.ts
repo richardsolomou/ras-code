@@ -505,6 +505,13 @@ const connectRelayManagedEnvironment = Effect.fn("mobile.cloud.connectRelayManag
         message: "Relay returned credentials for a different environment.",
       });
     }
+    // This flow never requests a bundled session, so a credential is expected.
+    const connectCredential = connect.credential;
+    if (connectCredential === undefined) {
+      return yield* new CloudEnvironmentLinkError({
+        message: "Relay returned no connection credential.",
+      });
+    }
     if (input.expectedEnvironment) {
       yield* ensureConnectEndpointMatchesEnvironment({
         environment: input.expectedEnvironment,
@@ -533,7 +540,7 @@ const connectRelayManagedEnvironment = Effect.fn("mobile.cloud.connectRelayManag
       .pipe(Effect.mapError(cloudEnvironmentLinkError("Could not create bootstrap DPoP proof.")));
     const bootstrap = yield* exchangeRemoteDpopAccessToken({
       httpBaseUrl: connect.endpoint.httpBaseUrl,
-      credential: connect.credential,
+      credential: connectCredential,
       dpopProof: bootstrapDpop,
       clientMetadata: authClientMetadata(),
     }).pipe(
@@ -544,7 +551,7 @@ const connectRelayManagedEnvironment = Effect.fn("mobile.cloud.connectRelayManag
       ),
     );
     const pairingUrl = new URL(connect.endpoint.httpBaseUrl);
-    pairingUrl.hash = new URLSearchParams([["token", connect.credential]]).toString();
+    pairingUrl.hash = new URLSearchParams([["token", connectCredential]]).toString();
 
     return {
       environmentId: descriptor.environmentId,

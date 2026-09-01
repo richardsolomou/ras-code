@@ -1,9 +1,11 @@
+import type { AuthEnvironmentScope } from "@ras-code/contracts";
 import {
   RelayAccessTokenType,
   RelayApi,
   type RelayClientEnvironmentRecord,
   type RelayClientDeviceRecord,
   RelayConnectEnvironmentEndpoint,
+  type RelayEnvironmentConnectClientMetadata,
   type RelayDeviceRegistrationRequest,
   RelayDpopAccessTokenScope,
   RelayDpopTokenExchangeGrantType,
@@ -281,6 +283,8 @@ export class ManagedRelayClient extends Context.Service<
       readonly scopes: ReadonlyArray<RelayDpopAccessTokenScope>;
       readonly environmentId: RelayClientEnvironmentRecord["environmentId"];
       readonly deviceId?: string;
+      readonly sessionScopes?: ReadonlyArray<AuthEnvironmentScope>;
+      readonly clientMetadata?: RelayEnvironmentConnectClientMetadata;
     }) => Effect.Effect<RelayEnvironmentConnectResponse, ManagedRelayClientError>;
     readonly registerDevice: (input: {
       readonly clerkToken: string;
@@ -807,6 +811,8 @@ export const make = Effect.fn("ManagedRelayClient.make")(function* (
             const payload: RelayEnvironmentConnectRequest = {
               ...(input.deviceId ? { deviceId: input.deviceId } : {}),
               clientKeyThumbprint: authorization.thumbprint,
+              ...(input.sessionScopes ? { sessionScopes: input.sessionScopes } : {}),
+              ...(input.clientMetadata ? { clientMetadata: input.clientMetadata } : {}),
             };
             return client.dpopClient
               .connectEnvironment({

@@ -1,4 +1,5 @@
 import {
+  type AuthEnvironmentScope,
   EnvironmentHttpBadRequestError,
   EnvironmentHttpConflictError,
   EnvironmentHttpForbiddenError,
@@ -13,6 +14,7 @@ import {
   RelayEnvironmentMintResponse,
   RelayEnvironmentMintResponseProofPayload,
   RelayCloudMintCredentialProofPayload,
+  type RelayEnvironmentConnectClientMetadata,
   RelayEnvironmentConnectNotAuthorizedReason,
   type RelayEnvironmentConnectResponse,
   type RelayEnvironmentStatusResponse,
@@ -132,6 +134,8 @@ export class EnvironmentConnector extends Context.Service<
       readonly environmentId: string;
       readonly clientProofKeyThumbprint: string;
       readonly deviceId?: string;
+      readonly sessionScopes?: ReadonlyArray<AuthEnvironmentScope>;
+      readonly clientMetadata?: RelayEnvironmentConnectClientMetadata;
     }) => Effect.Effect<RelayEnvironmentConnectResponse, EnvironmentConnectorError>;
     readonly status: (input: {
       readonly userId: string;
@@ -254,7 +258,9 @@ function verifyEnvironmentResponse(input: {
         proof.environmentId === input.environmentId &&
         proof.requestNonce === input.requestNonce &&
         proof.clientProofKeyThumbprint === input.clientProofKeyThumbprint &&
+        (input.response.credential !== undefined || input.response.session !== undefined) &&
         proof.credential === input.response.credential &&
+        stableStringify(proof.session) === stableStringify(input.response.session) &&
         stableStringify(proof.descriptor) === stableStringify(input.response.descriptor) &&
         Option.match(DateTime.make(input.response.expiresAt), {
           onNone: () => false,
@@ -582,6 +588,8 @@ const make = Effect.gen(function* () {
         ...(input.deviceId ? { deviceId: input.deviceId } : {}),
         nonce,
         scope: ["environment:connect"],
+        ...(input.sessionScopes ? { sessionScopes: input.sessionScopes } : {}),
+        ...(input.clientMetadata ? { clientMetadata: input.clientMetadata } : {}),
       } satisfies RelayCloudMintCredentialProofPayload;
       const proof = yield* signRelayJwt({
         privateKey: Redacted.value(settings.cloudMintPrivateKey),
@@ -640,9 +648,10 @@ const make = Effect.gen(function* () {
       return {
         environmentId: link.environmentId,
         endpoint,
-        credential: decoded.credential,
+        ...(decoded.credential !== undefined ? { credential: decoded.credential } : {}),
         expiresAt: decoded.expiresAt,
         ...(decoded.descriptor ? { descriptor: decoded.descriptor } : {}),
+        ...(decoded.session ? { session: decoded.session } : {}),
       };
     }),
   });

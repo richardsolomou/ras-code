@@ -18,7 +18,10 @@ supply. There is no legacy connection owner or supported mixed mode.
 - `ConnectionResolver` ([resolver.ts][resolver]) resolves a catalog entry into a
   prepared, authenticated endpoint for primary, bearer, relay, or SSH targets.
 - `ConnectionDriver` ([driver.ts][driver]) prepares through the resolver, opens
-  one RPC session, and reports `preparing`, `opening`, and `synchronizing`.
+  one RPC session, and reports `preparing`, `opening`, and `synchronizing`. The
+  presentation layer surfaces these stages as live status text ("Authorizing…",
+  "Opening a connection…", "Syncing…"), so a slow connect reads as progress
+  instead of a hang.
 - `RpcSessionFactory` ([rpc/session.ts][session]) performs one transport
   attempt. It does not retry. `RpcSession` is the interface it returns,
   exposing `client`, `initialConfig`, `ready`, `probe`, and `closed`.

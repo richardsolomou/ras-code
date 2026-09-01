@@ -18,6 +18,7 @@ import { ConnectionStatusDot } from "./ConnectionStatusDot";
 function connectionStatusLabel(environment: ConnectedEnvironmentSummary): string | null {
   return connectionStatusText({
     phase: environment.connectionState,
+    stage: environment.connectionStage,
     error: environment.connectionError,
     traceId: environment.connectionErrorTraceId,
   });
