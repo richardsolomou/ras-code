@@ -4,6 +4,7 @@
   "private": true,
   "main": "index.ts",
   "scripts": {
+    "eas-build-post-install": "bash scripts/install-posthog-cli.sh",
     "dev": "expo start",
     "dev:client": "APP_VARIANT=development expo start --dev-client --scheme ras-code-dev --lan",
     "dev:client:reset": "APP_VARIANT=development expo start --dev-client --scheme ras-code-dev --clear --lan",
