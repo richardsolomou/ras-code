@@ -2498,7 +2498,7 @@ describe("composerDraftStore model seed migration", () => {
     }
   });
 
-  it("restores pending model intent for a v9 explicit draft with unsent content", async () => {
+  it("restores pending model intent for v9 explicit drafts", async () => {
     vi.useFakeTimers();
     try {
       const selection = modelSelection(CODEX_DRIVER, "gpt-5.6-sol");
@@ -2510,6 +2510,13 @@ describe("composerDraftStore model seed migration", () => {
           draftsByThreadKey: {
             [serverThreadKey]: {
               prompt: "send this with the selected model",
+              attachments: [],
+              modelSelectionByProvider: { [CODEX_INSTANCE]: selection },
+              activeProvider: CODEX_INSTANCE,
+              modelSelectionExplicit: true,
+            },
+            [explicitDraftId]: {
+              prompt: "",
               attachments: [],
               modelSelectionByProvider: { [CODEX_INSTANCE]: selection },
               activeProvider: CODEX_INSTANCE,
@@ -2528,6 +2535,13 @@ describe("composerDraftStore model seed migration", () => {
 
       expect(draftByKey(serverThreadKey)).toMatchObject({
         prompt: "send this with the selected model",
+        modelSelectionByProvider: { [CODEX_INSTANCE]: selection },
+        activeProvider: CODEX_INSTANCE,
+        modelSelectionExplicit: true,
+        modelSelectionIntentPending: true,
+      });
+      expect(draftByKey(explicitDraftId)).toMatchObject({
+        prompt: "",
         modelSelectionByProvider: { [CODEX_INSTANCE]: selection },
         activeProvider: CODEX_INSTANCE,
         modelSelectionExplicit: true,
