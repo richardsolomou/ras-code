@@ -18,6 +18,7 @@ function environment(
     displayUrl,
     isRelayManaged: false,
     connectionState: "connected",
+    connectionStage: null,
     connectionError: null,
     connectionErrorTraceId: null,
   };

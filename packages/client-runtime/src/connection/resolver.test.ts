@@ -322,7 +322,7 @@ describe("ConnectionResolver", () => {
           readonly deviceId?: string;
         }>
       >([]);
-      const bootstrapCredentials = yield* Ref.make<ReadonlyArray<string>>([]);
+      const bootstrapCredentials = yield* Ref.make<ReadonlyArray<string | undefined>>([]);
       const target = new RelayConnectionTarget({
         environmentId: ENVIRONMENT_ID,
         label: "Cloud",
@@ -335,6 +335,8 @@ describe("ConnectionResolver", () => {
               clerkToken: input.clerkToken,
               scopes: input.scopes,
               ...(input.deviceId ? { deviceId: input.deviceId } : {}),
+              ...(input.sessionScopes ? { sessionScopes: input.sessionScopes } : {}),
+              ...(input.clientMetadata ? { clientMetadata: input.clientMetadata } : {}),
             },
           ]).pipe(
             Effect.as({
@@ -369,6 +371,7 @@ describe("ConnectionResolver", () => {
           clerkToken: "clerk-session",
           scopes: [RelayEnvironmentConnectScope],
           deviceId: "device-1",
+          clientMetadata: { deviceType: "desktop" },
         },
       ]);
       expect(yield* Ref.get(bootstrapCredentials)).toEqual(["relay-bootstrap"]);

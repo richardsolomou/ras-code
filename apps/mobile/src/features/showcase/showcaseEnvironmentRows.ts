@@ -44,6 +44,7 @@ export const SHOWCASE_CONNECTED_CLOUD_ENVIRONMENTS: ReadonlyArray<ConnectedEnvir
     displayUrl: "https://aurora-gpu.t3.sh",
     isRelayManaged: true,
     connectionState: "connected",
+    connectionStage: null,
     connectionError: null,
     connectionErrorTraceId: null,
   },

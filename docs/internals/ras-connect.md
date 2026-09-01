@@ -138,11 +138,27 @@ finish inside the time someone spends waiting on their phone.
 
 ### Connect round trips
 
-The relay's mint response carries the environment descriptor, signed into the same proof as the
-credential, and the relay verifies it against the environment's key before forwarding it. Clients
-use that descriptor instead of fetching one over the tunnel, which removes a round trip from every
-cold connect. The field is optional in both directions: environments that predate it omit it, and
-clients fall back to fetching the descriptor themselves.
+Every leg of a connect traverses the same relay hop, and the legs run serially, so latencies add.
+The mint response therefore carries as much as the environment can sign in one reply:
+
+- The environment descriptor rides in the mint proof, so clients skip the descriptor fetch.
+- When the client's connect request names `sessionScopes` (a subset of the standard client
+  scopes), the environment answers with a bundled `session` instead of a pairing credential: a
+  DPoP-bound access token plus a single-use websocket ticket, both signed into the mint proof.
+  The client then opens the socket directly, skipping the `/oauth/token` and
+  `/api/auth/websocket-ticket` round trips through the tunnel.
+
+Every field is optional in both directions, so version skew degrades to the slower path instead of
+failing: environments that predate bundling ignore `sessionScopes` and answer with a credential,
+relays that predate it never forward the request, and clients that predate it never ask. The
+bundled token is still DPoP-bound to the thumbprint the relay attested in the mint request, so the
+relay cannot use what it forwards. Scope requests outside the standard client set fall back to the
+credential exchange, where `/oauth/token` reports the precise scope error.
+
+On reconnect, clients skip the mint entirely: a persisted environment token (web stores it in
+IndexedDB next to the DPoP key, mobile in the secure store) buys a websocket ticket in one round
+trip. A slow ticket response is retried once with a patient budget before the attempt fails; the
+cached token is only evicted when the environment explicitly rejects it, never on a timeout.
 
 Using `ras.sh` for both `RELAY_API_ZONE_NAME` and `RELAY_GATEWAY_ZONE_NAME`, with
 `code-tunnels.ras.sh` as `RELAY_GATEWAY_DOMAIN`, keeps every Cloudflare edge hostname at the

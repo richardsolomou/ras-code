@@ -8,6 +8,7 @@ import * as HttpApiSchema from "effect/unstable/httpapi/HttpApiSchema";
 import * as HttpApiSecurity from "effect/unstable/httpapi/HttpApiSecurity";
 import * as OpenApi from "effect/unstable/httpapi/OpenApi";
 
+import { AuthClientMetadataDeviceType, AuthEnvironmentScope } from "./auth.ts";
 import {
   DpopFailureReason,
   EnvironmentId,
@@ -619,6 +620,16 @@ export const RelayListEnvironmentsResponse = Schema.Struct({
 });
 export type RelayListEnvironmentsResponse = typeof RelayListEnvironmentsResponse.Type;
 
+export const RelayEnvironmentConnectClientMetadata = Schema.Struct({
+  deviceType: Schema.optional(AuthClientMetadataDeviceType),
+  os: Schema.optional(TrimmedNonEmptyString),
+  browser: Schema.optional(TrimmedNonEmptyString),
+}).annotate({
+  description: "Client-presented metadata recorded on a bundled environment session.",
+});
+export type RelayEnvironmentConnectClientMetadata =
+  typeof RelayEnvironmentConnectClientMetadata.Type;
+
 export const RelayEnvironmentConnectRequest = Schema.Struct({
   deviceId: Schema.optional(
     TrimmedNonEmptyString.annotate({
@@ -635,6 +646,13 @@ export const RelayEnvironmentConnectRequest = Schema.Struct({
       description: "JWK thumbprint that the minted environment credential must be bound to.",
     }),
   ),
+  sessionScopes: Schema.optional(
+    Schema.Array(AuthEnvironmentScope).annotate({
+      description:
+        "Environment scopes for a bundled session. Environments that support bundling answer with a ready-to-use session instead of a credential, saving the client the token-exchange and websocket-ticket round trips.",
+    }),
+  ),
+  clientMetadata: Schema.optional(RelayEnvironmentConnectClientMetadata),
 }).annotate({ description: "Requests a short-lived credential for connecting to an environment." });
 export type RelayEnvironmentConnectRequest = typeof RelayEnvironmentConnectRequest.Type;
 
@@ -720,13 +738,29 @@ export const RelayEnvironmentUnlinkParams = Schema.Struct({
 });
 export type RelayEnvironmentUnlinkParams = typeof RelayEnvironmentUnlinkParams.Type;
 
+export const RelayEnvironmentBundledSession = Schema.Struct({
+  accessToken: TrimmedNonEmptyString,
+  tokenType: Schema.Literal("DPoP"),
+  expiresInSeconds: Schema.Int.check(Schema.isGreaterThan(0)),
+  scope: TrimmedNonEmptyString,
+  wsTicket: TrimmedNonEmptyString,
+  wsTicketExpiresAt: TrimmedNonEmptyString,
+}).annotate({
+  description:
+    "A ready environment session minted alongside the connect response: a DPoP-bound access token plus a single-use websocket ticket, so the client can open the socket without further auth round trips.",
+});
+export type RelayEnvironmentBundledSession = typeof RelayEnvironmentBundledSession.Type;
+
 export const RelayEnvironmentConnectResponse = Schema.Struct({
   environmentId: EnvironmentId,
   endpoint: RelayManagedEndpoint,
-  credential: TrimmedNonEmptyString,
+  /** Absent when the environment bundled a session instead. */
+  credential: Schema.optional(TrimmedNonEmptyString),
   expiresAt: TrimmedNonEmptyString,
   /** Saves the client a descriptor round trip. Absent from older environments. */
   descriptor: Schema.optional(ExecutionEnvironmentDescriptor),
+  /** Present when the environment honored the requested sessionScopes. */
+  session: Schema.optional(RelayEnvironmentBundledSession),
 });
 export type RelayEnvironmentConnectResponse = typeof RelayEnvironmentConnectResponse.Type;
 
@@ -754,6 +788,8 @@ export const RelayCloudMintCredentialProofPayload = Schema.Struct({
   deviceId: Schema.optional(TrimmedNonEmptyString),
   nonce: TrimmedNonEmptyString,
   scope: Schema.Array(Schema.Literal("environment:connect")),
+  sessionScopes: Schema.optional(Schema.Array(AuthEnvironmentScope)),
+  clientMetadata: Schema.optional(RelayEnvironmentConnectClientMetadata),
 });
 export type RelayCloudMintCredentialProofPayload = typeof RelayCloudMintCredentialProofPayload.Type;
 
@@ -807,17 +843,20 @@ export const RelayEnvironmentMintResponseProofPayload = Schema.Struct({
   environmentId: EnvironmentId,
   clientProofKeyThumbprint: TrimmedNonEmptyString,
   requestNonce: TrimmedNonEmptyString,
-  credential: TrimmedNonEmptyString,
+  credential: Schema.optional(TrimmedNonEmptyString),
   descriptor: Schema.optional(ExecutionEnvironmentDescriptor),
+  session: Schema.optional(RelayEnvironmentBundledSession),
 });
 export type RelayEnvironmentMintResponseProofPayload =
   typeof RelayEnvironmentMintResponseProofPayload.Type;
 
 export const RelayEnvironmentMintResponse = Schema.Struct({
-  credential: TrimmedNonEmptyString,
+  /** Absent when the mint bundled a session instead. */
+  credential: Schema.optional(TrimmedNonEmptyString),
   expiresAt: TrimmedNonEmptyString,
   proof: TrimmedNonEmptyString,
   descriptor: Schema.optional(ExecutionEnvironmentDescriptor),
+  session: Schema.optional(RelayEnvironmentBundledSession),
 });
 export type RelayEnvironmentMintResponse = typeof RelayEnvironmentMintResponse.Type;
 

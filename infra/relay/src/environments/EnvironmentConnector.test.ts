@@ -141,12 +141,22 @@ function signMintResponse(
     ...overrides,
   } satisfies RelayEnvironmentMintResponseProofPayload;
   return {
-    credential: payload.credential,
+    ...(payload.credential !== undefined ? { credential: payload.credential } : {}),
     expiresAt: DateTime.formatIso(DateTime.makeUnsafe(payload.exp * 1_000)),
     proof: signTestJwt(payload, RELAY_MINT_RESPONSE_TYP, privateKey),
     ...(payload.descriptor ? { descriptor: payload.descriptor } : {}),
+    ...(payload.session ? { session: payload.session } : {}),
   };
 }
+
+const bundledSession = {
+  accessToken: "bundled-access-token",
+  tokenType: "DPoP",
+  expiresInSeconds: 3_600,
+  scope: "orchestration:read orchestration:operate",
+  wsTicket: "bundled-ws-ticket",
+  wsTicketExpiresAt: "2026-05-25T00:05:00.000Z",
+} satisfies NonNullable<RelayEnvironmentMintResponseProofPayload["session"]>;
 
 const mintDescriptor = {
   environmentId: EnvironmentId.make("env-connector-test"),
@@ -697,6 +707,105 @@ describe("EnvironmentConnector", () => {
         credential: "pairing_credential",
         endpoint: managedEndpoint,
       });
+    }).pipe(Effect.provide(connectorTestLayer(execute)));
+  });
+
+  it.effect("forwards session scopes and returns the bundled environment session", () => {
+    const seenProofs: Array<RelayCloudMintCredentialProofPayload> = [];
+    const execute = (request: HttpClientRequest.HttpClientRequest) =>
+      Effect.sync(() => {
+        const mintRequest = decodeMintRequestBody(requestBodyText(request));
+        seenProofs.push(decodeRequestProof(mintRequest.proof));
+        return HttpClientResponse.fromWeb(
+          request,
+          Response.json(
+            signMintResponse(mintRequest, { credential: undefined, session: bundledSession }),
+            { status: 200 },
+          ),
+        );
+      });
+
+    return Effect.gen(function* () {
+      const connector = yield* EnvironmentConnector.EnvironmentConnector;
+      const result = yield* connector.connect({
+        userId: "user_123",
+        environmentId: "env-connector-test",
+        clientProofKeyThumbprint: "client-proof-key-thumbprint",
+        sessionScopes: ["orchestration:read", "orchestration:operate"],
+        clientMetadata: { deviceType: "mobile", os: "iOS" },
+      });
+
+      expect(seenProofs[0]).toMatchObject({
+        sessionScopes: ["orchestration:read", "orchestration:operate"],
+        clientMetadata: { deviceType: "mobile", os: "iOS" },
+      });
+      expect(result.session).toEqual(bundledSession);
+      expect(result.credential).toBeUndefined();
+    }).pipe(Effect.provide(connectorTestLayer(execute)));
+  });
+
+  it.effect("rejects a mint response whose bundled session is not covered by the proof", () => {
+    const execute = (request: HttpClientRequest.HttpClientRequest) =>
+      Effect.sync(() => {
+        const mintRequest = decodeMintRequestBody(requestBodyText(request));
+        const signed = signMintResponse(mintRequest, {
+          credential: undefined,
+          session: bundledSession,
+        });
+        return HttpClientResponse.fromWeb(
+          request,
+          Response.json(
+            {
+              ...signed,
+              session: { ...bundledSession, accessToken: "swapped-access-token" },
+            },
+            { status: 200 },
+          ),
+        );
+      });
+
+    return Effect.gen(function* () {
+      const connector = yield* EnvironmentConnector.EnvironmentConnector;
+      const result = yield* Effect.exit(
+        connector.connect({
+          userId: "user_123",
+          environmentId: "env-connector-test",
+          clientProofKeyThumbprint: "client-proof-key-thumbprint",
+          sessionScopes: ["orchestration:read", "orchestration:operate"],
+        }),
+      );
+
+      expect(result._tag).toBe("Failure");
+      if (result._tag === "Failure") {
+        expect(result.cause.toString()).toContain("EnvironmentMintResponseInvalid");
+      }
+    }).pipe(Effect.provide(connectorTestLayer(execute)));
+  });
+
+  it.effect("rejects a mint response carrying neither a credential nor a session", () => {
+    const execute = (request: HttpClientRequest.HttpClientRequest) =>
+      Effect.sync(() => {
+        const mintRequest = decodeMintRequestBody(requestBodyText(request));
+        return HttpClientResponse.fromWeb(
+          request,
+          Response.json(signMintResponse(mintRequest, { credential: undefined }), { status: 200 }),
+        );
+      });
+
+    return Effect.gen(function* () {
+      const connector = yield* EnvironmentConnector.EnvironmentConnector;
+      const result = yield* Effect.exit(
+        connector.connect({
+          userId: "user_123",
+          environmentId: "env-connector-test",
+          clientProofKeyThumbprint: "client-proof-key-thumbprint",
+        }),
+      );
+
+      expect(result._tag).toBe("Failure");
+      if (result._tag === "Failure") {
+        expect(result.cause.toString()).toContain("EnvironmentMintResponseInvalid");
+      }
     }).pipe(Effect.provide(connectorTestLayer(execute)));
   });
 

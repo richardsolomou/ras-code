@@ -1,8 +1,12 @@
-import { type EnvironmentConnectionPhase } from "@ras-code/client-runtime/connection";
+import {
+  type ConnectionAttemptStage,
+  type EnvironmentConnectionPhase,
+} from "@ras-code/client-runtime/connection";
 import { EnvironmentId, ThreadId, type ServerConfig } from "@ras-code/contracts";
 
 export interface EnvironmentRuntimeState {
   readonly connectionState: EnvironmentConnectionPhase;
+  readonly connectionStage: ConnectionAttemptStage | null;
   readonly connectionError: string | null;
   readonly connectionErrorTraceId: string | null;
   readonly serverConfig: ServerConfig | null;
@@ -14,6 +18,7 @@ export interface ConnectedEnvironmentSummary {
   readonly displayUrl: string;
   readonly isRelayManaged: boolean;
   readonly connectionState: EnvironmentConnectionPhase;
+  readonly connectionStage: ConnectionAttemptStage | null;
   readonly connectionError: string | null;
   readonly connectionErrorTraceId: string | null;
 }

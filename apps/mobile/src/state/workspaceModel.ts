@@ -1,6 +1,9 @@
 import { type EnvironmentShellSummary } from "@ras-code/client-runtime/state/shell";
 import { type NetworkStatus } from "@ras-code/client-runtime/connection";
-import { type EnvironmentConnectionPhase } from "@ras-code/client-runtime/connection";
+import {
+  type ConnectionAttemptStage,
+  type EnvironmentConnectionPhase,
+} from "@ras-code/client-runtime/connection";
 import type { EnvironmentId, ServerConfig } from "@ras-code/contracts";
 
 import type { EnvironmentPresentation } from "./environments";
@@ -11,6 +14,7 @@ export interface WorkspaceEnvironment {
   readonly displayUrl: string;
   readonly isRelayManaged: boolean;
   readonly connectionState: EnvironmentConnectionPhase;
+  readonly connectionStage: ConnectionAttemptStage | null;
   readonly connectionError: string | null;
   readonly connectionErrorTraceId: string | null;
 }
@@ -39,6 +43,7 @@ export function projectWorkspaceEnvironment(
     displayUrl: environment.displayUrl ?? "",
     isRelayManaged: environment.relayManaged,
     connectionState: environment.connection.phase,
+    connectionStage: environment.connection.stage,
     connectionError: environment.connection.error,
     connectionErrorTraceId: environment.connection.traceId,
   };

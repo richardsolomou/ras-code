@@ -1,5 +1,6 @@
 import * as NodeCrypto from "node:crypto";
 import {
+  type AuthEnvironmentScope,
   AuthRelayReadScope,
   AuthRelayWriteScope,
   AuthStandardClientScopes,
@@ -17,6 +18,7 @@ import {
   RelayCloudEnvironmentHealthRequest,
   RelayCloudMintCredentialProofPayload,
   RelayCloudMintCredentialRequest,
+  type RelayEnvironmentBundledSession,
   RelayEnvironmentHealthResponseProofPayload,
   type RelayEnvironmentHealthResponse as RelayEnvironmentHealthResponseShape,
   RelayEnvironmentConfigRequest,
@@ -30,6 +32,7 @@ import {
   RelayManagedEndpointOrigin,
 } from "@ras-code/contracts/relay";
 import { stripManagedEndpointGatewayPrefix } from "@ras-code/shared/advertisedEndpoint";
+import { encodeOAuthScope } from "@ras-code/shared/oauthScope";
 import {
   parseRasRelayPublicOrigin,
   RAS_RELAY_PUBLIC_ORIGIN_HEADER,
@@ -824,6 +827,24 @@ const cloudEnvironmentHealthHandler = Effect.fn("environment.cloud.health")(
   ),
 );
 
+/**
+ * A bundled session may only carry scopes the mint credential itself would
+ * delegate; anything else falls back to the credential exchange so the
+ * environment's /oauth/token endpoint can answer with a precise scope error.
+ */
+function resolveBundledSessionScopes(
+  requested: ReadonlyArray<AuthEnvironmentScope> | undefined,
+): ReadonlyArray<AuthEnvironmentScope> | null {
+  if (!requested || requested.length === 0) {
+    return null;
+  }
+  if (new Set(requested).size !== requested.length) {
+    return null;
+  }
+  const standardScopes: ReadonlyArray<AuthEnvironmentScope> = AuthStandardClientScopes;
+  return requested.every((scope) => standardScopes.includes(scope)) ? requested : null;
+}
+
 const cloudMintCredentialHandler = Effect.fn("environment.cloud.mintCredential")(
   function* (dependencies: CloudHttpDependencies, request: RelayCloudMintCredentialRequest) {
     const cloudMintPublicKey = yield* dependencies.secrets
@@ -893,25 +914,55 @@ const cloudMintCredentialHandler = Effect.fn("environment.cloud.mintCredential")
 
     const keyPair = yield* getOrCreateEnvironmentKeyPairFromSecretStore(dependencies.secrets);
     const descriptor = yield* dependencies.environment.getDescriptor;
-    const issued = yield* dependencies.environmentAuth.createPairingLink({
-      scopes: AuthStandardClientScopes,
-      subject: "cloud-connect",
-      ttl: Duration.minutes(2),
-      label: "RAS Connect connect",
-      proofKeyThumbprint: proof.clientProofKeyThumbprint,
-    });
+    const bundledScopes = resolveBundledSessionScopes(proof.sessionScopes);
+    let credential: string | undefined;
+    let session: RelayEnvironmentBundledSession | undefined;
+    let expiresAt: DateTime.DateTime;
+    if (bundledScopes) {
+      const issued = yield* dependencies.environmentAuth.issueRelayClientSession({
+        scopes: bundledScopes,
+        subject: "cloud-connect",
+        proofKeyThumbprint: proof.clientProofKeyThumbprint,
+        client: {
+          label: "RAS Connect connect",
+          deviceType: proof.clientMetadata?.deviceType ?? "unknown",
+          ...(proof.clientMetadata?.os ? { os: proof.clientMetadata.os } : {}),
+          ...(proof.clientMetadata?.browser ? { browser: proof.clientMetadata.browser } : {}),
+        },
+      });
+      session = {
+        accessToken: issued.accessToken,
+        tokenType: "DPoP",
+        expiresInSeconds: issued.expiresInSeconds,
+        scope: encodeOAuthScope(issued.scopes),
+        wsTicket: issued.wsTicket,
+        wsTicketExpiresAt: DateTime.formatIso(issued.wsTicketExpiresAt),
+      };
+      expiresAt = DateTime.add(now, { seconds: issued.expiresInSeconds });
+    } else {
+      const issued = yield* dependencies.environmentAuth.createPairingLink({
+        scopes: AuthStandardClientScopes,
+        subject: "cloud-connect",
+        ttl: Duration.minutes(2),
+        label: "RAS Connect connect",
+        proofKeyThumbprint: proof.clientProofKeyThumbprint,
+      });
+      credential = issued.credential;
+      expiresAt = issued.expiresAt;
+    }
     const responsePayload = {
       iss: `ras-env:${environmentId}`,
       aud: normalizeRelayIssuer(relayIssuer),
       sub: environmentId,
       jti: yield* Crypto.Crypto.pipe(Effect.flatMap((crypto) => crypto.randomUUIDv4)),
       iat: nowSeconds,
-      exp: Math.floor(issued.expiresAt.epochMilliseconds / 1_000),
+      exp: Math.floor(expiresAt.epochMilliseconds / 1_000),
       environmentId,
       clientProofKeyThumbprint: proof.clientProofKeyThumbprint,
       requestNonce: proof.nonce,
-      credential: issued.credential,
+      ...(credential !== undefined ? { credential } : {}),
       descriptor,
+      ...(session !== undefined ? { session } : {}),
     } satisfies RelayEnvironmentMintResponseProofPayload;
     const responseProof = yield* signRelayJwt({
       privateKey: keyPair.privateKey,
@@ -926,10 +977,11 @@ const cloudMintCredentialHandler = Effect.fn("environment.cloud.mintCredential")
       ),
     );
     const response = {
-      credential: issued.credential,
-      expiresAt: DateTime.formatIso(issued.expiresAt),
+      ...(credential !== undefined ? { credential } : {}),
+      expiresAt: DateTime.formatIso(expiresAt),
       proof: responseProof,
       descriptor,
+      ...(session !== undefined ? { session } : {}),
     } satisfies RelayEnvironmentMintResponseShape;
 
     yield* appendCloudCredentialResponseHeaders;

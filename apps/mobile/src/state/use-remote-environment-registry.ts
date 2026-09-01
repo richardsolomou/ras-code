@@ -95,6 +95,7 @@ export function useRemoteConnectionStatus() {
         displayUrl: environment.displayUrl,
         isRelayManaged: environment.isRelayManaged,
         connectionState: environment.connectionState,
+        connectionStage: environment.connectionStage,
         connectionError: environment.connectionError,
         connectionErrorTraceId: environment.connectionErrorTraceId,
       })),

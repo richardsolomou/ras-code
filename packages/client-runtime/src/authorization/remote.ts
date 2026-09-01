@@ -220,6 +220,21 @@ export const issueRemoteDpopWebSocketTicket = Effect.fn(
   );
 });
 
+export function buildRemoteWebSocketConnectionUrl(input: {
+  readonly wsBaseUrl: string;
+  readonly wsTicket: string;
+  readonly clientMetadata?: AuthClientPresentationMetadata;
+  readonly connectionMethod?: ClientConnectionMethod;
+}): string {
+  const url = new URL(input.wsBaseUrl);
+  if (url.pathname === "" || url.pathname === "/") {
+    url.pathname = "/ws";
+  }
+  url.searchParams.set("wsTicket", input.wsTicket);
+  appendClientConnectionParams(url, input.clientMetadata, input.connectionMethod);
+  return url.toString();
+}
+
 export const resolveRemoteWebSocketConnectionUrl = Effect.fn(
   "clientRuntime.authorization.resolveRemoteWebSocketConnectionUrl",
 )(function* (input: {
@@ -235,14 +250,12 @@ export const resolveRemoteWebSocketConnectionUrl = Effect.fn(
     bearerToken: input.bearerToken,
     ...(input.timeoutMs ? { timeoutMs: input.timeoutMs } : {}),
   });
-
-  const url = new URL(input.wsBaseUrl);
-  if (url.pathname === "" || url.pathname === "/") {
-    url.pathname = "/ws";
-  }
-  url.searchParams.set("wsTicket", issued.ticket);
-  appendClientConnectionParams(url, input.clientMetadata, input.connectionMethod);
-  return url.toString();
+  return buildRemoteWebSocketConnectionUrl({
+    wsBaseUrl: input.wsBaseUrl,
+    wsTicket: issued.ticket,
+    ...(input.clientMetadata ? { clientMetadata: input.clientMetadata } : {}),
+    ...(input.connectionMethod ? { connectionMethod: input.connectionMethod } : {}),
+  });
 });
 
 export const resolveRemoteDpopWebSocketConnectionUrl = Effect.fn(
@@ -262,11 +275,10 @@ export const resolveRemoteDpopWebSocketConnectionUrl = Effect.fn(
     dpopProof: input.dpopProof,
     ...(input.timeoutMs ? { timeoutMs: input.timeoutMs } : {}),
   });
-  const url = new URL(input.wsBaseUrl);
-  if (url.pathname === "" || url.pathname === "/") {
-    url.pathname = "/ws";
-  }
-  url.searchParams.set("wsTicket", issued.ticket);
-  appendClientConnectionParams(url, input.clientMetadata, input.connectionMethod);
-  return url.toString();
+  return buildRemoteWebSocketConnectionUrl({
+    wsBaseUrl: input.wsBaseUrl,
+    wsTicket: issued.ticket,
+    ...(input.clientMetadata ? { clientMetadata: input.clientMetadata } : {}),
+    ...(input.connectionMethod ? { connectionMethod: input.connectionMethod } : {}),
+  });
 });

@@ -1,5 +1,8 @@
 import type { AuthClientPresentationMetadata } from "@ras-code/contracts";
-import { RelayEnvironmentConnectScope } from "@ras-code/contracts/relay";
+import {
+  type RelayEnvironmentConnectClientMetadata,
+  RelayEnvironmentConnectScope,
+} from "@ras-code/contracts/relay";
 import { withRelayClientTracing } from "@ras-code/shared/relayTracing";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
@@ -147,11 +150,30 @@ const makeBearerBroker = Effect.fn("clientRuntime.connection.broker.makeBearer")
   });
 });
 
+/** Client-presented fields the environment records on a bundled session. */
+function relayConnectClientMetadata(
+  metadata: AuthClientPresentationMetadata | undefined,
+): RelayEnvironmentConnectClientMetadata | undefined {
+  if (!metadata) {
+    return undefined;
+  }
+  const fields = {
+    ...(metadata.deviceType ? { deviceType: metadata.deviceType } : {}),
+    ...(metadata.os && metadata.os !== "unknown" && metadata.os !== "other"
+      ? { os: metadata.os }
+      : {}),
+    ...(metadata.browser ? { browser: metadata.browser } : {}),
+  };
+  return Object.keys(fields).length > 0 ? fields : undefined;
+}
+
 const makeRelayBroker = Effect.fn("clientRuntime.connection.broker.makeRelay")(function* () {
   const relay = yield* ManagedRelay.ManagedRelayClient;
   const session = yield* ClientCapabilities.CloudSession;
   const identity = yield* ClientCapabilities.RelayDeviceIdentity;
+  const presentation = yield* ClientCapabilities.ClientPresentation;
   const remote = yield* RemoteEnvironmentAuthorization.RemoteEnvironmentAuthorization;
+  const clientMetadata = relayConnectClientMetadata(presentation.metadata);
 
   return Effect.fnUntraced(
     function* (target: RelayConnectionTarget) {
@@ -170,6 +192,8 @@ const makeRelayBroker = Effect.fn("clientRuntime.connection.broker.makeRelay")(f
               scopes: [RelayEnvironmentConnectScope],
               environmentId: target.environmentId,
               ...(Option.isSome(deviceId) ? { deviceId: deviceId.value } : {}),
+              ...(presentation.scopes.length > 0 ? { sessionScopes: presentation.scopes } : {}),
+              ...(clientMetadata ? { clientMetadata } : {}),
             })
             .pipe(Effect.mapError(mapManagedRelayError));
           if (connected.environmentId !== target.environmentId) {

@@ -69,6 +69,14 @@ export interface AuthenticatedSession {
   readonly expiresAt?: DateTime.DateTime;
 }
 
+export interface IssuedRelayClientSession {
+  readonly accessToken: string;
+  readonly expiresInSeconds: number;
+  readonly scopes: ReadonlyArray<AuthEnvironmentScope>;
+  readonly wsTicket: string;
+  readonly wsTicketExpiresAt: DateTime.Utc;
+}
+
 const serverAuthInternalErrorContext = {
   cause: Schema.Defect(),
 };
@@ -494,6 +502,12 @@ export class EnvironmentAuth extends Context.Service<
     readonly issueWebSocketTicket: (
       session: Pick<AuthenticatedSession, "sessionId">,
     ) => Effect.Effect<AuthWebSocketTicketResult, ServerAuthInternalError>;
+    readonly issueRelayClientSession: (input: {
+      readonly scopes: ReadonlyArray<AuthEnvironmentScope>;
+      readonly subject: string;
+      readonly proofKeyThumbprint: string;
+      readonly client?: AuthClientMetadata;
+    }) => Effect.Effect<IssuedRelayClientSession, ServerAuthInternalError>;
     readonly issueStartupPairingUrl: (
       baseUrl: string,
     ) => Effect.Effect<string, ServerAuthInternalError>;
@@ -943,6 +957,37 @@ export const make = Effect.gen(function* () {
       Effect.withSpan("EnvironmentAuth.issueWebSocketTicket"),
     );
 
+  const issueRelayClientSession: EnvironmentAuth["Service"]["issueRelayClientSession"] = Effect.fn(
+    "EnvironmentAuth.issueRelayClientSession",
+  )(function* (input) {
+    const session = yield* sessions
+      .issue({
+        method: "dpop-access-token",
+        subject: input.subject,
+        scopes: input.scopes,
+        proofKeyThumbprint: input.proofKeyThumbprint,
+        ttl: Duration.hours(1),
+        ...(input.client ? { client: input.client } : {}),
+      })
+      .pipe(
+        Effect.mapError((cause) => new ServerAuthAuthenticatedAccessTokenIssueError({ cause })),
+      );
+    const ticket = yield* sessions
+      .issueWebSocketToken(session.sessionId)
+      .pipe(Effect.mapError((cause) => new ServerAuthWebSocketTokenIssueError({ cause })));
+    const now = yield* DateTime.now;
+    return {
+      accessToken: session.token,
+      expiresInSeconds: Math.max(
+        1,
+        Math.floor((session.expiresAt.epochMilliseconds - now.epochMilliseconds) / 1000),
+      ),
+      scopes: session.scopes,
+      wsTicket: ticket.token,
+      wsTicketExpiresAt: DateTime.toUtc(ticket.expiresAt),
+    } satisfies IssuedRelayClientSession;
+  });
+
   const authenticateHttpRequest: EnvironmentAuth["Service"]["authenticateHttpRequest"] = (
     request,
   ) =>
@@ -991,6 +1036,7 @@ export const make = Effect.gen(function* () {
     authenticateHttpRequest,
     authenticateWebSocketUpgrade,
     issueWebSocketTicket,
+    issueRelayClientSession,
     issueStartupPairingUrl,
   });
 });

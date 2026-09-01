@@ -18,6 +18,7 @@ import {
 } from "@ras-code/client-runtime/operations/projects";
 import {
   connectionStatusText,
+  type ConnectionAttemptStage,
   type EnvironmentConnectionPhase,
 } from "@ras-code/client-runtime/connection";
 import {
@@ -68,6 +69,7 @@ interface EnvironmentOption {
   readonly platform: string;
   readonly baseDirectory: string | null;
   readonly connectionState: EnvironmentConnectionPhase;
+  readonly connectionStage: ConnectionAttemptStage | null;
   readonly connectionError: string | null;
   readonly connectionErrorTraceId: string | null;
 }
@@ -354,6 +356,7 @@ function useEnvironmentOptions(): ReadonlyArray<EnvironmentOption> {
         platform: platformFromOs(config?.environment.platform.os ?? null),
         baseDirectory: config?.settings.addProjectBaseDirectory ?? null,
         connectionState: runtime?.connectionState ?? "available",
+        connectionStage: runtime?.connectionStage ?? null,
         connectionError: runtime?.connectionError ?? null,
         connectionErrorTraceId: runtime?.connectionErrorTraceId ?? null,
       };
@@ -488,6 +491,7 @@ export function AddProjectSourceScreen() {
                     ? environment.environmentId
                     : connectionStatusText({
                         phase: environment.connectionState,
+                        stage: environment.connectionStage,
                         error: environment.connectionError,
                         traceId: environment.connectionErrorTraceId,
                       })

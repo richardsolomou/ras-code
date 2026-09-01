@@ -750,6 +750,8 @@ export const dpopClientApi = HttpApiBuilder.group(
               environmentId: params.environmentId,
               clientProofKeyThumbprint,
               ...(payload.deviceId ? { deviceId: payload.deviceId } : {}),
+              ...(payload.sessionScopes ? { sessionScopes: payload.sessionScopes } : {}),
+              ...(payload.clientMetadata ? { clientMetadata: payload.clientMetadata } : {}),
             });
           },
           mapRelayCommonApiErrors("invalid_dpop"),

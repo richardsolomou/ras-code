@@ -61,31 +61,36 @@ function openDpopDatabase(): Effect.Effect<IDBDatabase, BrowserDpopError> {
   });
 }
 
-export function readStoredBrowserDpopKey(): Effect.Effect<BrowserDpopKey | null, BrowserDpopError> {
+/** Reads one entry from the shared cloud-auth store; null when absent. */
+export function readCloudAuthEntry(entryKey: string): Effect.Effect<unknown, BrowserDpopError> {
   if (typeof indexedDB === "undefined") {
     return Effect.succeed(null);
   }
   return Effect.acquireUseRelease(
     openDpopDatabase(),
     (database) =>
-      Effect.callback<BrowserDpopKey | null, BrowserDpopError>((resume) => {
+      Effect.callback<unknown, BrowserDpopError>((resume) => {
         const request = database
           .transaction(DPOP_KEY_STORE_NAME, "readonly")
           .objectStore(DPOP_KEY_STORE_NAME)
-          .get(DPOP_KEY_ID);
+          .get(entryKey);
         request.addEventListener("error", () =>
-          resume(Effect.fail(dpopError("Could not read DPoP key.", request.error ?? undefined))),
+          resume(
+            Effect.fail(dpopError("Could not read cloud auth entry.", request.error ?? undefined)),
+          ),
         );
         request.addEventListener("success", () =>
-          resume(Effect.succeed((request.result as BrowserDpopKey | undefined) ?? null)),
+          resume(Effect.succeed((request.result as unknown) ?? null)),
         );
       }),
     (database) => Effect.sync(() => database.close()),
   );
 }
 
-export function writeStoredBrowserDpopKey(
-  key: BrowserDpopKey,
+/** Writes one structured-cloneable entry to the shared cloud-auth store. */
+export function writeCloudAuthEntry(
+  entryKey: string,
+  value: unknown,
 ): Effect.Effect<void, BrowserDpopError> {
   if (typeof indexedDB === "undefined") {
     return Effect.void;
@@ -97,14 +102,28 @@ export function writeStoredBrowserDpopKey(
         const transaction = database.transaction(DPOP_KEY_STORE_NAME, "readwrite");
         transaction.addEventListener("error", () =>
           resume(
-            Effect.fail(dpopError("Could not write DPoP key.", transaction.error ?? undefined)),
+            Effect.fail(
+              dpopError("Could not write cloud auth entry.", transaction.error ?? undefined),
+            ),
           ),
         );
         transaction.addEventListener("complete", () => resume(Effect.void));
-        transaction.objectStore(DPOP_KEY_STORE_NAME).put(key, DPOP_KEY_ID);
+        transaction.objectStore(DPOP_KEY_STORE_NAME).put(value, entryKey);
       }),
     (database) => Effect.sync(() => database.close()),
   );
+}
+
+export function readStoredBrowserDpopKey(): Effect.Effect<BrowserDpopKey | null, BrowserDpopError> {
+  return readCloudAuthEntry(DPOP_KEY_ID).pipe(
+    Effect.map((entry) => (entry as BrowserDpopKey | null | undefined) ?? null),
+  );
+}
+
+export function writeStoredBrowserDpopKey(
+  key: BrowserDpopKey,
+): Effect.Effect<void, BrowserDpopError> {
+  return writeCloudAuthEntry(DPOP_KEY_ID, key);
 }
 
 export const generateBrowserDpopKey = Effect.gen(function* () {

@@ -111,6 +111,36 @@ it.layer(NodeServices.layer)("EnvironmentAuth.layer", (it) => {
     }).pipe(Effect.provide(makeEnvironmentAuthLayer())),
   );
 
+  it.effect("issues a relay client session whose websocket ticket authenticates the upgrade", () =>
+    Effect.gen(function* () {
+      const serverAuth = yield* EnvironmentAuth.EnvironmentAuth;
+
+      const issued = yield* serverAuth.issueRelayClientSession({
+        scopes: ["orchestration:read", "orchestration:operate"],
+        subject: "cloud-connect",
+        proofKeyThumbprint: "client-proof-key-thumbprint",
+        client: { label: "RAS Connect connect", deviceType: "mobile", os: "iOS" },
+      });
+
+      expect(issued.accessToken.length).toBeGreaterThan(0);
+      expect(issued.expiresInSeconds).toBeGreaterThan(0);
+      expect(issued.scopes).toEqual(["orchestration:read", "orchestration:operate"]);
+
+      const upgradeRequest = {
+        url: `/ws?wsTicket=${encodeURIComponent(issued.wsTicket)}`,
+        headers: { host: "127.0.0.1" },
+        cookies: {},
+      } as unknown as Parameters<
+        EnvironmentAuth.EnvironmentAuth["Service"]["authenticateWebSocketUpgrade"]
+      >[0];
+      const upgraded = yield* serverAuth.authenticateWebSocketUpgrade(upgradeRequest);
+
+      expect(upgraded.subject).toBe("cloud-connect");
+      expect(upgraded.method).toBe("dpop-access-token");
+      expect(upgraded.scopes).toEqual(["orchestration:read", "orchestration:operate"]);
+    }).pipe(Effect.provide(makeEnvironmentAuthLayer())),
+  );
+
   it.effect("does not exchange ordinary pairing grants for administrative access tokens", () =>
     Effect.gen(function* () {
       const serverAuth = yield* EnvironmentAuth.EnvironmentAuth;
