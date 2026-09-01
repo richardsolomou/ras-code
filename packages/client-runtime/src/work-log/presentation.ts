@@ -4,9 +4,11 @@ import {
   type ThreadId,
   type ToolLifecycleItemType,
 } from "@ras-code/contracts";
+import {
+  classifyMarkdownImageSource,
+  markdownImageSourceFragment,
+} from "@ras-code/client-runtime/markdown-images";
 import { isWorkspaceImagePreviewPath } from "@ras-code/shared/filePreview";
-
-import { classifyMarkdownImageSource, markdownImageSourceFragment } from "../markdownImages.js";
 
 export function isWorktreeSetupActivity(kind: string): boolean {
   return kind === "setup-script.requested" || kind === "setup-script.started";
