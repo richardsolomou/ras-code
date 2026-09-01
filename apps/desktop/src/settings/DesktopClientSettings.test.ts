@@ -23,7 +23,7 @@ const clientSettings: ClientSettings = {
   browserRecordingFrameRate: 60,
   browserAutoShowFloatingPreview: false,
   notifications: DEFAULT_NOTIFICATION_SETTINGS,
-  confirmQuit: true,
+  confirmQuit: "double-click",
   diffIgnoreWhitespace: true,
   environmentIdentificationMode: "artwork",
   favorites: [],
