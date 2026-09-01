@@ -201,5 +201,5 @@ export function buildCodexDeveloperInstructions(
 
 ${IMAGE_SHARING_INSTRUCTIONS}
 
-<runtime_info>In case you're asked: you are running in RAS Code through the Codex harness, as ${toSingleLine(runtime.model)} with ${toSingleLine(runtime.reasoningEffort)} reasoning effort. No need to mention this otherwise.</runtime_info>`;
+<runtime_info>The active model identifier is "${toSingleLine(runtime.model)}". If the user asks which model is running, answer with this exact identifier. You are running in RAS Code through the Codex harness with ${toSingleLine(runtime.reasoningEffort)} reasoning effort. Do not say that the model identifier is unavailable. Do not mention this information unless the user asks.</runtime_info>`;
 }

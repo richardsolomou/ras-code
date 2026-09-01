@@ -237,6 +237,7 @@ const validationLayer = it.layer(
       const codexConfig = decodeCodexSettings({});
       return yield* makeCodexAdapter(codexConfig, {
         makeRuntime: validationRuntimeFactory.factory,
+        baseInstructions: (model) => `Running ${model ?? "unknown"}`,
       });
     }),
   ).pipe(
@@ -287,6 +288,7 @@ validationLayer("CodexAdapterLive validation", (it) => {
 
       NodeAssert.deepStrictEqual(validationRuntimeFactory.factory.mock.calls[0]?.[0], {
         binaryPath: "codex",
+        baseInstructions: "Running gpt-5.3-codex",
         cwd: process.cwd(),
         launchArgs: "",
         model: "gpt-5.3-codex",

@@ -129,6 +129,7 @@ import {
   resolveAdjacentThreadId,
   resolveSettledTimestamp,
   resolveSidebarThreadStatus,
+  resolveSidebarThreadProviderInstanceId,
   searchSidebarThreadsByTitle,
   shouldCreateNewThreadInCurrentProject,
   resolveWorkingStartedAt,
@@ -994,7 +995,7 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: {
     threadKey,
   ]);
 
-  const modelInstanceId = thread.modelSelection.instanceId;
+  const modelInstanceId = resolveSidebarThreadProviderInstanceId(thread);
   const providerEntry = props.providerEntryByInstanceId.get(modelInstanceId) ?? null;
   const driverKind = providerEntry?.driverKind ?? null;
   const showInstanceBadge =
@@ -1707,7 +1708,7 @@ const SidebarSearchResultRow = memo(function SidebarSearchResultRow(props: {
     activeThreadBranch: thread.branch,
     currentGitBranch: gitStatus.data?.refName ?? null,
   });
-  const modelInstanceId = thread.modelSelection.instanceId;
+  const modelInstanceId = resolveSidebarThreadProviderInstanceId(thread);
   const providerEntry = props.providerEntryByInstanceId.get(modelInstanceId) ?? null;
   const showInstanceBadge =
     providerEntry !== null &&

@@ -20,6 +20,7 @@ import {
   isTrailingDoubleClick,
   orderItemsByPreferredIds,
   resolveProjectStatusIndicator,
+  resolveSidebarThreadProviderInstanceId,
   resolveThreadRowClassName,
   resolveSidebarThreadStatus,
   resolveThreadStatusPill,
@@ -55,6 +56,26 @@ import {
 } from "../types";
 
 const localEnvironmentId = EnvironmentId.make("environment-local");
+
+describe("resolveSidebarThreadProviderInstanceId", () => {
+  it("shows the provider that owns the active session", () => {
+    expect(
+      resolveSidebarThreadProviderInstanceId({
+        modelSelection: { instanceId: ProviderInstanceId.make("claudeAgent") },
+        session: { providerInstanceId: ProviderInstanceId.make("posthog_gateway") },
+      }),
+    ).toBe("posthog_gateway");
+  });
+
+  it("uses the persisted selection before a session starts", () => {
+    expect(
+      resolveSidebarThreadProviderInstanceId({
+        modelSelection: { instanceId: ProviderInstanceId.make("claudeAgent") },
+        session: null,
+      }),
+    ).toBe("claudeAgent");
+  });
+});
 
 describe("animatePinnedLayoutChanges", () => {
   const baseArgs: Parameters<AnimateLayoutChanges>[0] = {

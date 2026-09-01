@@ -166,6 +166,7 @@ export interface CodexSessionRuntimeOptions {
   readonly serviceTier?: CodexServiceTier | undefined;
   readonly resumeCursor?: CodexResumeCursor;
   readonly appServerArgs?: ReadonlyArray<string>;
+  readonly baseInstructions?: string;
 }
 
 export interface CodexSessionRuntimeSendTurnInput {
@@ -531,6 +532,7 @@ function buildThreadStartParams(input: {
   readonly runtimeMode: RuntimeMode;
   readonly model: string | undefined;
   readonly serviceTier: CodexServiceTier | undefined;
+  readonly baseInstructions: string | undefined;
 }): EffectCodexSchema.V2ThreadStartParams {
   const config = runtimeModeToThreadConfig(input.runtimeMode);
   return {
@@ -540,6 +542,7 @@ function buildThreadStartParams(input: {
     approvalsReviewer: config.approvalsReviewer,
     ...(input.model ? { model: input.model } : {}),
     ...(input.serviceTier ? { serviceTier: input.serviceTier } : {}),
+    ...(input.baseInstructions ? { baseInstructions: input.baseInstructions } : {}),
   };
 }
 
@@ -696,6 +699,7 @@ export const openCodexThread = (input: {
   readonly requestedModel: string | undefined;
   readonly serviceTier: CodexServiceTier | undefined;
   readonly resumeThreadId: string | undefined;
+  readonly baseInstructions?: string;
 }): Effect.Effect<CodexThreadOpenResponse, CodexErrors.CodexAppServerError> => {
   const resumeThreadId = input.resumeThreadId;
   const startParams = buildThreadStartParams({
@@ -703,6 +707,7 @@ export const openCodexThread = (input: {
     runtimeMode: input.runtimeMode,
     model: input.requestedModel,
     serviceTier: input.serviceTier,
+    baseInstructions: input.baseInstructions,
   });
 
   if (resumeThreadId === undefined) {
@@ -2243,6 +2248,7 @@ export const makeCodexSessionRuntime = (
         requestedModel,
         serviceTier: options.serviceTier,
         resumeThreadId: readResumeCursorThreadId(options.resumeCursor),
+        ...(options.baseInstructions ? { baseInstructions: options.baseInstructions } : {}),
       });
 
       const providerThreadId = opened.thread.id;

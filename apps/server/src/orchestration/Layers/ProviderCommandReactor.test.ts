@@ -314,9 +314,17 @@ describe("ProviderCommandReactor", () => {
       ),
     );
     const usageLimits = input?.usageLimits ?? new Map<ProviderInstanceId, ProviderUsageLimit>();
+    const modelInstanceId = String(modelSelection.instanceId);
     const providerSnapshots = [
       {
         instanceId: modelSelection.instanceId,
+        driver: ProviderDriverKind.make(
+          modelInstanceId.startsWith("claude")
+            ? "claudeAgent"
+            : modelInstanceId.startsWith("posthog")
+              ? "posthogGateway"
+              : modelInstanceId,
+        ),
         enabled: true,
         ...(input?.requiresNewThreadForModelChange === true
           ? { requiresNewThreadForModelChange: true }
@@ -3563,7 +3571,7 @@ describe("ProviderCommandReactor", () => {
       );
       const notice = findActivity(await harness.readModel(), "provider.fallback.engaged");
       expect(notice?.summary).toBe(
-        "Usage limit reached on claude_subscription; continuing with Claude Sonnet 4.5 via PostHog AI Gateway until 2099-01-01T00:00:00.000Z.",
+        "Usage limit reached on Claude; continuing with Claude Sonnet 4.5 via PostHog AI Gateway until 2099-01-01T00:00:00.000Z.",
       );
     });
 

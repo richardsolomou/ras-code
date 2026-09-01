@@ -3,6 +3,7 @@ import {
   EnvironmentId,
   MessageId,
   ProjectId,
+  ProviderDriverKind,
   ProviderInstanceId,
   ThreadId,
   TurnId,
@@ -580,6 +581,7 @@ describe("fork response state", () => {
         thread: forkDraft,
         selectedProvider: null,
         threadProvider: "codex",
+        providers: [],
       }),
     ).toBeNull();
   });
@@ -609,8 +611,36 @@ describe("fork response state", () => {
         thread,
         selectedProvider: null,
         threadProvider: "claudeAgent",
+        providers: [
+          {
+            instanceId: ProviderInstanceId.make("claudeAgent"),
+            driver: ProviderDriverKind.make("claudeAgent"),
+          },
+          {
+            instanceId: ProviderInstanceId.make("posthog_gateway"),
+            driver: ProviderDriverKind.make("posthogGateway"),
+          },
+        ],
       }),
     ).toBe("claudeAgent");
+  });
+
+  it("resolves a custom instance id to its driver", () => {
+    const thread = makeThread({ session: readySession });
+
+    expect(
+      deriveLockedProvider({
+        thread,
+        selectedProvider: null,
+        threadProvider: "posthog_gateway",
+        providers: [
+          {
+            instanceId: ProviderInstanceId.make("posthog_gateway"),
+            driver: ProviderDriverKind.make("posthogGateway"),
+          },
+        ],
+      }),
+    ).toBe("posthogGateway");
   });
 });
 

@@ -5,6 +5,7 @@ import {
   deriveProviderEntriesByEnvironment,
   deriveProviderInstanceEntries,
   getDefaultProviderInstanceModel,
+  isProviderInstanceCompatibleWithLock,
   isProviderInstancePickerReady,
   isProviderInstancePickerVisible,
   resolveDefaultProviderModelSelection,
@@ -84,6 +85,44 @@ describe("isProviderInstancePickerVisible", () => {
 
     expect(enabledEntry && isProviderInstancePickerVisible(enabledEntry)).toBe(true);
     expect(disabledEntry && isProviderInstancePickerVisible(disabledEntry)).toBe(false);
+  });
+});
+
+describe("isProviderInstanceCompatibleWithLock", () => {
+  const [claude, gateway] = deriveProviderInstanceEntries([
+    {
+      ...provider({ provider: ProviderDriverKind.make("claudeAgent"), instanceId: "claudeAgent" }),
+      continuation: { groupKey: "claude:home:/Users/richard" },
+    },
+    {
+      ...provider({
+        provider: ProviderDriverKind.make("posthogGateway"),
+        instanceId: "posthog_gateway",
+      }),
+      continuation: { groupKey: "claude:home:/Users/richard" },
+    },
+  ]);
+
+  it("allows a different driver that shares the continuation group", () => {
+    expect(
+      gateway &&
+        isProviderInstanceCompatibleWithLock(
+          gateway,
+          ProviderDriverKind.make("claudeAgent"),
+          "claude:home:/Users/richard",
+        ),
+    ).toBe(true);
+  });
+
+  it("keeps the driver lock when no continuation group is available", () => {
+    expect(
+      claude &&
+        isProviderInstanceCompatibleWithLock(
+          claude,
+          ProviderDriverKind.make("posthogGateway"),
+          null,
+        ),
+    ).toBe(false);
   });
 });
 

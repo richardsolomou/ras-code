@@ -214,6 +214,7 @@ import { getProviderModelCapabilities, resolveSelectableProvider } from "../prov
 import {
   applyProviderInstanceSettings,
   deriveProviderInstanceEntries,
+  isProviderInstanceCompatibleWithLock,
   NO_PROVIDER_MODEL_SELECTION,
 } from "../providerInstances";
 import {
@@ -2281,16 +2282,18 @@ function ChatViewContent(
   const selectedProviderByThreadId = composerActiveProvider ?? null;
   const threadProvider =
     activeThread?.modelSelection.instanceId ?? activeDefaultModelSelection?.instanceId ?? null;
-  const lockedProvider = deriveLockedProvider({
-    thread: activeThread,
-    selectedProvider: selectedProviderByThreadId,
-    threadProvider,
-  });
   // Once a thread selects an environment, never substitute the primary
   // environment's config while the selected environment is still loading.
   const serverConfig = activeThread
     ? (activeEnvironment?.serverConfig ?? null)
     : (primaryEnvironment?.serverConfig ?? null);
+  const providerStatuses = serverConfig?.providers ?? EMPTY_PROVIDERS;
+  const lockedProvider = deriveLockedProvider({
+    thread: activeThread,
+    selectedProvider: selectedProviderByThreadId,
+    threadProvider,
+    providers: providerStatuses,
+  });
   const pullRequestsCapabilityKnown = serverConfig !== null;
   const supportsPullRequests = serverConfig?.environment.capabilities.pullRequests === true;
   const attachmentEnvironmentConfig = environmentById.get(environmentId)?.serverConfig ?? null;
@@ -2491,7 +2494,6 @@ function ChatViewContent(
     versionMismatchSelfUpdate,
     versionMismatchServerLabel,
   ]);
-  const providerStatuses = serverConfig?.providers ?? EMPTY_PROVIDERS;
   const unlockedSelectedProvider = resolveSelectableProvider(
     providerStatuses,
     selectedProviderByThreadId ?? threadProvider,
@@ -7023,23 +7025,21 @@ function ChatViewContent(
       // model lookup stay scoped to that exact instance. Unknown instance ids
       // are rejected by returning early; the server remains authoritative too.
       const entry = providerStatuses.find((snapshot) => snapshot.instanceId === instanceId);
-      const resolvedDriverKind = entry?.driver ?? null;
-      if (
-        lockedProvider !== null &&
-        resolvedDriverKind !== null &&
-        resolvedDriverKind !== lockedProvider
-      ) {
-        scheduleComposerFocus();
-        return;
-      }
-      if (lockedProvider !== null && activeThread.session?.providerInstanceId) {
-        const currentEntry = providerStatuses.find(
-          (snapshot) => snapshot.instanceId === activeThread.session?.providerInstanceId,
-        );
+      if (lockedProvider !== null && entry !== undefined) {
+        const lockedInstanceId =
+          activeThread.modelSelection.instanceId ?? activeThread.session?.providerInstanceId;
+        const lockedContinuationGroupKey = providerStatuses.find(
+          (snapshot) => snapshot.instanceId === lockedInstanceId,
+        )?.continuation?.groupKey;
         if (
-          currentEntry?.continuation?.groupKey &&
-          entry?.continuation?.groupKey &&
-          currentEntry.continuation.groupKey !== entry.continuation.groupKey
+          !isProviderInstanceCompatibleWithLock(
+            {
+              driverKind: entry.driver,
+              continuationGroupKey: entry.continuation?.groupKey,
+            },
+            lockedProvider,
+            lockedContinuationGroupKey ?? null,
+          )
         ) {
           scheduleComposerFocus();
           return;

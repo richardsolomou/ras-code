@@ -312,6 +312,7 @@ import { proposedPlanTitle } from "../../proposedPlan";
 import {
   applyProviderInstanceSettings,
   deriveProviderInstanceEntries,
+  isProviderInstanceCompatibleWithLock,
   NO_PROVIDER_MODEL_SELECTION,
   resolveProviderDriverKindForInstanceSelection,
   resolveSelectableProviderInstanceEntry,
@@ -951,8 +952,18 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
       ),
     [providerStatuses, settings],
   );
+  const engagedFallback = useMemo(
+    () => latestFallbackNotice(activeThread?.activities ?? []),
+    [activeThread?.activities],
+  );
+  const activeFallbackInstanceId =
+    engagedFallback !== null &&
+    activeThread?.session?.providerInstanceId === engagedFallback.fallbackInstanceId
+      ? activeThread.session.providerInstanceId
+      : null;
   const selectedProviderByThreadId = composerDraft.activeProvider ?? null;
   const threadProvider =
+    activeFallbackInstanceId ??
     activeThreadModelSelection?.instanceId ??
     activeThread?.session?.providerInstanceId ??
     activeDefaultModelSelection?.instanceId ??
@@ -997,6 +1008,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
   const selectedInstanceId = useMemo<ProviderInstanceId>(() => {
     const candidates: Array<string | null | undefined> = [
       composerDraft.activeProvider,
+      activeFallbackInstanceId,
       activeThreadModelSelection?.instanceId,
       activeThread?.session?.providerInstanceId,
       activeDefaultModelSelection?.instanceId,
@@ -1007,22 +1019,15 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
         (entry) => entry.instanceId === candidate && entry.enabled && entry.isAvailable,
       );
       if (match) {
-        // When locked to a specific driver kind, ignore persisted instance
-        // ids from a different kind or continuation group.
-        if (lockedProvider && match.driverKind !== lockedProvider) continue;
         if (
-          lockedContinuationGroupKey &&
-          match.continuationGroupKey !== lockedContinuationGroupKey
-        ) {
+          !isProviderInstanceCompatibleWithLock(match, lockedProvider, lockedContinuationGroupKey)
+        )
           continue;
-        }
         return match.instanceId;
       }
     }
-    const compatibleEntries = providerInstanceEntries.filter(
-      (entry) =>
-        (!lockedProvider || entry.driverKind === lockedProvider) &&
-        (!lockedContinuationGroupKey || entry.continuationGroupKey === lockedContinuationGroupKey),
+    const compatibleEntries = providerInstanceEntries.filter((entry) =>
+      isProviderInstanceCompatibleWithLock(entry, lockedProvider, lockedContinuationGroupKey),
     );
     const requestedDriverEntries = compatibleEntries.filter(
       (entry) => entry.driverKind === requestedDriverKind,
@@ -1034,6 +1039,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     );
   }, [
     activeDefaultModelSelection?.instanceId,
+    activeFallbackInstanceId,
     activeThread?.session?.providerInstanceId,
     activeThreadModelSelection?.instanceId,
     composerDraft.activeProvider,
@@ -1139,25 +1145,6 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
       ),
     [providerStatuses, selectedInstanceId, settings.timestampFormat],
   );
-  const engagedFallback = useMemo(() => {
-    return latestFallbackNotice(activeThread?.activities ?? []);
-  }, [activeThread?.activities]);
-  const engagedFallbackLabel = useMemo(() => {
-    if (engagedFallback === null) return null;
-    const fallbackEntry = providerInstanceEntries.find(
-      (candidate) => String(candidate.instanceId) === engagedFallback.fallbackInstanceId,
-    );
-    const primaryOptions = modelOptionsByInstance.get(
-      ProviderInstanceId.make(engagedFallback.primaryInstanceId),
-    );
-    const modelLabel =
-      engagedFallback.modelLabel ??
-      primaryOptions?.find((model) => model.slug === engagedFallback.model)?.shortName ??
-      primaryOptions?.find((model) => model.slug === engagedFallback.model)?.name ??
-      engagedFallback.model;
-    return `Using ${modelLabel} via ${fallbackEntry?.displayName ?? engagedFallback.fallbackInstanceId}`;
-  }, [engagedFallback, modelOptionsByInstance, providerInstanceEntries]);
-
   const selectedModelForPickerWithCustomFallback = useMemo(() => {
     const currentOptions = modelOptionsByInstance.get(selectedInstanceId) ?? [];
     return currentOptions.some((option) => option.slug === selectedModelForPicker)
@@ -4119,14 +4106,6 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
                       {...(activeUsageLimitPill ? { usageLimit: activeUsageLimitPill } : {})}
                     />
                   )}
-                  {engagedFallbackLabel ? (
-                    <span
-                      role="status"
-                      className="shrink-0 truncate rounded-full bg-muted/60 px-2 py-0.5 text-[11px] text-muted-foreground"
-                    >
-                      {engagedFallbackLabel}
-                    </span>
-                  ) : null}
 
                   {isComposerFooterCompact ? (
                     <CompactComposerControlsMenu

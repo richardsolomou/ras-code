@@ -71,7 +71,7 @@ import {
   type ProviderAdapterError,
 } from "../Errors.ts";
 import { ClaudeDriver, type ClaudeDriverEnv } from "./ClaudeDriver.ts";
-import { CodexDriver, type CodexDriverEnv } from "./CodexDriver.ts";
+import { createCodexInstance, type CodexDriverEnv } from "./CodexDriver.ts";
 import type { ProviderDriver, ProviderInstance } from "../ProviderDriver.ts";
 import { makeManualOnlyProviderMaintenanceCapabilities } from "../providerMaintenance.ts";
 import { fetchGatewayModels } from "../remoteModels.ts";
@@ -82,6 +82,10 @@ import type { TextGeneration } from "../../textGeneration/TextGeneration.ts";
 const DRIVER_KIND = ProviderDriverKind.make("posthogGateway");
 const DISPLAY_NAME = "PostHog AI Gateway";
 const CATALOG_REFRESH_INTERVAL = Duration.minutes(5);
+export function postHogGatewayBaseInstructions(model: string | undefined): string {
+  const identifier = JSON.stringify(model?.replaceAll(/\s+/g, " ").trim() || "unknown");
+  return `You are a coding agent running in RAS Code. You and the user share one workspace. Your job is to collaborate with the user until you complete the user's goal. The active model identifier is ${identifier}. If the user asks which model you are, answer with this exact identifier. Do not replace the identifier with a model family or provider name.`;
+}
 
 const decodePostHogGatewaySettings = Schema.decodeSync(PostHogGatewaySettings);
 const decodeClaudeSettings = Schema.decodeSync(ClaudeSettings);
@@ -524,21 +528,25 @@ export const PostHogGatewayDriver: ProviderDriver<PostHogGatewaySettings, PostHo
               }),
           ),
         );
-        const codexChild = yield* CodexDriver.create({
-          instanceId: childInstanceId(instanceId, "codex"),
-          displayName,
-          accentColor,
-          enabled,
-          environment: buildCodexChildEnvironment({ environment, key: keyValue }),
-          config: decodeCodexSettings({
-            binaryPath: config.codexBinaryPath,
-            homePath: codexHomePath,
-            launchArgs: posthogGatewayCodexLaunchArgs(RAS_GATEWAY_KEY_VARIABLE, baseUrl).launchArgs,
-            // Codex advertises an attached MCP server as a `namespace` tool,
-            // which the gateway's Responses bridge rejects outright.
-            rasMcpServer: false,
-          }),
-        });
+        const codexChild = yield* createCodexInstance(
+          {
+            instanceId: childInstanceId(instanceId, "codex"),
+            displayName,
+            accentColor,
+            enabled,
+            environment: buildCodexChildEnvironment({ environment, key: keyValue }),
+            config: decodeCodexSettings({
+              binaryPath: config.codexBinaryPath,
+              homePath: codexHomePath,
+              launchArgs: posthogGatewayCodexLaunchArgs(RAS_GATEWAY_KEY_VARIABLE, baseUrl)
+                .launchArgs,
+              // Codex advertises an attached MCP server as a `namespace` tool,
+              // which the gateway's Responses bridge rejects outright.
+              rasMcpServer: false,
+            }),
+          },
+          { baseInstructions: postHogGatewayBaseInstructions },
+        );
 
         const catalogRef = yield* Ref.make<ReadonlyArray<ProviderRemoteModel>>([]);
         const snapshotPubSub = yield* Effect.acquireRelease(

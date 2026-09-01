@@ -30,13 +30,13 @@ export const ComposerPendingFallbackOfferActions = memo(
         {FALLBACK_OFFER_OPTIONS.map((option) => (
           <Button
             key={option.decision}
-            size="micro"
+            size="default"
             variant={option.decision === "switch" ? "default" : "ghost-muted"}
-            className="font-normal"
+            className="min-w-28"
             disabled={isResponding}
             onClick={() => void onRespondToFallbackOffer(requestId, option.decision)}
           >
-            <span className="max-w-40 truncate">{option.label}</span>
+            {option.label}
           </Button>
         ))}
       </>

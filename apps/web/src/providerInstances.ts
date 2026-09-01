@@ -80,6 +80,17 @@ export function isProviderInstancePickerVisible(entry: ProviderInstanceEntry): b
   return entry.enabled;
 }
 
+export function isProviderInstanceCompatibleWithLock(
+  entry: Pick<ProviderInstanceEntry, "driverKind" | "continuationGroupKey">,
+  lockedProvider: ProviderDriverKind | null,
+  lockedContinuationGroupKey: string | null,
+): boolean {
+  if (lockedContinuationGroupKey !== null) {
+    return entry.continuationGroupKey === lockedContinuationGroupKey;
+  }
+  return lockedProvider === null || entry.driverKind === lockedProvider;
+}
+
 /**
  * Turn an instance id slug into a human-readable label. Splits on `_` / `-`
  * and camelCase boundaries and title-cases each token, so `codex_personal`

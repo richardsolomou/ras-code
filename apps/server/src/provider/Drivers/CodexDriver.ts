@@ -40,7 +40,11 @@ import { checkCodexProviderStatus, makePendingCodexProvider } from "../Layers/Co
 import { ProviderEventLoggers } from "../Layers/ProviderEventLoggers.ts";
 import { makeManagedServerProvider } from "../makeManagedServerProvider.ts";
 import * as ModelManifest from "../ModelManifest.ts";
-import type { ProviderDriver, ProviderInstance } from "../ProviderDriver.ts";
+import type {
+  ProviderDriver,
+  ProviderDriverCreateInput,
+  ProviderInstance,
+} from "../ProviderDriver.ts";
 import type { ServerProviderDraft } from "../providerSnapshot.ts";
 import { mergeProviderInstanceEnvironment } from "../ProviderInstanceEnvironment.ts";
 import {
@@ -107,6 +111,132 @@ const withInstanceIdentity =
     continuation: { groupKey: input.continuationGroupKey },
   });
 
+export const createCodexInstance = (
+  {
+    instanceId,
+    displayName,
+    accentColor,
+    environment,
+    enabled,
+    config,
+  }: ProviderDriverCreateInput<CodexSettings>,
+  options?: { readonly baseInstructions?: (model: string | undefined) => string },
+) =>
+  Effect.gen(function* () {
+    const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+    const httpClient = yield* HttpClient.HttpClient;
+    const serverSettings = yield* ServerSettingsService;
+    const eventLoggers = yield* ProviderEventLoggers;
+    const modelManifest = yield* ModelManifest.ModelManifest;
+    const processEnv = mergeProviderInstanceEnvironment(environment);
+    const homeLayout = yield* resolveCodexHomeLayout(config);
+    const continuationIdentity = codexContinuationIdentity(homeLayout);
+    const stampIdentity = withInstanceIdentity({
+      instanceId,
+      displayName,
+      accentColor,
+      continuationGroupKey: continuationIdentity.continuationKey,
+    });
+    yield* materializeCodexShadowHome(homeLayout).pipe(
+      Effect.mapError(
+        (cause) =>
+          new ProviderDriverError({
+            driver: DRIVER_KIND,
+            instanceId,
+            detail: cause.message,
+            cause,
+          }),
+      ),
+    );
+    const effectiveConfig = {
+      ...config,
+      enabled,
+      homePath: homeLayout.effectiveHomePath ?? "",
+    } satisfies CodexSettings;
+    const maintenanceCapabilities = yield* resolveProviderMaintenanceCapabilitiesEffect(UPDATE, {
+      binaryPath: effectiveConfig.binaryPath,
+      env: processEnv,
+    });
+
+    // `makeCodexAdapter` and `makeCodexTextGeneration` have `never` error
+    // channels at construction time — their failure modes are all on the
+    // per-operation closures they return. No `mapError` wrapper is needed
+    // here; the registry only has to worry about snapshot-build and
+    // spawner-availability failures surfaced from `checkCodexProviderStatus`
+    // below.
+    const adapter = yield* makeCodexAdapter(effectiveConfig, {
+      instanceId,
+      environment: processEnv,
+      ...(options?.baseInstructions ? { baseInstructions: options.baseInstructions } : {}),
+      ...(eventLoggers.native ? { nativeEventLogger: eventLoggers.native } : {}),
+    });
+    const textGeneration = yield* makeCodexTextGeneration(effectiveConfig, processEnv);
+
+    // Build a managed snapshot whose settings never change — mutations come
+    // in as instance rebuilds from the registry rather than in-place
+    // updates. Pre-provide `ChildProcessSpawner` so the check fits
+    // `makeManagedServerProvider.checkProvider`'s `R = never`.
+    // Kick the TTL-gated manifest refresh in the background and classify
+    // with the in-memory manifest, so a slow or hung fetch never delays the
+    // provider check. A refresh that lands mid-probe applies on the next one.
+    const checkProvider = modelManifest.refreshInBackground.pipe(
+      Effect.andThen(
+        Effect.zipWith(
+          checkCodexProviderStatus(effectiveConfig, undefined, processEnv),
+          modelManifest.current,
+          (draft, manifest) =>
+            stampIdentity(ModelManifest.applyModelManifest(draft, manifest, DRIVER_KIND)),
+          { concurrent: true },
+        ),
+      ),
+      Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, spawner),
+    );
+    const snapshotSettings = makeProviderSnapshotSettingsSource(effectiveConfig, serverSettings);
+    const snapshot = yield* makeManagedServerProvider<ProviderSnapshotSettings<CodexSettings>>({
+      maintenanceCapabilities,
+      getSettings: snapshotSettings.getSettings,
+      streamSettings: snapshotSettings.streamSettings,
+      haveSettingsChanged: haveProviderSnapshotSettingsChanged,
+      initialSnapshot: (settings) =>
+        Effect.zipWith(
+          makePendingCodexProvider(settings.provider),
+          modelManifest.current,
+          (draft, manifest) =>
+            stampIdentity(ModelManifest.applyModelManifest(draft, manifest, DRIVER_KIND)),
+        ),
+      checkProvider,
+      enrichSnapshot: ({ settings, snapshot, publishSnapshot }) =>
+        enrichProviderSnapshotWithVersionAdvisory(snapshot, maintenanceCapabilities, {
+          enableProviderUpdateChecks: settings.enableProviderUpdateChecks,
+        }).pipe(
+          Effect.provideService(HttpClient.HttpClient, httpClient),
+          Effect.flatMap((enrichedSnapshot) => publishSnapshot(enrichedSnapshot)),
+        ),
+    }).pipe(
+      Effect.mapError(
+        (cause) =>
+          new ProviderDriverError({
+            driver: DRIVER_KIND,
+            instanceId,
+            detail: `Failed to build Codex snapshot: ${cause.message ?? String(cause)}`,
+            cause,
+          }),
+      ),
+    );
+
+    return {
+      instanceId,
+      driverKind: DRIVER_KIND,
+      continuationIdentity,
+      displayName,
+      accentColor,
+      enabled,
+      snapshot,
+      adapter,
+      textGeneration,
+    } satisfies ProviderInstance;
+  });
+
 export const CodexDriver: ProviderDriver<CodexSettings, CodexDriverEnv> = {
   driverKind: DRIVER_KIND,
   metadata: {
@@ -115,118 +245,5 @@ export const CodexDriver: ProviderDriver<CodexSettings, CodexDriverEnv> = {
   },
   configSchema: CodexSettings,
   defaultConfig: (): CodexSettings => decodeCodexSettings({}),
-  create: ({ instanceId, displayName, accentColor, environment, enabled, config }) =>
-    Effect.gen(function* () {
-      const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
-      const httpClient = yield* HttpClient.HttpClient;
-      const serverSettings = yield* ServerSettingsService;
-      const eventLoggers = yield* ProviderEventLoggers;
-      const modelManifest = yield* ModelManifest.ModelManifest;
-      const processEnv = mergeProviderInstanceEnvironment(environment);
-      const homeLayout = yield* resolveCodexHomeLayout(config);
-      const continuationIdentity = codexContinuationIdentity(homeLayout);
-      const stampIdentity = withInstanceIdentity({
-        instanceId,
-        displayName,
-        accentColor,
-        continuationGroupKey: continuationIdentity.continuationKey,
-      });
-      yield* materializeCodexShadowHome(homeLayout).pipe(
-        Effect.mapError(
-          (cause) =>
-            new ProviderDriverError({
-              driver: DRIVER_KIND,
-              instanceId,
-              detail: cause.message,
-              cause,
-            }),
-        ),
-      );
-      const effectiveConfig = {
-        ...config,
-        enabled,
-        homePath: homeLayout.effectiveHomePath ?? "",
-      } satisfies CodexSettings;
-      const maintenanceCapabilities = yield* resolveProviderMaintenanceCapabilitiesEffect(UPDATE, {
-        binaryPath: effectiveConfig.binaryPath,
-        env: processEnv,
-      });
-
-      // `makeCodexAdapter` and `makeCodexTextGeneration` have `never` error
-      // channels at construction time — their failure modes are all on the
-      // per-operation closures they return. No `mapError` wrapper is needed
-      // here; the registry only has to worry about snapshot-build and
-      // spawner-availability failures surfaced from `checkCodexProviderStatus`
-      // below.
-      const adapter = yield* makeCodexAdapter(effectiveConfig, {
-        instanceId,
-        environment: processEnv,
-        ...(eventLoggers.native ? { nativeEventLogger: eventLoggers.native } : {}),
-      });
-      const textGeneration = yield* makeCodexTextGeneration(effectiveConfig, processEnv);
-
-      // Build a managed snapshot whose settings never change — mutations come
-      // in as instance rebuilds from the registry rather than in-place
-      // updates. Pre-provide `ChildProcessSpawner` so the check fits
-      // `makeManagedServerProvider.checkProvider`'s `R = never`.
-      // Kick the TTL-gated manifest refresh in the background and classify
-      // with the in-memory manifest, so a slow or hung fetch never delays the
-      // provider check. A refresh that lands mid-probe applies on the next one.
-      const checkProvider = modelManifest.refreshInBackground.pipe(
-        Effect.andThen(
-          Effect.zipWith(
-            checkCodexProviderStatus(effectiveConfig, undefined, processEnv),
-            modelManifest.current,
-            (draft, manifest) =>
-              stampIdentity(ModelManifest.applyModelManifest(draft, manifest, DRIVER_KIND)),
-            { concurrent: true },
-          ),
-        ),
-        Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, spawner),
-      );
-      const snapshotSettings = makeProviderSnapshotSettingsSource(effectiveConfig, serverSettings);
-      const snapshot = yield* makeManagedServerProvider<ProviderSnapshotSettings<CodexSettings>>({
-        maintenanceCapabilities,
-        getSettings: snapshotSettings.getSettings,
-        streamSettings: snapshotSettings.streamSettings,
-        haveSettingsChanged: haveProviderSnapshotSettingsChanged,
-        initialSnapshot: (settings) =>
-          Effect.zipWith(
-            makePendingCodexProvider(settings.provider),
-            modelManifest.current,
-            (draft, manifest) =>
-              stampIdentity(ModelManifest.applyModelManifest(draft, manifest, DRIVER_KIND)),
-          ),
-        checkProvider,
-        enrichSnapshot: ({ settings, snapshot, publishSnapshot }) =>
-          enrichProviderSnapshotWithVersionAdvisory(snapshot, maintenanceCapabilities, {
-            enableProviderUpdateChecks: settings.enableProviderUpdateChecks,
-          }).pipe(
-            Effect.provideService(HttpClient.HttpClient, httpClient),
-            Effect.flatMap((enrichedSnapshot) => publishSnapshot(enrichedSnapshot)),
-          ),
-      }).pipe(
-        Effect.mapError(
-          (cause) =>
-            new ProviderDriverError({
-              driver: DRIVER_KIND,
-              instanceId,
-              detail: `Failed to build Codex snapshot: ${cause.message ?? String(cause)}`,
-              cause,
-            }),
-        ),
-      );
-
-      return {
-        instanceId,
-        driverKind: DRIVER_KIND,
-        continuationIdentity,
-        displayName,
-        accentColor,
-        enabled,
-        snapshot,
-        adapter,
-        textGeneration,
-      } satisfies ProviderInstance;
-    }),
+  create: createCodexInstance,
 };
