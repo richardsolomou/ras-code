@@ -1,4 +1,7 @@
 import {
+  type AssetCreateUrlInput,
+  type AssetCreateUrlResult,
+  type ChatFileAttachment,
   type EnvironmentId,
   isProviderDriverKind,
   ProjectId,
@@ -16,6 +19,12 @@ import {
 } from "@ras-code/contracts";
 import { selectForkInheritedPrefix } from "@ras-code/shared/forkHistory";
 import { isPostHogGatewayCrossShapeModelChange } from "@ras-code/shared/posthogGateway";
+import { resolveAssetUrl } from "@ras-code/client-runtime/state/assets";
+import {
+  squashAtomCommandFailure,
+  type AtomCommandResult,
+} from "@ras-code/client-runtime/state/runtime";
+import { videoMimeType } from "@ras-code/shared/video";
 import {
   appendCodexArtifactTemplateUsePrompt,
   codexArtifactTemplateUsePrompt,
@@ -426,10 +435,32 @@ export function revokeBlobPreviewUrl(previewUrl: string | undefined): void {
   URL.revokeObjectURL(previewUrl);
 }
 
-export async function loadVideoPreviewUrl(url: string, signal?: AbortSignal): Promise<string> {
-  const response = await fetch(url, signal ? { signal } : {});
-  if (!response.ok) throw new Error(`Could not load video (${response.status}).`);
-  return URL.createObjectURL(await response.blob());
+/** Signs an attachment URL without reading its bytes, so video playback can request byte ranges. */
+export async function resolveFileAttachmentUrl(input: {
+  attachment: ChatFileAttachment;
+  environmentId: EnvironmentId;
+  httpBaseUrl: string;
+  createAssetUrl: (input: {
+    environmentId: EnvironmentId;
+    input: AssetCreateUrlInput;
+  }) => Promise<AtomCommandResult<AssetCreateUrlResult, unknown>>;
+}): Promise<string> {
+  const { attachment } = input;
+  const result = await input.createAssetUrl({
+    environmentId: input.environmentId,
+    input: {
+      resource: {
+        _tag: "attachment",
+        attachmentId: attachment.id,
+        fileName: attachment.name,
+        mimeType: videoMimeType(attachment) ?? attachment.mimeType,
+      },
+    },
+  });
+  if (result._tag === "Failure") throw squashAtomCommandFailure(result);
+  const url = resolveAssetUrl(input.httpBaseUrl, result.value.relativeUrl);
+  if (url === null) throw new Error("The environment returned an invalid attachment URL.");
+  return url;
 }
 
 export function isVideoPreviewRequestCurrent(

@@ -68,6 +68,7 @@ const colors = {
   terraform: "#693acf",
   text: "#84848a",
   typescript: "#1a85d4",
+  video: "#a631be",
   vite: "#a631be",
   vscode: "#1a85d4",
   vue: "#199f43",
@@ -85,6 +86,7 @@ const customIcons = {
   pnpm: "ras-code-file-icon-pnpm",
   readme: "ras-code-file-icon-readme",
   tsconfig: "ras-code-file-icon-tsconfig",
+  video: "ras-code-file-icon-video",
 };
 
 function symbolFromSprite(sprite, id) {

@@ -26,6 +26,8 @@
     "./types": "./src/SelectableMarkdownText.types.ts"
   },
   "peerDependencies": {
+    "@ras-code/client-runtime": "*",
+    "@ras-code/shared": "*",
     "expo-asset": "*",
     "expo-clipboard": "*",
     "expo-haptics": "*",

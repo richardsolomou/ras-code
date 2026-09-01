@@ -256,7 +256,7 @@ importers:
         version: link:../../packages/contracts
       '@ras-code/mobile-markdown-text':
         specifier: file:./modules/ras-code-markdown-text
-        version: file:apps/mobile/modules/ras-code-markdown-text(8819e1ff552fc19b333a2dfaf02d39db)
+        version: file:apps/mobile/modules/ras-code-markdown-text(b966dc747918dea276e155315deaf042)
       '@ras-code/mobile-review-diff-native':
         specifier: file:./modules/ras-code-review-diff
         version: file:apps/mobile/modules/ras-code-review-diff
@@ -4079,6 +4079,8 @@ packages:
   '@ras-code/mobile-markdown-text@file:apps/mobile/modules/ras-code-markdown-text':
     resolution: {directory: apps/mobile/modules/ras-code-markdown-text, type: directory}
     peerDependencies:
+      '@ras-code/client-runtime': '*'
+      '@ras-code/shared': '*'
       expo-asset: '*'
       expo-clipboard: '*'
       expo-haptics: '*'
@@ -14512,8 +14514,10 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.2.16
 
-  '@ras-code/mobile-markdown-text@file:apps/mobile/modules/ras-code-markdown-text(8819e1ff552fc19b333a2dfaf02d39db)':
+  '@ras-code/mobile-markdown-text@file:apps/mobile/modules/ras-code-markdown-text(b966dc747918dea276e155315deaf042)':
     dependencies:
+      '@ras-code/client-runtime': link:packages/client-runtime
+      '@ras-code/shared': link:packages/shared
       expo-asset: 57.0.15(expo@57.0.18)(react-native@0.86.3(@babel/core@7.29.7)(@react-native/metro-config@0.86.3(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@6.0.6))(@types/react@19.2.16)(bufferutil@4.1.0)(react@19.2.3)(utf-8-validate@6.0.6))(react@19.2.3)(typescript@6.0.3)
       expo-clipboard: 57.0.1(expo@57.0.18)(react-native@0.86.3(@babel/core@7.29.7)(@react-native/metro-config@0.86.3(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@6.0.6))(@types/react@19.2.16)(bufferutil@4.1.0)(react@19.2.3)(utf-8-validate@6.0.6))(react@19.2.3)
       expo-haptics: 57.0.2(expo@57.0.18)

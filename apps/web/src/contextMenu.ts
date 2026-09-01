@@ -200,6 +200,10 @@ function isNodeWithinMenuStack(target: EventTarget | null, menuStack: readonly H
 // with the same result as an outside click or Escape.
 let activeContextMenuDismiss: (() => void) | null = null;
 
+export function isContextMenuOpen(): boolean {
+  return activeContextMenuDismiss !== null;
+}
+
 /**
  * Closes the currently open context menu, resolving its show() with null (the
  * same result as dismissing by outside click or Escape). No-op when no menu is
