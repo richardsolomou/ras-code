@@ -566,6 +566,7 @@ export interface ChatComposerHandle {
     selectedPromptEffort: string | null;
     selectedModelOptionsForDispatch: unknown;
     selectedModelSelection: ModelSelection;
+    modelSelectionIntentSnapshot: ModelSelection | null;
     providerAvailable: boolean;
     selectedProvider: ProviderDriverKind;
     selectedModel: string;
@@ -871,7 +872,6 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     (store) => store.syncPersistedAttachments,
   );
   const getComposerDraft = useComposerDraftStore((store) => store.getComposerDraft);
-  const setComposerDraftModelSelection = useComposerDraftStore((store) => store.setModelSelection);
 
   useEffect(() => {
     if (!attachmentUploadsCapabilityKnown) {
@@ -970,40 +970,12 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     : undefined;
   const hasPendingModelSelectionIntent = isComposerModelSelectionIntentPending({
     routeKind,
-    selectionExplicit: composerDraft.modelSelectionExplicit === true,
+    intentPending: composerDraft.modelSelectionIntentPending === true,
     draftModelSelection,
   });
   const selectedProviderByThreadId = hasPendingModelSelectionIntent
     ? (composerDraft.activeProvider ?? null)
     : null;
-  const previousActiveThreadProviderInstanceIdRef = useRef(
-    activeThreadModelSelection?.instanceId ?? null,
-  );
-  useEffect(() => {
-    const providerChanged =
-      previousActiveThreadProviderInstanceIdRef.current !== activeThreadProviderInstanceId;
-    previousActiveThreadProviderInstanceIdRef.current = activeThreadProviderInstanceId;
-    if (
-      routeKind !== "server" ||
-      !providerChanged ||
-      activeThreadProviderInstanceId === activeThreadModelSelection?.instanceId ||
-      composerDraft.modelSelectionExplicit !== true ||
-      !draftModelSelection
-    ) {
-      return;
-    }
-    setComposerDraftModelSelection(composerDraftTarget, draftModelSelection, {
-      replaceOptions: true,
-    });
-  }, [
-    activeThreadModelSelection?.instanceId,
-    activeThreadProviderInstanceId,
-    composerDraft.modelSelectionExplicit,
-    composerDraftTarget,
-    draftModelSelection,
-    routeKind,
-    setComposerDraftModelSelection,
-  ]);
   const threadProvider =
     activeThreadProviderInstanceId ??
     activeThreadModelSelection?.instanceId ??
@@ -3316,6 +3288,9 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
         selectedPromptEffort,
         selectedModelOptionsForDispatch,
         selectedModelSelection: requestedModelSelection,
+        modelSelectionIntentSnapshot: hasPendingModelSelectionIntent
+          ? (draftModelSelection ?? null)
+          : null,
         providerAvailable: !noProviderAvailable,
         selectedProvider,
         selectedModel,
@@ -3347,6 +3322,8 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
       composerPreviewAnnotations,
       composerReviewComments,
       focusComposer,
+      draftModelSelection,
+      hasPendingModelSelectionIntent,
       isConnecting,
       isComposerApprovalState,
       pendingUserInputs.length,

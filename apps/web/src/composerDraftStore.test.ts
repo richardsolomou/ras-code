@@ -1827,12 +1827,14 @@ describe("composerDraftStore modelSelection", () => {
       explicit: true,
     });
     expect(draftFor(threadId, TEST_ENVIRONMENT_ID)?.modelSelectionExplicit).toBe(true);
+    expect(draftFor(threadId, TEST_ENVIRONMENT_ID)?.modelSelectionIntentPending).toBe(true);
 
     // Last writer defines intent: a later seed clears the marker.
     store.setModelSelection(threadRef, modelSelection(CODEX_DRIVER, "gpt-5.4"), {
       replaceOptions: true,
     });
     expect(draftFor(threadId, TEST_ENVIRONMENT_ID)?.modelSelectionExplicit).toBeUndefined();
+    expect(draftFor(threadId, TEST_ENVIRONMENT_ID)?.modelSelectionIntentPending).toBeUndefined();
   });
 
   it("consumes explicit model intent after the selection is committed", () => {
@@ -1844,8 +1846,26 @@ describe("composerDraftStore modelSelection", () => {
     store.clearComposerContent(threadRef);
     expect(draftFor(threadId, TEST_ENVIRONMENT_ID)?.modelSelectionExplicit).toBe(true);
 
-    store.setModelSelection(threadRef, selection, { replaceOptions: true });
+    store.acknowledgeModelSelectionIntent(threadRef, selection);
     expect(draftFor(threadId, TEST_ENVIRONMENT_ID)?.modelSelectionExplicit).toBeUndefined();
+    expect(draftFor(threadId, TEST_ENVIRONMENT_ID)?.modelSelectionIntentPending).toBeUndefined();
+  });
+
+  it("does not consume a newer model intent with a stale acknowledgment", () => {
+    const store = useComposerDraftStore.getState();
+    const sentSelection = modelSelection(CODEX_DRIVER, "gpt-5.4");
+    const newerSelection = modelSelection(CODEX_DRIVER, "gpt-5.6-sol");
+    store.setModelSelection(threadRef, sentSelection, { explicit: true });
+    store.setModelSelection(threadRef, newerSelection, { explicit: true });
+
+    store.acknowledgeModelSelectionIntent(threadRef, sentSelection);
+
+    expect(draftFor(threadId, TEST_ENVIRONMENT_ID)).toMatchObject({
+      modelSelectionIntentPending: true,
+      modelSelectionByProvider: {
+        [CODEX_INSTANCE]: newerSelection,
+      },
+    });
   });
 
   it("persists the explicit marker through storage round-trips", async () => {
@@ -1864,6 +1884,7 @@ describe("composerDraftStore modelSelection", () => {
       resetComposerDraftStore();
       await useComposerDraftStore.persist.rehydrate();
       expect(draftFor(threadId, TEST_ENVIRONMENT_ID)?.modelSelectionExplicit).toBe(true);
+      expect(draftFor(threadId, TEST_ENVIRONMENT_ID)?.modelSelectionIntentPending).toBe(true);
       expect(
         draftFor(threadId, TEST_ENVIRONMENT_ID)?.modelSelectionByProvider[CODEX_INSTANCE],
       ).toEqual(modelSelection(CODEX_DRIVER, "gpt-5.4"));

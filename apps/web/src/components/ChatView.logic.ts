@@ -735,11 +735,11 @@ export function resolveComposerRequestedModelSelection(input: {
 
 export function isComposerModelSelectionIntentPending(input: {
   readonly routeKind: "server" | "draft";
-  readonly selectionExplicit: boolean;
+  readonly intentPending: boolean;
   readonly draftModelSelection: ModelSelection | null | undefined;
 }): boolean {
   if (input.routeKind === "draft") return input.draftModelSelection != null;
-  return input.selectionExplicit && input.draftModelSelection != null;
+  return input.intentPending && input.draftModelSelection != null;
 }
 
 export async function waitForStartedServerThread(

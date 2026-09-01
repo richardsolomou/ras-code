@@ -983,7 +983,7 @@ describe("isComposerModelSelectionIntentPending", () => {
     expect(
       isComposerModelSelectionIntentPending({
         routeKind: "draft",
-        selectionExplicit: false,
+        intentPending: false,
         draftModelSelection: primary,
       }),
     ).toBe(true);
@@ -993,7 +993,7 @@ describe("isComposerModelSelectionIntentPending", () => {
     expect(
       isComposerModelSelectionIntentPending({
         routeKind: "server",
-        selectionExplicit: true,
+        intentPending: true,
         draftModelSelection: primary,
       }),
     ).toBe(true);
@@ -1003,7 +1003,7 @@ describe("isComposerModelSelectionIntentPending", () => {
     expect(
       isComposerModelSelectionIntentPending({
         routeKind: "server",
-        selectionExplicit: true,
+        intentPending: true,
         draftModelSelection: {
           instanceId: ProviderInstanceId.make("posthog_gateway"),
           model: "anthropic/claude-sonnet-4-6",

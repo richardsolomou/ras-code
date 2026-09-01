@@ -1456,6 +1456,9 @@ function ChatViewContent(
   );
   const setComposerDraftReviewComments = useComposerDraftStore((store) => store.setReviewComments);
   const setComposerDraftModelSelection = useComposerDraftStore((store) => store.setModelSelection);
+  const acknowledgeComposerModelSelectionIntent = useComposerDraftStore(
+    (store) => store.acknowledgeModelSelectionIntent,
+  );
   const setComposerDraftRuntimeMode = useComposerDraftStore((store) => store.setRuntimeMode);
   const setComposerDraftInteractionMode = useComposerDraftStore(
     (store) => store.setInteractionMode,
@@ -5767,6 +5770,7 @@ function ChatViewContent(
       selectedProviderModels: ctxSelectedProviderModels,
       selectedPromptEffort: ctxSelectedPromptEffort,
       selectedModelSelection: ctxSelectedModelSelection,
+      modelSelectionIntentSnapshot: ctxModelSelectionIntentSnapshot,
     } = sendCtx;
     const annotationImageAlreadyAttached =
       directAnnotation?.image !== undefined &&
@@ -6264,9 +6268,12 @@ function ChatViewContent(
       if (settingsResult._tag === "Failure") {
         failure = settingsResult;
       } else {
-        setComposerDraftModelSelection(composerDraftTarget, ctxSelectedModelSelection, {
-          replaceOptions: true,
-        });
+        if (ctxModelSelectionIntentSnapshot) {
+          acknowledgeComposerModelSelectionIntent(
+            composerDraftTarget,
+            ctxModelSelectionIntentSnapshot,
+          );
+        }
       }
     }
 
@@ -6731,6 +6738,7 @@ function ChatViewContent(
         selectedProviderModels: ctxSelectedProviderModels,
         selectedPromptEffort: ctxSelectedPromptEffort,
         selectedModelSelection: ctxSelectedModelSelection,
+        modelSelectionIntentSnapshot: ctxModelSelectionIntentSnapshot,
       } = sendCtx;
 
       const threadIdForSend = activeThread.id;
@@ -6777,9 +6785,12 @@ function ChatViewContent(
         settingsResult._tag === "Failure" ? settingsResult : null;
 
       if (failure === null) {
-        setComposerDraftModelSelection(composerDraftTarget, ctxSelectedModelSelection, {
-          replaceOptions: true,
-        });
+        if (ctxModelSelectionIntentSnapshot) {
+          acknowledgeComposerModelSelectionIntent(
+            composerDraftTarget,
+            ctxModelSelectionIntentSnapshot,
+          );
+        }
         // Keep the mode toggle and plan-follow-up banner in sync immediately
         // while the same-thread implementation turn is starting.
         setComposerDraftInteractionMode(
@@ -6837,6 +6848,7 @@ function ChatViewContent(
     [
       activeThread,
       activeProposedPlan,
+      acknowledgeComposerModelSelectionIntent,
       acknowledgeActiveThreadWoke,
       beginLocalDispatch,
       composerDraftTarget,
@@ -6849,7 +6861,6 @@ function ChatViewContent(
       runtimeMode,
       scrollToEnd,
       setComposerDraftInteractionMode,
-      setComposerDraftModelSelection,
       setThreadError,
       startThreadTurn,
       environmentId,
