@@ -15,6 +15,7 @@ import {
   type TurnId,
 } from "@ras-code/contracts";
 import { selectForkInheritedPrefix } from "@ras-code/shared/forkHistory";
+import { gatewayModelShape } from "@ras-code/shared/posthogGateway";
 import {
   appendCodexArtifactTemplateUsePrompt,
   codexArtifactTemplateUsePrompt,
@@ -669,7 +670,9 @@ export function deriveLockedProvider(input: {
 }
 
 export function getStartedThreadModelChangeBlockReason(input: {
-  providers: ReadonlyArray<Pick<ServerProvider, "instanceId" | "requiresNewThreadForModelChange">>;
+  providers: ReadonlyArray<
+    Pick<ServerProvider, "driver" | "instanceId" | "requiresNewThreadForModelChange">
+  >;
   hasStartedSession: boolean;
   currentModelSelection: ModelSelection;
   currentProviderInstanceId?: ModelSelection["instanceId"] | null | undefined;
@@ -694,6 +697,27 @@ export function getStartedThreadModelChangeBlockReason(input: {
   const nextProvider = input.providers.find(
     (snapshot) => snapshot.instanceId === input.nextModelSelection.instanceId,
   );
+  const involvesGateway =
+    currentProvider?.driver === "posthogGateway" || nextProvider?.driver === "posthogGateway";
+  if (involvesGateway) {
+    const shapeFor = (
+      provider: typeof currentProvider | undefined,
+      model: string,
+    ): "anthropic" | "openai" | null => {
+      if (provider?.driver === "claudeAgent") return "anthropic";
+      if (provider?.driver === "posthogGateway") return gatewayModelShape(model);
+      return null;
+    };
+    const currentShape = shapeFor(currentProvider, currentModelSelection.model);
+    const nextShape = shapeFor(nextProvider, input.nextModelSelection.model);
+    if (currentShape !== null && nextShape !== null && currentShape !== nextShape) {
+      return {
+        title: "Start a new chat to change models",
+        description:
+          "PostHog AI Gateway cannot switch between Claude and open models in the same conversation.",
+      };
+    }
+  }
   if (
     currentProvider?.requiresNewThreadForModelChange !== true &&
     nextProvider?.requiresNewThreadForModelChange !== true

@@ -29,11 +29,11 @@ const THREAD = "thread-1" as ThreadId;
 const BASE_URL = "https://ai-gateway.us.posthog.com";
 
 describe("postHogGatewayBaseInstructions", () => {
-  it("identifies the selected model without changing its slug", () => {
-    assert.strictEqual(
-      postHogGatewayBaseInstructions("zai-org/glm-5.3-\nflash"),
-      'You are a coding agent running in RAS Code. You and the user share one workspace. Your job is to collaborate with the user until you complete the user\'s goal. The active model identifier is "zai-org/glm-5.3- flash". If the user asks which model you are, answer with this exact identifier. Do not replace the identifier with a model family or provider name.',
-    );
+  it("defers model identity to each turn", () => {
+    const instructions = postHogGatewayBaseInstructions();
+
+    assert.match(instructions, /provided in each turn's developer instructions/);
+    assert.strictEqual(instructions.includes("zai-org/glm-5.3-flash"), false);
   });
 });
 

@@ -82,9 +82,8 @@ import type { TextGeneration } from "../../textGeneration/TextGeneration.ts";
 const DRIVER_KIND = ProviderDriverKind.make("posthogGateway");
 const DISPLAY_NAME = "PostHog AI Gateway";
 const CATALOG_REFRESH_INTERVAL = Duration.minutes(5);
-export function postHogGatewayBaseInstructions(model: string | undefined): string {
-  const identifier = JSON.stringify(model?.replaceAll(/\s+/g, " ").trim() || "unknown");
-  return `You are a coding agent running in RAS Code. You and the user share one workspace. Your job is to collaborate with the user until you complete the user's goal. The active model identifier is ${identifier}. If the user asks which model you are, answer with this exact identifier. Do not replace the identifier with a model family or provider name.`;
+export function postHogGatewayBaseInstructions(): string {
+  return "You are a coding agent running in RAS Code. You and the user share one workspace. Your job is to collaborate with the user until you complete the user's goal. The active model identifier is provided in each turn's developer instructions and may change between turns. If the user asks which model you are, answer with that exact identifier. Do not replace it with a model family or provider name, and do not claim that it is unavailable.";
 }
 
 const decodePostHogGatewaySettings = Schema.decodeSync(PostHogGatewaySettings);

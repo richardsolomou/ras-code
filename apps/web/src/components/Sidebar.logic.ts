@@ -33,6 +33,17 @@ export function resolveSidebarThreadProviderInstanceId(thread: {
   return thread.session?.providerInstanceId ?? thread.modelSelection.instanceId;
 }
 
+export function resolveSidebarThreadModel<T extends { readonly slug: string }>(
+  models: ReadonlyArray<T>,
+  selectedSlug: string,
+  matchNamespacedSlug: boolean,
+): T | undefined {
+  const exact = models.find((model) => model.slug === selectedSlug);
+  if (exact || !matchNamespacedSlug) return exact;
+  const bareSlug = selectedSlug.slice(selectedSlug.lastIndexOf("/") + 1);
+  return models.find((model) => model.slug.slice(model.slug.lastIndexOf("/") + 1) === bareSlug);
+}
+
 // The list already reaches its destination through sortable transforms while
 // the pointer is down. dnd-kit's default also animates the committed DOM order
 // after release, replaying the same movement across every affected row.

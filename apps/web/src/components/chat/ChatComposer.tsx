@@ -995,16 +995,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     providerInstanceEntries,
   ]);
 
-  // Resolve which configured instance the composer is currently targeting.
-  // Priority:
-  //   1. The composer draft's `activeProvider` — the user's unsaved pick
-  //      from the model picker (must win, otherwise the UI appears to
-  //      ignore picker selections).
-  //   2. Thread's persisted instance id (server-side saved selection).
-  //   3. Project default's instance id, else the global default's.
-  //   4. First enabled entry matching the current driver kind.
-  //   5. First enabled entry overall / default instance for the kind.
-  //
+  // An explicit draft wins; otherwise prefer the active fallback before persisted thread state.
   const selectedInstanceId = useMemo<ProviderInstanceId>(() => {
     const candidates: Array<string | null | undefined> = [
       composerDraft.activeProvider,

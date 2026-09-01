@@ -93,6 +93,19 @@ async function waitFor(
 }
 
 describe("ProviderCommandReactor", () => {
+  const driverKindForInstanceId = (instanceId: ProviderInstanceId): ProviderDriverKind => {
+    const raw = String(instanceId);
+    return ProviderDriverKind.make(
+      raw.startsWith("claude")
+        ? "claudeAgent"
+        : raw.startsWith("codex")
+          ? "codex"
+          : raw.startsWith("posthog")
+            ? "posthogGateway"
+            : raw,
+    );
+  };
+
   let runtime: ManagedRuntime.ManagedRuntime<
     OrchestrationEngineService | ProviderCommandReactor | ProjectionSnapshotQuery,
     unknown
@@ -314,17 +327,10 @@ describe("ProviderCommandReactor", () => {
       ),
     );
     const usageLimits = input?.usageLimits ?? new Map<ProviderInstanceId, ProviderUsageLimit>();
-    const modelInstanceId = String(modelSelection.instanceId);
     const providerSnapshots = [
       {
         instanceId: modelSelection.instanceId,
-        driver: ProviderDriverKind.make(
-          modelInstanceId.startsWith("claude")
-            ? "claudeAgent"
-            : modelInstanceId.startsWith("posthog")
-              ? "posthogGateway"
-              : modelInstanceId,
-        ),
+        driver: driverKindForInstanceId(modelSelection.instanceId),
         enabled: true,
         ...(input?.requiresNewThreadForModelChange === true
           ? { requiresNewThreadForModelChange: true }
@@ -347,16 +353,7 @@ describe("ProviderCommandReactor", () => {
           sessionModelSwitch: input?.sessionModelSwitch ?? "in-session",
         }),
       getInstanceInfo: (instanceId) => {
-        const raw = String(instanceId);
-        const driverKind = ProviderDriverKind.make(
-          raw.startsWith("claude")
-            ? "claudeAgent"
-            : raw.startsWith("codex")
-              ? "codex"
-              : raw.startsWith("posthog")
-                ? "posthogGateway"
-                : raw,
-        );
+        const driverKind = driverKindForInstanceId(instanceId);
         return Effect.succeed({
           instanceId,
           driverKind,

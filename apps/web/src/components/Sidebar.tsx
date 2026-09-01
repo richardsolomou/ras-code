@@ -128,6 +128,7 @@ import {
   reduceSidebarProjectScopeMenuState,
   resolveAdjacentThreadId,
   resolveSettledTimestamp,
+  resolveSidebarThreadModel,
   resolveSidebarThreadStatus,
   resolveSidebarThreadProviderInstanceId,
   searchSidebarThreadsByTitle,
@@ -1001,9 +1002,13 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: {
   const showInstanceBadge =
     providerEntry !== null &&
     shouldShowInstanceBadge(providerEntry, props.providerEntryByInstanceId.values());
-  const selectedModel = providerEntry?.models.find(
-    (model) => model.slug === thread.modelSelection.model,
-  );
+  const selectedModel = providerEntry
+    ? resolveSidebarThreadModel(
+        providerEntry.models,
+        thread.modelSelection.model,
+        providerEntry.driverKind === "posthogGateway",
+      )
+    : undefined;
   const modelLabel = selectedModel
     ? getTriggerDisplayModelLabel(selectedModel)
     : thread.modelSelection.model;
@@ -1713,9 +1718,13 @@ const SidebarSearchResultRow = memo(function SidebarSearchResultRow(props: {
   const showInstanceBadge =
     providerEntry !== null &&
     shouldShowInstanceBadge(providerEntry, props.providerEntryByInstanceId.values());
-  const selectedModel = providerEntry?.models.find(
-    (model) => model.slug === thread.modelSelection.model,
-  );
+  const selectedModel = providerEntry
+    ? resolveSidebarThreadModel(
+        providerEntry.models,
+        thread.modelSelection.model,
+        providerEntry.driverKind === "posthogGateway",
+      )
+    : undefined;
   const modelLabel = selectedModel
     ? getTriggerDisplayModelLabel(selectedModel)
     : thread.modelSelection.model;

@@ -786,10 +786,20 @@ describe("getStartedThreadModelChangeBlockReason", () => {
   const providers = [
     {
       instanceId: ProviderInstanceId.make("codex"),
+      driver: ProviderDriverKind.make("codex"),
     },
     {
       instanceId: ProviderInstanceId.make("grok"),
+      driver: ProviderDriverKind.make("grok"),
       requiresNewThreadForModelChange: true,
+    },
+    {
+      instanceId: ProviderInstanceId.make("claudeAgent"),
+      driver: ProviderDriverKind.make("claudeAgent"),
+    },
+    {
+      instanceId: ProviderInstanceId.make("posthog_gateway"),
+      driver: ProviderDriverKind.make("posthogGateway"),
     },
   ];
 
@@ -845,6 +855,65 @@ describe("getStartedThreadModelChangeBlockReason", () => {
       title: "Start a new chat to change models",
       description:
         "This provider does not allow switching models after a conversation has started.",
+    });
+  });
+
+  it("allows a Claude thread to continue with a Claude model through the gateway", () => {
+    expect(
+      getStartedThreadModelChangeBlockReason({
+        providers,
+        hasStartedSession: true,
+        currentModelSelection: {
+          instanceId: ProviderInstanceId.make("claudeAgent"),
+          model: "claude-opus-4-6",
+        },
+        nextModelSelection: {
+          instanceId: ProviderInstanceId.make("posthog_gateway"),
+          model: "anthropic/claude-sonnet-4-6",
+        },
+      }),
+    ).toBeNull();
+  });
+
+  it("blocks switching a Claude thread to an open gateway model", () => {
+    expect(
+      getStartedThreadModelChangeBlockReason({
+        providers,
+        hasStartedSession: true,
+        currentModelSelection: {
+          instanceId: ProviderInstanceId.make("claudeAgent"),
+          model: "claude-opus-4-6",
+        },
+        nextModelSelection: {
+          instanceId: ProviderInstanceId.make("posthog_gateway"),
+          model: "zai-org/glm-5.3-flash",
+        },
+      }),
+    ).toEqual({
+      title: "Start a new chat to change models",
+      description:
+        "PostHog AI Gateway cannot switch between Claude and open models in the same conversation.",
+    });
+  });
+
+  it("blocks switching an open gateway session to a Claude model", () => {
+    expect(
+      getStartedThreadModelChangeBlockReason({
+        providers,
+        hasStartedSession: true,
+        currentModelSelection: {
+          instanceId: ProviderInstanceId.make("posthog_gateway"),
+          model: "zai-org/glm-5.3-flash",
+        },
+        nextModelSelection: {
+          instanceId: ProviderInstanceId.make("posthog_gateway"),
+          model: "anthropic/claude-sonnet-4-6",
+        },
+      }),
+    ).toEqual({
+      title: "Start a new chat to change models",
+      description:
+        "PostHog AI Gateway cannot switch between Claude and open models in the same conversation.",
     });
   });
 });
