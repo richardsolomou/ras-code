@@ -31,6 +31,7 @@ import {
 } from "../types";
 import { type ComposerImageAttachment, type DraftThreadState } from "../composerDraftStore";
 import * as Schema from "effect/Schema";
+import * as Equal from "effect/Equal";
 import { appAtomRegistry } from "../rpc/atomRegistry";
 import { environmentThreadDetails } from "../state/threads";
 import {
@@ -731,6 +732,21 @@ export function resolveComposerRequestedModelSelection(input: {
   return input.selectionExplicit || !input.threadModelSelection
     ? input.selectedModelSelection
     : input.threadModelSelection;
+}
+
+export function isComposerModelSelectionIntentPending(input: {
+  readonly routeKind: "server" | "draft";
+  readonly selectionExplicit: boolean;
+  readonly draftModelSelection: ModelSelection | null | undefined;
+  readonly threadModelSelection: ModelSelection | null | undefined;
+}): boolean {
+  if (input.routeKind === "draft") return input.draftModelSelection != null;
+  return (
+    input.selectionExplicit &&
+    input.draftModelSelection !== null &&
+    input.draftModelSelection !== undefined &&
+    !Equal.equals(input.draftModelSelection, input.threadModelSelection)
+  );
 }
 
 export async function waitForStartedServerThread(

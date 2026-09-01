@@ -27,6 +27,7 @@ import {
   dismissBranchMismatchForSession,
   ENVIRONMENT_RECONNECT_WARNING_GRACE_MS,
   getStartedThreadModelChangeBlockReason,
+  isComposerModelSelectionIntentPending,
   resolveComposerRequestedModelSelection,
   loadVideoPreviewUrl,
   isVideoPreviewRequestCurrent,
@@ -969,6 +970,49 @@ describe("resolveComposerRequestedModelSelection", () => {
         selectionExplicit: true,
       }),
     ).toBe(fallback);
+  });
+});
+
+describe("isComposerModelSelectionIntentPending", () => {
+  const primary = {
+    instanceId: ProviderInstanceId.make("claudeAgent"),
+    model: "claude-sonnet-4-6",
+  };
+
+  it("keeps seeded provider intent for a new draft", () => {
+    expect(
+      isComposerModelSelectionIntentPending({
+        routeKind: "draft",
+        selectionExplicit: false,
+        draftModelSelection: primary,
+        threadModelSelection: primary,
+      }),
+    ).toBe(true);
+  });
+
+  it("consumes explicit intent once the server thread reflects it", () => {
+    expect(
+      isComposerModelSelectionIntentPending({
+        routeKind: "server",
+        selectionExplicit: true,
+        draftModelSelection: primary,
+        threadModelSelection: primary,
+      }),
+    ).toBe(false);
+  });
+
+  it("keeps an unsent explicit model change pending", () => {
+    expect(
+      isComposerModelSelectionIntentPending({
+        routeKind: "server",
+        selectionExplicit: true,
+        draftModelSelection: {
+          instanceId: ProviderInstanceId.make("posthog_gateway"),
+          model: "anthropic/claude-sonnet-4-6",
+        },
+        threadModelSelection: primary,
+      }),
+    ).toBe(true);
   });
 });
 

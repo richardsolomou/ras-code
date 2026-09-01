@@ -50,6 +50,7 @@ import {
 import { DISCONNECTED_COMPOSER_PLACEHOLDER } from "../../composerPlaceholder";
 import {
   deriveComposerSendState,
+  isComposerModelSelectionIntentPending,
   readFileAsDataUrl,
   resolveComposerRequestedModelSelection,
 } from "../ChatView.logic";
@@ -870,6 +871,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     (store) => store.syncPersistedAttachments,
   );
   const getComposerDraft = useComposerDraftStore((store) => store.getComposerDraft);
+  const setComposerDraftModelSelection = useComposerDraftStore((store) => store.setModelSelection);
 
   useEffect(() => {
     if (!attachmentUploadsCapabilityKnown) {
@@ -963,8 +965,38 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
   const activeThreadProviderInstanceId = activeThread
     ? resolveActiveProviderInstanceId(activeThread)
     : null;
-  const selectedProviderByThreadId =
-    composerDraft.modelSelectionExplicit === true ? (composerDraft.activeProvider ?? null) : null;
+  const draftModelSelection = composerDraft.activeProvider
+    ? composerDraft.modelSelectionByProvider[composerDraft.activeProvider]
+    : undefined;
+  const hasPendingModelSelectionIntent = isComposerModelSelectionIntentPending({
+    routeKind,
+    selectionExplicit: composerDraft.modelSelectionExplicit === true,
+    draftModelSelection,
+    threadModelSelection: activeThreadModelSelection,
+  });
+  const selectedProviderByThreadId = hasPendingModelSelectionIntent
+    ? (composerDraft.activeProvider ?? null)
+    : null;
+  useEffect(() => {
+    if (
+      routeKind !== "server" ||
+      composerDraft.modelSelectionExplicit !== true ||
+      !draftModelSelection ||
+      hasPendingModelSelectionIntent
+    ) {
+      return;
+    }
+    setComposerDraftModelSelection(composerDraftTarget, draftModelSelection, {
+      replaceOptions: true,
+    });
+  }, [
+    composerDraft.modelSelectionExplicit,
+    composerDraftTarget,
+    draftModelSelection,
+    hasPendingModelSelectionIntent,
+    routeKind,
+    setComposerDraftModelSelection,
+  ]);
   const threadProvider =
     activeThreadProviderInstanceId ??
     activeThreadModelSelection?.instanceId ??
@@ -1101,7 +1133,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
   const requestedModelSelection = resolveComposerRequestedModelSelection({
     selectedModelSelection,
     threadModelSelection: activeThreadModelSelection,
-    selectionExplicit: composerDraft.modelSelectionExplicit === true,
+    selectionExplicit: hasPendingModelSelectionIntent,
   });
   const selectedModelForPicker = selectedModel;
   // Instance-keyed option list so the picker can show each configured
