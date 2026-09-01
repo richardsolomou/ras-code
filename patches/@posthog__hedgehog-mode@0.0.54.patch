@@ -1,5 +1,5 @@
 diff --git a/dist/index-C71vDVIs.js b/dist/index-C71vDVIs.js
-index 5c17d3e1906553f262da78f59e820f880161e841..1d20cd2a0ec7c155c9cd090d2b0cb355f32229f1 100644
+index 5c17d3e1906553f262da78f59e820f880161e841..44ec8e25dfeefce1b6ead3dbef3a1606d8d7974b 100644
 --- a/dist/index-C71vDVIs.js
 +++ b/dist/index-C71vDVIs.js
 @@ -14288,7 +14288,7 @@ class br {
@@ -217,7 +217,7 @@ index 5c17d3e1906553f262da78f59e820f880161e841..1d20cd2a0ec7c155c9cd090d2b0cb355
 -        l.update({ deltaMS: s, deltaTime: s / 1e3 }), !n && l instanceof pn && this.mousePosition && (ke.Query.point([l.rigidBody], this.mousePosition).length || l.isDragging) && (n = !0);
 -      n !== this.pointerEventsEnabled && this.setPointerEvents(n), this.app.render(), this.lastTime = a;
 +      const s = a - this.lastTime, n = s * this.engine.timing.timeScale, l = { deltaMS: n, deltaTime: s * 0.06 };
-+      this.updateAnimationClock(n / 1e3);
++      this.updateAnimationClock(s / 1e3);
 +      let f = !1;
 +      for (const c of this.elements)
 +        c.update(l), !f && c instanceof pn && this.mousePosition && (ke.Query.point([c.rigidBody], this.mousePosition).length || c.isDragging) && (f = !0);
