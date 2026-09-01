@@ -29,6 +29,7 @@
     "@noble/hashes": "catalog:",
     "@pierre/diffs": "catalog:",
     "@pierre/trees": "1.0.0-beta.4",
+    "@posthog/hedgehog-mode": "0.0.54",
     "@ras-code/client-runtime": "workspace:*",
     "@ras-code/contracts": "workspace:*",
     "@ras-code/shared": "workspace:*",

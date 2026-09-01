@@ -1,0 +1,282 @@
+diff --git a/dist/index-C71vDVIs.js b/dist/index-C71vDVIs.js
+index 5c17d3e1906553f262da78f59e820f880161e841..44ec8e25dfeefce1b6ead3dbef3a1606d8d7974b 100644
+--- a/dist/index-C71vDVIs.js
++++ b/dist/index-C71vDVIs.js
+@@ -14288,7 +14288,7 @@ class br {
+     );
+   }
+   loadSpriteFrames(t) {
+-    this.sprite = new lu(t), this.loadRigidBody(), this.sprite.eventMode = "static", this.sprite.texture.source.scaleMode = "nearest", this.sprite.play(), this.sprite.anchor.set(0.5), this.sprite.x = this.rigidBody.position.x, this.sprite.y = this.rigidBody.position.y, this.game.app.stage.addChild(this.sprite), this.setupSpriteEvents();
++    this.sprite = new lu(t), this.sprite.autoUpdate = !1, this.loadRigidBody(), this.sprite.eventMode = "static", this.sprite.texture.source.scaleMode = "nearest", this.sprite.play(), this.sprite.anchor.set(0.5), this.sprite.x = this.rigidBody.position.x, this.sprite.y = this.rigidBody.position.y, this.game.app.stage.addChild(this.sprite), this.setupSpriteEvents();
+   }
+   loadRigidBody(t = !1) {
+     let r = window.innerWidth / 2, a = window.innerHeight / 2;
+@@ -14344,7 +14344,7 @@ class br {
+     if (!this.isInteractive)
+       return;
+     const r = t.pointerId, a = { x: t.clientX, y: t.clientY };
+-    let s = null;
++    let s = null, u = [];
+     const n = (c) => {
+       if (c.pointerId === r) {
+         if (!s) {
+@@ -14364,9 +14364,9 @@ class br {
+     }, l = (c) => {
+       this.isDragging && c.preventDefault();
+     }, f = (c) => {
+-      c.pointerId === r && (this.isDragging || this.onClick(), this.isDragging = !1, s && ke.World.remove(this.game.engine.world, s), window.removeEventListener("pointermove", n), window.removeEventListener("pointerup", f), window.removeEventListener("pointercancel", f), document.removeEventListener("touchmove", l));
++      c.pointerId === r && (this.isDragging || this.onClick(), this.isDragging = !1, s && ke.World.remove(this.game.engine.world, s), u.splice(0).forEach((d) => d()));
+     };
+-    window.addEventListener("pointermove", n), window.addEventListener("pointerup", f), window.addEventListener("pointercancel", f), document.addEventListener("touchmove", l, { passive: !1 });
++    u.push(this.game.addGlobalListener(window, "pointermove", n), this.game.addGlobalListener(window, "pointerup", f), this.game.addGlobalListener(window, "pointercancel", f), this.game.addGlobalListener(document, "touchmove", l, { passive: !1 }));
+   }
+   // Whether the actor should be clamped/wrapped to the screen edges. Subclasses
+   // can opt out (e.g. while tethered to a web, so wrapping doesn't teleport the
+@@ -14376,7 +14376,7 @@ class br {
+   }
+   update(t) {
+     var m, u;
+-    if (this.rigidBody.collisionFilter.mask = ((m = this.collisionFilterOverride) == null ? void 0 : m.mask) ?? this.collisionFilter.mask, this.rigidBody.collisionFilter.category = ((u = this.collisionFilterOverride) == null ? void 0 : u.category) ?? this.collisionFilter.category, this.keepOnScreen) {
++    if (this.sprite.update(t), this.rigidBody.collisionFilter.mask = ((m = this.collisionFilterOverride) == null ? void 0 : m.mask) ?? this.collisionFilter.mask, this.rigidBody.collisionFilter.category = ((u = this.collisionFilterOverride) == null ? void 0 : u.category) ?? this.collisionFilter.category, this.keepOnScreen) {
+       const g = this.game.app.screen.height - this.rigidBody.position.y;
+       g < 0 && this.setPosition({
+         x: this.rigidBody.position.x,
+@@ -18149,7 +18149,7 @@ class kr extends br {
+     }, this.fadeValue = 0, this.collisionFilter = {
+       category: _e.PROJECTILE,
+       mask: _e.PLATFORM | _e.GROUND
+-    }, this.loadSprite("overlays/fire/tile"), this.isInteractive = !1, this.sprite.anchor.set(0.5, 0), this.setScale(0.4), setTimeout(() => {
++    }, this.loadSprite("overlays/fire/tile"), this.isInteractive = !1, this.sprite.anchor.set(0.5, 0), this.setScale(0.4), this.game.addElementTimeout(this, () => {
+       ei.to(this, {
+         fadeValue: 1,
+         duration: 1,
+@@ -18244,7 +18244,7 @@ class Tx {
+ }
+ class Ax {
+   constructor(t) {
+-    this.actor = t, this.setupKeyboardListeners();
++    this.actor = t, this.cleanup = this.setupKeyboardListeners();
+   }
+   setupKeyboardListeners() {
+     const t = /* @__PURE__ */ new Set(), r = {
+@@ -18337,10 +18337,14 @@ class Ax {
+       const y = r[h.key] ?? h.key;
+       t.has(y) && (t.delete(y), (m = f[y]) == null || m.off(h));
+     };
+-    return window.addEventListener("keydown", c), window.addEventListener("keyup", d), () => {
+-      window.removeEventListener("keydown", c), window.removeEventListener("keyup", d);
++    const h = [this.actor.game.addGlobalListener(window, "keydown", c), this.actor.game.addGlobalListener(window, "keyup", d)];
++    return () => {
++      h.splice(0).forEach((y) => y()), n && clearInterval(n), clearTimeout(l);
+     };
+   }
++  destroy() {
++    this.cleanup();
++  }
+ }
+ const iu = [
+   {
+@@ -18907,14 +18911,14 @@ class Xx {
+       a.pointerId === this.activePointerId && ((s = this.activeWeb) == null || s.moveAnchor({ x: a.clientX, y: a.clientY }));
+     }, this.onPointerUp = (a) => {
+       a.pointerId === this.activePointerId && this.endSling();
+-    }, window.addEventListener("pointerdown", this.onPointerDown);
++    }, this.removePointerDown = this.game.addGlobalListener(window, "pointerdown", this.onPointerDown);
+   }
+   endSling() {
+     var t;
+     (t = this.activeWeb) == null || t.release(), this.activeWeb = void 0, this.activePointerId = void 0, window.removeEventListener("pointermove", this.onPointerMove), window.removeEventListener("pointerup", this.onPointerUp), window.removeEventListener("pointercancel", this.onPointerUp);
+   }
+   destroy() {
+-    this.endSling(), window.removeEventListener("pointerdown", this.onPointerDown);
++    this.endSling(), this.removePointerDown();
+   }
+ }
+ class Kx {
+@@ -19080,7 +19084,7 @@ class pn extends br {
+     this.overlayAnimation && this.sprite.removeChild(this.overlayAnimation), this.overlayAnimation = void 0;
+   }
+   setOnFire(t = 3) {
+-    this.isDead || (clearTimeout(this.fireTimer), this.fireTimer = setTimeout(() => {
++    this.isDead || (this.game.clearElementTimeout(this, this.fireTimer), this.fireTimer = this.game.addElementTimeout(this, () => {
+       if (t <= 1) {
+         this.clearOverlayAnimation(), this.fireTimer = void 0;
+         return;
+@@ -19090,7 +19094,7 @@ class pn extends br {
+       this.maybeSetElementOnFire(r);
+     }), this.overlayAnimation || (this.overlayAnimation = new lu(
+       this.game.spritesManager.getAnimatedSpriteFrames("overlays/fire/tile")
+-    ), this.overlayAnimation.play(), this.overlayAnimation.anchor.set(0.5), this.overlayAnimation.alpha = 0.75, this.sprite.addChild(this.overlayAnimation)), this.setVelocity({
++    ), this.overlayAnimation.autoUpdate = !1, this.overlayAnimation.play(), this.overlayAnimation.anchor.set(0.5), this.overlayAnimation.alpha = 0.75, this.sprite.addChild(this.overlayAnimation)), this.setVelocity({
+       x: (Math.random() - 0.5) * 20,
+       y: this.getGround() ? -10 : this.rigidBody.velocity.y
+     }));
+@@ -19118,7 +19122,7 @@ class pn extends br {
+   }
+   update(t) {
+     let r = this.skinDefinition.collisionMask;
+-    if (this.rigidBody.velocity.y < -0.1 || (r = r | _e.PLATFORM), this.collisionFilter.mask = r, super.update(t), this.isDead)
++    if (this.overlayAnimation?.update(t), this.rigidBody.velocity.y < -0.1 || (r = r | _e.PLATFORM), this.collisionFilter.mask = r, super.update(t), this.isDead)
+       return;
+     const a = this.walkSpeed;
+     if (!this.isWebSlinging && a !== 0 && this.setVelocity({
+@@ -19230,7 +19234,7 @@ class pn extends br {
+   }
+   beforeUnload() {
+     var t;
+-    (t = this.ability) == null || t.destroy(), this.ai.enable(!1), Object.values(this.accessorySprites).forEach((r) => {
++    this.controls.destroy(), (t = this.ability) == null || t.destroy(), this.ai.enable(!1), Object.values(this.accessorySprites).forEach((r) => {
+       this.game.app.stage.removeChild(r);
+     });
+   }
+@@ -19529,7 +19533,7 @@ class tv {
+         t.slice(-f.keys.length).join("") === f.keys.join("") && (f.action(), t.splice(-f.keys.length));
+       });
+     };
+-    return window.addEventListener("keydown", s), () => {
++    return this.game.addGlobalListener(window, "keydown", s), () => {
+       window.removeEventListener("keydown", s);
+     };
+   }
+@@ -19671,7 +19675,7 @@ class rv extends br {
+     }), this.setVelocity({
+       x: (0.5 - Math.random()) * 5,
+       y: -5
+-    }), setTimeout(() => {
++    }), this.game.addElementTimeout(this, () => {
+       ei.to(this.sprite, {
+         alpha: 0,
+         duration: 5,
+@@ -19685,19 +19689,49 @@ class rv extends br {
+ }
+ class sv {
+   constructor(t) {
+-    this.options = t, this.elements = [], this.totalElapsedTime = 0, this.pointerEventsEnabled = !1, this.isDebugging = !1, this.spritesManager = new bx(t), this.setupDebugListeners();
++    this.options = t, this.elements = [], this.totalElapsedTime = 0, this.pointerEventsEnabled = !1, this.isDebugging = !1, this.isDestroyed = !1, this.cleanupListeners = [], this.elementTimeouts = /* @__PURE__ */ new Map(), this.spritesManager = new bx(t);
+   }
+   destroy() {
+-    this.syncPlatformsInterval && clearInterval(this.syncPlatformsInterval), ut.Runner.stop(this.runner), this.app.destroy({
++    this.isDestroyed || (this.isDestroyed = !0, this.cleanupListeners.splice(0).forEach((t) => t()), this.elements.splice(0).forEach((t) => this.cleanupElement(t)), this.syncPlatformsInterval && clearInterval(this.syncPlatformsInterval), ut.Runner.stop(this.runner), this.app.destroy({
+       removeView: !0
+-    }), this.debugRender && (ut.Render.stop(this.debugRender), ke.World.clear(this.engine.world, !1), ke.Engine.clear(this.engine), this.debugRender.canvas.remove(), this.debugRender.canvas = document.createElement("canvas"), this.debugRender.context = this.debugRender.canvas.getContext("2d"), this.debugRender.textures = {});
++    }, { children: !0 }), this.engine && (ke.World.clear(this.engine.world, !1), ke.Engine.clear(this.engine)), ei.ticker.sleep());
+   }
+-  setupDebugListeners() {
+-    let t = 0;
+-    window.addEventListener("keydown", (r) => {
+-      var a;
+-      r.key === "d" && r.ctrlKey ? (t++, t === 5 && (t = 0, this.isDebugging = !this.isDebugging, (a = this.debugRender) != null && a.canvas && (this.debugRender.canvas.style.opacity = this.isDebugging ? "0.5" : "0"))) : t = 0;
+-    });
++  addElementTimeout(t, r, a) {
++    let s = this.elementTimeouts.get(t);
++    s || (s = /* @__PURE__ */ new Set(), this.elementTimeouts.set(t, s));
++    const n = setTimeout(() => {
++      s.delete(n), s.size || this.elementTimeouts.delete(t), r();
++    }, a);
++    return s.add(n), n;
++  }
++  clearElementTimeout(t, r) {
++    if (r === void 0)
++      return;
++    clearTimeout(r);
++    const a = this.elementTimeouts.get(t);
++    a?.delete(r), a != null && a.size === 0 && this.elementTimeouts.delete(t);
++  }
++  cleanupElement(t) {
++    var r;
++    this.elementTimeouts.get(t)?.forEach(clearTimeout), this.elementTimeouts.delete(t), ei.killTweensOf(t), t.sprite && (ei.killTweensOf(t.sprite), ei.killTweensOf(t.sprite.scale)), (r = t.beforeUnload) == null || r.call(t);
++  }
++  startAnimationClock() {
++    ei.ticker.remove(ei.updateRoot), this.totalElapsedTime = ei.globalTimeline.time(), ei.ticker.sleep();
++  }
++  updateAnimationClock(t) {
++    this.totalElapsedTime += t, ei.updateRoot(this.totalElapsedTime), ei.ticker.sleep();
++  }
++  addGlobalListener(t, r, a, s) {
++    t.addEventListener(r, a, s);
++    let n = !0;
++    const l = () => {
++      if (!n)
++        return;
++      n = !1, t.removeEventListener(r, a, s);
++      const f = this.cleanupListeners.indexOf(l);
++      f !== -1 && this.cleanupListeners.splice(f, 1);
++    };
++    return this.cleanupListeners.push(l), l;
+   }
+   setUI(t) {
+     this.gameUI = t;
+@@ -19753,40 +19787,27 @@ class sv {
+         this.lastTime = a;
+         return;
+       }
+-      const s = (a - this.lastTime) * this.engine.timing.timeScale;
+-      this.totalElapsedTime += s / 1e3, ei.updateRoot(this.totalElapsedTime);
+-      let n = !1;
+-      for (const l of this.elements)
+-        l.update({ deltaMS: s, deltaTime: s / 1e3 }), !n && l instanceof pn && this.mousePosition && (ke.Query.point([l.rigidBody], this.mousePosition).length || l.isDragging) && (n = !0);
+-      n !== this.pointerEventsEnabled && this.setPointerEvents(n), this.app.render(), this.lastTime = a;
++      const s = a - this.lastTime, n = s * this.engine.timing.timeScale, l = { deltaMS: n, deltaTime: s * 0.06 };
++      this.updateAnimationClock(s / 1e3);
++      let f = !1;
++      for (const c of this.elements)
++        c.update(l), !f && c instanceof pn && this.mousePosition && (ke.Query.point([c.rigidBody], this.mousePosition).length || c.isDragging) && (f = !0);
++      f !== this.pointerEventsEnabled && this.setPointerEvents(f), this.app.render(), ei.ticker.sleep(), this.lastTime = a;
+     }), await this.app.init({
+       backgroundAlpha: 0,
+       resizeTo: window,
+       resolution: window.devicePixelRatio || 1,
+       autoDensity: !0,
++      autoStart: !1,
+       antialias: !1,
+       roundPixels: !1
+-    }), await this.spritesManager.load(), t.appendChild(this.app.canvas), this.app.stage.eventMode = "static", this.app.stage.hitArea = this.app.screen, window.addEventListener("resize", () => this.resize()), this.options.platforms && (this.syncPlatformsInterval = setInterval(
++    }), await this.spritesManager.load(), t.appendChild(this.app.canvas), this.app.stage.eventMode = "static", this.app.stage.hitArea = this.app.screen, this.options.platforms && (this.syncPlatformsInterval = setInterval(
+       () => this.syncPlatforms(),
+       this.options.platforms.syncFrequency ?? 200
+-    ), this.syncPlatforms()), this.debugRender = ut.Render.create({
+-      element: this.ref,
+-      engine: this.engine,
+-      options: {
+-        width: window.innerWidth,
+-        height: window.innerHeight,
+-        wireframes: !0,
+-        showVelocity: !0,
+-        showCollisions: !0,
+-        showBounds: !0,
+-        background: "transparent",
+-        pixelRatio: window.devicePixelRatio || 1
+-      }
+-    });
+-    const r = this.debugRender.canvas;
+-    r.style.position = "absolute", r.style.top = "0", r.style.left = "0", r.style.pointerEvents = "none", r.style.opacity = this.isDebugging ? "0.5" : "0", ut.Runner.run(this.runner, this.engine), ut.Render.run(this.debugRender), document.addEventListener("mousemove", (a) => {
++    ), this.syncPlatforms()), ut.Runner.run(this.runner, this.engine), this.addGlobalListener(document, "mousemove", (a) => {
+       this.mousePosition = { x: a.clientX, y: a.clientY };
+-    }), window.addEventListener(
++    }), this.addGlobalListener(
++      window,
+       "pointerdown",
+       (a) => {
+         const s = { x: a.clientX, y: a.clientY };
+@@ -19797,7 +19818,7 @@ class sv {
+           }
+       },
+       { capture: !0 }
+-    ), new tv(this), ei.ticker.remove(ei.updateRoot), this.elements.push(new Qx(this)), this.stateManager = new iv(this, this.options);
++    ), this.startAnimationClock(), this.elements.push(new Qx(this)), this.stateManager = new iv(this, this.options);
+   }
+   onCollisionStart(t) {
+     t.pairs.forEach((r) => {
+@@ -19826,11 +19847,7 @@ class sv {
+     this.engine.timing.timeScale = t, ei.globalTimeline.timeScale(t);
+   }
+   removeElement(t) {
+-    var r;
+-    (r = t.beforeUnload) == null || r.call(t), t.rigidBody && ke.Composite.remove(this.engine.world, t.rigidBody), t.sprite && this.app.stage.removeChild(t.sprite), this.elements = this.elements.filter((a) => a != t), this.log(`Removed element. Elements left: ${this.elements.length}`);
+-  }
+-  resize() {
+-    !this.debugRender || !this.ref || (this.debugRender.bounds.max.x = this.ref.clientWidth, this.debugRender.bounds.max.y = this.ref.clientHeight, this.debugRender.options.width = this.ref.clientWidth, this.debugRender.options.height = this.ref.clientHeight, this.debugRender.canvas.width = this.ref.clientWidth, this.debugRender.canvas.height = this.ref.clientHeight, ke.Render.setPixelRatio(this.debugRender, window.devicePixelRatio));
++    this.elements.includes(t) && (this.cleanupElement(t), t.rigidBody && ke.Composite.remove(this.engine.world, t.rigidBody), t.sprite && this.app.stage.removeChild(t.sprite), this.elements = this.elements.filter((r) => r != t), this.log(`Removed element. Elements left: ${this.elements.length}`));
+   }
+   syncPlatforms() {
+     const t = this.options.platforms, {

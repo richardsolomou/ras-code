@@ -96,6 +96,10 @@ describe("searchSettings", () => {
       to: "/settings/appearance",
       targetId: "appearance",
     });
+    expect(searchSettings("hedgehog mode")[0]).toMatchObject({
+      id: "hedgehog-mode",
+      to: "/settings/appearance",
+    });
   });
 
   it("routes browser recording quality to integrations", () => {

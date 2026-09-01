@@ -27,6 +27,7 @@ const clientSettings: ClientSettings = {
   diffIgnoreWhitespace: true,
   environmentIdentificationMode: "artwork",
   favorites: [],
+  hedgehogMode: true,
   fontFamilyCode: "",
   fontFamilySans: "",
   fontSizeCode: 13,
