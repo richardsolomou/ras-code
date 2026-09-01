@@ -27,6 +27,9 @@ async function makeDestroyablePackageGame() {
     elements: Array<{ beforeUnload?(): void }>;
     removeElement(element: object): void;
     runner: { frameRequestId: null };
+    startAnimationClock(): void;
+    totalElapsedTime: number;
+    updateAnimationClock(deltaSeconds: number): void;
   };
   internals.app = { destroy: appDestroy };
   internals.runner = { frameRequestId: null };
@@ -133,6 +136,23 @@ describe("hedgehog mode", () => {
       beforeUnload: beforeUnload.mock.calls.length,
       timeoutCallback: timeoutCallback.mock.calls.length,
     }).toEqual({ beforeUnload: 1, timeoutCallback: 0 });
+  });
+
+  it("keeps the animation clock monotonic across remounts", async () => {
+    const { game, internals } = await makeDestroyablePackageGame();
+    internals.startAnimationClock();
+    internals.updateAnimationClock(10);
+    const previousTime = internals.totalElapsedTime;
+    game.destroy();
+
+    const { HedgeHogMode } = await import("@posthog/hedgehog-mode");
+    const remounted = new HedgeHogMode({ assetsUrl: "/hedgehog-mode" }) as unknown as {
+      startAnimationClock(): void;
+      totalElapsedTime: number;
+    };
+    remounted.startAnimationClock();
+
+    expect(remounted.totalElapsedTime).toBeGreaterThanOrEqual(previousTime);
   });
 
   it("forgets listeners removed before game teardown", async () => {
