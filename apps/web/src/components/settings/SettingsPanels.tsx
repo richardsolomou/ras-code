@@ -982,6 +982,20 @@ export function AppearanceSettingsPanel() {
         ) : null}
       </SettingsSection>
 
+      <SettingsSection title="Fun">
+        <SettingsRow
+          {...searchableSetting("hedgehog-mode")}
+          description="A hedgehog buddy walks around your screen. It can take a few seconds to appear."
+          control={
+            <Switch
+              checked={settings.hedgehogMode}
+              onCheckedChange={(checked) => updateSettings({ hedgehogMode: Boolean(checked) })}
+              aria-label="Hedgehog mode"
+            />
+          }
+        />
+      </SettingsSection>
+
       <TypographySection />
     </SettingsPageContainer>
   );

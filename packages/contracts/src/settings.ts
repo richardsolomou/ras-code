@@ -186,6 +186,7 @@ export const ClientSettingsSchema = Schema.Struct({
   // app quits; a quick tap only shows a hint. Browser clients ignore it.
   confirmQuit: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(true))),
   diffIgnoreWhitespace: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(true))),
+  hedgehogMode: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(false))),
   environmentIdentificationMode: EnvironmentIdentificationMode.pipe(
     Schema.withDecodingDefault(Effect.succeed(DEFAULT_ENVIRONMENT_IDENTIFICATION_MODE)),
   ),
@@ -977,6 +978,7 @@ export const ClientSettingsPatch = Schema.Struct({
   browserAutoShowFloatingPreview: Schema.optionalKey(Schema.Boolean),
   confirmQuit: Schema.optionalKey(Schema.Boolean),
   diffIgnoreWhitespace: Schema.optionalKey(Schema.Boolean),
+  hedgehogMode: Schema.optionalKey(Schema.Boolean),
   environmentIdentificationMode: Schema.optionalKey(EnvironmentIdentificationMode),
   fontSizeInterface: Schema.optionalKey(InterfaceFontSize),
   fontSizePrompt: Schema.optionalKey(PromptFontSize),

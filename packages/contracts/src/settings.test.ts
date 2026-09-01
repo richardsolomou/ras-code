@@ -66,6 +66,13 @@ describe("ClientSettings word wrap", () => {
   });
 });
 
+describe("ClientSettings hedgehog mode", () => {
+  it("defaults off and accepts a local toggle", () => {
+    expect(decodeClientSettings({}).hedgehogMode).toBe(false);
+    expect(decodeClientSettingsPatch({ hedgehogMode: true }).hedgehogMode).toBe(true);
+  });
+});
+
 describe("ClientSettings browser recording frame rate", () => {
   it("defaults to 30 fps", () => {
     expect(decodeClientSettings({}).browserRecordingFrameRate).toBe(30);

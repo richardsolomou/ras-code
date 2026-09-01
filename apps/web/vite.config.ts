@@ -1,3 +1,7 @@
+// @effect-diagnostics nodeBuiltinImport:off - Vite loads static assets before an Effect runtime exists.
+import * as NodeFS from "node:fs";
+import * as NodeModule from "node:module";
+import * as NodePath from "node:path";
 import * as NodeZlib from "node:zlib";
 
 import tailwindcss from "@tailwindcss/vite";
@@ -48,6 +52,20 @@ const configuredHostedAppUrl = process.env.VITE_HOSTED_APP_URL?.trim() || undefi
 // stay at "/" — `infra/web` sets this for the builds it publishes.
 const appBasePath = process.env.VITE_APP_BASE?.trim() || "/";
 const sourcemapEnv = process.env.RAS_CODE_WEB_SOURCEMAP?.trim().toLowerCase();
+const hedgehogModeEntryPath = NodeModule.createRequire(import.meta.url).resolve(
+  "@posthog/hedgehog-mode",
+);
+const hedgehogModeAssetsDirectory = NodePath.resolve(
+  NodePath.dirname(hedgehogModeEntryPath),
+  "../assets",
+);
+const hedgehogModeAssets = [
+  { fileName: "sprites.json", contentType: "application/json" },
+  { fileName: "sprites.png", contentType: "image/png" },
+].map((asset) => ({
+  ...asset,
+  source: NodeFS.readFileSync(NodePath.join(hedgehogModeAssetsDirectory, asset.fileName)),
+}));
 
 // Vite 8.1's experimental bundled dev mode: serves rolldown-bundled chunks in
 // dev for much faster startup/reload on large module graphs, with HMR served
@@ -151,6 +169,44 @@ function devCompressionPlugin(): Plugin {
   };
 }
 
+function hedgehogModeAssetsPlugin(): Plugin {
+  const basePath = appBasePath.endsWith("/") ? appBasePath : `${appBasePath}/`;
+  const assetsByPath = new Map(
+    hedgehogModeAssets.map((asset) => [`${basePath}hedgehog-mode/${asset.fileName}`, asset]),
+  );
+
+  return {
+    name: "ras-code:hedgehog-mode-assets",
+    configureServer(server) {
+      server.middlewares.use((request, response, next) => {
+        if (request.method !== "GET" && request.method !== "HEAD") {
+          next();
+          return;
+        }
+        const pathname = new URL(request.url ?? "/", "http://ras-code.local").pathname;
+        const asset = assetsByPath.get(pathname);
+        if (!asset) {
+          next();
+          return;
+        }
+        response.statusCode = 200;
+        response.setHeader("Content-Type", asset.contentType);
+        response.setHeader("Content-Length", asset.source.byteLength);
+        response.end(request.method === "HEAD" ? undefined : asset.source);
+      });
+    },
+    generateBundle() {
+      for (const asset of hedgehogModeAssets) {
+        this.emitFile({
+          type: "asset",
+          fileName: `hedgehog-mode/${asset.fileName}`,
+          source: asset.source,
+        });
+      }
+    },
+  };
+}
+
 // Vite rejects requests whose Host header isn't localhost, which blocks sharing
 // a dev server over Tailscale/LAN. Tailnet names are safe to allow wholesale:
 // the DNS is controlled by tailscale, so they can't be rebound by an attacker.
@@ -167,6 +223,7 @@ export default defineConfig(() => {
     assetsInclude: ["**/*.wasm"],
     plugins: [
       devCompressionPlugin(),
+      hedgehogModeAssetsPlugin(),
       tanstackRouter(),
       react(),
       babel({
