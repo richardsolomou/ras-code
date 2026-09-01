@@ -1,4 +1,5 @@
 ---
+import Wordmark from "../components/Wordmark.astro";
 import { GITHUB_REPOSITORY_URL } from "../lib/site";
 
 interface Props {
@@ -9,7 +10,7 @@ interface Props {
 
 const {
   title = "RAS Code",
-  description = "RAS Code — The open-source control plane for coding agents.",
+  description = "RAS Code — a minimal GUI for coding agents.",
   pageClass,
 } = Astro.props;
 ---
@@ -19,10 +20,15 @@ const {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content={description} />
+    <!-- Declared before any stylesheet so the browser paints its first frame on
+         the matching canvas instead of flashing white into a dark page. -->
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#151515" media="(prefers-color-scheme: dark)" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@600&display=swap"
       rel="stylesheet"
     />
     <link rel="icon" href="/favicon.ico" sizes="48x48" />
@@ -34,25 +40,11 @@ const {
   <body>
     <div class:list={["page", pageClass]}>
       <nav class="nav">
-        <div class="nav-inner">
-          <a href="/" class="nav-brand" aria-label="RAS Code home">
-            <span class="nav-brand-name">RAS Code</span>
-          </a>
-          <div class="nav-right">
-            <a
-              class="nav-github"
-              href={GITHUB_REPOSITORY_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="RAS Code on GitHub"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path d="M12 .5C5.65.5.5 5.65.5 12a11.5 11.5 0 007.86 10.93c.58.1.79-.25.79-.56v-2c-3.2.69-3.88-1.37-3.88-1.37-.52-1.33-1.27-1.69-1.27-1.69-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.76 2.68 1.25 3.33.96.1-.75.4-1.25.72-1.54-2.55-.29-5.24-1.27-5.24-5.67 0-1.25.45-2.28 1.18-3.08-.12-.29-.51-1.45.11-3.02 0 0 .96-.31 3.15 1.18a10.96 10.96 0 015.74 0c2.19-1.49 3.15-1.18 3.15-1.18.62 1.57.23 2.73.11 3.02.74.8 1.18 1.83 1.18 3.08 0 4.41-2.7 5.38-5.27 5.66.41.36.78 1.06.78 2.13v3.16c0 .31.21.67.8.56A11.5 11.5 0 0023.5 12C23.5 5.65 18.35.5 12 .5z"/>
-              </svg>
-              <span>GitHub</span>
-            </a>
-          </div>
-        </div>
+        <a href="/" class="brand" aria-label="RAS Code home">
+          <Wordmark />
+          <span>Code</span>
+        </a>
+        <a href={GITHUB_REPOSITORY_URL} target="_blank" rel="noopener noreferrer">GitHub</a>
       </nav>
 
       <main class="main">
@@ -60,56 +52,63 @@ const {
       </main>
 
       <footer class="footer">
-        <div class="footer-inner">
-          <div class="footer-brand">
-            <img src="/icon-dark.svg" alt="" />
-            <span>&copy; {new Date().getFullYear()} Richard Solomou · MIT licensed</span>
-          </div>
-          <div class="footer-links">
-            <a href={GITHUB_REPOSITORY_URL} target="_blank" rel="noopener noreferrer">GitHub</a>
-            <a href="/download">Download</a>
-            <a href="/terms-of-service">Terms</a>
-            <a href="/privacy-policy">Privacy</a>
-            <a href="/security-policy">Security</a>
-          </div>
-        </div>
+        <span>&copy; {new Date().getFullYear()} Richard Solomou · MIT licensed</span>
+        <span class="footer-links">
+          <a href="/download">Download</a>
+          <a href="/legal">Legal</a>
+          <a href={GITHUB_REPOSITORY_URL} target="_blank" rel="noopener noreferrer">GitHub</a>
+        </span>
       </footer>
     </div>
-
-    <script>
-      const nav = document.querySelector(".nav");
-      const onScroll = () => {
-        if (!nav) return;
-        if (window.scrollY > 12) nav.classList.add("is-scrolled");
-        else nav.classList.remove("is-scrolled");
-      };
-      window.addEventListener("scroll", onScroll, { passive: true });
-      onScroll();
-    </script>
   </body>
 </html>
 
 <style is:global>
+  /* Palette mirrors the app (apps/web/src/index.css): zinc-25 canvas in light,
+     #151515 in dark, with the same primary accent and contribution-grid brand
+     cells. The app follows the system appearance, so the site does too. */
   :root {
-    --bg: #09090b;
-    --bg-elev: #0c0c0e;
-    --bg-card: #111113;
-    --fg: #fafafa;
-    --fg-muted: #a1a1aa;
+    color-scheme: light dark;
+    --bg: #fcfcfc;
+    --bg-card: #ffffff;
+    --bg-subtle: #f4f4f5;
+    --fg: #27272a;
+    --fg-muted: #52525b;
     --fg-dim: #71717a;
-    --fg-faint: #52525b;
-    --border: rgba(255, 255, 255, 0.08);
-    --border-strong: rgba(255, 255, 255, 0.14);
-    --accent-h: 250;
-    --accent: oklch(0.68 0.17 var(--accent-h));
-    --accent-dim: oklch(0.68 0.17 var(--accent-h) / 0.15);
-    --ok: oklch(0.72 0.16 150);
-    --warn: oklch(0.76 0.15 75);
-    --font-sans: "DM Sans", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-    --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
-    --radius: 12px;
-    --radius-sm: 8px;
-    --radius-lg: 16px;
+    --fg-faint: #a1a1aa;
+    --border: #e4e4e7;
+    --border-strong: #d4d4d8;
+    --accent: #2a2733;
+    --accent-fg: #ffffff;
+    --brand-empty: #ebedf0;
+    --brand-low: #216e39;
+    --brand-medium: #30a14e;
+    --brand-high: #40c463;
+    --font-sans: "Barlow", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    --font-legend: "Barlow Semi Condensed", "Barlow", system-ui, sans-serif;
+    --font-mono:
+      ui-monospace, "SF Mono", "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+    --radius: 0.625rem;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #151515;
+      --bg-card: #1e1e1e;
+      --bg-subtle: #1c1c1c;
+      --fg: #e4e4e4;
+      --fg-muted: #b4b4b4;
+      --fg-dim: #999999;
+      --fg-faint: #6f6f6f;
+      --border: rgb(255 255 255 / 8%);
+      --border-strong: rgb(255 255 255 / 16%);
+      --accent: #f0c24b;
+      --accent-fg: #101010;
+      --brand-empty: #21262d;
+      --brand-low: #006d32;
+      --brand-medium: #26a641;
+      --brand-high: #39d353;
+    }
   }
 
   * {
@@ -118,46 +117,24 @@ const {
     padding: 0;
   }
 
+  /* The canvas is painted from html so it is already correct while the rest of
+     the document streams in. */
   html {
-    color-scheme: dark;
-    scroll-behavior: smooth;
+    background: var(--bg);
   }
 
   body {
     background: var(--bg);
     color: var(--fg);
     font-family: var(--font-sans);
-    font-feature-settings: "ss01", "ss02";
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    min-height: 100vh;
-    overflow-x: hidden;
     line-height: 1.5;
-  }
-
-  body::after {
-    content: "";
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    opacity: 0.035;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-    background-repeat: repeat;
-    background-size: 256px 256px;
-    z-index: 9999;
   }
 
   a {
     color: inherit;
     text-decoration: none;
-  }
-
-  button {
-    font-family: inherit;
-    cursor: pointer;
-    border: 0;
-    background: none;
-    color: inherit;
   }
 
   img,
@@ -166,26 +143,14 @@ const {
     max-width: 100%;
   }
 
+  /* The app's engraved legend face, used for small caps labels. */
   .eyebrow {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.14em;
+    font-family: var(--font-legend);
+    font-weight: 600;
+    font-size: 0.6875rem;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--fg-dim);
-    font-weight: 500;
-  }
-
-  .display {
-    font-weight: 500;
-    letter-spacing: -0.035em;
-    line-height: 1.05;
-  }
-
-  .container {
-    width: 100%;
-    max-width: 1240px;
-    margin: 0 auto;
-    padding: 0 32px;
   }
 
   .btn {
@@ -193,54 +158,33 @@ const {
     align-items: center;
     justify-content: center;
     gap: 8px;
+    height: 40px;
+    padding: 0 18px;
+    border-radius: var(--radius);
+    border: 1px solid transparent;
     font-weight: 500;
-    font-size: 14px;
-    padding: 10px 18px;
-    border-radius: 8px;
-    transition: transform 0.18s ease, background 0.18s ease,
-      border-color 0.18s ease, color 0.18s ease;
+    font-size: 15px;
     white-space: nowrap;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   }
 
   .btn-primary {
-    background: var(--fg);
-    color: #09090b;
-    font-weight: 600;
+    background: var(--accent);
+    color: var(--accent-fg);
   }
 
   .btn-primary:hover {
-    transform: translateY(-1px);
-    background: #fff;
-  }
-
-  .btn-primary:active {
-    transform: translateY(0);
+    background: color-mix(in srgb, var(--accent) 88%, var(--bg));
   }
 
   .btn-ghost {
+    border-color: var(--border);
     color: var(--fg-muted);
-    border: 1px solid var(--border);
-    background: transparent;
   }
 
   .btn-ghost:hover {
-    color: var(--fg);
     border-color: var(--border-strong);
-    background: rgba(255, 255, 255, 0.02);
-  }
-
-  .btn-lg {
-    padding: 14px 22px;
-    font-size: 15px;
-    border-radius: 10px;
-  }
-
-  .tile {
-    position: relative;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.015), rgba(255, 255, 255, 0));
-    overflow: hidden;
+    color: var(--fg);
   }
 
   :focus-visible {
@@ -249,6 +193,7 @@ const {
     border-radius: 4px;
   }
 
+  /* Entry fade for the legal documents; nothing on this site loops. */
   @keyframes fade-in {
     from {
       opacity: 0;
@@ -256,25 +201,8 @@ const {
     }
     to {
       opacity: 1;
-      transform: translateY(0);
+      transform: none;
     }
-  }
-
-  @keyframes pulse {
-    50% { opacity: 0.4; }
-  }
-
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-
-  @keyframes floatDrift {
-    0%, 100% { translate: 0 0; }
-    50%      { translate: 0 -10px; }
-  }
-
-  @keyframes blink {
-    50% { opacity: 0; }
   }
 </style>
 
@@ -283,82 +211,37 @@ const {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    overflow-x: clip;
   }
 
-  .nav {
-    position: sticky;
-    top: 0;
-    z-index: 50;
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
-    background: color-mix(in srgb, var(--bg) 75%, transparent);
-    border-bottom: 1px solid transparent;
-    transition: border-color 0.3s ease;
-  }
-
-  .nav.is-scrolled {
-    border-bottom-color: var(--border);
-  }
-
-  .nav-inner {
-    max-width: 1240px;
-    margin: 0 auto;
-    padding: 12px 32px;
+  .nav,
+  .footer {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 24px;
+    gap: 16px;
+    width: min(880px, 100%);
+    margin: 0 auto;
+    padding: 20px 24px;
+    font-size: 14px;
   }
 
-  .nav-brand {
-    display: inline-flex;
-    align-items: center;
+  .nav a:hover,
+  .footer a:hover {
     color: var(--fg);
-    transition: color 0.2s ease;
   }
 
-  .nav-brand:hover {
-    color: #fff;
+  .nav > a:last-child,
+  .footer {
+    color: var(--fg-dim);
   }
 
-  .nav-brand-name {
-    font-size: 16px;
-    font-weight: 650;
-    letter-spacing: -0.025em;
-    line-height: 1;
-  }
-
-  .nav-right {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .nav-github {
+  .brand {
     display: inline-flex;
     align-items: center;
     gap: 7px;
-    height: 36px;
-    padding: 0 14px;
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.02);
-    color: var(--fg-muted);
-    font-size: 13px;
+    font-size: 17px;
+    font-weight: 600;
     letter-spacing: -0.01em;
-    white-space: nowrap;
-    transition: color 0.18s ease, border-color 0.18s ease, background 0.18s ease;
-  }
-
-  .nav-github:hover {
-    color: var(--fg);
-    border-color: var(--border-strong);
-    background: rgba(255, 255, 255, 0.04);
-  }
-
-  .nav-github svg {
-    flex-shrink: 0;
   }
 
   .main {
@@ -368,93 +251,22 @@ const {
   }
 
   .footer {
-    margin-top: auto;
     border-top: 1px solid var(--border);
-    padding: 40px 0 32px;
-  }
-
-  .footer-inner {
-    max-width: 1240px;
-    margin: 0 auto;
-    padding: 0 32px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 24px;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .footer-brand {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+    padding-top: 24px;
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
     font-size: 13px;
-    color: var(--fg-dim);
-  }
-
-  .footer-brand img {
-    width: 20px;
-    height: 20px;
-    border-radius: 4px;
   }
 
   .footer-links {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    gap: 20px;
+    display: inline-flex;
+    gap: 18px;
   }
 
-  .footer-links a {
-    font-size: 13px;
-    color: var(--fg-dim);
-    transition: color 0.2s ease;
-  }
-
-  .footer-links a:hover {
-    color: var(--fg);
-  }
-
-  @media (max-width: 820px) {
-    .nav-inner,
-    .footer-inner {
-      padding-left: 20px;
-      padding-right: 20px;
-    }
-
-    .legal-document-page .nav {
-      display: none;
-    }
-
+  @media (max-width: 520px) {
     .footer {
-      padding-bottom: max(32px, env(safe-area-inset-bottom));
-    }
-
-    .footer-inner {
-      align-items: flex-start;
       flex-direction: column;
-      gap: 28px;
-    }
-
-    .footer-links {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      width: 100%;
-      gap: 14px 20px;
-      justify-content: initial;
-    }
-  }
-
-  @media (max-width: 420px) {
-    .nav-inner {
+      align-items: flex-start;
       gap: 12px;
-    }
-
-    .nav-github {
-      height: 34px;
-      gap: 6px;
-      padding: 0 12px;
-      font-size: 12px;
     }
   }
 </style>
