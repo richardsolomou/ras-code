@@ -19,6 +19,10 @@ import {
   PROVIDER_SEND_TURN_MAX_IMAGE_BYTES,
 } from "@ras-code/contracts";
 import type { EnvironmentConnectionPresentation } from "@ras-code/client-runtime/connection";
+import {
+  resolveActiveProviderInstanceId,
+  resolveActiveProviderModelSelection,
+} from "@ras-code/client-runtime/provider-fallback";
 import { serializeComposerFileLink } from "@ras-code/shared/composerTrigger";
 import { createModelSelection, normalizeModelSlug } from "@ras-code/shared/model";
 import {
@@ -44,7 +48,12 @@ import {
   replaceTextRange,
 } from "../../composer-logic";
 import { DISCONNECTED_COMPOSER_PLACEHOLDER } from "../../composerPlaceholder";
-import { deriveComposerSendState, readFileAsDataUrl } from "../ChatView.logic";
+import {
+  deriveComposerSendState,
+  isComposerModelSelectionIntentPending,
+  readFileAsDataUrl,
+  resolveComposerRequestedModelSelection,
+} from "../ChatView.logic";
 import {
   dataTransferHasComposerMention,
   makeComposerMentionDragHandlers,
@@ -312,6 +321,7 @@ import { proposedPlanTitle } from "../../proposedPlan";
 import {
   applyProviderInstanceSettings,
   deriveProviderInstanceEntries,
+  isProviderInstanceCompatibleWithLock,
   NO_PROVIDER_MODEL_SELECTION,
   resolveProviderDriverKindForInstanceSelection,
   resolveSelectableProviderInstanceEntry,
@@ -320,7 +330,7 @@ import {
 } from "../../providerInstances";
 import { type AppModelOption, getAppModelOptionsForInstance } from "../../modelSelection";
 import type { UnifiedSettings } from "@ras-code/contracts/settings";
-import { latestFallbackNotice, usageLimitPill } from "../settings/providerUsageLimit.logic";
+import { usageLimitPill } from "../settings/providerUsageLimit.logic";
 import { formatShortTimestamp } from "../../timestampFormat";
 import { type SessionPhase, type Thread, videoMimeType } from "../../types";
 import type { PendingUserInputDraftAnswer } from "../../pendingUserInput";
@@ -556,6 +566,7 @@ export interface ChatComposerHandle {
     selectedPromptEffort: string | null;
     selectedModelOptionsForDispatch: unknown;
     selectedModelSelection: ModelSelection;
+    modelSelectionIntentSnapshot: ModelSelection | null;
     providerAvailable: boolean;
     selectedProvider: ProviderDriverKind;
     selectedModel: string;
@@ -951,10 +962,23 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
       ),
     [providerStatuses, settings],
   );
-  const selectedProviderByThreadId = composerDraft.activeProvider ?? null;
+  const activeThreadProviderInstanceId = activeThread
+    ? resolveActiveProviderInstanceId(activeThread)
+    : null;
+  const draftModelSelection = composerDraft.activeProvider
+    ? composerDraft.modelSelectionByProvider[composerDraft.activeProvider]
+    : undefined;
+  const hasPendingModelSelectionIntent = isComposerModelSelectionIntentPending({
+    routeKind,
+    intentPending: composerDraft.modelSelectionIntentPending === true,
+    draftModelSelection,
+  });
+  const selectedProviderByThreadId = hasPendingModelSelectionIntent
+    ? (composerDraft.activeProvider ?? null)
+    : null;
   const threadProvider =
+    activeThreadProviderInstanceId ??
     activeThreadModelSelection?.instanceId ??
-    activeThread?.session?.providerInstanceId ??
     activeDefaultModelSelection?.instanceId ??
     null;
   const explicitSelectedInstanceId = selectedProviderByThreadId ?? threadProvider;
@@ -970,35 +994,19 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
   const requestedDriverKind: ProviderDriverKind = lockedProvider ?? unlockedSelectedProvider;
   const lockedContinuationGroupKey = useMemo((): string | null => {
     if (!lockedProvider || !activeThread) return null;
-    const lockedInstanceId =
-      activeThreadModelSelection?.instanceId ?? activeThread.session?.providerInstanceId;
+    const lockedInstanceId = resolveActiveProviderInstanceId(activeThread);
     if (!lockedInstanceId) return null;
     return (
       providerInstanceEntries.find((entry) => entry.instanceId === lockedInstanceId)
         ?.continuationGroupKey ?? null
     );
-  }, [
-    activeThread,
-    activeThreadModelSelection?.instanceId,
-    lockedProvider,
-    providerInstanceEntries,
-  ]);
+  }, [activeThread, lockedProvider, providerInstanceEntries]);
 
-  // Resolve which configured instance the composer is currently targeting.
-  // Priority:
-  //   1. The composer draft's `activeProvider` — the user's unsaved pick
-  //      from the model picker (must win, otherwise the UI appears to
-  //      ignore picker selections).
-  //   2. Thread's persisted instance id (server-side saved selection).
-  //   3. Project default's instance id, else the global default's.
-  //   4. First enabled entry matching the current driver kind.
-  //   5. First enabled entry overall / default instance for the kind.
-  //
+  // An explicit draft wins; otherwise use the provider serving the live session.
   const selectedInstanceId = useMemo<ProviderInstanceId>(() => {
     const candidates: Array<string | null | undefined> = [
-      composerDraft.activeProvider,
-      activeThreadModelSelection?.instanceId,
-      activeThread?.session?.providerInstanceId,
+      selectedProviderByThreadId,
+      activeThreadProviderInstanceId,
       activeDefaultModelSelection?.instanceId,
     ];
     for (const candidate of candidates) {
@@ -1007,22 +1015,15 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
         (entry) => entry.instanceId === candidate && entry.enabled && entry.isAvailable,
       );
       if (match) {
-        // When locked to a specific driver kind, ignore persisted instance
-        // ids from a different kind or continuation group.
-        if (lockedProvider && match.driverKind !== lockedProvider) continue;
         if (
-          lockedContinuationGroupKey &&
-          match.continuationGroupKey !== lockedContinuationGroupKey
-        ) {
+          !isProviderInstanceCompatibleWithLock(match, lockedProvider, lockedContinuationGroupKey)
+        )
           continue;
-        }
         return match.instanceId;
       }
     }
-    const compatibleEntries = providerInstanceEntries.filter(
-      (entry) =>
-        (!lockedProvider || entry.driverKind === lockedProvider) &&
-        (!lockedContinuationGroupKey || entry.continuationGroupKey === lockedContinuationGroupKey),
+    const compatibleEntries = providerInstanceEntries.filter((entry) =>
+      isProviderInstanceCompatibleWithLock(entry, lockedProvider, lockedContinuationGroupKey),
     );
     const requestedDriverEntries = compatibleEntries.filter(
       (entry) => entry.driverKind === requestedDriverKind,
@@ -1034,9 +1035,8 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     );
   }, [
     activeDefaultModelSelection?.instanceId,
-    activeThread?.session?.providerInstanceId,
-    activeThreadModelSelection?.instanceId,
-    composerDraft.activeProvider,
+    activeThreadProviderInstanceId,
+    selectedProviderByThreadId,
     lockedContinuationGroupKey,
     lockedProvider,
     providerInstanceEntries,
@@ -1059,12 +1059,15 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
   const selectedProvider: ProviderDriverKind =
     selectedProviderEntry?.driverKind ?? requestedDriverKind;
 
+  const activeThreadModelSelectionForDisplay = activeThread
+    ? resolveActiveProviderModelSelection(activeThread, providerStatuses)
+    : activeThreadModelSelection;
   const { modelOptions: composerModelOptions, selectedModel } = useEffectiveComposerModelState({
     threadRef: composerDraftTarget,
     providers: providerStatuses,
     selectedProvider,
     selectedInstanceId,
-    threadModelSelection: activeThreadModelSelection,
+    threadModelSelection: activeThreadModelSelectionForDisplay,
     projectModelSelection: activeDefaultModelSelection,
     settings,
   });
@@ -1106,6 +1109,11 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     () => createModelSelection(selectedInstanceId, selectedModel, selectedModelOptionsForDispatch),
     [selectedInstanceId, selectedModel, selectedModelOptionsForDispatch],
   );
+  const requestedModelSelection = resolveComposerRequestedModelSelection({
+    selectedModelSelection,
+    threadModelSelection: activeThreadModelSelection,
+    selectionExplicit: hasPendingModelSelectionIntent,
+  });
   const selectedModelForPicker = selectedModel;
   // Instance-keyed option list so the picker can show each configured
   // instance (built-in + custom) as a first-class sidebar entry. The
@@ -1139,25 +1147,6 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
       ),
     [providerStatuses, selectedInstanceId, settings.timestampFormat],
   );
-  const engagedFallback = useMemo(() => {
-    return latestFallbackNotice(activeThread?.activities ?? []);
-  }, [activeThread?.activities]);
-  const engagedFallbackLabel = useMemo(() => {
-    if (engagedFallback === null) return null;
-    const fallbackEntry = providerInstanceEntries.find(
-      (candidate) => String(candidate.instanceId) === engagedFallback.fallbackInstanceId,
-    );
-    const primaryOptions = modelOptionsByInstance.get(
-      ProviderInstanceId.make(engagedFallback.primaryInstanceId),
-    );
-    const modelLabel =
-      engagedFallback.modelLabel ??
-      primaryOptions?.find((model) => model.slug === engagedFallback.model)?.shortName ??
-      primaryOptions?.find((model) => model.slug === engagedFallback.model)?.name ??
-      engagedFallback.model;
-    return `Using ${modelLabel} via ${fallbackEntry?.displayName ?? engagedFallback.fallbackInstanceId}`;
-  }, [engagedFallback, modelOptionsByInstance, providerInstanceEntries]);
-
   const selectedModelForPickerWithCustomFallback = useMemo(() => {
     const currentOptions = modelOptionsByInstance.get(selectedInstanceId) ?? [];
     return currentOptions.some((option) => option.slug === selectedModelForPicker)
@@ -3298,7 +3287,10 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
         reviewComments: composerReviewComments,
         selectedPromptEffort,
         selectedModelOptionsForDispatch,
-        selectedModelSelection,
+        selectedModelSelection: requestedModelSelection,
+        modelSelectionIntentSnapshot: hasPendingModelSelectionIntent
+          ? (draftModelSelection ?? null)
+          : null,
         providerAvailable: !noProviderAvailable,
         selectedProvider,
         selectedModel,
@@ -3330,6 +3322,8 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
       composerPreviewAnnotations,
       composerReviewComments,
       focusComposer,
+      draftModelSelection,
+      hasPendingModelSelectionIntent,
       isConnecting,
       isComposerApprovalState,
       pendingUserInputs.length,
@@ -3339,7 +3333,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
       readComposerSnapshot,
       selectedModel,
       selectedModelOptionsForDispatch,
-      selectedModelSelection,
+      requestedModelSelection,
       noProviderAvailable,
       selectedPromptEffort,
       selectedProvider,
@@ -4119,14 +4113,6 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
                       {...(activeUsageLimitPill ? { usageLimit: activeUsageLimitPill } : {})}
                     />
                   )}
-                  {engagedFallbackLabel ? (
-                    <span
-                      role="status"
-                      className="shrink-0 truncate rounded-full bg-muted/60 px-2 py-0.5 text-[11px] text-muted-foreground"
-                    >
-                      {engagedFallbackLabel}
-                    </span>
-                  ) : null}
 
                   {isComposerFooterCompact ? (
                     <CompactComposerControlsMenu

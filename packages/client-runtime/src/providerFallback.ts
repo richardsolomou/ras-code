@@ -1,3 +1,5 @@
+import type { ModelSelection, ProviderInstanceId, ServerProviderModel } from "@ras-code/contracts";
+
 /**
  * The `provider.fallback.engaged` thread activity: the marker a thread gets
  * when a turn ran through the PostHog AI Gateway because the primary provider
@@ -10,6 +12,50 @@ export const FALLBACK_OFFERED_ACTIVITY_KIND = "provider.fallback.offered";
 export const FALLBACK_DECLINED_ACTIVITY_KIND = "provider.fallback.declined";
 export const FALLBACK_OFFER_EXPIRED_ACTIVITY_KIND = "provider.fallback.offer-expired";
 export const FALLBACK_RETURNED_ACTIVITY_KIND = "provider.fallback.returned";
+
+export function resolveActiveProviderInstanceId(thread: {
+  readonly modelSelection: { readonly instanceId: ProviderInstanceId };
+  readonly session: {
+    readonly providerInstanceId?: ProviderInstanceId | null | undefined;
+  } | null;
+}): ProviderInstanceId {
+  return thread.session?.providerInstanceId ?? thread.modelSelection.instanceId;
+}
+
+export function resolveActiveProviderModelSelection(
+  thread: {
+    readonly modelSelection: ModelSelection;
+    readonly session: {
+      readonly providerInstanceId?: ProviderInstanceId | null | undefined;
+    } | null;
+  },
+  providers: Iterable<{
+    readonly instanceId: ProviderInstanceId;
+    readonly models: ReadonlyArray<Pick<ServerProviderModel, "slug">>;
+  }>,
+): ModelSelection {
+  const instanceId = resolveActiveProviderInstanceId(thread);
+  if (instanceId === thread.modelSelection.instanceId) return thread.modelSelection;
+  let models: ReadonlyArray<Pick<ServerProviderModel, "slug">> = [];
+  for (const provider of providers) {
+    if (provider.instanceId === instanceId) {
+      models = provider.models;
+      break;
+    }
+  }
+  const selectedModel =
+    models.find((model) => model.slug === thread.modelSelection.model) ??
+    models.find(
+      (model) =>
+        model.slug.slice(model.slug.lastIndexOf("/") + 1) ===
+        thread.modelSelection.model.slice(thread.modelSelection.model.lastIndexOf("/") + 1),
+    );
+  return {
+    ...thread.modelSelection,
+    instanceId,
+    ...(selectedModel ? { model: selectedModel.slug } : {}),
+  };
+}
 
 export interface FallbackNoticePayload {
   readonly primaryInstanceId: string;

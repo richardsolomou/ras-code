@@ -31,6 +31,7 @@ import {
   type EnvironmentConnectionPresentation,
 } from "@ras-code/client-runtime/connection";
 import { wasBootstrapThreadDeleted } from "@ras-code/client-runtime/errors";
+import { resolveActiveProviderInstanceId } from "@ras-code/client-runtime/provider-fallback";
 import { type CodexArtifactTemplate } from "@ras-code/client-runtime/codex-artifact-templates";
 import {
   changeRequestAutoSettles,
@@ -214,6 +215,7 @@ import { getProviderModelCapabilities, resolveSelectableProvider } from "../prov
 import {
   applyProviderInstanceSettings,
   deriveProviderInstanceEntries,
+  isProviderInstanceCompatibleWithLock,
   NO_PROVIDER_MODEL_SELECTION,
 } from "../providerInstances";
 import {
@@ -1454,6 +1456,9 @@ function ChatViewContent(
   );
   const setComposerDraftReviewComments = useComposerDraftStore((store) => store.setReviewComments);
   const setComposerDraftModelSelection = useComposerDraftStore((store) => store.setModelSelection);
+  const acknowledgeComposerModelSelectionIntent = useComposerDraftStore(
+    (store) => store.acknowledgeModelSelectionIntent,
+  );
   const setComposerDraftRuntimeMode = useComposerDraftStore((store) => store.setRuntimeMode);
   const setComposerDraftInteractionMode = useComposerDraftStore(
     (store) => store.setInteractionMode,
@@ -2281,16 +2286,18 @@ function ChatViewContent(
   const selectedProviderByThreadId = composerActiveProvider ?? null;
   const threadProvider =
     activeThread?.modelSelection.instanceId ?? activeDefaultModelSelection?.instanceId ?? null;
-  const lockedProvider = deriveLockedProvider({
-    thread: activeThread,
-    selectedProvider: selectedProviderByThreadId,
-    threadProvider,
-  });
   // Once a thread selects an environment, never substitute the primary
   // environment's config while the selected environment is still loading.
   const serverConfig = activeThread
     ? (activeEnvironment?.serverConfig ?? null)
     : (primaryEnvironment?.serverConfig ?? null);
+  const providerStatuses = serverConfig?.providers ?? EMPTY_PROVIDERS;
+  const lockedProvider = deriveLockedProvider({
+    thread: activeThread,
+    selectedProvider: selectedProviderByThreadId,
+    threadProvider,
+    providers: providerStatuses,
+  });
   const pullRequestsCapabilityKnown = serverConfig !== null;
   const supportsPullRequests = serverConfig?.environment.capabilities.pullRequests === true;
   const attachmentEnvironmentConfig = environmentById.get(environmentId)?.serverConfig ?? null;
@@ -2491,7 +2498,6 @@ function ChatViewContent(
     versionMismatchSelfUpdate,
     versionMismatchServerLabel,
   ]);
-  const providerStatuses = serverConfig?.providers ?? EMPTY_PROVIDERS;
   const unlockedSelectedProvider = resolveSelectableProvider(
     providerStatuses,
     selectedProviderByThreadId ?? threadProvider,
@@ -5764,6 +5770,7 @@ function ChatViewContent(
       selectedProviderModels: ctxSelectedProviderModels,
       selectedPromptEffort: ctxSelectedPromptEffort,
       selectedModelSelection: ctxSelectedModelSelection,
+      modelSelectionIntentSnapshot: ctxModelSelectionIntentSnapshot,
     } = sendCtx;
     const annotationImageAlreadyAttached =
       directAnnotation?.image !== undefined &&
@@ -6260,6 +6267,13 @@ function ChatViewContent(
       });
       if (settingsResult._tag === "Failure") {
         failure = settingsResult;
+      } else {
+        if (ctxModelSelectionIntentSnapshot) {
+          acknowledgeComposerModelSelectionIntent(
+            composerDraftTarget,
+            ctxModelSelectionIntentSnapshot,
+          );
+        }
       }
     }
 
@@ -6724,6 +6738,7 @@ function ChatViewContent(
         selectedProviderModels: ctxSelectedProviderModels,
         selectedPromptEffort: ctxSelectedPromptEffort,
         selectedModelSelection: ctxSelectedModelSelection,
+        modelSelectionIntentSnapshot: ctxModelSelectionIntentSnapshot,
       } = sendCtx;
 
       const threadIdForSend = activeThread.id;
@@ -6770,6 +6785,12 @@ function ChatViewContent(
         settingsResult._tag === "Failure" ? settingsResult : null;
 
       if (failure === null) {
+        if (ctxModelSelectionIntentSnapshot) {
+          acknowledgeComposerModelSelectionIntent(
+            composerDraftTarget,
+            ctxModelSelectionIntentSnapshot,
+          );
+        }
         // Keep the mode toggle and plan-follow-up banner in sync immediately
         // while the same-thread implementation turn is starting.
         setComposerDraftInteractionMode(
@@ -6827,8 +6848,10 @@ function ChatViewContent(
     [
       activeThread,
       activeProposedPlan,
+      acknowledgeComposerModelSelectionIntent,
       acknowledgeActiveThreadWoke,
       beginLocalDispatch,
+      composerDraftTarget,
       isConnecting,
       isSendBusy,
       isServerThread,
@@ -7023,23 +7046,20 @@ function ChatViewContent(
       // model lookup stay scoped to that exact instance. Unknown instance ids
       // are rejected by returning early; the server remains authoritative too.
       const entry = providerStatuses.find((snapshot) => snapshot.instanceId === instanceId);
-      const resolvedDriverKind = entry?.driver ?? null;
-      if (
-        lockedProvider !== null &&
-        resolvedDriverKind !== null &&
-        resolvedDriverKind !== lockedProvider
-      ) {
-        scheduleComposerFocus();
-        return;
-      }
-      if (lockedProvider !== null && activeThread.session?.providerInstanceId) {
-        const currentEntry = providerStatuses.find(
-          (snapshot) => snapshot.instanceId === activeThread.session?.providerInstanceId,
-        );
+      if (lockedProvider !== null && entry !== undefined) {
+        const lockedInstanceId = resolveActiveProviderInstanceId(activeThread);
+        const lockedContinuationGroupKey = providerStatuses.find(
+          (snapshot) => snapshot.instanceId === lockedInstanceId,
+        )?.continuation?.groupKey;
         if (
-          currentEntry?.continuation?.groupKey &&
-          entry?.continuation?.groupKey &&
-          currentEntry.continuation.groupKey !== entry.continuation.groupKey
+          !isProviderInstanceCompatibleWithLock(
+            {
+              driverKind: entry.driver,
+              continuationGroupKey: entry.continuation?.groupKey,
+            },
+            lockedProvider,
+            lockedContinuationGroupKey ?? null,
+          )
         ) {
           scheduleComposerFocus();
           return;

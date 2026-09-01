@@ -4,6 +4,7 @@ import { ProviderInstanceId, type ModelSelection, type ServerConfig } from "@ras
 
 import {
   buildModelOptions,
+  filterStartedThreadProviderGroups,
   groupByProvider,
   resolveDefaultableModelSelection,
   resolveNewTaskModelSelection,
@@ -145,6 +146,108 @@ describe("mobile model options", () => {
 
     expect(option?.capabilities?.optionDescriptors?.[0]?.id).toBe("serviceTier");
     expect(option?.selection.options).toEqual([{ id: "serviceTier", value: "default" }]);
+  });
+
+  it("keeps a started gateway thread on its current harness shape", () => {
+    const config = {
+      providers: [
+        {
+          instanceId: "posthog_gateway",
+          driver: "posthogGateway",
+          displayName: "PostHog AI Gateway",
+          enabled: true,
+          installed: true,
+          auth: { status: "authenticated" },
+          models: [
+            {
+              slug: "zai-org/glm-5.3-flash",
+              name: "GLM-5.3 Flash",
+              isCustom: false,
+              capabilities: null,
+            },
+            {
+              slug: "openai/gpt-5.4",
+              name: "GPT-5.4",
+              isCustom: false,
+              capabilities: null,
+            },
+            {
+              slug: "anthropic/claude-sonnet-4-6",
+              name: "Claude Sonnet 4.6",
+              isCustom: false,
+              capabilities: null,
+            },
+          ],
+        },
+      ],
+    } as unknown as ServerConfig;
+    const currentSelection = {
+      instanceId: ProviderInstanceId.make("posthog_gateway"),
+      model: "zai-org/glm-5.3-flash",
+    };
+
+    const groups = filterStartedThreadProviderGroups({
+      groups: groupByProvider(buildModelOptions(config, currentSelection)),
+      currentSelection,
+      currentDriver: "posthogGateway",
+      hasStartedSession: true,
+    });
+
+    expect(groups[0]?.models.map((model) => model.selection.model)).toEqual([
+      "zai-org/glm-5.3-flash",
+      "openai/gpt-5.4",
+    ]);
+  });
+
+  it("allows gateway shape changes before the first turn", () => {
+    const currentSelection = {
+      instanceId: ProviderInstanceId.make("posthog_gateway"),
+      model: "anthropic/claude-sonnet-4-6",
+    };
+    const models = [
+      {
+        key: "posthog_gateway:anthropic/claude-sonnet-4-6",
+        label: "Claude Sonnet 4.6",
+        subtitle: "",
+        providerKey: "posthog_gateway",
+        providerLabel: "PostHog AI Gateway",
+        providerDriver: "posthogGateway",
+        isDefault: true,
+        isLegacy: false,
+        capabilities: null,
+        selection: currentSelection,
+      },
+      {
+        key: "posthog_gateway:zai-org/glm-5.3-flash",
+        label: "GLM-5.3 Flash",
+        subtitle: "",
+        providerKey: "posthog_gateway",
+        providerLabel: "PostHog AI Gateway",
+        providerDriver: "posthogGateway",
+        isDefault: false,
+        isLegacy: false,
+        capabilities: null,
+        selection: {
+          instanceId: ProviderInstanceId.make("posthog_gateway"),
+          model: "zai-org/glm-5.3-flash",
+        },
+      },
+    ];
+
+    expect(
+      filterStartedThreadProviderGroups({
+        groups: [
+          {
+            providerKey: "posthog_gateway",
+            providerLabel: "PostHog AI Gateway",
+            models,
+          },
+        ],
+        currentSelection,
+        currentDriver: "posthogGateway",
+        hasStartedSession: false,
+      })[0]?.models,
+    ).toHaveLength(2);
   });
 
   it("rejects stored selections whose provider is not usable", () => {

@@ -3,6 +3,7 @@ import {
   EnvironmentId,
   MessageId,
   ProjectId,
+  ProviderDriverKind,
   ProviderInstanceId,
   ThreadId,
   TurnId,
@@ -26,6 +27,8 @@ import {
   dismissBranchMismatchForSession,
   ENVIRONMENT_RECONNECT_WARNING_GRACE_MS,
   getStartedThreadModelChangeBlockReason,
+  isComposerModelSelectionIntentPending,
+  resolveComposerRequestedModelSelection,
   loadVideoPreviewUrl,
   isVideoPreviewRequestCurrent,
   hasEnvironmentReconnectWarningGraceElapsed,
@@ -580,6 +583,7 @@ describe("fork response state", () => {
         thread: forkDraft,
         selectedProvider: null,
         threadProvider: "codex",
+        providers: [],
       }),
     ).toBeNull();
   });
@@ -609,8 +613,36 @@ describe("fork response state", () => {
         thread,
         selectedProvider: null,
         threadProvider: "claudeAgent",
+        providers: [
+          {
+            instanceId: ProviderInstanceId.make("claudeAgent"),
+            driver: ProviderDriverKind.make("claudeAgent"),
+          },
+          {
+            instanceId: ProviderInstanceId.make("posthog_gateway"),
+            driver: ProviderDriverKind.make("posthogGateway"),
+          },
+        ],
       }),
     ).toBe("claudeAgent");
+  });
+
+  it("resolves a custom instance id to its driver", () => {
+    const thread = makeThread({ session: readySession });
+
+    expect(
+      deriveLockedProvider({
+        thread,
+        selectedProvider: null,
+        threadProvider: "posthog_gateway",
+        providers: [
+          {
+            instanceId: ProviderInstanceId.make("posthog_gateway"),
+            driver: ProviderDriverKind.make("posthogGateway"),
+          },
+        ],
+      }),
+    ).toBe("posthogGateway");
   });
 });
 
@@ -756,10 +788,20 @@ describe("getStartedThreadModelChangeBlockReason", () => {
   const providers = [
     {
       instanceId: ProviderInstanceId.make("codex"),
+      driver: ProviderDriverKind.make("codex"),
     },
     {
       instanceId: ProviderInstanceId.make("grok"),
+      driver: ProviderDriverKind.make("grok"),
       requiresNewThreadForModelChange: true,
+    },
+    {
+      instanceId: ProviderInstanceId.make("claudeAgent"),
+      driver: ProviderDriverKind.make("claudeAgent"),
+    },
+    {
+      instanceId: ProviderInstanceId.make("posthog_gateway"),
+      driver: ProviderDriverKind.make("posthogGateway"),
     },
   ];
 
@@ -816,6 +858,158 @@ describe("getStartedThreadModelChangeBlockReason", () => {
       description:
         "This provider does not allow switching models after a conversation has started.",
     });
+  });
+
+  it("allows a Claude thread to continue with a Claude model through the gateway", () => {
+    expect(
+      getStartedThreadModelChangeBlockReason({
+        providers,
+        hasStartedSession: true,
+        currentModelSelection: {
+          instanceId: ProviderInstanceId.make("claudeAgent"),
+          model: "claude-opus-4-6",
+        },
+        nextModelSelection: {
+          instanceId: ProviderInstanceId.make("posthog_gateway"),
+          model: "anthropic/claude-sonnet-4-6",
+        },
+      }),
+    ).toBeNull();
+  });
+
+  it("blocks switching a Claude thread to an open gateway model", () => {
+    expect(
+      getStartedThreadModelChangeBlockReason({
+        providers,
+        hasStartedSession: true,
+        currentModelSelection: {
+          instanceId: ProviderInstanceId.make("claudeAgent"),
+          model: "claude-opus-4-6",
+        },
+        nextModelSelection: {
+          instanceId: ProviderInstanceId.make("posthog_gateway"),
+          model: "zai-org/glm-5.3-flash",
+        },
+      }),
+    ).toEqual({
+      title: "Start a new chat to change models",
+      description:
+        "PostHog AI Gateway cannot switch between Claude and open models in the same conversation.",
+    });
+  });
+
+  it("uses the live fallback instance when checking gateway shape changes", () => {
+    expect(
+      getStartedThreadModelChangeBlockReason({
+        providers,
+        hasStartedSession: true,
+        currentModelSelection: {
+          instanceId: ProviderInstanceId.make("claudeAgent"),
+          model: "claude-opus-4-6",
+        },
+        currentProviderInstanceId: ProviderInstanceId.make("posthog_gateway"),
+        nextModelSelection: {
+          instanceId: ProviderInstanceId.make("posthog_gateway"),
+          model: "zai-org/glm-5.3-flash",
+        },
+      }),
+    ).toEqual({
+      title: "Start a new chat to change models",
+      description:
+        "PostHog AI Gateway cannot switch between Claude and open models in the same conversation.",
+    });
+  });
+
+  it("blocks switching an open gateway session to a Claude model", () => {
+    expect(
+      getStartedThreadModelChangeBlockReason({
+        providers,
+        hasStartedSession: true,
+        currentModelSelection: {
+          instanceId: ProviderInstanceId.make("posthog_gateway"),
+          model: "zai-org/glm-5.3-flash",
+        },
+        nextModelSelection: {
+          instanceId: ProviderInstanceId.make("posthog_gateway"),
+          model: "anthropic/claude-sonnet-4-6",
+        },
+      }),
+    ).toEqual({
+      title: "Start a new chat to change models",
+      description:
+        "PostHog AI Gateway cannot switch between Claude and open models in the same conversation.",
+    });
+  });
+});
+
+describe("resolveComposerRequestedModelSelection", () => {
+  const primary = {
+    instanceId: ProviderInstanceId.make("claudeAgent"),
+    model: "claude-sonnet-4-6",
+  };
+  const fallback = {
+    instanceId: ProviderInstanceId.make("posthog_gateway"),
+    model: "anthropic/claude-sonnet-4-6",
+  };
+
+  it("keeps an implicit fallback follow-up routed through the primary selection", () => {
+    expect(
+      resolveComposerRequestedModelSelection({
+        selectedModelSelection: fallback,
+        threadModelSelection: primary,
+        selectionExplicit: false,
+      }),
+    ).toBe(primary);
+  });
+
+  it("dispatches an explicitly selected gateway model", () => {
+    expect(
+      resolveComposerRequestedModelSelection({
+        selectedModelSelection: fallback,
+        threadModelSelection: primary,
+        selectionExplicit: true,
+      }),
+    ).toBe(fallback);
+  });
+});
+
+describe("isComposerModelSelectionIntentPending", () => {
+  const primary = {
+    instanceId: ProviderInstanceId.make("claudeAgent"),
+    model: "claude-sonnet-4-6",
+  };
+
+  it("keeps seeded provider intent for a new draft", () => {
+    expect(
+      isComposerModelSelectionIntentPending({
+        routeKind: "draft",
+        intentPending: false,
+        draftModelSelection: primary,
+      }),
+    ).toBe(true);
+  });
+
+  it("keeps a fresh explicit switch to the persisted primary pending", () => {
+    expect(
+      isComposerModelSelectionIntentPending({
+        routeKind: "server",
+        intentPending: true,
+        draftModelSelection: primary,
+      }),
+    ).toBe(true);
+  });
+
+  it("keeps an unsent explicit model change pending", () => {
+    expect(
+      isComposerModelSelectionIntentPending({
+        routeKind: "server",
+        intentPending: true,
+        draftModelSelection: {
+          instanceId: ProviderInstanceId.make("posthog_gateway"),
+          model: "anthropic/claude-sonnet-4-6",
+        },
+      }),
+    ).toBe(true);
   });
 });
 

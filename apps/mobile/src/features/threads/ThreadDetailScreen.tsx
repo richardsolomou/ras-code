@@ -1,4 +1,5 @@
 import { type EnvironmentConnectionPhase } from "@ras-code/client-runtime/connection";
+import { resolveActiveProviderInstanceId } from "@ras-code/client-runtime/provider-fallback";
 import {
   appendCodexArtifactTemplateUsePrompt,
   type CodexArtifactTemplate,
@@ -272,7 +273,8 @@ export const ThreadDetailScreen = memo(function ThreadDetailScreen(props: Thread
   }, []);
   const windowHeight = useWindowDimensions().height;
   const navigationHeaderHeight = useContext(HeaderHeightContext) || insets.top + IOS_NAV_BAR_HEIGHT;
-  const agentLabel = `${props.selectedThread.modelSelection.instanceId} agent`;
+  const selectedInstanceId = resolveActiveProviderInstanceId(props.selectedThread);
+  const agentLabel = `${selectedInstanceId} agent`;
   const selectedThreadKey = scopedThreadKey(props.environmentId, props.selectedThread.id);
   const linkedPullRequestDetail = useLinkedPullRequestDetail(
     props.selectedThread,
@@ -535,7 +537,6 @@ export const ThreadDetailScreen = memo(function ThreadDetailScreen(props: Thread
   const layoutVariant = props.layoutVariant ?? "compact";
   const isSplitLayout = layoutVariant === "split";
   const contentMaxWidth = isSplitLayout ? CHAT_CONTENT_MAX_WIDTH : undefined;
-  const selectedInstanceId = props.selectedThread.modelSelection.instanceId;
   useStreamingHaptics(props.selectedThread.id, props.selectedThreadFeed);
   const selectedProviderSkills = useMemo(
     () =>

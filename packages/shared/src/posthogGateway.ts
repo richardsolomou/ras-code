@@ -100,6 +100,26 @@ export function gatewayModelShape(id: string): GatewayModelShape {
   return bare.startsWith("claude-") ? "anthropic" : "openai";
 }
 
+export function isPostHogGatewayCrossShapeModelChange(input: {
+  readonly currentDriver: string | undefined;
+  readonly currentModel: string;
+  readonly nextDriver: string | undefined;
+  readonly nextModel: string;
+}): boolean {
+  if (input.currentDriver !== "posthogGateway" && input.nextDriver !== "posthogGateway") {
+    return false;
+  }
+  const shapeFor = (driver: string | undefined, model: string): GatewayModelShape | null => {
+    if (driver === "claudeAgent") return "anthropic";
+    if (driver === "codex") return "openai";
+    if (driver === "posthogGateway") return gatewayModelShape(model);
+    return null;
+  };
+  const currentShape = shapeFor(input.currentDriver, input.currentModel);
+  const nextShape = shapeFor(input.nextDriver, input.nextModel);
+  return currentShape !== null && nextShape !== null && currentShape !== nextShape;
+}
+
 export interface CodexLaunchArgs {
   /** Exactly the tokens appended to `codex app-server`. */
   readonly argv: ReadonlyArray<string>;

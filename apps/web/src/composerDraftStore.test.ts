@@ -1827,12 +1827,45 @@ describe("composerDraftStore modelSelection", () => {
       explicit: true,
     });
     expect(draftFor(threadId, TEST_ENVIRONMENT_ID)?.modelSelectionExplicit).toBe(true);
+    expect(draftFor(threadId, TEST_ENVIRONMENT_ID)?.modelSelectionIntentPending).toBe(true);
 
     // Last writer defines intent: a later seed clears the marker.
     store.setModelSelection(threadRef, modelSelection(CODEX_DRIVER, "gpt-5.4"), {
       replaceOptions: true,
     });
     expect(draftFor(threadId, TEST_ENVIRONMENT_ID)?.modelSelectionExplicit).toBeUndefined();
+    expect(draftFor(threadId, TEST_ENVIRONMENT_ID)?.modelSelectionIntentPending).toBeUndefined();
+  });
+
+  it("consumes explicit model intent after the selection is committed", () => {
+    const store = useComposerDraftStore.getState();
+    const selection = modelSelection(CODEX_DRIVER, "gpt-5.4");
+    store.setModelSelection(threadRef, selection, { explicit: true });
+    store.setPrompt(threadRef, "send this");
+
+    store.clearComposerContent(threadRef);
+    expect(draftFor(threadId, TEST_ENVIRONMENT_ID)?.modelSelectionExplicit).toBe(true);
+
+    store.acknowledgeModelSelectionIntent(threadRef, selection);
+    expect(draftFor(threadId, TEST_ENVIRONMENT_ID)?.modelSelectionExplicit).toBeUndefined();
+    expect(draftFor(threadId, TEST_ENVIRONMENT_ID)?.modelSelectionIntentPending).toBeUndefined();
+  });
+
+  it("does not consume a newer model intent with a stale acknowledgment", () => {
+    const store = useComposerDraftStore.getState();
+    const sentSelection = modelSelection(CODEX_DRIVER, "gpt-5.4");
+    const newerSelection = modelSelection(CODEX_DRIVER, "gpt-5.6-sol");
+    store.setModelSelection(threadRef, sentSelection, { explicit: true });
+    store.setModelSelection(threadRef, newerSelection, { explicit: true });
+
+    store.acknowledgeModelSelectionIntent(threadRef, sentSelection);
+
+    expect(draftFor(threadId, TEST_ENVIRONMENT_ID)).toMatchObject({
+      modelSelectionIntentPending: true,
+      modelSelectionByProvider: {
+        [CODEX_INSTANCE]: newerSelection,
+      },
+    });
   });
 
   it("persists the explicit marker through storage round-trips", async () => {
@@ -1851,6 +1884,7 @@ describe("composerDraftStore modelSelection", () => {
       resetComposerDraftStore();
       await useComposerDraftStore.persist.rehydrate();
       expect(draftFor(threadId, TEST_ENVIRONMENT_ID)?.modelSelectionExplicit).toBe(true);
+      expect(draftFor(threadId, TEST_ENVIRONMENT_ID)?.modelSelectionIntentPending).toBe(true);
       expect(
         draftFor(threadId, TEST_ENVIRONMENT_ID)?.modelSelectionByProvider[CODEX_INSTANCE],
       ).toEqual(modelSelection(CODEX_DRIVER, "gpt-5.4"));
@@ -2458,6 +2492,60 @@ describe("composerDraftStore model seed migration", () => {
       expect(useComposerDraftStore.getState()).toMatchObject({
         stickyModelSelectionByProvider: { [CODEX_INSTANCE]: stickySelection },
         stickyActiveProvider: CODEX_INSTANCE,
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("restores pending model intent for v9 explicit drafts", async () => {
+    vi.useFakeTimers();
+    try {
+      const selection = modelSelection(CODEX_DRIVER, "gpt-5.6-sol");
+      const storage = useComposerDraftStore.persist.getOptions().storage;
+      expect(storage).toBeDefined();
+      storage?.setItem(COMPOSER_DRAFT_STORAGE_KEY, {
+        version: 9,
+        state: {
+          draftsByThreadKey: {
+            [serverThreadKey]: {
+              prompt: "send this with the selected model",
+              attachments: [],
+              modelSelectionByProvider: { [CODEX_INSTANCE]: selection },
+              activeProvider: CODEX_INSTANCE,
+              modelSelectionExplicit: true,
+            },
+            [explicitDraftId]: {
+              prompt: "",
+              attachments: [],
+              modelSelectionByProvider: { [CODEX_INSTANCE]: selection },
+              activeProvider: CODEX_INSTANCE,
+              modelSelectionExplicit: true,
+            },
+          },
+          draftThreadsByThreadKey: {},
+          logicalProjectDraftThreadKeyByLogicalProjectKey: {},
+          stickyModelSelectionByProvider: {},
+          stickyActiveProvider: null,
+        },
+      } as never);
+      await vi.advanceTimersByTimeAsync(300);
+
+      await useComposerDraftStore.persist.rehydrate();
+
+      expect(draftByKey(serverThreadKey)).toMatchObject({
+        prompt: "send this with the selected model",
+        modelSelectionByProvider: { [CODEX_INSTANCE]: selection },
+        activeProvider: CODEX_INSTANCE,
+        modelSelectionExplicit: true,
+        modelSelectionIntentPending: true,
+      });
+      expect(draftByKey(explicitDraftId)).toMatchObject({
+        prompt: "",
+        modelSelectionByProvider: { [CODEX_INSTANCE]: selection },
+        activeProvider: CODEX_INSTANCE,
+        modelSelectionExplicit: true,
+        modelSelectionIntentPending: true,
       });
     } finally {
       vi.useRealTimers();

@@ -24,6 +24,7 @@ import {
   WORKTREE_BRANCH_PREFIX,
   WORKTREE_BRANCH_PREFIXES,
 } from "@ras-code/shared/git";
+import { isPostHogGatewayCrossShapeModelChange } from "@ras-code/shared/posthogGateway";
 import * as Cache from "effect/Cache";
 import * as Cause from "effect/Cause";
 import * as Clock from "effect/Clock";
@@ -566,21 +567,34 @@ const make = Effect.gen(function* () {
       return;
     }
     const providers = yield* providerRegistry.getProviders;
+    const currentProvider = providers.find(
+      (snapshot) => snapshot.instanceId === input.currentModelSelection.instanceId,
+    );
+    const requestedProvider = providers.find(
+      (snapshot) => snapshot.instanceId === requestedModelSelection.instanceId,
+    );
+    const crossShapeGatewayChange = isPostHogGatewayCrossShapeModelChange({
+      currentDriver: currentProvider?.driver,
+      currentModel: input.currentModelSelection.model,
+      nextDriver: requestedProvider?.driver,
+      nextModel: requestedModelSelection.model,
+    });
     const requiresNewThread =
-      providers.find((snapshot) => snapshot.instanceId === input.currentModelSelection.instanceId)
-        ?.requiresNewThreadForModelChange === true ||
-      providers.find((snapshot) => snapshot.instanceId === requestedModelSelection.instanceId)
-        ?.requiresNewThreadForModelChange === true;
-    if (!requiresNewThread) {
+      currentProvider?.requiresNewThreadForModelChange === true ||
+      requestedProvider?.requiresNewThreadForModelChange === true;
+    if (!requiresNewThread && !crossShapeGatewayChange) {
       return;
     }
+    const detail = crossShapeGatewayChange
+      ? `Thread '${input.threadId}' cannot switch between Claude and open models on PostHog AI Gateway after the conversation has started. Start a new thread to use '${requestedModelSelection.model}'.`
+      : `Thread '${input.threadId}' cannot switch models after the conversation has started. Start a new thread to use '${requestedModelSelection.model}'.`;
     return yield* new ProviderAdapterRequestError({
       provider: providerErrorLabelFromInstanceHint({
         instanceId: String(requestedModelSelection.instanceId),
         modelSelectionInstanceId: String(input.currentModelSelection.instanceId),
       }),
       method: "thread.turn.start",
-      detail: `Thread '${input.threadId}' cannot switch models after the conversation has started. Start a new thread to use '${requestedModelSelection.model}'.`,
+      detail,
     });
   });
 

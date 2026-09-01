@@ -15,6 +15,7 @@ import {
   type TurnId,
 } from "@ras-code/contracts";
 import { selectForkInheritedPrefix } from "@ras-code/shared/forkHistory";
+import { isPostHogGatewayCrossShapeModelChange } from "@ras-code/shared/posthogGateway";
 import {
   appendCodexArtifactTemplateUsePrompt,
   codexArtifactTemplateUsePrompt,
@@ -638,42 +639,40 @@ export function threadHasStarted(thread: Thread | null | undefined): boolean {
   );
 }
 
-// `threadProvider` is the open branded driver kind selected for the thread.
-// Unknown driver kinds degrade to `null` (i.e. "unlocked"), which is the safe
-// rollback / fork behavior — the routing layer is the right place to surface
-// "driver not installed" errors, not the lock state.
-//
-// `selectedProvider` takes the same open-string shape because the composer
-// now tracks the picker selection as a `ProviderInstanceId` (e.g.
-// `codex_personal`). Custom instance ids that don't directly match a
-// registered driver resolve to `null` here, which matches the existing
-// "unknown driver -> unlocked" semantics. Callers that want the lock to track
-// a custom instance's underlying driver kind should resolve the instance id
-// upstream and pass the correlated kind.
+// Instance IDs and driver kinds share an open slug shape, so only the live
+// provider snapshots can resolve an instance to its driver without guessing.
 export function deriveLockedProvider(input: {
   thread: Thread | null | undefined;
   selectedProvider: string | null;
   threadProvider: string | null;
+  providers: ReadonlyArray<Pick<ServerProvider, "instanceId" | "driver">>;
 }): ProviderDriverKind | null {
   if (!threadHasStarted(input.thread)) {
     return null;
   }
-  const narrowedThreadProvider =
-    input.threadProvider && isProviderDriverKind(input.threadProvider)
-      ? input.threadProvider
-      : null;
-  const narrowedSelectedProvider =
-    input.selectedProvider && isProviderDriverKind(input.selectedProvider)
-      ? input.selectedProvider
-      : null;
+  const resolveDriver = (selection: string | null): ProviderDriverKind | null => {
+    if (selection === null) return null;
+    return (
+      input.providers.find(
+        (provider) => provider.instanceId === selection || provider.driver === selection,
+      )?.driver ?? null
+    );
+  };
   const sessionProvider = input.thread?.session?.providerName ?? null;
   const narrowedSessionProvider =
     sessionProvider && isProviderDriverKind(sessionProvider) ? sessionProvider : null;
-  return narrowedThreadProvider ?? narrowedSelectedProvider ?? narrowedSessionProvider ?? null;
+  return (
+    resolveDriver(input.threadProvider) ??
+    resolveDriver(input.selectedProvider) ??
+    narrowedSessionProvider ??
+    null
+  );
 }
 
 export function getStartedThreadModelChangeBlockReason(input: {
-  providers: ReadonlyArray<Pick<ServerProvider, "instanceId" | "requiresNewThreadForModelChange">>;
+  providers: ReadonlyArray<
+    Pick<ServerProvider, "driver" | "instanceId" | "requiresNewThreadForModelChange">
+  >;
   hasStartedSession: boolean;
   currentModelSelection: ModelSelection;
   currentProviderInstanceId?: ModelSelection["instanceId"] | null | undefined;
@@ -699,6 +698,20 @@ export function getStartedThreadModelChangeBlockReason(input: {
     (snapshot) => snapshot.instanceId === input.nextModelSelection.instanceId,
   );
   if (
+    isPostHogGatewayCrossShapeModelChange({
+      currentDriver: currentProvider?.driver,
+      currentModel: currentModelSelection.model,
+      nextDriver: nextProvider?.driver,
+      nextModel: input.nextModelSelection.model,
+    })
+  ) {
+    return {
+      title: "Start a new chat to change models",
+      description:
+        "PostHog AI Gateway cannot switch between Claude and open models in the same conversation.",
+    };
+  }
+  if (
     currentProvider?.requiresNewThreadForModelChange !== true &&
     nextProvider?.requiresNewThreadForModelChange !== true
   ) {
@@ -708,6 +721,25 @@ export function getStartedThreadModelChangeBlockReason(input: {
     title: "Start a new chat to change models",
     description: "This provider does not allow switching models after a conversation has started.",
   };
+}
+
+export function resolveComposerRequestedModelSelection(input: {
+  readonly selectedModelSelection: ModelSelection;
+  readonly threadModelSelection: ModelSelection | null | undefined;
+  readonly selectionExplicit: boolean;
+}): ModelSelection {
+  return input.selectionExplicit || !input.threadModelSelection
+    ? input.selectedModelSelection
+    : input.threadModelSelection;
+}
+
+export function isComposerModelSelectionIntentPending(input: {
+  readonly routeKind: "server" | "draft";
+  readonly intentPending: boolean;
+  readonly draftModelSelection: ModelSelection | null | undefined;
+}): boolean {
+  if (input.routeKind === "draft") return input.draftModelSelection != null;
+  return input.intentPending && input.draftModelSelection != null;
 }
 
 export async function waitForStartedServerThread(

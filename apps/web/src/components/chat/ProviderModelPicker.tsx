@@ -204,7 +204,7 @@ export const ProviderModelPicker = memo(function ProviderModelPicker(props: {
                 )
               }
             >
-              {props.usageLimit.kind === "exhausted" ? props.usageLimit.label : null}
+              {props.usageLimit.kind === "exhausted" ? "Limit reached" : null}
             </TooltipTrigger>
             <TooltipPopup side="top">{props.usageLimit.label}</TooltipPopup>
           </Tooltip>

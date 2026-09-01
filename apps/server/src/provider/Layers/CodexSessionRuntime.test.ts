@@ -196,7 +196,11 @@ describe("buildTurnStartParams", () => {
     const settings = params.collaborationMode?.settings;
     NodeAssert.equal(settings?.model, DEFAULT_MODEL);
     NodeAssert.equal(settings?.reasoning_effort, "medium");
-    NodeAssert.ok(settings?.developer_instructions?.includes(`as ${DEFAULT_MODEL} with medium`));
+    NodeAssert.ok(
+      settings?.developer_instructions?.includes(
+        `The active model identifier is "${DEFAULT_MODEL}"`,
+      ),
+    );
   });
 
   it.effect("routes approvals to the auto reviewer in auto mode", () =>
@@ -462,7 +466,10 @@ describe("buildCodexDeveloperInstructions", () => {
     NodeAssert.ok(instructions.startsWith(codexDefaultModeDeveloperInstructions(true)));
     NodeAssert.match(instructions, /RAS Code/);
     NodeAssert.match(instructions, /Codex harness/);
-    NodeAssert.match(instructions, /as gpt-5\.3-codex with high reasoning effort/);
+    NodeAssert.match(instructions, /active model identifier is "gpt-5\.3-codex"/);
+    NodeAssert.match(instructions, /answer with this exact identifier/);
+    NodeAssert.match(instructions, /with high reasoning effort/);
+    NodeAssert.match(instructions, /Do not say that the model identifier is unavailable/);
   });
 
   it("includes runtime info alongside plan mode instructions", () => {
@@ -472,7 +479,8 @@ describe("buildCodexDeveloperInstructions", () => {
     });
 
     NodeAssert.ok(instructions.startsWith(codexPlanModeDeveloperInstructions(true)));
-    NodeAssert.match(instructions, /as gpt-5\.3-codex with medium reasoning effort/);
+    NodeAssert.match(instructions, /active model identifier is "gpt-5\.3-codex"/);
+    NodeAssert.match(instructions, /with medium reasoning effort/);
   });
 
   it("tells the agent where a shared image has to live, in both modes", () => {
@@ -506,7 +514,8 @@ describe("buildCodexDeveloperInstructions", () => {
       reasoningEffort: " high\neffort ",
     });
 
-    NodeAssert.match(instructions, /as gpt 5\.3 codex with high effort reasoning effort/);
+    NodeAssert.match(instructions, /active model identifier is "gpt 5\.3 codex"/);
+    NodeAssert.match(instructions, /with high effort reasoning effort/);
     NodeAssert.doesNotMatch(instructions, /<runtime_info>[^<]*\n/);
   });
 });
@@ -817,6 +826,7 @@ describe("openCodexThread", () => {
         requestedModel: "gpt-5.3-codex",
         serviceTier: undefined,
         resumeThreadId: "stale-thread",
+        baseInstructions: "You are a coding agent running in RAS Code.",
       });
 
       NodeAssert.equal(opened.thread.id, "fresh-thread");
@@ -824,6 +834,12 @@ describe("openCodexThread", () => {
         calls.map((call) => call.method),
         ["thread/resume", "thread/start"],
       );
+      for (const call of calls) {
+        NodeAssert.equal(
+          (call.payload as { readonly baseInstructions?: string }).baseInstructions,
+          "You are a coding agent running in RAS Code.",
+        );
+      }
     }),
   );
 

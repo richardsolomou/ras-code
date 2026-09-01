@@ -12,6 +12,7 @@ import { useAtomValue } from "@effect/atom-react";
 import { AsyncResult } from "effect/unstable/reactivity";
 import type { EnvironmentId } from "@ras-code/contracts";
 import { sortPinnedThreadsByOrderKey } from "@ras-code/client-runtime/state/thread-sort";
+import { resolveActiveProviderInstanceId } from "@ras-code/client-runtime/provider-fallback";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { LayoutChangeEvent } from "react-native";
 import { Platform, Pressable, StyleSheet, TextInput, View } from "react-native";
@@ -748,7 +749,7 @@ function ThreadNavigationSidebarPane(
                 serverConfigs
                   .get(thread.environmentId)
                   ?.providers.find(
-                    (provider) => provider.instanceId === thread.modelSelection.instanceId,
+                    (provider) => provider.instanceId === resolveActiveProviderInstanceId(thread),
                   )?.driver ?? null
               }
               environmentLabel={

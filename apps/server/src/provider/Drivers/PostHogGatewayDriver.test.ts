@@ -16,6 +16,7 @@ import {
   buildClaudeChildEnvironment,
   buildCodexChildEnvironment,
   buildGatewayModels,
+  postHogGatewayBaseInstructions,
   composeGatewaySnapshot,
   CROSS_SHAPE_SWITCH_MESSAGE,
   makeGatewayAdapter,
@@ -26,6 +27,15 @@ import {
 const INSTANCE = ProviderInstanceId.make("posthog_gateway");
 const THREAD = "thread-1" as ThreadId;
 const BASE_URL = "https://ai-gateway.us.posthog.com";
+
+describe("postHogGatewayBaseInstructions", () => {
+  it("defers model identity to each turn", () => {
+    const instructions = postHogGatewayBaseInstructions();
+
+    assert.match(instructions, /provided in each turn's developer instructions/);
+    assert.strictEqual(instructions.includes("zai-org/glm-5.3-flash"), false);
+  });
+});
 
 const childSnapshot = (input: {
   readonly driver: string;
