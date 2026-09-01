@@ -31,6 +31,7 @@ import {
   type EnvironmentConnectionPresentation,
 } from "@ras-code/client-runtime/connection";
 import { wasBootstrapThreadDeleted } from "@ras-code/client-runtime/errors";
+import { resolveActiveProviderInstanceId } from "@ras-code/client-runtime/provider-fallback";
 import { type CodexArtifactTemplate } from "@ras-code/client-runtime/codex-artifact-templates";
 import {
   changeRequestAutoSettles,
@@ -7026,8 +7027,7 @@ function ChatViewContent(
       // are rejected by returning early; the server remains authoritative too.
       const entry = providerStatuses.find((snapshot) => snapshot.instanceId === instanceId);
       if (lockedProvider !== null && entry !== undefined) {
-        const lockedInstanceId =
-          activeThread.modelSelection.instanceId ?? activeThread.session?.providerInstanceId;
+        const lockedInstanceId = resolveActiveProviderInstanceId(activeThread);
         const lockedContinuationGroupKey = providerStatuses.find(
           (snapshot) => snapshot.instanceId === lockedInstanceId,
         )?.continuation?.groupKey;

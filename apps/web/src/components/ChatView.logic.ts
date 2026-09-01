@@ -723,6 +723,16 @@ export function getStartedThreadModelChangeBlockReason(input: {
   };
 }
 
+export function resolveComposerRequestedModelSelection(input: {
+  readonly selectedModelSelection: ModelSelection;
+  readonly threadModelSelection: ModelSelection | null | undefined;
+  readonly selectionExplicit: boolean;
+}): ModelSelection {
+  return input.selectionExplicit || !input.threadModelSelection
+    ? input.selectedModelSelection
+    : input.threadModelSelection;
+}
+
 export async function waitForStartedServerThread(
   threadRef: ScopedThreadRef,
   timeoutMs = 1_000,

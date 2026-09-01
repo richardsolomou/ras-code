@@ -19,7 +19,10 @@ import {
   PROVIDER_SEND_TURN_MAX_IMAGE_BYTES,
 } from "@ras-code/contracts";
 import type { EnvironmentConnectionPresentation } from "@ras-code/client-runtime/connection";
-import { resolveActiveProviderInstanceId } from "@ras-code/client-runtime/provider-fallback";
+import {
+  resolveActiveProviderInstanceId,
+  resolveActiveProviderModelSelection,
+} from "@ras-code/client-runtime/provider-fallback";
 import { serializeComposerFileLink } from "@ras-code/shared/composerTrigger";
 import { createModelSelection, normalizeModelSlug } from "@ras-code/shared/model";
 import {
@@ -45,7 +48,11 @@ import {
   replaceTextRange,
 } from "../../composer-logic";
 import { DISCONNECTED_COMPOSER_PLACEHOLDER } from "../../composerPlaceholder";
-import { deriveComposerSendState, readFileAsDataUrl } from "../ChatView.logic";
+import {
+  deriveComposerSendState,
+  readFileAsDataUrl,
+  resolveComposerRequestedModelSelection,
+} from "../ChatView.logic";
 import {
   dataTransferHasComposerMention,
   makeComposerMentionDragHandlers,
@@ -956,7 +963,8 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
   const activeThreadProviderInstanceId = activeThread
     ? resolveActiveProviderInstanceId(activeThread)
     : null;
-  const selectedProviderByThreadId = composerDraft.activeProvider ?? null;
+  const selectedProviderByThreadId =
+    composerDraft.modelSelectionExplicit === true ? (composerDraft.activeProvider ?? null) : null;
   const threadProvider =
     activeThreadProviderInstanceId ??
     activeThreadModelSelection?.instanceId ??
@@ -986,7 +994,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
   // An explicit draft wins; otherwise use the provider serving the live session.
   const selectedInstanceId = useMemo<ProviderInstanceId>(() => {
     const candidates: Array<string | null | undefined> = [
-      composerDraft.activeProvider,
+      selectedProviderByThreadId,
       activeThreadProviderInstanceId,
       activeDefaultModelSelection?.instanceId,
     ];
@@ -1017,7 +1025,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
   }, [
     activeDefaultModelSelection?.instanceId,
     activeThreadProviderInstanceId,
-    composerDraft.activeProvider,
+    selectedProviderByThreadId,
     lockedContinuationGroupKey,
     lockedProvider,
     providerInstanceEntries,
@@ -1040,12 +1048,15 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
   const selectedProvider: ProviderDriverKind =
     selectedProviderEntry?.driverKind ?? requestedDriverKind;
 
+  const activeThreadModelSelectionForDisplay = activeThread
+    ? resolveActiveProviderModelSelection(activeThread, providerStatuses)
+    : activeThreadModelSelection;
   const { modelOptions: composerModelOptions, selectedModel } = useEffectiveComposerModelState({
     threadRef: composerDraftTarget,
     providers: providerStatuses,
     selectedProvider,
     selectedInstanceId,
-    threadModelSelection: activeThreadModelSelection,
+    threadModelSelection: activeThreadModelSelectionForDisplay,
     projectModelSelection: activeDefaultModelSelection,
     settings,
   });
@@ -1087,6 +1098,11 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     () => createModelSelection(selectedInstanceId, selectedModel, selectedModelOptionsForDispatch),
     [selectedInstanceId, selectedModel, selectedModelOptionsForDispatch],
   );
+  const requestedModelSelection = resolveComposerRequestedModelSelection({
+    selectedModelSelection,
+    threadModelSelection: activeThreadModelSelection,
+    selectionExplicit: composerDraft.modelSelectionExplicit === true,
+  });
   const selectedModelForPicker = selectedModel;
   // Instance-keyed option list so the picker can show each configured
   // instance (built-in + custom) as a first-class sidebar entry. The
@@ -3260,7 +3276,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
         reviewComments: composerReviewComments,
         selectedPromptEffort,
         selectedModelOptionsForDispatch,
-        selectedModelSelection,
+        selectedModelSelection: requestedModelSelection,
         providerAvailable: !noProviderAvailable,
         selectedProvider,
         selectedModel,
@@ -3301,7 +3317,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
       readComposerSnapshot,
       selectedModel,
       selectedModelOptionsForDispatch,
-      selectedModelSelection,
+      requestedModelSelection,
       noProviderAvailable,
       selectedPromptEffort,
       selectedProvider,

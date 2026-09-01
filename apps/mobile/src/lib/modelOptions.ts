@@ -34,6 +34,7 @@ export function filterStartedThreadProviderGroups(input: {
   readonly groups: ReadonlyArray<ProviderGroup>;
   readonly currentSelection: ModelSelection;
   readonly currentDriver: string | undefined;
+  readonly hasStartedSession: boolean;
 }): ReadonlyArray<ProviderGroup> {
   return input.groups
     .filter((group) => group.providerKey === input.currentSelection.instanceId)
@@ -41,6 +42,7 @@ export function filterStartedThreadProviderGroups(input: {
       ...group,
       models: group.models.filter(
         (option) =>
+          !input.hasStartedSession ||
           !isPostHogGatewayCrossShapeModelChange({
             currentDriver: input.currentDriver,
             currentModel: input.currentSelection.model,

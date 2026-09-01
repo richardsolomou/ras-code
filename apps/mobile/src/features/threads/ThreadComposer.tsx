@@ -492,8 +492,14 @@ export const ThreadComposer = memo(function ThreadComposer(props: ThreadComposer
         groups: providerGroups,
         currentSelection: currentModelSelection,
         currentDriver: selectedProviderStatus?.driver,
+        hasStartedSession: props.selectedThread.session !== null,
       }),
-    [currentModelSelection, providerGroups, selectedProviderStatus?.driver],
+    [
+      currentModelSelection,
+      props.selectedThread.session,
+      providerGroups,
+      selectedProviderStatus?.driver,
+    ],
   );
   const currentModelOption =
     modelOptions.find(

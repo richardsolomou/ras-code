@@ -27,6 +27,7 @@ import {
   dismissBranchMismatchForSession,
   ENVIRONMENT_RECONNECT_WARNING_GRACE_MS,
   getStartedThreadModelChangeBlockReason,
+  resolveComposerRequestedModelSelection,
   loadVideoPreviewUrl,
   isVideoPreviewRequestCurrent,
   hasEnvironmentReconnectWarningGraceElapsed,
@@ -937,6 +938,37 @@ describe("getStartedThreadModelChangeBlockReason", () => {
       description:
         "PostHog AI Gateway cannot switch between Claude and open models in the same conversation.",
     });
+  });
+});
+
+describe("resolveComposerRequestedModelSelection", () => {
+  const primary = {
+    instanceId: ProviderInstanceId.make("claudeAgent"),
+    model: "claude-sonnet-4-6",
+  };
+  const fallback = {
+    instanceId: ProviderInstanceId.make("posthog_gateway"),
+    model: "anthropic/claude-sonnet-4-6",
+  };
+
+  it("keeps an implicit fallback follow-up routed through the primary selection", () => {
+    expect(
+      resolveComposerRequestedModelSelection({
+        selectedModelSelection: fallback,
+        threadModelSelection: primary,
+        selectionExplicit: false,
+      }),
+    ).toBe(primary);
+  });
+
+  it("dispatches an explicitly selected gateway model", () => {
+    expect(
+      resolveComposerRequestedModelSelection({
+        selectedModelSelection: fallback,
+        threadModelSelection: primary,
+        selectionExplicit: true,
+      }),
+    ).toBe(fallback);
   });
 });
 
