@@ -116,6 +116,7 @@ const replacedPrefixes: ReadonlyArray<readonly [string, string]> = [
 ];
 
 const THEME_EDITOR = "the custom theme editor, which we removed";
+const LEGACY_SURFACES = "the legacy sidebar and plan mode, which we removed";
 
 /**
  * Surfaces we deleted outright. A change that only touches these has nothing to land against, so it
@@ -126,6 +127,10 @@ const removedPrefixes: ReadonlyArray<readonly [string, string]> = [
   [".macroscope/", "Macroscope review configuration, which we do not carry"],
   [".coderabbit.yaml", "CodeRabbit review configuration, which we do not carry"],
   [".github/VOUCHED.td", "upstream's contributor trust list, which we do not inherit"],
+  // Legacy surfaces removed in #23: the per-project sidebar tree and plan mode.
+  ["apps/web/src/components/LegacySidebar", LEGACY_SURFACES],
+  ["apps/mobile/src/features/threads/legacy-plan-mode", LEGACY_SURFACES],
+  ["apps/mobile/src/features/threads/use-legacy-plan-mode-enabled", LEGACY_SURFACES],
   // The custom theme editor and its VS Code / OpenVSX theme import, removed in
   // #51 in favour of the fixed theme set.
   ["apps/web/src/components/settings/ThemeColorPicker", THEME_EDITOR],
