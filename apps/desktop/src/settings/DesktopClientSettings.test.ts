@@ -24,6 +24,7 @@ const clientSettings: ClientSettings = {
   browserAutoShowFloatingPreview: false,
   notifications: DEFAULT_NOTIFICATION_SETTINGS,
   confirmQuit: "double-click",
+  continueThreadsAfterServerUpdate: true,
   contextWindowMeterEnabled: false,
   diffIgnoreWhitespace: true,
   environmentIdentificationMode: "artwork",
