@@ -384,7 +384,7 @@ importers:
         specifier: ~57.0.2
         version: 57.0.2(expo@57.0.18)
       expo-sharing:
-        specifier: ~57.0.16
+        specifier: 57.0.16
         version: 57.0.16(patch_hash=8d2e3b10eb3f52036a9a086800180ec6cebf3b75bccc5b1775117a7244d4ac45)(expo@57.0.18)(react-native@0.86.3(@babel/core@7.29.7)(@react-native/metro-config@0.86.3(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@6.0.6))(@types/react@19.2.16)(bufferutil@4.1.0)(react@19.2.3)(utf-8-validate@6.0.6))(react@19.2.3)(typescript@6.0.3)
       expo-splash-screen:
         specifier: ~57.0.8
@@ -5460,11 +5460,6 @@ packages:
 
   '@webgpu/types@0.1.72':
     resolution: {integrity: sha512-0cF7RFM2edNoiIS1ODJp0/Gzv4/xSXhwoR0YCza+OWpJWtn4wmo9DvK91aLlH9+uUnwIriP7ZiC3WitmyhuzBw==}
-
-  '@xmldom/xmldom@0.8.13':
-    resolution: {integrity: sha512-KRYzxepc14G/CEpEGc3Yn+JKaAeT63smlDr+vjB8jRfgTBBI9wRj/nkQEO+ucV8p8I9bfKLWp37uHgFrbntPvw==}
-    engines: {node: '>=10.0.0'}
-    deprecated: this version has critical issues, please update to the latest version
 
   '@xmldom/xmldom@0.8.15':
     resolution: {integrity: sha512-/5NV/vDALVFDXgLmfsy9TRCBlKwO2LNBFzpzvb9iIj+jR+eSc6DLYYvVOdivT/jm7MtU6TebYuRmzEOI7w40UA==}
@@ -13198,7 +13193,7 @@ snapshots:
 
   '@expo/plist@0.8.1':
     dependencies:
-      '@xmldom/xmldom': 0.8.13
+      '@xmldom/xmldom': 0.8.15
       base64-js: 1.5.1
       xmlbuilder: 15.1.1
 
@@ -15795,8 +15790,6 @@ snapshots:
   '@vscode/l10n@0.0.18': {}
 
   '@webgpu/types@0.1.72': {}
-
-  '@xmldom/xmldom@0.8.13': {}
 
   '@xmldom/xmldom@0.8.15': {}
 
