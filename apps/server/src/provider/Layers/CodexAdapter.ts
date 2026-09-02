@@ -89,11 +89,17 @@ export interface CodexAdapterLiveOptions {
   readonly nativeEventLogger?: EventNdjsonLogger;
 }
 
+interface CodexAdapterSessionState {
+  /** Selected model for the session, updated per turn. Stamped onto turn.started. */
+  model?: string;
+}
+
 interface CodexAdapterSessionContext {
   readonly threadId: ThreadId;
   readonly scope: Scope.Closeable;
   readonly runtime: CodexSessionRuntimeShape;
   readonly eventFiber: Fiber.Fiber<void, never>;
+  readonly state: CodexAdapterSessionState;
   stopped: boolean;
 }
 
@@ -771,6 +777,7 @@ function mapCollabAgentEvent(
 function mapToRuntimeEvents(
   event: ProviderEvent,
   canonicalThreadId: ThreadId,
+  sessionModel?: string,
 ): ReadonlyArray<ProviderRuntimeEvent> {
   if (event.kind === "notification" && event.method.startsWith("collabAgent/")) {
     return mapCollabAgentEvent(event, canonicalThreadId);
@@ -1052,7 +1059,7 @@ function mapToRuntimeEvents(
         ...runtimeEventBase(event, canonicalThreadId),
         turnId,
         type: "turn.started",
-        payload: {},
+        payload: sessionModel ? { model: sessionModel } : {},
       },
     ];
   }
@@ -1745,6 +1752,11 @@ export const makeCodexAdapter = Effect.fn("makeCodexAdapter")(function* (
           ),
         );
 
+        // The launch model is known here; sendTurn refreshes it per turn. Held
+        // in a shared object so the event loop below can stamp it onto
+        // turn.started, which the Codex notification itself omits.
+        const sessionState: CodexAdapterSessionState = model ? { model } : {};
+
         // Fork into the session scope, not the calling fiber. `forkChild` makes
         // this a child of `startSession`, and Effect interrupts a fiber's
         // children when it completes, so the consumer died on return and every
@@ -1752,7 +1764,7 @@ export const makeCodexAdapter = Effect.fn("makeCodexAdapter")(function* (
         const eventFiber = yield* Stream.runForEach(runtime.events, (event) =>
           Effect.gen(function* () {
             yield* writeNativeEvent(event);
-            const runtimeEvents = mapToRuntimeEvents(event, event.threadId);
+            const runtimeEvents = mapToRuntimeEvents(event, event.threadId, sessionState.model);
             if (runtimeEvents.length === 0) {
               yield* Effect.logDebug("ignoring unhandled Codex provider event", {
                 method: event.method,
@@ -1790,6 +1802,7 @@ export const makeCodexAdapter = Effect.fn("makeCodexAdapter")(function* (
           scope: sessionScope,
           runtime,
           eventFiber,
+          state: sessionState,
           stopped: false,
         });
         sessionScopeTransferred = true;
@@ -1841,6 +1854,12 @@ export const makeCodexAdapter = Effect.fn("makeCodexAdapter")(function* (
     );
 
     const session = yield* requireSession(input.threadId);
+    if (
+      input.modelSelection?.instanceId === boundInstanceId &&
+      input.modelSelection.model !== undefined
+    ) {
+      session.state.model = input.modelSelection.model;
+    }
     const reasoningEffort =
       input.modelSelection?.instanceId === boundInstanceId
         ? getModelSelectionStringOptionValue(input.modelSelection, "reasoningEffort")

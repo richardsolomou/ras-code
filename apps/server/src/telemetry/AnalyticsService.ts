@@ -336,6 +336,13 @@ function setBoundedMapEntry<K, V>(
   return next;
 }
 
+function deleteMapEntry<K, V>(current: ReadonlyMap<K, V>, key: K): Map<K, V> {
+  if (!current.has(key)) return current as Map<K, V>;
+  const next = new Map(current);
+  next.delete(key);
+  return next;
+}
+
 function basename(path: unknown): string | undefined {
   if (typeof path !== "string") return undefined;
   return path.split(/[\\/]/).at(-1);
@@ -459,6 +466,10 @@ export const make = (options?: {
           }));
     const activeTurns = yield* Ref.make(new Map<string, TurnTelemetry>());
     const latestUsage = yield* Ref.make(new Map<string, TokenUsage>());
+    // Marks threads whose current turn already produced a captured provider
+    // failure. A single Codex failure surfaces as both a `runtime.error` and a
+    // failed `turn.completed`, so without this both would open their own issue.
+    const failedThreads = yield* Ref.make(new Map<string, true>());
     const featureFlagState = yield* Ref.make<FeatureFlagState>({
       aiObservabilityEnabled: true,
     });
@@ -541,6 +552,28 @@ export const make = (options?: {
               );
             }),
           );
+
+    // Capture a provider failure at most once per turn. The provider error text
+    // stays out of telemetry (see `redactExceptionEvent`); `$exception_fingerprint`
+    // keeps every occurrence in one issue across releases, where the bundled stack
+    // frame line would otherwise shift and split it, and `$issue_name` gives that
+    // issue a readable label the redacted message cannot.
+    const captureProviderFailureOnce = (
+      event: Extract<
+        ProviderRuntimeEvent,
+        { type: "turn.completed" | "turn.aborted" | "runtime.error" }
+      >,
+      error: Error,
+      properties: Readonly<Record<string, unknown>>,
+    ) =>
+      Effect.gen(function* () {
+        const key = threadKey(event);
+        if ((yield* Ref.get(failedThreads)).has(key)) return;
+        yield* Ref.update(failedThreads, (threads) =>
+          setBoundedMapEntry(threads, key, true, telemetryConfig.maxBufferedEvents),
+        );
+        yield* recordException(error, properties);
+      });
 
     const recordTerminalTurn = (
       event: Extract<ProviderRuntimeEvent, { type: "turn.completed" | "turn.aborted" }>,
@@ -659,23 +692,19 @@ export const make = (options?: {
           }) as Record<string, string | number | boolean>,
         });
         if (isError) {
-          yield* recordException(new Error("Provider turn failed"), {
+          yield* captureProviderFailureOnce(event, new Error("Provider turn failed"), {
             operation: "provider.turn",
             provider,
             state,
             model,
+            $exception_fingerprint: `ras-code:provider.turn:${provider}`,
+            $issue_name: `Provider turn failed (${provider})`,
           });
         }
-        yield* Ref.update(activeTurns, (turns) => {
-          const next = new Map(turns);
-          next.delete(turnKey(event));
-          return next;
-        });
-        yield* Ref.update(latestUsage, (usageByThread) => {
-          const next = new Map(usageByThread);
-          next.delete(threadKey(event));
-          return next;
-        });
+        yield* Ref.update(activeTurns, (turns) => deleteMapEntry(turns, turnKey(event)));
+        yield* Ref.update(latestUsage, (usageByThread) =>
+          deleteMapEntry(usageByThread, threadKey(event)),
+        );
       });
 
     const recordProviderRuntimeEvent: AnalyticsService["Service"]["recordProviderRuntimeEvent"] =
@@ -684,6 +713,9 @@ export const make = (options?: {
         switch (event.type) {
           case "turn.started": {
             const startedAtMs = Date.parse(event.createdAt);
+            yield* Ref.update(failedThreads, (threads) =>
+              deleteMapEntry(threads, threadKey(event)),
+            );
             yield* Ref.update(activeTurns, (turns) =>
               setBoundedMapEntry(
                 turns,
@@ -711,22 +743,31 @@ export const make = (options?: {
           case "turn.aborted":
             yield* recordTerminalTurn(event);
             break;
-          case "runtime.error":
-            yield* recordException(new Error("Provider runtime error"), {
+          case "runtime.error": {
+            const provider = String(event.provider);
+            const errorClass = event.payload.class ?? "unknown";
+            const model = event.turnId
+              ? (yield* Ref.get(activeTurns)).get(turnKey(event))?.model
+              : undefined;
+            yield* captureProviderFailureOnce(event, new Error("Provider runtime error"), {
               operation: "provider.runtime",
-              provider: event.provider,
-              errorClass: event.payload.class,
+              provider,
+              errorClass,
+              model,
+              $exception_fingerprint: `ras-code:provider.runtime:${provider}:${errorClass}`,
+              $issue_name: `Provider runtime error (${provider})`,
             });
             yield* recordLog({
               body: "provider runtime error",
               level: "error",
               attributes: compactProperties({
-                provider: event.provider,
+                provider,
                 errorClass: event.payload.class,
                 posthogDistinctId: identifier ?? undefined,
               }) as Record<string, string | number | boolean>,
             });
             break;
+          }
         }
       });
 
