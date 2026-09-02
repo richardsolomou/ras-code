@@ -57,6 +57,17 @@ export const SidebarAutoSettleAfterDays = Schema.Number.check(
 export type SidebarAutoSettleAfterDays = typeof SidebarAutoSettleAfterDays.Type;
 export const DEFAULT_SIDEBAR_AUTO_SETTLE_AFTER_DAYS: SidebarAutoSettleAfterDays = 3;
 
+export const MIN_PANEL_ANIMATION_DURATION_MS = 0;
+export const MAX_PANEL_ANIMATION_DURATION_MS = 400;
+export const PanelAnimationDurationMs = Schema.Int.check(
+  Schema.isBetween({
+    minimum: MIN_PANEL_ANIMATION_DURATION_MS,
+    maximum: MAX_PANEL_ANIMATION_DURATION_MS,
+  }),
+);
+export type PanelAnimationDurationMs = typeof PanelAnimationDurationMs.Type;
+export const DEFAULT_PANEL_ANIMATION_DURATION_MS: PanelAnimationDurationMs = 0;
+
 /**
  * Font size preferences, in CSS pixels. The ranges are deliberately narrow:
  * the interface size scales every rem-based dimension in the app, so the
@@ -178,6 +189,9 @@ export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = Schema.decode
 )({});
 
 export const ClientSettingsSchema = Schema.Struct({
+  panelAnimationDurationMs: PanelAnimationDurationMs.pipe(
+    Schema.withDecodingDefault(Effect.succeed(DEFAULT_PANEL_ANIMATION_DURATION_MS)),
+  ),
   browserDefaultViewport: PreviewViewportSetting.pipe(
     Schema.withDecodingDefault(Effect.succeed(DEFAULT_BROWSER_VIEWPORT)),
   ),
@@ -1006,6 +1020,7 @@ export const ServerSettingsPatch = Schema.Struct({
 export type ServerSettingsPatch = typeof ServerSettingsPatch.Type;
 
 export const ClientSettingsPatch = Schema.Struct({
+  panelAnimationDurationMs: Schema.optionalKey(PanelAnimationDurationMs),
   browserDefaultViewport: Schema.optionalKey(PreviewViewportSetting),
   browserDefaultZoomFactor: Schema.optionalKey(PreviewZoomFactor),
   browserDefaultAppearance: Schema.optionalKey(PreviewAppearancePreference),

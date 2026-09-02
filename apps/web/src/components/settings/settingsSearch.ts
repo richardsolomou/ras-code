@@ -72,6 +72,11 @@ export const SETTINGS_SEARCH_ITEMS = [
     targetId: "appearance",
   },
   {
+    id: "panel-animations",
+    title: "Panel animations",
+    to: "/settings/appearance",
+  },
+  {
     id: "hedgehog-mode",
     title: "Hedgehog mode",
     to: "/settings/appearance",

@@ -44,6 +44,13 @@ If reordering is unavailable for one environment, update the RAS Code server run
 environment. Older servers can still pin and unpin threads, but do not understand synced ordering;
 their pinned threads keep the default newest-first order below the ones you have arranged.
 
+## Panel motion
+
+The main sidebar, right panel, and terminal drawer open and close immediately by default. Under
+**Settings → Appearance → Motion**, move the **Panel animations** slider above 0 ms to add motion.
+The duration can be set up to 400 ms. Clicking the preview replays all three panel transitions; at
+0 ms, it snaps between the same open and closed states.
+
 ## Environment identification
 
 Dev and Canary environments show a small version pill next to the RAS Code name at the top of the sidebar. Choose **Version pill** or **None** in Settings under environment identification.
