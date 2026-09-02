@@ -12,6 +12,8 @@ import {
 const RESETS_AT_SECONDS = 1_800_000_000;
 const RESETS_AT_ISO = "2027-01-15T08:00:00.000Z";
 const DAY_MS = 24 * 60 * 60 * 1000;
+const WEEKLY_RESETS_AT_SECONDS = RESETS_AT_SECONDS + 4 * 24 * 60 * 60;
+const WEEKLY_RESETS_AT_ISO = "2027-01-19T08:00:00.000Z";
 
 describe("normalizeProviderUsageLimit", () => {
   it("reads a rejected Claude rate limit event as exhausted", () => {
@@ -65,6 +67,38 @@ describe("normalizeProviderUsageLimit", () => {
       kind: "primary",
       utilization: 1,
     });
+  });
+
+  it("waits for the weekly window when both Codex windows are full", () => {
+    expect(
+      normalizeProviderUsageLimit({
+        rateLimits: {
+          primary: { usedPercent: 100, resetsAt: RESETS_AT_SECONDS, windowDurationMins: 300 },
+          secondary: {
+            usedPercent: 100,
+            resetsAt: WEEKLY_RESETS_AT_SECONDS,
+            windowDurationMins: 10_080,
+          },
+          rateLimitReachedType: "primary",
+        },
+      })?.resetsAt,
+    ).toBe(WEEKLY_RESETS_AT_ISO);
+  });
+
+  it("ignores a later reset on a window that still has quota", () => {
+    expect(
+      normalizeProviderUsageLimit({
+        rateLimits: {
+          primary: { usedPercent: 100, resetsAt: RESETS_AT_SECONDS, windowDurationMins: 300 },
+          secondary: {
+            usedPercent: 99,
+            resetsAt: WEEKLY_RESETS_AT_SECONDS,
+            windowDurationMins: 10_080,
+          },
+          rateLimitReachedType: "primary",
+        },
+      })?.resetsAt,
+    ).toBe(RESETS_AT_ISO);
   });
 
   it("reads a Codex rateLimitReachedType as exhausted even below 100 percent", () => {
