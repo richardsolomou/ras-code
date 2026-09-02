@@ -1,6 +1,7 @@
 import { describe, expect, it } from "@effect/vitest";
 
 import {
+  MAX_TRANSCRIPT_CHARACTERS,
   renderForkTranscript,
   withForkTranscript,
   withProviderSwitchTranscript,
@@ -25,7 +26,8 @@ describe("renderForkTranscript", () => {
   });
 
   it("drops the oldest messages first when the prefix is too long", () => {
-    const long = "x".repeat(20_000);
+    // Two of these cannot both fit at any budget.
+    const long = "x".repeat(MAX_TRANSCRIPT_CHARACTERS - 100);
     const transcript = renderForkTranscript([
       { role: "user", text: `oldest ${long}` },
       { role: "assistant", text: `newest ${long}` },
@@ -33,6 +35,17 @@ describe("renderForkTranscript", () => {
     expect(transcript).toContain("dropped to fit");
     expect(transcript).toContain("newest");
     expect(transcript).not.toContain("oldest");
+  });
+
+  it("carries a long conversation whole rather than its tail", () => {
+    // An ordinary long thread, the size the budget exists to carry whole.
+    const messages = Array.from({ length: 100 }, (_, index) => ({
+      role: index % 2 === 0 ? ("user" as const) : ("assistant" as const),
+      text: `turn ${index} ${"detail ".repeat(100)}`,
+    }));
+    const transcript = renderForkTranscript(messages);
+    expect(transcript).toContain("turn 0 ");
+    expect(transcript).not.toContain("dropped to fit");
   });
 
   it("leaves the message untouched when there is no inherited history", () => {

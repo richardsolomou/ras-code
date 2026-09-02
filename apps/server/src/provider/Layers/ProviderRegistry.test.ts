@@ -1,10 +1,12 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { describe, it, assert } from "@effect/vitest";
 import * as DateTime from "effect/DateTime";
+import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
 import * as Fiber from "effect/Fiber";
 import * as Layer from "effect/Layer";
+import * as Logger from "effect/Logger";
 import * as PubSub from "effect/PubSub";
 import * as Ref from "effect/Ref";
 import * as Schema from "effect/Schema";
@@ -33,7 +35,6 @@ import { applyServerSettingsPatch } from "@ras-code/shared/serverSettings";
 
 import { checkCodexProviderStatus, type CodexAppServerProviderSnapshot } from "./CodexProvider.ts";
 import { checkClaudeProviderStatus } from "./ClaudeProvider.ts";
-import type { ModelInfo as ClaudeSdkModelInfo } from "@anthropic-ai/claude-agent-sdk";
 import * as BackgroundPolicy from "../../background/BackgroundPolicy.ts";
 import * as ModelManifest from "../ModelManifest.ts";
 import * as OpenCodeRuntime from "../opencodeRuntime.ts";
@@ -42,6 +43,7 @@ import { ProviderInstanceRegistryHydrationLive } from "./ProviderInstanceRegistr
 import {
   haveProvidersChanged,
   mergeProviderSnapshot,
+  upsertProviderWorkspaceSnapshot,
   ProviderRegistryLive,
 } from "./ProviderRegistry.ts";
 import * as ServerConfig from "../../config.ts";
@@ -135,7 +137,7 @@ type TestClaudeCapabilities = {
   readonly tokenSource: string | undefined;
   readonly apiProvider: string | undefined;
   readonly slashCommands: ReadonlyArray<ServerProviderSlashCommand>;
-  readonly models: ReadonlyArray<ClaudeSdkModelInfo>;
+  readonly resolvedModelSlugs: ReadonlyArray<string>;
 };
 
 function claudeCapabilities(overrides: Partial<TestClaudeCapabilities> = {}) {
@@ -146,7 +148,7 @@ function claudeCapabilities(overrides: Partial<TestClaudeCapabilities> = {}) {
       tokenSource: undefined,
       apiProvider: undefined,
       slashCommands: [],
-      models: [],
+      resolvedModelSlugs: [],
       ...overrides,
     });
 }
@@ -566,6 +568,41 @@ it.layer(Layer.mergeAll(NodeServices.layer, ServerSettingsModule.layerTest(), Te
         assert.strictEqual(haveProvidersChanged(providers, [...providers]), false);
       });
 
+      it("stores workspace skills and commands without changing machine metadata", () => {
+        const provider = {
+          instanceId: ProviderInstanceId.make("codex"),
+          driver: ProviderDriverKind.make("codex"),
+          status: "ready",
+          enabled: true,
+          installed: true,
+          auth: { status: "authenticated" },
+          checkedAt: "2026-03-25T00:00:00.000Z",
+          version: "1.0.0",
+          models: [],
+          slashCommands: [{ name: "global" }],
+          skills: [{ name: "global", path: "/global/SKILL.md", enabled: true }],
+        } satisfies ServerProvider;
+        const scopedSnapshot = {
+          ...provider,
+          checkedAt: "2026-03-25T00:01:00.000Z",
+          slashCommands: [{ name: "project" }],
+          skills: [{ name: "project", path: "/project/SKILL.md", enabled: true }],
+        } satisfies ServerProvider;
+
+        const result = upsertProviderWorkspaceSnapshot(provider, "/project", scopedSnapshot);
+
+        assert.deepStrictEqual(result.slashCommands, provider.slashCommands);
+        assert.deepStrictEqual(result.skills, provider.skills);
+        assert.deepStrictEqual(result.workspaceSnapshots, [
+          {
+            cwd: "/project",
+            checkedAt: scopedSnapshot.checkedAt,
+            slashCommands: scopedSnapshot.slashCommands,
+            skills: scopedSnapshot.skills,
+          },
+        ]);
+      });
+
       it("preserves previously discovered provider models when a refresh returns none", () => {
         const previousProvider = {
           instanceId: ProviderInstanceId.make("cursor"),
@@ -621,6 +658,44 @@ it.layer(Layer.mergeAll(NodeServices.layer, ServerSettingsModule.layerTest(), Te
           mergeProviderSnapshot(previousProvider, refreshedProvider).skills,
           [],
         );
+      });
+
+      it("drops custom models the refreshed snapshot no longer carries", () => {
+        const previousProvider = {
+          instanceId: ProviderInstanceId.make("claudeAgent"),
+          driver: ProviderDriverKind.make("claudeAgent"),
+          status: "ready",
+          enabled: true,
+          installed: true,
+          auth: { status: "authenticated" },
+          checkedAt: "2026-04-14T00:00:00.000Z",
+          version: "2.1.0",
+          models: [
+            {
+              slug: "claude-sonnet-4-6",
+              name: "Sonnet 4.6",
+              isCustom: false,
+              capabilities: null,
+            },
+            {
+              slug: "removed-custom",
+              name: "removed-custom",
+              isCustom: true,
+              capabilities: null,
+            },
+          ],
+          slashCommands: [],
+          skills: [],
+        } as const satisfies ServerProvider;
+        const refreshedProvider = {
+          ...previousProvider,
+          checkedAt: "2026-04-14T00:01:00.000Z",
+          models: [previousProvider.models[0]],
+        } satisfies ServerProvider;
+
+        assert.deepStrictEqual(mergeProviderSnapshot(previousProvider, refreshedProvider).models, [
+          ...refreshedProvider.models,
+        ]);
       });
 
       it("drops stale OpenCode models missing from a successful refresh", () => {
@@ -948,6 +1023,164 @@ it.layer(Layer.mergeAll(NodeServices.layer, ServerSettingsModule.layerTest(), Te
         }),
       );
 
+      it.effect("deduplicates cwd probes and clears snapshots when an instance rebuilds", () =>
+        Effect.gen(function* () {
+          const driver = ProviderDriverKind.make("codex");
+          const instanceId = ProviderInstanceId.make("codex");
+          const machineProvider = {
+            instanceId,
+            driver,
+            status: "ready",
+            enabled: true,
+            installed: true,
+            auth: { status: "authenticated" },
+            checkedAt: "2026-06-10T00:00:00.000Z",
+            version: "1.0.0",
+            models: [],
+            slashCommands: [{ name: "global" }],
+            skills: [{ name: "global", path: "/global/SKILL.md", enabled: true }],
+          } as const satisfies ServerProvider;
+          const scopedProvider = {
+            ...machineProvider,
+            checkedAt: "2026-06-10T00:01:00.000Z",
+            slashCommands: [{ name: "project" }],
+            skills: [{ name: "project", path: "/workspace/SKILL.md", enabled: true }],
+          } as const satisfies ServerProvider;
+          const pendingScopedProvider = {
+            ...scopedProvider,
+            status: "error",
+            installed: false,
+            slashCommands: [],
+          } as const satisfies ServerProvider;
+          const snapshotCalls = yield* Ref.make(0);
+          const returnPendingSnapshot = yield* Ref.make(true);
+          const probeStarted = yield* Deferred.make<void>();
+          const releaseProbe = yield* Deferred.make<void>();
+          const makeInstance = (
+            provider: ServerProvider,
+            snapshotForCwd: NonNullable<ProviderInstance["snapshotForCwd"]>,
+          ): ProviderInstance => ({
+            instanceId,
+            driverKind: driver,
+            continuationIdentity: {
+              driverKind: driver,
+              continuationKey: "codex:instance:codex",
+            },
+            displayName: undefined,
+            enabled: true,
+            snapshot: {
+              maintenanceCapabilities: makeManualOnlyProviderMaintenanceCapabilities({
+                provider: driver,
+                packageName: null,
+              }),
+              getSnapshot: Effect.succeed(provider),
+              refresh: Effect.succeed(provider),
+              streamChanges: Stream.empty,
+            },
+            snapshotForCwd,
+            adapter: {} as ProviderInstance["adapter"],
+            textGeneration: {} as ProviderInstance["textGeneration"],
+          });
+          const firstInstance = makeInstance(machineProvider, () =>
+            Effect.gen(function* () {
+              yield* Ref.update(snapshotCalls, (count) => count + 1);
+              if (yield* Ref.get(returnPendingSnapshot)) return pendingScopedProvider;
+              yield* Deferred.succeed(probeStarted, undefined);
+              yield* Deferred.await(releaseProbe);
+              return scopedProvider;
+            }),
+          );
+          const rebuiltProvider = {
+            ...machineProvider,
+            checkedAt: "2026-06-10T00:02:00.000Z",
+            status: "warning",
+            installed: false,
+            auth: { status: "unknown" },
+          } satisfies ServerProvider;
+          const rebuiltInstance = makeInstance(rebuiltProvider, () =>
+            Ref.update(snapshotCalls, (count) => count + 1).pipe(Effect.as(scopedProvider)),
+          );
+          const registryChanges = yield* PubSub.unbounded<void>();
+          const instancesRef = yield* Ref.make<ReadonlyArray<ProviderInstance>>([firstInstance]);
+          const instanceRegistryLayer = Layer.succeed(
+            ProviderInstanceRegistry.ProviderInstanceRegistry,
+            {
+              getInstance: (requestedId) =>
+                Ref.get(instancesRef).pipe(
+                  Effect.map((instances) =>
+                    instances.find((instance) => instance.instanceId === requestedId),
+                  ),
+                ),
+              listInstances: Ref.get(instancesRef),
+              listUnavailable: Effect.succeed([]),
+              streamChanges: Stream.fromPubSub(registryChanges),
+              subscribeChanges: PubSub.subscribe(registryChanges),
+            },
+          );
+          const scope = yield* Scope.make();
+          yield* Effect.addFinalizer(() => Scope.close(scope, Exit.void));
+          const runtimeServices = yield* Layer.build(
+            ProviderRegistryLive.pipe(
+              Layer.provideMerge(instanceRegistryLayer),
+              Layer.provideMerge(
+                ServerConfig.layerTest(process.cwd(), {
+                  prefix: "ras-code-provider-registry-workspace-snapshot-",
+                }),
+              ),
+              Layer.provideMerge(NodeServices.layer),
+            ),
+          ).pipe(Scope.provide(scope));
+
+          yield* Effect.gen(function* () {
+            const registry = yield* ProviderRegistry.ProviderRegistry;
+            yield* registry.refreshWorkspaceSnapshot({ instanceId, cwd: "/workspace" });
+            assert.strictEqual((yield* registry.getProviders)[0]?.workspaceSnapshots, undefined);
+            yield* Ref.set(returnPendingSnapshot, false);
+            const workspaceUpdate = yield* registry.streamChanges.pipe(
+              Stream.runHead,
+              Effect.forkChild,
+            );
+            yield* Effect.yieldNow;
+            const firstRefresh = yield* registry
+              .refreshWorkspaceSnapshot({ instanceId, cwd: "/workspace" })
+              .pipe(Effect.forkChild);
+            yield* Deferred.await(probeStarted);
+            const duplicateRefresh = yield* registry
+              .refreshWorkspaceSnapshot({ instanceId, cwd: "/workspace" })
+              .pipe(Effect.forkChild);
+            yield* Effect.yieldNow;
+            assert.strictEqual(yield* Ref.get(snapshotCalls), 2);
+            yield* Deferred.succeed(releaseProbe, undefined);
+            yield* Fiber.join(firstRefresh);
+            yield* Fiber.join(duplicateRefresh);
+            const published = yield* Fiber.join(workspaceUpdate);
+            assert.strictEqual(published._tag, "Some");
+            const providers = yield* registry.getProviders;
+            assert.deepStrictEqual(providers[0]?.skills, machineProvider.skills);
+            assert.deepStrictEqual(
+              providers[0]?.workspaceSnapshots?.[0]?.skills,
+              scopedProvider.skills,
+            );
+            yield* registry.refreshWorkspaceSnapshot({ instanceId, cwd: "/workspace" });
+            assert.strictEqual(yield* Ref.get(snapshotCalls), 2);
+
+            yield* Ref.set(instancesRef, [rebuiltInstance]);
+            yield* PubSub.publish(registryChanges, undefined);
+            let rebuilt = yield* registry.getProviders;
+            for (
+              let attempt = 0;
+              attempt < 50 && rebuilt[0]?.checkedAt !== rebuiltProvider.checkedAt;
+              attempt += 1
+            ) {
+              yield* Effect.yieldNow;
+              rebuilt = yield* registry.getProviders;
+            }
+            assert.strictEqual(rebuilt[0]?.checkedAt, rebuiltProvider.checkedAt);
+            assert.strictEqual(rebuilt[0]?.workspaceSnapshots, undefined);
+          }).pipe(Effect.provide(runtimeServices));
+        }),
+      );
+
       it.effect("refreshes OpenCode catalogs and preserves other providers", () =>
         Effect.gen(function* () {
           const codexDriver = ProviderDriverKind.make("codex");
@@ -1079,7 +1312,7 @@ it.layer(Layer.mergeAll(NodeServices.layer, ServerSettingsModule.layerTest(), Te
               Layer.provideMerge(instanceRegistryLayer),
               Layer.provideMerge(
                 ServerConfig.layerTest(process.cwd(), {
-                  prefix: "t3-provider-registry-reconnect-refresh-",
+                  prefix: "ras-code-provider-registry-reconnect-refresh-",
                 }),
               ),
               Layer.provideMerge(NodeServices.layer),
@@ -2079,101 +2312,6 @@ it.layer(Layer.mergeAll(NodeServices.layer, ServerSettingsModule.layerTest(), Te
         ),
       );
 
-      it.effect("uses live Claude SDK model metadata when available", () =>
-        Effect.gen(function* () {
-          const status = yield* checkClaudeProviderStatus(
-            defaultClaudeSettings,
-            claudeCapabilities({
-              models: [
-                {
-                  value: "claude-fable-5-1[1m]",
-                  displayName: "Fable",
-                  description: "Fable 5.1 · hardest tasks",
-                  supportsEffort: true,
-                  supportedEffortLevels: ["low", "high"],
-                  supportsFastMode: true,
-                },
-              ],
-            }),
-          );
-
-          const fable = status.models.find((model) => model.slug === "claude-fable-5-1");
-          assert.strictEqual(fable?.name, "Fable");
-          const effort = fable?.capabilities?.optionDescriptors?.find(
-            (descriptor) => descriptor.type === "select" && descriptor.id === "effort",
-          );
-          assert.deepStrictEqual(
-            effort?.type === "select" ? effort.options.map((option) => option.id) : undefined,
-            ["low", "high"],
-          );
-          const contextWindow = fable?.capabilities?.optionDescriptors?.find(
-            (descriptor) => descriptor.type === "select" && descriptor.id === "contextWindow",
-          );
-          assert.strictEqual(
-            contextWindow?.type === "select" ? contextWindow.options.length : 0,
-            2,
-          );
-          assert.strictEqual(
-            status.models.some((model) => model.slug.endsWith("[1m]")),
-            false,
-          );
-        }).pipe(
-          Effect.provide(
-            mockSpawnerLayer((args) => {
-              const joined = args.join(" ");
-              if (joined === "--version") return { stdout: "2.1.258\n", stderr: "", code: 0 };
-              throw new Error(`Unexpected args: ${joined}`);
-            }),
-          ),
-        ),
-      );
-
-      // The SDK lists the wider context window as its own `[1m]` entry, so the
-      // pair has to fold into one row that still offers the option.
-      it.effect("keeps the 1M option when the SDK lists both context windows", () =>
-        Effect.gen(function* () {
-          const status = yield* checkClaudeProviderStatus(
-            defaultClaudeSettings,
-            claudeCapabilities({
-              models: [
-                {
-                  value: "claude-fable-5-1",
-                  displayName: "Fable",
-                  description: "Fable 5.1",
-                  supportedEffortLevels: ["low", "high"],
-                },
-                {
-                  value: "claude-fable-5-1[1m]",
-                  displayName: "Fable",
-                  description: "Fable 5.1",
-                  supportedEffortLevels: ["low", "high"],
-                },
-              ],
-            }),
-          );
-
-          const rows = status.models.filter((model) => model.slug === "claude-fable-5-1");
-          assert.strictEqual(rows.length, 1);
-          const contextWindow = rows[0]?.capabilities?.optionDescriptors?.find(
-            (descriptor) => descriptor.type === "select" && descriptor.id === "contextWindow",
-          );
-          assert.deepStrictEqual(
-            contextWindow?.type === "select"
-              ? contextWindow.options.map((option) => option.id)
-              : undefined,
-            ["200k", "1m"],
-          );
-        }).pipe(
-          Effect.provide(
-            mockSpawnerLayer((args) => {
-              const joined = args.join(" ");
-              if (joined === "--version") return { stdout: "2.1.258\n", stderr: "", code: 0 };
-              throw new Error(`Unexpected args: ${joined}`);
-            }),
-          ),
-        ),
-      );
-
       it.effect("hides Claude Opus 5 on older Claude Code versions", () =>
         Effect.gen(function* () {
           const status = yield* checkClaudeProviderStatus(
@@ -2334,6 +2472,122 @@ it.layer(Layer.mergeAll(NodeServices.layer, ServerSettingsModule.layerTest(), Te
           ),
         ),
       );
+
+      const claudeAtVersion = (version: string) =>
+        mockSpawnerLayer((args) => {
+          const joined = args.join(" ");
+          if (joined === "--version") return { stdout: `${version}\n`, stderr: "", code: 0 };
+          if (joined === "auth status")
+            return {
+              stdout: '{"loggedIn":true,"authMethod":"claude.ai"}\n',
+              stderr: "",
+              code: 0,
+            };
+          throw new Error(`Unexpected args: ${joined}`);
+        });
+
+      it.effect("includes Claude Fable 5.1 on supported Claude Code versions", () =>
+        Effect.gen(function* () {
+          const status = yield* checkClaudeProviderStatus(
+            defaultClaudeSettings,
+            claudeCapabilities(),
+          );
+          const fable51 = status.models.find((model) => model.slug === "claude-fable-5-1");
+          assert.strictEqual(fable51?.name, "Claude Fable 5.1");
+          assert.strictEqual(status.message, undefined);
+        }).pipe(Effect.provide(claudeAtVersion("2.1.257"))),
+      );
+
+      it.effect("hides Claude Fable 5.1 on older Claude Code versions", () =>
+        Effect.gen(function* () {
+          const status = yield* checkClaudeProviderStatus(
+            defaultClaudeSettings,
+            claudeCapabilities(),
+          );
+          assert.strictEqual(
+            status.models.some((model) => model.slug === "claude-fable-5-1"),
+            false,
+          );
+          assert.strictEqual(
+            status.message,
+            "Claude Code v2.1.252 is too old for Claude Fable 5.1. Upgrade to v2.1.257 or newer to access it.",
+          );
+        }).pipe(Effect.provide(claudeAtVersion("2.1.252"))),
+      );
+
+      it.effect("warns once about a Claude model the catalog does not carry", () => {
+        const warnings: string[] = [];
+        const logger = Logger.make(({ message }) => {
+          const text = String(message);
+          if (text.includes("missing from the RAS Code catalog")) warnings.push(text);
+        });
+        const check = checkClaudeProviderStatus(
+          defaultClaudeSettings,
+          // `claude-opus-5` is in the catalog; the other two are not.
+          claudeCapabilities({
+            resolvedModelSlugs: ["claude-opus-5", "claude-opus-9-9", "claude-opus-9-9"],
+          }),
+        );
+        return Effect.gen(function* () {
+          yield* check;
+          const afterFirst = warnings.length;
+          yield* check;
+          assert.strictEqual(afterFirst, 1);
+          assert.strictEqual(warnings.length, afterFirst);
+        }).pipe(
+          Effect.provide(
+            Layer.mergeAll(
+              claudeAtVersion("2.1.257"),
+              Logger.layer([logger], { mergeWithExisting: false }),
+            ),
+          ),
+        );
+      });
+
+      it.effect("treats a dated Claude snapshot as the catalog slug it aliases to", () => {
+        const warnings: string[] = [];
+        const logger = Logger.make(({ message }) => {
+          const text = String(message);
+          if (text.includes("missing from the RAS Code catalog")) warnings.push(text);
+        });
+        return Effect.gen(function* () {
+          yield* checkClaudeProviderStatus(
+            defaultClaudeSettings,
+            // What the real CLI resolves `haiku` to.
+            claudeCapabilities({ resolvedModelSlugs: ["claude-haiku-4-5-20251001"] }),
+          );
+          assert.deepStrictEqual(warnings, []);
+        }).pipe(
+          Effect.provide(
+            Layer.mergeAll(
+              claudeAtVersion("2.1.257"),
+              Logger.layer([logger], { mergeWithExisting: false }),
+            ),
+          ),
+        );
+      });
+
+      it.effect("stays quiet when every offered Claude model is in the catalog", () => {
+        const warnings: string[] = [];
+        const logger = Logger.make(({ message }) => {
+          const text = String(message);
+          if (text.includes("missing from the RAS Code catalog")) warnings.push(text);
+        });
+        return Effect.gen(function* () {
+          yield* checkClaudeProviderStatus(
+            defaultClaudeSettings,
+            claudeCapabilities({ resolvedModelSlugs: ["claude-opus-5", "claude-sonnet-5"] }),
+          );
+          assert.deepStrictEqual(warnings, []);
+        }).pipe(
+          Effect.provide(
+            Layer.mergeAll(
+              claudeAtVersion("2.1.257"),
+              Logger.layer([logger], { mergeWithExisting: false }),
+            ),
+          ),
+        );
+      });
 
       it.effect("returns a display label for claude subscription types", () =>
         Effect.gen(function* () {

@@ -6,17 +6,11 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { memo, useCallback } from "react";
-import { Link, useCanGoBack, useLocation, useNavigate } from "@tanstack/react-router";
+import { useCanGoBack, useLocation, useNavigate } from "@tanstack/react-router";
 
-import { useEnvironmentIdentificationMode } from "../../hooks/useSettings";
 import { cn } from "../../lib/utils";
 import { useEnvironments } from "../../state/environments";
 import { RasCodeWordmark } from "../RasCodeWordmark";
-import {
-  resolveEnvironmentIdentificationPillLabel,
-  useEnvironmentStageLabel,
-} from "../environmentStage";
-import { Badge } from "../ui/badge";
 import {
   SidebarFooter,
   SidebarHeader,
@@ -35,13 +29,6 @@ export const SidebarChromeHeader = memo(function SidebarChromeHeader({
 }: {
   isElectron: boolean;
 }) {
-  const stageLabel = useEnvironmentStageLabel();
-  const environmentIdentificationMode = useEnvironmentIdentificationMode();
-  const pillLabel =
-    environmentIdentificationMode === "none"
-      ? null
-      : resolveEnvironmentIdentificationPillLabel(stageLabel);
-
   return (
     <SidebarHeader
       className={cn(
@@ -51,29 +38,18 @@ export const SidebarChromeHeader = memo(function SidebarChromeHeader({
     >
       <SidebarTrigger className="relative z-10 md:hidden" />
       <SidebarBrand />
-      {pillLabel ? (
-        <Badge
-          className="relative z-10 ml-1 rounded-full px-1.5 text-muted-foreground"
-          data-environment-identification="pill"
-          size="sm"
-          variant="secondary"
-        >
-          {pillLabel}
-        </Badge>
-      ) : null}
     </SidebarHeader>
   );
 });
 
 function SidebarBrand() {
   return (
-    <Link
-      aria-label="Go to threads"
-      className="relative z-10 ml-[var(--workspace-titlebar-content-left)] hidden h-7 w-fit min-w-0 shrink-0 items-center gap-1.5 overflow-hidden rounded-md text-foreground outline-hidden focus-visible:ring-2 focus-visible:ring-ring md:flex"
-      to="/"
-    >
+    <div className="drag-region relative z-10 ml-[var(--workspace-titlebar-content-left)] hidden h-7 w-fit min-w-0 shrink-0 items-center gap-1.5 overflow-hidden text-foreground md:flex [[data-sidebar-state=collapsed]_&]:hidden">
       <RasCodeWordmark />
-    </Link>
+      <span className="inline-flex items-center gap-1.5" data-sidebar-brand-details>
+        <span className="text-sm leading-none font-semibold tracking-[-0.02em]">Code</span>
+      </span>
+    </div>
   );
 }
 

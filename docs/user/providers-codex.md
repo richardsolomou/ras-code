@@ -101,6 +101,21 @@ Shadow home path: ~/.codex_p
 The important part is that both providers use the same `CODEX_HOME path`, but only the second one
 has a `Shadow home path`.
 
+## Switching Accounts When One Runs Out
+
+RAS Code does this for you. When the account running a thread hits its usage limit, RAS Code asks
+whether to continue on your other Codex account or to wait for the reset. It names the account it
+would move to. Answer once for each limit. Every later turn in that window continues there without
+a question.
+
+With the recommended shared-home setup, the thread keeps its Codex conversation and replays
+nothing. RAS Code tries your original account again on the first turn after its reset, and tells you
+when the thread is back on it.
+
+RAS Code skips an account that is signed in to the same login as the exhausted one, one that is out
+of quota itself, and one you have not logged into. If neither account can take the turn and you
+have a [PostHog AI Gateway](./providers-posthog-gateway.md) provider, that is offered instead.
+
 ## Which Account Am I Using?
 
 Open Settings and look at the provider row.

@@ -1,5 +1,10 @@
 # Contributing
 
+## Developer Setup
+
+See the [maintainer scripts guide](docs/internals/scripts.md#first-checkout) for the initial checkout,
+development commands, tests, and platform-specific desktop packaging prerequisites.
+
 ## Read This First
 
 RAS Code is a personal fork of [T3 Code](https://github.com/pingdotgg/t3code), maintained by Richard.

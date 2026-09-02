@@ -64,13 +64,19 @@ Two registries separate configuration from live processes:
 [`ProviderService`][service] sits on top. It combines the adapter registry with the provider session
 directory to route session and turn operations for a thread, so callers name a thread, not an agent.
 
+`ProviderService.sendTurn` expands [assistant citations](./assistant-citations.md) into quoted
+reference data before dispatching to any adapter. Bound user comments remain distinct from the quoted
+assistant text. Persisted messages keep their serialized links.
+
 Adding a driver means writing the driver plus adapter and adding it to `BUILT_IN_DRIVERS`. No
 orchestration, contract, or client change is required for the common case.
 
-## Usage limits and gateway fallback
+## Usage limits and fallback
 
-The PostHog AI Gateway is the only usage fallback. Once a gateway instance is enabled, subscription
-providers discover it automatically. There is no fallback setting or provider graph.
+A fallback candidate is any other instance of the exhausted instance's own driver, plus any PostHog
+AI Gateway instance. RAS Code finds them automatically. There is no fallback setting and no provider
+graph. A third harness that advertises the same model slug is not a candidate: it is a different
+tool with a different bill.
 
 Quota state is derived from the `account.rate-limits.updated` runtime event, which both the Claude
 and Codex adapters forward with their native payload. `providerUsageLimit.ts` normalises those two
@@ -82,28 +88,61 @@ volatile: it is never written to the provider status cache, and an exhausted win
 instance exhausted, reading the reset instant out of the message when it names one and falling back
 to a 30-minute cooldown when it does not.
 
-`ProviderCommandReactor` owns the routing. It offers the gateway only when the subscription is
-exhausted, the gateway advertises the exact requested model, and the gateway is available and not
-exhausted. Instances that share a continuation key move the thread's provider conversation intact —
-the composite adopts Claude's continuation identity, so started Claude threads resume. Every other
-shape crosses as a fresh session with the recent transcript carried into the first prompt, which is
-what `restartsSession` on the `provider.fallback.offered` payload tells the clients to warn about.
+Codex reports several rolling windows and blocks a turn while any of them is full, so `resetsAt` is
+the reset of the _last_ full window rather than the most-consumed one. A five-hour window resets
+long before a full weekly one, and returning at the earlier instant would hand the thread back to a
+subscription that is still out of quota.
 
-The user confirms the switch once for an exhaustion episode. The saved thread selection remains
-the subscription provider and model while the provider session records the gateway that actually
-runs the turn. This keeps thread identity stable and lets the next turn try the subscription again
-after its reset. When the two harnesses cannot share continuation state, both the crossing and the
-return start a fresh session and carry the recent thread transcript into its first prompt. A
-successful primary turn emits `provider.fallback.returned`; another usage-limit failure before
-output resumes the already-approved gateway without another prompt. The approved route is in
-memory, so the crossing is also derived from durable state. `ensureSessionForThread` reads the
-thread's current instance from its bound session rather than its selection, so a thread whose
-gateway session was reaped or lost to a restart is not read as switching into the gateway and
-refused. `requiresTranscriptHandoff` then carries the transcript whenever the instance about to run
-the turn cannot resume the bound session, in either direction. One of the two instances has to be a
-gateway, which is what keeps a user switching a started thread between incompatible instances a
-refusal. The gateway never falls back to
-itself, no alternative model is selected, and no fallback chain is traversed.
+`ProviderUsageLimit.windows` keeps the per-window breakdown the provider reported, which the four
+summary fields reduce to one verdict. Nothing reads it back — routing decides from `status` and
+`resetsAt` — but the `provider.fallback.offered` activity records it, and because quota state is
+never otherwise persisted that activity is the only durable evidence of which window ran an account
+dry. It is absent when the state was inferred from a failure message, which names no windows.
+
+`ProviderCommandReactor` owns the routing. It offers a candidate only when the primary is
+exhausted, the candidate advertises the exact requested model, and the candidate is available and
+not exhausted itself. Two exclusions follow from that: a candidate signed in to the primary's own
+account, because one login is one quota pool, and a candidate reporting
+`auth.status === "unauthenticated"`, because an instance with no login cannot run the turn.
+`unknown` stays eligible, since the probe could not tell either way. Cost breaks ties first and
+continuity second. Another subscription outranks the metered gateway, and inside a tier an instance
+that shares the primary's continuation key outranks one that does not.
+
+Instances that share a continuation key move the thread's provider conversation intact. Two Codex
+instances over one `CODEX_HOME` resume, and the composite gateway adopts Claude's continuation
+identity, so a started Claude thread resumes onto it. Every other shape crosses as a fresh session
+and carries the recent transcript into the first prompt. That is what `restartsSession` on the
+`provider.fallback.offered` payload tells the clients to warn about. Two Claude accounts are that
+shape, because Claude Code keeps account state across several files under its config directory and
+separate `CLAUDE_CONFIG_DIR` homes stay isolated.
+
+The user confirms the switch once for an exhaustion episode. The saved thread selection remains the
+primary provider and model while the provider session records the instance that actually runs the
+turn. This keeps thread identity stable and lets the next turn try the primary again after its
+reset. When the two instances cannot share continuation state, both the crossing and the return
+start a fresh session and carry the recent thread transcript into its first prompt. A successful
+primary turn emits `provider.fallback.returned`; another usage-limit failure before output resumes
+the already-approved fallback without another prompt. The approved route is in memory, so the
+crossing is also derived from durable state. `ensureSessionForThread` reads the thread's current
+instance from its bound session rather than its selection, so a thread whose fallback session was
+reaped or lost to a restart is not read as switching providers and refused.
+`requiresTranscriptHandoff` then carries the transcript whenever the instance about to run the turn
+cannot resume the bound session, in either direction. The turn has to be moving along the crossing
+the thread's own `provider.fallback.engaged` activity records — the durable half of the route —
+which is what keeps a user switching a started thread between incompatible instances a refusal. The
+gateway never falls back to anything, no alternative model is selected, and no fallback chain is
+traversed.
+
+### Grok health check
+
+`checkGrokProviderStatus` never opens an ACP session. It runs `grok --version`, then `grok models`
+for login state and model slugs, then a single ACP `initialize` and reads models from
+`_meta.modelState`. `authenticate` and `session/new` are skipped on purpose: `authenticate` can open
+a browser login and `session/new` boots every configured MCP server, both of which made background
+probes hang or surprise the user. A failed `initialize` degrades to `warning` with the CLI's model
+list instead of persisting `error` over a working install. The built-in `grok-build` slug is the
+CLI's product name, not an ACP model id. `applyGrokAcpModelSelection` treats it as "keep the
+session's current model" and never sends it in `session/set_model`.
 
 ## OpenCode server ownership and catalog
 
@@ -123,7 +162,7 @@ session operations start. The response must contain a valid version at or above 
 owners cache this result for the lifetime of the spawned process. External actions check once when
 they create their server connection, not for each model or SDK request.
 
-Chat adapters keep their own server per thread. They register a thread-specific `t3-code` MCP
+Chat adapters keep their own server per thread. They register a thread-specific `ras-code` MCP
 connection, while OpenCode stores MCP connections by directory. Sharing these chat servers
 without changing MCP routing would let two threads in one directory replace each other's
 connection.
@@ -140,8 +179,8 @@ active text-generation work can extend process reuse. Changes to the provider co
 environment replace the instance and start a new discovery. Changes to unrelated settings only
 update snapshot enrichment. Other providers retain their existing refresh policy.
 
-T3 Code does not own an external OpenCode process. Native configuration changes there can require
-an external reload or restart before T3 Code's next refresh sees them.
+RAS Code does not own an external OpenCode process. Native configuration changes there can require
+an external reload or restart before RAS Code's next refresh sees them.
 
 The shared server's idle shutdown does not clear the catalog. Failed discovery keeps the last
 known models, slash commands, and skills through the registry's existing merge rules. A successful
@@ -246,6 +285,13 @@ fork point. When any of those is missing — including every cross-provider fork
 turn is prefixed with a rendered transcript of the inherited prefix instead
 ([`forkTranscript.ts`][forktranscript]). The workspace carries the real state either way: the fork
 point's checkpoint is restored into the fork's worktree.
+
+The same renderer and the same budget serve the usage-limit handoff. Only message text crosses; tool
+calls, diffs, and provider-side reasoning do not. The budget carries a whole conversation rather
+than its tail, because truncation drops the original request first. Provider-side compaction does
+not shrink what crosses. It arrives as a `context-compaction` activity holding the boundary
+metadata, and prunes no messages, so a compacted thread hands over more than the provider it leaves
+still held.
 
 An adapter that gains a fork primitive only has to emit an anchor and read `forkAtAnchor`; nothing
 above it changes.

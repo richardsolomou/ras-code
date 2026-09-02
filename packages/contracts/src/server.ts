@@ -66,6 +66,8 @@ export const ServerProviderModel = Schema.Struct({
   name: TrimmedNonEmptyString,
   shortName: Schema.optional(TrimmedNonEmptyString),
   subProvider: Schema.optional(TrimmedNonEmptyString),
+  aliases: Schema.optional(Schema.Array(TrimmedNonEmptyString)),
+  badge: Schema.optional(Schema.Literal("new")),
   isCustom: Schema.Boolean,
   isDefault: Schema.optional(Schema.Boolean),
   isLegacy: Schema.optional(Schema.Boolean),
@@ -93,8 +95,28 @@ export const ServerProviderSkill = Schema.Struct({
   enabled: Schema.Boolean,
   displayName: Schema.optional(TrimmedNonEmptyString),
   shortDescription: Schema.optional(TrimmedNonEmptyString),
+  /**
+   * The skill is hidden from the agent's own skill tool, so only the user can
+   * start it — Claude Code's `disable-model-invocation`. Composers must offer
+   * it as a slash command; naming it in prose does nothing.
+   */
+  userInvocationOnly: Schema.optional(Schema.Boolean),
+  /**
+   * The mirror of {@link ServerProviderSkill.userInvocationOnly}: Claude Code's
+   * `user-invocable: false` keeps the skill out of its own slash commands, so
+   * only the agent can start it. Composers must not offer it under `/`.
+   */
+  userInvocable: Schema.optional(Schema.Boolean),
 });
 export type ServerProviderSkill = typeof ServerProviderSkill.Type;
+
+export const ServerProviderWorkspaceSnapshot = Schema.Struct({
+  cwd: TrimmedNonEmptyString,
+  checkedAt: IsoDateTime,
+  slashCommands: Schema.Array(ServerProviderSlashCommand),
+  skills: Schema.Array(ServerProviderSkill),
+});
+export type ServerProviderWorkspaceSnapshot = typeof ServerProviderWorkspaceSnapshot.Type;
 
 /**
  * Availability of a configured provider instance from the runtime's POV.
@@ -177,6 +199,20 @@ export type ServerProviderUpdateState = typeof ServerProviderUpdateState.Type;
 export const ProviderUsageLimitStatus = Schema.Literals(["ok", "warning", "exhausted"]);
 export type ProviderUsageLimitStatus = typeof ProviderUsageLimitStatus.Type;
 
+/**
+ * One rolling quota window as the provider reported it, before the fields
+ * above reduce them to a single verdict. Recorded so an exhaustion can be
+ * explained after the fact: the summary alone cannot say whether a short
+ * window or a long one is the thing holding the account back.
+ */
+export const ProviderUsageLimitWindow = Schema.Struct({
+  name: TrimmedNonEmptyString,
+  // Percentage of the window consumed, 0..100, when the provider reports it.
+  usedPercent: Schema.NullOr(Schema.Number),
+  resetsAt: Schema.NullOr(IsoDateTime),
+});
+export type ProviderUsageLimitWindow = typeof ProviderUsageLimitWindow.Type;
+
 export const ProviderUsageLimit = Schema.Struct({
   status: ProviderUsageLimitStatus,
   resetsAt: Schema.NullOr(IsoDateTime),
@@ -185,6 +221,9 @@ export const ProviderUsageLimit = Schema.Struct({
   kind: Schema.NullOr(TrimmedNonEmptyString),
   // Fraction of the window consumed, 0..1, when the provider reports it.
   utilization: Schema.NullOr(Schema.Number),
+  // Absent when the state was inferred from a failure message rather than a
+  // structured report, which names no windows.
+  windows: Schema.optional(Schema.Array(ProviderUsageLimitWindow)),
 });
 export type ProviderUsageLimit = typeof ProviderUsageLimit.Type;
 
@@ -222,6 +261,7 @@ export const ServerProvider = Schema.Struct({
     Schema.withDecodingDefault(Effect.succeed([])),
   ),
   skills: Schema.Array(ServerProviderSkill).pipe(Schema.withDecodingDefault(Effect.succeed([]))),
+  workspaceSnapshots: Schema.optionalKey(Schema.Array(ServerProviderWorkspaceSnapshot)),
   versionAdvisory: Schema.optionalKey(ServerProviderVersionAdvisory),
   updateState: Schema.optionalKey(ServerProviderUpdateState),
   // Volatile, never persisted to the status cache. Absent or `null` means
@@ -452,11 +492,11 @@ export const ServerSignalProcessResult = Schema.Struct({
 export type ServerSignalProcessResult = typeof ServerSignalProcessResult.Type;
 
 /**
- * A palette the environment's machine publishes for T3 Code to follow, read
+ * A palette the environment's machine publishes for RAS Code to follow, read
  * from a theme file next to the rest of the environment's state. Two seed
  * colors rather than a full palette: clients derive the remaining roles with
  * the same generator the guided theme editor uses, so a desktop theme carries
- * over as a coherent T3 Code palette instead of a foreign one.
+ * over as a coherent RAS Code palette instead of a foreign one.
  */
 export const EnvironmentThemeColor = Schema.String.check(
   Schema.isPattern(/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/),
@@ -765,6 +805,10 @@ export const ServerSelfUpdateInput = Schema.Struct({
   /** Exact npm version of the `ras` package to install (never a dist-tag, so
       the server and the acknowledging client agree on what was requested). */
   targetVersion: TrimmedNonEmptyString,
+  /** Opt-in recovery for provider turns that are running when the server
+      hands off to its replacement. Missing and false keep restart behavior
+      conservative under version skew. */
+  continueRunningThreads: Schema.optionalKey(Schema.Boolean),
 });
 export type ServerSelfUpdateInput = typeof ServerSelfUpdateInput.Type;
 
@@ -775,8 +819,15 @@ export const ServerSelfUpdateResult = Schema.Struct({
   method: ServerSelfUpdateMethod,
   /** Launcher-generated correlation ID. Absent when talking to older servers. */
   updateId: Schema.optionalKey(TrimmedNonEmptyString),
+  /** Desktop preparation token. Present only for the desktop-app method. */
+  desktopUpdateToken: Schema.optionalKey(TrimmedNonEmptyString),
 });
 export type ServerSelfUpdateResult = typeof ServerSelfUpdateResult.Type;
+
+export const DesktopUpdateCommitInput = Schema.Struct({
+  requestId: TrimmedNonEmptyString,
+});
+export type DesktopUpdateCommitInput = typeof DesktopUpdateCommitInput.Type;
 
 export const ServerSelfUpdateProgressStage = Schema.Literals(["downloading", "installing"]);
 export type ServerSelfUpdateProgressStage = typeof ServerSelfUpdateProgressStage.Type;

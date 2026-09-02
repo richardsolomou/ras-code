@@ -44,11 +44,11 @@ const CELLS = Array.from({ length: 5 }, (_, row) =>
   Array.from({ length: 11 }, (_, column) => ({ column, row })),
 ).flat();
 
-export function RasCodeWordmark() {
+export function RasCodeWordmark(props: { readonly className?: string; readonly hidden?: boolean }) {
   return (
     <svg
-      aria-label="RAS"
-      className="h-4 w-auto shrink-0"
+      {...(props.hidden ? { "aria-hidden": true } : { "aria-label": "RAS" })}
+      className={props.className ?? "h-4 w-auto shrink-0"}
       viewBox="0 0 108 48"
       xmlns="http://www.w3.org/2000/svg"
     >

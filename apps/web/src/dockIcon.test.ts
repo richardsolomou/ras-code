@@ -305,8 +305,8 @@ describe("createDockIconSync", () => {
 describe("resolveDockIconColors", () => {
   it("reads the shared brand tokens", () => {
     const values = new Map([
-      ["--brand-background", "#101010"],
-      ["--brand-empty", "#202020"],
+      ["--dock-icon-background", "#101010"],
+      ["--dock-icon-empty", "#202020"],
       ["--brand-low", "#303030"],
       ["--brand-medium", "#404040"],
       ["--brand-high", "#505050"],

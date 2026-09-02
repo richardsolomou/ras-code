@@ -57,9 +57,8 @@
       }
 
       body {
-        --brand-background: #ffffff;
-        --brand-border: #d0d7de;
-        --brand-empty: #ebedf0;
+        --dock-icon-background: #ffffff;
+        --dock-icon-empty: #ebedf0;
         --brand-low: #216e39;
         --brand-medium: #30a14e;
         --brand-high: #40c463;
@@ -69,9 +68,8 @@
       }
 
       html.dark body {
-        --brand-background: #0d1117;
-        --brand-border: #30363d;
-        --brand-empty: #21262d;
+        --dock-icon-background: #0d1117;
+        --dock-icon-empty: #21262d;
         --brand-low: #006d32;
         --brand-medium: #26a641;
         --brand-high: #39d353;
@@ -84,13 +82,13 @@
         min-height: 100%;
         align-items: center;
         justify-content: center;
-        background: inherit;
+        background-color: inherit;
         color: inherit;
       }
 
       #boot-shell-logo {
-        width: 96px;
-        height: 96px;
+        width: 128px;
+        height: 128px;
       }
     </style>
     <title>RAS Code</title>
@@ -104,32 +102,7 @@
           role="img"
           aria-label="RAS Code splash screen"
         >
-          <defs>
-            <clipPath id="boot-icon-boundary">
-              <rect x="0.5" y="0.5" width="127" height="127" rx="12" />
-            </clipPath>
-            <pattern
-              id="boot-empty-cells"
-              x="8"
-              y="8"
-              width="16"
-              height="16"
-              patternUnits="userSpaceOnUse"
-            >
-              <rect width="12" height="12" rx="2" fill="var(--brand-empty)" />
-            </pattern>
-          </defs>
-          <rect
-            x="0.5"
-            y="0.5"
-            width="127"
-            height="127"
-            rx="12"
-            fill="var(--brand-background)"
-            stroke="var(--brand-border)"
-          />
-          <g clip-path="url(#boot-icon-boundary)" transform="translate(2 2)">
-            <rect x="0" y="0" width="124" height="124" fill="url(#boot-empty-cells)" />
+          <g transform="translate(2 2)">
             <rect x="40" y="24" width="12" height="12" rx="2" fill="var(--brand-high)" />
             <rect x="56" y="24" width="12" height="12" rx="2" fill="var(--brand-medium)" />
             <rect x="40" y="40" width="12" height="12" rx="2" fill="var(--brand-medium)" />

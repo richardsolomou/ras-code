@@ -4,6 +4,9 @@
     "modules": ["RasCodeNativeControlsModule", "RasCodeKeyboardCommandsModule"]
   },
   "android": {
-    "modules": ["expo.modules.ras_code.nativecontrols.RasCodeNativeControlsModule"]
+    "modules": [
+      "expo.modules.ras_code.nativecontrols.RasCodeNativeControlsModule",
+      "expo.modules.ras_code.nativecontrols.RasCodeKeyboardCommandsModule"
+    ]
   }
 }

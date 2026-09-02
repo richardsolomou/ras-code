@@ -25,8 +25,17 @@ export const preservedPatterns: ReadonlyArray<RegExp> = [
   /\bt3-chat\b/g,
   /\b[\w-]*\.?t3\.(?:codes|chat|tools|sh)\b/g,
   /\bt3\.(?:nano|micro|small|medium|large|xlarge|\d+xlarge)\b/g,
+  // Upstream's repository, and the forks of it named in fixtures, keep their
+  // real slug; only the fork identity `t3tools/t3code` becomes ours.
   /\bpingdotgg\/t3code\b/g,
+  /\bPingDotGG\/T3Code\b/g,
+  /\bbinbandit\/t3code\b/g,
   /\bt3_relay\b/g,
+  // The WSL runtime cache still lives under these names on users' disks, so
+  // renaming them here would orphan every installed runtime.
+  /\$HOME\/\.t3\/wsl-runtime/g,
+  /\.t3code-wsl-runtime-(?:ready|selected)\b/g,
+  /\bt3code-wsl-node-pty\.json\b/g,
 ];
 
 const textRules: ReadonlyArray<RebrandRule> = [
@@ -36,7 +45,7 @@ const textRules: ReadonlyArray<RebrandRule> = [
     description: "workspace package scope",
   },
   {
-    pattern: /\bt3tools\/t3code\b/g,
+    pattern: /\bt3tools\/t3code\b/gi,
     replacement: "richardsolomou/ras-code",
     description: "fork repository slug",
   },
@@ -82,6 +91,16 @@ const textRules: ReadonlyArray<RebrandRule> = [
     description: "remote access product name",
   },
   {
+    pattern: /\bt3-connect\b/g,
+    replacement: "ras-connect",
+    description: "remote access product name in kebab-case ids",
+  },
+  {
+    pattern: /\bt3 connect\b/g,
+    replacement: "ras connect",
+    description: "remote access product name in prose and search terms",
+  },
+  {
     pattern: /\bT3 Code\b/g,
     replacement: "RAS Code",
     description: "product name",
@@ -95,6 +114,11 @@ const textRules: ReadonlyArray<RebrandRule> = [
     pattern: /\bt3ProjectFile/g,
     replacement: "rasProjectFile",
     description: "project file helpers",
+  },
+  {
+    pattern: /\bT3Code\b/g,
+    replacement: "RasCode",
+    description: "PascalCase product name",
   },
   {
     pattern: /T3(?=[A-Z])/g,
@@ -141,6 +165,11 @@ const textRules: ReadonlyArray<RebrandRule> = [
     pattern: /\bt3-code\b/g,
     replacement: "ras-code",
     description: "kebab-case product id",
+  },
+  {
+    pattern: /\bt3_session/g,
+    replacement: "ras_session",
+    description: "browser session cookie name",
   },
   {
     pattern: /\bt3_/g,
@@ -320,4 +349,31 @@ export function rebrandPatch(patch: string): string {
     .split("\n")
     .map((line) => (isPatchBodyLine(line) ? line[0] + rebrandText(line.slice(1)) : line))
     .join("\n");
+}
+
+export interface UnmappedBrandToken {
+  readonly token: string;
+  readonly count: number;
+}
+
+/**
+ * Brand tokens the table cannot decide, counted across every line a diff adds.
+ *
+ * Left to the per-file helper these surface one at a time, mid-cherry-pick, and each one costs a
+ * detour to extend the table. Reading them off a whole range first turns a round's worth of
+ * interruptions into one edit before any picking starts.
+ */
+export function collectUnmappedBrandTokensFromDiff(
+  diff: string,
+): ReadonlyArray<UnmappedBrandToken> {
+  const counts = new Map<string, number>();
+  for (const line of diff.split("\n")) {
+    if (!line.startsWith("+") || line.startsWith("+++")) continue;
+    for (const residual of findResidualBrandTokens(rebrandText(line.slice(1)))) {
+      counts.set(residual.token, (counts.get(residual.token) ?? 0) + 1);
+    }
+  }
+  return [...counts]
+    .map(([token, count]) => ({ token, count }))
+    .toSorted((left, right) => right.count - left.count || left.token.localeCompare(right.token));
 }

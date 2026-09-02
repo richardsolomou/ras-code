@@ -48,10 +48,14 @@ Claude can show its own resume prompt when you continue an old session.
 
 ## Where Claude Skills Are Loaded
 
-RAS Code looks for Claude skills in the Claude config directory's `skills` folder, then
-`<workspace>/.agents/skills`, then `<workspace>/.claude/skills`.
+RAS Code looks for Claude skills in the Claude config directory's `skills` folder and
+`<workspace>/.claude/skills`, the two places Claude Code loads them from.
 
-If the same skill name exists in more than one folder, the later folder wins.
+A skill set to `off` in Claude Code's `skillOverrides` is left out of both composer menus. A skill
+marked `disable-model-invocation` still appears, because you start it yourself when you pick it.
+Claude Code runs one skill per message; when a message names several, the last one runs directly and
+Claude starts the others through its Skill tool, which refuses skills marked
+`disable-model-invocation`.
 
 ## I Want Work And Personal Claude Accounts
 
@@ -113,6 +117,24 @@ different config directory is treated as a different Claude environment.
 This is different from the recommended Codex setup. Claude Code keeps account and local state across
 multiple files under its config directory, so RAS Code keeps separate config directories isolated
 instead of trying to share part of the state.
+
+A usage limit is the one exception.
+
+## Switching Accounts When One Runs Out
+
+RAS Code does this for you. When the account running a thread hits its usage limit, RAS Code asks
+whether to continue on your other Claude account or to wait for the reset. It names the account it
+would move to. Answer once for each limit. Every later turn in that window continues there without
+a question.
+
+Each account has its own config directory, so the other account cannot resume the Claude
+conversation. RAS Code starts a fresh session there and carries the recent transcript into the next
+prompt. Older detail can be lost. The question tells you this before you accept. The same replay
+happens on the way back, which RAS Code tries on the first turn after your original account
+resets.
+
+RAS Code skips an account that is signed in to the same login as the exhausted one, one that is out
+of quota itself, and one you have not logged into.
 
 ## I Want To Use OpenRouter
 
@@ -199,7 +221,8 @@ OpenRouter's setup can change over time. Use its upstream Claude Code guide for 
 Add and connect a [PostHog AI Gateway](./providers-posthog-gateway.md) provider once. There is no
 fallback setting on Claude. When the Claude subscription reaches its usage limit, RAS Code offers
 to continue through the gateway if it has the exact same model and can preserve the thread's
-conversation state.
+conversation state. A second Claude subscription that can run the model is offered first, because
+the gateway bills per token.
 
 After you accept, the thread stays visually attached to Claude and its original model. A quiet
 `Using <model> via PostHog AI Gateway` label and a timeline event explain how turns are being sent.

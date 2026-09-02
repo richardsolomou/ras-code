@@ -22,6 +22,7 @@ it("isolates Claude capability probes without dropping workspace setting sources
     environment: {
       HOME: "/home/user",
       ENABLE_CLAUDEAI_MCP_SERVERS: "true",
+      FORCE_CODE_TERMINAL: "1",
     },
     cwd: "/workspace/project",
   });
@@ -37,6 +38,9 @@ it("isolates Claude capability probes without dropping workspace setting sources
   assert.equal(options.abortController, abortController);
   assert.equal(options.env?.HOME, "/home/user");
   assert.equal(options.env?.ENABLE_CLAUDEAI_MCP_SERVERS, "false");
+  assert.equal(options.env?.FORCE_CODE_TERMINAL, undefined);
+  assert.equal(options.env?.CLAUDE_CODE_AUTO_CONNECT_IDE, "0");
+  assert.equal(options.env?.CLAUDE_CODE_IDE_SKIP_AUTO_INSTALL, "1");
 });
 
 it.layer(NodeServices.layer)("Claude capability probe SDK boundary", (it) => {
@@ -84,15 +88,13 @@ it.layer(NodeServices.layer)("Claude capability probe SDK boundary", (it) => {
           "        agents: [],",
           '        output_style: "default",',
           '        available_output_styles: ["default"],',
+          // Menu rows are alias-keyed; only `resolvedModel` is a real id, and one
+          // row deliberately omits it because the SDK type does not declare it.
           "        models: [",
-          "          {",
-          '            value: "claude-fable-5-1[1m]",',
-          '            resolvedModel: "claude-fable-5-1",',
-          '            displayName: "Fable",',
-          '            description: "Fable 5.1",',
-          "            supportsEffort: true,",
-          '            supportedEffortLevels: ["low", "high"],',
-          "          },",
+          '          { value: "default", resolvedModel: "claude-opus-5[1m]", displayName: "Default (recommended)", description: "Default" },',
+          '          { value: "opus[1m]", resolvedModel: "claude-opus-5[1m]", displayName: "Opus (1M context)", description: "Opus" },',
+          '          { value: "sonnet", resolvedModel: "claude-sonnet-5", displayName: "Sonnet", description: "Sonnet" },',
+          '          { value: "legacy-alias", displayName: "No resolved model", description: "None" },',
           "        ],",
           '        account: { email: "dev@example.com", subscriptionType: "pro", tokenSource: "oauth" },',
           "      },",
@@ -127,16 +129,7 @@ it.layer(NodeServices.layer)("Claude capability probe SDK boundary", (it) => {
             input: { hint: "[path]" },
           },
         ],
-        // The stub sends `resolvedModel` and `supportsEffort` as the real CLI
-        // does; the probe keeps only the fields the picker reads.
-        models: [
-          {
-            value: "claude-fable-5-1[1m]",
-            displayName: "Fable",
-            description: "Fable 5.1",
-            supportedEffortLevels: ["low", "high"],
-          },
-        ],
+        resolvedModelSlugs: ["claude-opus-5", "claude-sonnet-5"],
       });
 
       // @effect-diagnostics-next-line preferSchemaOverJson:off

@@ -101,3 +101,176 @@ export function formatResidue(residue: ReadonlyArray<UpstreamResidue>): string {
     "Run `node scripts/upstream-rebrand.ts <files>` on the content hits, and move or delete the path hits.",
   ].join("\n");
 }
+
+/**
+ * Packages a fork-only file imports but its manifest no longer declares.
+ *
+ * Upstream prunes dependencies against upstream's own code, so a removal that is correct there can
+ * still be wrong here: the fork carries files upstream has never seen. #9150 dropped
+ * `@effect/platform-node-shared`, which only the fork-only relay connector imports, and the pick
+ * was read and adapted without anyone noticing. Nothing failed until `node_modules` was reinstalled
+ * from the merged lockfile, several changes and one CI round-trip later.
+ */
+export interface UndeclaredForkDependency {
+  readonly path: string;
+  readonly line: number;
+  readonly packageName: string;
+}
+
+const RELATIVE_SPECIFIER = /^[./]/u;
+const ALIAS_SPECIFIER = /^[~#]/u;
+/**
+ * Import statements only, anchored at the start of a line: `from "..."` also appears in prose and
+ * in template literals, and a doc comment is not a dependency. The `}` alternative catches the
+ * closing line of a multi-line named import, where `from` is no longer beside `import`.
+ */
+const IMPORT_SPECIFIER = new RegExp(
+  [
+    /^[ \t]*(?:import|export)\b[^"'\n]*\bfrom[ \t]*["']([^"'\n]+)["']/u.source,
+    /^[ \t]*\}[ \t]*from[ \t]*["']([^"'\n]+)["']/u.source,
+    /^[ \t]*(?:import|export)[ \t]+["']([^"'\n]+)["']/u.source,
+    /(?:\brequire|\bimport)[ \t]*\([ \t]*["']([^"'\n]+)["'][ \t]*\)/u.source,
+  ].join("|"),
+  "gmu",
+);
+
+/**
+ * The package a specifier belongs to, or `null` for anything a manifest never declares: relative
+ * paths, absolute paths, and Node builtins with or without the `node:` prefix.
+ */
+export function packageNameFromSpecifier(specifier: string): string | null {
+  if (specifier.length === 0 || RELATIVE_SPECIFIER.test(specifier)) return null;
+  if (specifier.startsWith("node:")) return null;
+  // `~/…` and `#…` are tsconfig path aliases, and an interpolated specifier is not a package name.
+  if (ALIAS_SPECIFIER.test(specifier) || specifier.includes("${")) return null;
+  const segments = specifier.split("/");
+  const name = specifier.startsWith("@")
+    ? segments.slice(0, 2).join("/")
+    : (segments[0] ?? specifier);
+  if (name.startsWith("@") && segments.length < 2) return null;
+  return NODE_BUILTINS.has(name) ? null : name;
+}
+
+const NODE_BUILTINS = new Set([
+  "assert",
+  "buffer",
+  "child_process",
+  "cluster",
+  "console",
+  "constants",
+  "crypto",
+  "dgram",
+  "dns",
+  "domain",
+  "events",
+  "fs",
+  "http",
+  "http2",
+  "https",
+  "inspector",
+  "module",
+  "net",
+  "os",
+  "path",
+  "perf_hooks",
+  "process",
+  "punycode",
+  "querystring",
+  "readline",
+  "repl",
+  "stream",
+  "string_decoder",
+  "sys",
+  "timers",
+  "tls",
+  "trace_events",
+  "tty",
+  "url",
+  "util",
+  "v8",
+  "vm",
+  "worker_threads",
+  "zlib",
+]);
+
+/** Every external package a source file imports, with the line that imports it. */
+export function findExternalImports(
+  contents: string,
+): ReadonlyArray<{ readonly packageName: string; readonly line: number }> {
+  const found: Array<{ packageName: string; line: number }> = [];
+  const seen = new Set<string>();
+  const scanner = new RegExp(IMPORT_SPECIFIER.source, IMPORT_SPECIFIER.flags);
+  for (let match = scanner.exec(contents); match !== null; match = scanner.exec(contents)) {
+    const specifier = match[1] ?? match[2] ?? match[3] ?? match[4];
+    if (!specifier) continue;
+    const packageName = packageNameFromSpecifier(specifier);
+    if (packageName === null || seen.has(packageName)) continue;
+    seen.add(packageName);
+    found.push({
+      packageName,
+      line: contents.slice(0, match.index).split("\n").length,
+    });
+  }
+  return found;
+}
+
+/** Every dependency field a manifest can declare, flattened to the names pnpm will resolve. */
+export function collectDeclaredDependencies(manifest: unknown): ReadonlySet<string> {
+  const record = (manifest ?? {}) as Record<string, unknown>;
+  const fields = ["dependencies", "devDependencies", "peerDependencies", "optionalDependencies"];
+  const declared = new Set<string>();
+  for (const field of fields) {
+    const value = record[field];
+    if (typeof value !== "object" || value === null) continue;
+    for (const name of Object.keys(value as Record<string, unknown>)) declared.add(name);
+  }
+  return declared;
+}
+
+/**
+ * Fork-only imports no manifest covers. `declaredFor` answers with the names visible to a file,
+ * which is its own package's manifest plus the workspace root's.
+ */
+export function findUndeclaredForkDependencies(
+  files: ReadonlyArray<{ readonly path: string; readonly contents: string }>,
+  declaredFor: (path: string) => ReadonlySet<string>,
+): ReadonlyArray<UndeclaredForkDependency> {
+  const found: Array<UndeclaredForkDependency> = [];
+  for (const file of files) {
+    if (isContentExempt(file.path)) continue;
+    const declared = declaredFor(file.path);
+    for (const imported of findExternalImports(file.contents)) {
+      if (declared.has(imported.packageName)) continue;
+      found.push({
+        path: file.path,
+        line: imported.line,
+        packageName: imported.packageName,
+      });
+    }
+  }
+  return found;
+}
+
+export function formatUndeclaredForkDependencies(
+  undeclared: ReadonlyArray<UndeclaredForkDependency>,
+): string {
+  if (undeclared.length === 0) {
+    return "No fork-only file imports a package its manifest has stopped declaring.";
+  }
+  const byPackage = new Map<string, Array<UndeclaredForkDependency>>();
+  for (const item of undeclared) {
+    const bucket = byPackage.get(item.packageName);
+    if (bucket) bucket.push(item);
+    else byPackage.set(item.packageName, [item]);
+  }
+  const lines = [...byPackage].map(([packageName, items]) => {
+    const sites = items.map((item) => `${item.path}:${item.line}`).join(", ");
+    return `  ${packageName} — imported by ${sites}`;
+  });
+  return [
+    `Found ${byPackage.size} undeclared fork-only dependenc${byPackage.size === 1 ? "y" : "ies"}:`,
+    ...lines,
+    "",
+    "Upstream prunes against upstream's code. Re-declare these, or move the fork-only importer.",
+  ].join("\n");
+}

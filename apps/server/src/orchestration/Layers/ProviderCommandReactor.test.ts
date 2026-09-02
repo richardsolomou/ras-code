@@ -16,12 +16,14 @@ import {
   ApprovalRequestId,
   CommandId,
   DEFAULT_PROVIDER_INTERACTION_MODE,
+  EnvironmentId,
   EventId,
   MessageId,
   ProjectId,
   ThreadId,
   TurnId,
 } from "@ras-code/contracts";
+import { serializeAssistantCitation } from "@ras-code/shared/assistantCitations";
 import * as Effect from "effect/Effect";
 import * as Deferred from "effect/Deferred";
 import * as Exit from "effect/Exit";
@@ -63,6 +65,7 @@ import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as Clock from "effect/Clock";
 import * as DateTime from "effect/DateTime";
 import { ServerSettingsService } from "../../serverSettings.ts";
+import { ServerActivation } from "../../serverActivation.ts";
 import { VcsStatusBroadcaster } from "../../vcs/VcsStatusBroadcaster.ts";
 import * as GitWorkflowService from "../../git/GitWorkflowService.ts";
 
@@ -70,6 +73,19 @@ const asProjectId = (value: string): ProjectId => ProjectId.make(value);
 const asApprovalRequestId = (value: string): ApprovalRequestId => ApprovalRequestId.make(value);
 const asMessageId = (value: string): MessageId => MessageId.make(value);
 const asTurnId = (value: string): TurnId => TurnId.make(value);
+
+const assistantQuoteText = "Retain the reconnect backoff.";
+const assistantCitation = {
+  version: 1 as const,
+  environmentId: EnvironmentId.make("source-environment"),
+  threadId: ThreadId.make("source-thread"),
+  messageId: asMessageId("source-message"),
+  text: assistantQuoteText,
+  start: 0,
+  end: assistantQuoteText.length,
+  prefix: "",
+  suffix: "",
+};
 
 const deriveServerPathsSync = (baseDir: string, devUrl: URL | undefined) =>
   Effect.runSync(deriveServerPaths(baseDir, devUrl).pipe(Effect.provide(NodeServices.layer)));
@@ -165,6 +181,7 @@ describe("ProviderCommandReactor", () => {
     readonly requiresNewThreadForModelChange?: boolean;
     readonly titleRegenerationCompletionDispatchFailures?: number;
     readonly titleRegenerationBeforeStart?: "one" | "two";
+    readonly serverActivation?: Effect.Effect<void>;
     readonly interruptTurnEffect?: () => Effect.Effect<void, ProviderAdapterRequestError>;
     readonly stopSessionEffect?: () => Effect.Effect<void, ProviderAdapterRequestError>;
     readonly startSessionEffect?: (
@@ -173,6 +190,9 @@ describe("ProviderCommandReactor", () => {
     readonly providerInstances?: Record<string, unknown>;
     readonly usageLimits?: Map<ProviderInstanceId, ProviderUsageLimit>;
     readonly extraProviderSnapshots?: ReadonlyArray<Record<string, unknown>>;
+    readonly primaryProviderSnapshot?: Record<string, unknown>;
+    /** Continuation keys for instances of one driver that do not share a home. */
+    readonly continuationKeys?: Record<string, string>;
   }) {
     const now = "2026-01-01T00:00:00.000Z";
     const baseDir =
@@ -336,6 +356,7 @@ describe("ProviderCommandReactor", () => {
         ...(input?.requiresNewThreadForModelChange === true
           ? { requiresNewThreadForModelChange: true }
           : {}),
+        ...input?.primaryProviderSnapshot,
       },
       ...(input?.extraProviderSnapshots ?? []),
     ];
@@ -368,12 +389,13 @@ describe("ProviderCommandReactor", () => {
             // The composite gateway driver adopts the Claude harness key on
             // purpose, which is what lets a started Claude thread move to it.
             continuationKey:
-              driverKind === ProviderDriverKind.make("codex")
+              input?.continuationKeys?.[String(instanceId)] ??
+              (driverKind === ProviderDriverKind.make("codex")
                 ? "codex:home:/shared-codex"
                 : driverKind === ProviderDriverKind.make("claudeAgent") ||
                     driverKind === ProviderDriverKind.make("posthogGateway")
                   ? "claude:home:/shared-claude"
-                  : `${driverKind}:instance:${instanceId}`,
+                  : `${driverKind}:instance:${instanceId}`),
           },
         });
       },
@@ -422,6 +444,7 @@ describe("ProviderCommandReactor", () => {
           get streamDomainEvents() {
             return engine.streamDomainEvents;
           },
+          subscribeDomainEvents: engine.subscribeDomainEvents,
           latestSequence: engine.latestSequence,
         } satisfies OrchestrationEngineService["Service"];
       }),
@@ -536,7 +559,14 @@ describe("ProviderCommandReactor", () => {
     }
 
     scope = await Effect.runPromise(Scope.make("sequential"));
-    await Effect.runPromise(reactor.start().pipe(Scope.provide(scope)));
+    await Effect.runPromise(
+      reactor
+        .start()
+        .pipe(
+          Scope.provide(scope),
+          Effect.provideService(ServerActivation, input?.serverActivation),
+        ),
+    );
     const drain = () => Effect.runPromise(reactor.drain);
 
     return {
@@ -573,7 +603,7 @@ describe("ProviderCommandReactor", () => {
   const dispatchCommand = (
     harness: ReactorHarness,
     command: Parameters<ReactorHarness["engine"]["dispatch"]>[0],
-  ) => Effect.runPromise(harness.engine.dispatch(command));
+  ) => harness.runEffect(harness.engine.dispatch(command));
 
   it("reacts to thread.turn.start by ensuring session and sending provider turn", async () => {
     const harness = await createHarness();
@@ -612,6 +642,45 @@ describe("ProviderCommandReactor", () => {
     expect(thread?.session?.status).toBe("starting");
     expect(thread?.session?.runtimeMode).toBe("approval-required");
   });
+
+  effectIt.effect("retains a turn dispatched immediately after start until activation", () =>
+    Effect.gen(function* () {
+      const activation = yield* Deferred.make<void>();
+      const started = yield* Deferred.make<ProviderSession>();
+      const harness = yield* Effect.promise(() =>
+        createHarness({
+          serverActivation: Deferred.await(activation),
+          startSessionEffect: (session) =>
+            Deferred.succeed(started, session).pipe(Effect.as(session)),
+        }),
+      );
+
+      yield* harness.engine.dispatch({
+        type: "thread.turn.start",
+        commandId: CommandId.make("cmd-turn-start-before-activation"),
+        threadId: ThreadId.make("thread-1"),
+        message: {
+          messageId: MessageId.make("message-before-activation"),
+          role: "user",
+          text: "Start after activation",
+          attachments: [],
+        },
+        interactionMode: DEFAULT_PROVIDER_INTERACTION_MODE,
+        runtimeMode: "approval-required",
+        createdAt: "2026-01-01T00:00:00.000Z",
+      });
+      expect(yield* Deferred.isDone(started)).toBe(false);
+
+      yield* Deferred.succeed(activation, undefined);
+      const session = yield* Deferred.await(started);
+      yield* Effect.promise(() => harness.drain());
+      expect(session.threadId).toBe(ThreadId.make("thread-1"));
+      expect(harness.sendTurn.mock.calls[0]?.[0]).toMatchObject({
+        threadId: ThreadId.make("thread-1"),
+        input: "Start after activation",
+      });
+    }),
+  );
 
   effectIt.effect("projects starting before a slow provider session finishes", () =>
     Effect.gen(function* () {
@@ -865,7 +934,13 @@ describe("ProviderCommandReactor", () => {
   it("pins the first user message when regeneration context is truncated", async () => {
     const harness = await createHarness();
     const now = "2026-01-01T00:00:00.000Z";
-    const firstUserMessage = `Review subagent monitoring risks. ${"Opening context. ".repeat(200)}`;
+    const quoteText = "界".repeat(1_000);
+    const citation = serializeAssistantCitation({
+      ...assistantCitation,
+      text: quoteText,
+      end: quoteText.length,
+    });
+    const firstUserMessage = `Review subagent monitoring risks. ${citation} ${"Opening context. ".repeat(200)}`;
     const recentUserMessage = `LATEST FINDING: ${"implementation detail ".repeat(320)}`;
     harness.generateThreadTitle.mockReturnValue(
       Effect.succeed({ title: "Review subagent monitoring risks" }),
@@ -968,7 +1043,8 @@ describe("ProviderCommandReactor", () => {
       throw new Error("Expected a title generation input");
     }
     const message = input.message;
-    expect(message.startsWith("USER:\nReview subagent monitoring risks.")).toBe(true);
+    expect(message.startsWith(`USER:\nReview subagent monitoring risks. ${quoteText} `)).toBe(true);
+    expect(message).not.toContain("ras-code-citation://");
     expect(message).toContain("[First user message truncated]");
     expect(message).toContain("[Earlier content truncated]");
     expect(message).toContain("image.png");
@@ -977,6 +1053,14 @@ describe("ProviderCommandReactor", () => {
       "opening-context-image",
       "recent-context-image",
     ]);
+    const readModel = await harness.readModel();
+    expect(
+      readModel.threads
+        .find((entry) => entry.id === ThreadId.make("thread-1"))
+        ?.messages.find(
+          (entry) => entry.id === asMessageId("user-message-before-long-title-regeneration"),
+        )?.text,
+    ).toBe(firstUserMessage);
   });
 
   it("clears title regeneration state left pending across reactor startup", async () => {
@@ -1476,6 +1560,7 @@ describe("ProviderCommandReactor", () => {
     const harness = await createHarness();
     const now = "2026-01-01T00:00:00.000Z";
     const seededTitle = "Fix reconnect spinner on resume";
+    const prompt = `[effort:high]\\n\\nFix reconnect spinner on resume ${serializeAssistantCitation(assistantCitation)}`;
     harness.generateThreadTitle.mockReturnValue(
       Effect.succeed({
         title: "Reconnect spinner resume bug",
@@ -1489,6 +1574,19 @@ describe("ProviderCommandReactor", () => {
       title: seededTitle,
     });
 
+    const titleUpdated = await harness.runEffect(
+      harness.engine.streamDomainEvents.pipe(
+        Stream.filter(
+          (event) =>
+            event.type === "thread.meta-updated" &&
+            event.payload.title === "Reconnect spinner resume bug",
+        ),
+        Stream.take(1),
+        Stream.toPull,
+        Scope.provide(scope!),
+      ),
+    );
+
     await dispatchCommand(harness, {
       type: "thread.turn.start",
       commandId: CommandId.make("cmd-turn-start-title-formatted"),
@@ -1496,7 +1594,7 @@ describe("ProviderCommandReactor", () => {
       message: {
         messageId: asMessageId("user-message-title-formatted"),
         role: "user",
-        text: "[effort:high]\\n\\nFix reconnect spinner on resume",
+        text: prompt,
         attachments: [],
       },
       titleSeed: seededTitle,
@@ -1505,23 +1603,34 @@ describe("ProviderCommandReactor", () => {
       createdAt: now,
     });
 
-    await waitFor(() => harness.generateThreadTitle.mock.calls.length === 1);
-    await waitFor(async () => {
-      const readModel = await harness.readModel();
-      return (
-        readModel.threads.find((entry) => entry.id === ThreadId.make("thread-1"))?.title ===
-        "Reconnect spinner resume bug"
-      );
-    });
+    await harness.runEffect(titleUpdated);
+    await harness.drain();
 
+    expect(harness.generateThreadTitle.mock.calls[0]?.[0].message).toBe(
+      `[effort:high]\\n\\nFix reconnect spinner on resume ${assistantQuoteText}`,
+    );
+    expect(harness.generateThreadTitle.mock.calls[0]?.[0].message).not.toContain(
+      "ras-code-citation://",
+    );
     const readModel = await harness.readModel();
     const thread = readModel.threads.find((entry) => entry.id === ThreadId.make("thread-1"));
     expect(thread?.title).toBe("Reconnect spinner resume bug");
+    expect(
+      thread?.messages.find((entry) => entry.id === asMessageId("user-message-title-formatted"))
+        ?.text,
+    ).toBe(prompt);
+    expect(harness.sendTurn.mock.calls[0]?.[0]).toMatchObject({ input: prompt });
   });
 
   it("generates a worktree branch name for the first turn", async () => {
     const harness = await createHarness();
     const now = "2026-01-01T00:00:00.000Z";
+    const prompt = `Add a safer reconnect backoff. ${serializeAssistantCitation(assistantCitation)}`;
+    const statusRefreshed = await harness.runEffect(Deferred.make<void>());
+    const refreshStatus = harness.refreshStatus.getMockImplementation()!;
+    harness.refreshStatus.mockImplementation((cwd) =>
+      refreshStatus(cwd).pipe(Effect.tap(() => Deferred.succeed(statusRefreshed, undefined))),
+    );
 
     await dispatchCommand(harness, {
       type: "thread.meta.update",
@@ -1553,7 +1662,7 @@ describe("ProviderCommandReactor", () => {
       message: {
         messageId: asMessageId("user-message-branch-model"),
         role: "user",
-        text: "Add a safer reconnect backoff.",
+        text: prompt,
         attachments: [],
       },
       interactionMode: DEFAULT_PROVIDER_INTERACTION_MODE,
@@ -1561,12 +1670,21 @@ describe("ProviderCommandReactor", () => {
       createdAt: now,
     });
 
-    await waitFor(() => harness.generateBranchName.mock.calls.length === 1);
-    await waitFor(() => harness.refreshStatus.mock.calls.length === 1);
-    expect(harness.generateBranchName.mock.calls[0]?.[0]).toMatchObject({
-      message: "Add a safer reconnect backoff.",
-    });
+    await harness.runEffect(Deferred.await(statusRefreshed));
+    await harness.drain();
+    expect(harness.generateBranchName.mock.calls[0]?.[0].message).toBe(
+      `Add a safer reconnect backoff. ${assistantQuoteText}`,
+    );
+    expect(harness.generateBranchName.mock.calls[0]?.[0].message).not.toContain(
+      "ras-code-citation://",
+    );
     expect(harness.refreshStatus.mock.calls[0]?.[0]).toBe("/tmp/provider-project-worktree");
+    const readModel = await harness.readModel();
+    expect(
+      readModel.threads
+        .find((entry) => entry.id === ThreadId.make("thread-1"))
+        ?.messages.find((entry) => entry.id === asMessageId("user-message-branch-model"))?.text,
+    ).toBe(prompt);
   });
 
   it("recreates a missing worktree from the thread branch before starting a turn", async () => {
@@ -3393,6 +3511,38 @@ describe("ProviderCommandReactor", () => {
       await respondToFallbackOffer(harness, commandId, requestId, "switch");
     };
 
+    it("records the primary's quota windows on the offer it writes", async () => {
+      const harness = await createHarness(
+        fallbackHarnessInput({
+          usageLimits: new Map([
+            [
+              PRIMARY,
+              {
+                ...EXHAUSTED,
+                windows: [
+                  { name: "primary", usedPercent: 100, resetsAt: "2099-01-01T00:00:00.000Z" },
+                  { name: "secondary", usedPercent: 100, resetsAt: "2099-01-05T00:00:00.000Z" },
+                ],
+              },
+            ],
+          ]),
+        }),
+      );
+      await dispatchTurn(harness, "cmd-fallback-windows");
+
+      await waitFor(
+        async () =>
+          findActivity(await harness.readModel(), "provider.fallback.offered") !== undefined,
+      );
+      const offer = findActivity(await harness.readModel(), "provider.fallback.offered");
+      expect(offer?.payload).toMatchObject({
+        usageWindows: [
+          { name: "primary", usedPercent: 100, resetsAt: "2099-01-01T00:00:00.000Z" },
+          { name: "secondary", usedPercent: 100, resetsAt: "2099-01-05T00:00:00.000Z" },
+        ],
+      });
+    });
+
     it("discovers a PostHog gateway with the same model without a fallback setting", async () => {
       const harness = await createHarness({
         threadModelSelection: PRIMARY_SELECTION,
@@ -3467,6 +3617,181 @@ describe("ProviderCommandReactor", () => {
         providerInstanceId: PRIMARY,
       });
       expect(findActivity(await harness.readModel(), "provider.fallback.offered")).toBeUndefined();
+    });
+
+    const SECOND_SUBSCRIPTION = ProviderInstanceId.make("claude_personal");
+    const sonnetModel = {
+      slug: PRIMARY_SELECTION.model,
+      name: "Claude Sonnet 4.5",
+      isCustom: false,
+      capabilities: null,
+    };
+    const gatewaySnapshot = {
+      instanceId: FALLBACK,
+      driver: "posthogGateway",
+      enabled: true,
+      displayName: "PostHog AI Gateway",
+      models: [sonnetModel],
+    };
+    const secondSubscriptionSnapshot = {
+      instanceId: SECOND_SUBSCRIPTION,
+      driver: "claudeAgent",
+      enabled: true,
+      displayName: "Claude Personal",
+      models: [sonnetModel],
+    };
+
+    const offeredFallbackInstanceId = async (
+      harness: Awaited<ReturnType<typeof createHarness>>,
+    ) => {
+      await waitFor(
+        async () =>
+          findActivity(await harness.readModel(), "provider.fallback.offered") !== undefined,
+      );
+      const offer = findActivity(await harness.readModel(), "provider.fallback.offered");
+      return (offer?.payload as Record<string, unknown> | undefined)?.fallbackInstanceId;
+    };
+
+    it("offers another subscription before the metered gateway", async () => {
+      const harness = await createHarness({
+        threadModelSelection: PRIMARY_SELECTION,
+        usageLimits: new Map([[PRIMARY, EXHAUSTED]]),
+        extraProviderSnapshots: [gatewaySnapshot, secondSubscriptionSnapshot],
+      });
+      await dispatchTurn(harness, "cmd-fallback-second-subscription");
+
+      expect(await offeredFallbackInstanceId(harness)).toBe(SECOND_SUBSCRIPTION);
+    });
+
+    it("skips an instance signed in to the exhausted account", async () => {
+      const harness = await createHarness({
+        threadModelSelection: PRIMARY_SELECTION,
+        usageLimits: new Map([[PRIMARY, EXHAUSTED]]),
+        primaryProviderSnapshot: {
+          auth: { status: "authenticated", email: "work@example.com" },
+        },
+        extraProviderSnapshots: [
+          {
+            ...secondSubscriptionSnapshot,
+            auth: { status: "authenticated", email: "Work@example.com " },
+          },
+          gatewaySnapshot,
+        ],
+      });
+      await dispatchTurn(harness, "cmd-fallback-same-account");
+
+      expect(await offeredFallbackInstanceId(harness)).toBe(FALLBACK);
+    });
+
+    it("passes over an instance nobody has logged into", async () => {
+      const harness = await createHarness({
+        threadModelSelection: PRIMARY_SELECTION,
+        usageLimits: new Map([[PRIMARY, EXHAUSTED]]),
+        extraProviderSnapshots: [
+          { ...secondSubscriptionSnapshot, auth: { status: "unauthenticated" } },
+          gatewaySnapshot,
+        ],
+      });
+      await dispatchTurn(harness, "cmd-fallback-unauthenticated");
+
+      expect(await offeredFallbackInstanceId(harness)).toBe(FALLBACK);
+    });
+
+    it("passes over a candidate that is itself out of quota", async () => {
+      const harness = await createHarness({
+        threadModelSelection: PRIMARY_SELECTION,
+        usageLimits: new Map([
+          [PRIMARY, EXHAUSTED],
+          [SECOND_SUBSCRIPTION, EXHAUSTED],
+        ]),
+        extraProviderSnapshots: [secondSubscriptionSnapshot, gatewaySnapshot],
+      });
+      await dispatchTurn(harness, "cmd-fallback-candidate-exhausted");
+
+      expect(await offeredFallbackInstanceId(harness)).toBe(FALLBACK);
+    });
+
+    it("carries the transcript home from a subscription with its own home", async () => {
+      const primary = ProviderInstanceId.make("claude_work");
+      const selection = { instanceId: primary, model: PRIMARY_SELECTION.model } as const;
+      const harness = await createHarness({
+        threadModelSelection: selection,
+        usageLimits: new Map<ProviderInstanceId, ProviderUsageLimit>(),
+        continuationKeys: {
+          [String(primary)]: "claude:home:/work",
+          [String(SECOND_SUBSCRIPTION)]: "claude:home:/personal",
+        },
+        extraProviderSnapshots: [secondSubscriptionSnapshot],
+      });
+      await dispatchTurn(harness, "cmd-fallback-home-1");
+      await waitFor(() => harness.sendTurn.mock.calls.length === 1);
+
+      // The record a real crossing leaves behind. It is what survives the
+      // restart below.
+      await harness.runEffect(
+        harness.engine.dispatch({
+          type: "thread.activity.append",
+          commandId: CommandId.make("cmd-fallback-home-engaged"),
+          threadId: ThreadId.make("thread-1"),
+          activity: {
+            id: EventId.make("activity-fallback-home-engaged"),
+            tone: "info",
+            kind: "provider.fallback.engaged",
+            summary: "Usage limit reached; continuing with Claude Personal.",
+            payload: {
+              primaryInstanceId: primary,
+              fallbackInstanceId: SECOND_SUBSCRIPTION,
+            },
+            turnId: null,
+            createdAt: "2026-01-01T00:00:03.000Z",
+          },
+          createdAt: "2026-01-01T00:00:03.000Z",
+        }),
+      );
+      await harness.runEffect(
+        harness.engine.dispatch({
+          type: "thread.session.set",
+          commandId: CommandId.make("cmd-fallback-home-park"),
+          threadId: ThreadId.make("thread-1"),
+          session: {
+            threadId: ThreadId.make("thread-1"),
+            status: "ready",
+            providerName: "claudeAgent",
+            providerInstanceId: SECOND_SUBSCRIPTION,
+            runtimeMode: "approval-required",
+            activeTurnId: null,
+            lastError: null,
+            updatedAt: "2026-01-01T00:00:04.000Z",
+          },
+          createdAt: "2026-01-01T00:00:04.000Z",
+        }),
+      );
+      harness.runtimeSessions.length = 0;
+
+      await dispatchCommand(harness, {
+        type: "thread.turn.start",
+        commandId: CommandId.make("cmd-fallback-home-2"),
+        threadId: ThreadId.make("thread-1"),
+        message: {
+          messageId: asMessageId("user-message-2"),
+          role: "user",
+          text: "second turn",
+          attachments: [],
+        },
+        interactionMode: DEFAULT_PROVIDER_INTERACTION_MODE,
+        runtimeMode: "approval-required",
+        createdAt: "2026-01-01T00:00:05.000Z",
+      });
+
+      await waitFor(() => harness.sendTurn.mock.calls.length === 2);
+      const returned = harness.sendTurn.mock.calls[1]?.[0];
+      const returnedInput =
+        typeof returned === "object" && returned !== null && "input" in returned
+          ? returned.input
+          : undefined;
+      if (typeof returnedInput !== "string") throw new Error("Return prompt was not text.");
+      expect(returned).toMatchObject({ modelSelection: selection });
+      expect(returnedInput).toMatch(/<\/provider-switch-conversation>\n\nsecond turn$/);
     });
 
     it("returns to the requested provider after its usage limit clears", async () => {
@@ -4118,8 +4443,25 @@ describe("ProviderCommandReactor", () => {
       await dispatchTurn(harness, "cmd-fallback-restart-1");
       await waitFor(() => harness.sendTurn.mock.calls.length === 1);
 
-      // A restart leaves the bound session in the read model but drops every
-      // live provider session and the reactor's in-memory fallback route.
+      // A restart keeps the bound session and the crossing activity in the
+      // read model. It drops the live sessions and the in-memory route.
+      await harness.runEffect(
+        harness.engine.dispatch({
+          type: "thread.activity.append",
+          commandId: CommandId.make("cmd-fallback-restart-engaged"),
+          threadId: ThreadId.make("thread-1"),
+          activity: {
+            id: EventId.make("activity-fallback-restart-engaged"),
+            tone: "info",
+            kind: "provider.fallback.engaged",
+            summary: "Usage limit reached; continuing via PostHog AI Gateway.",
+            payload: { primaryInstanceId: primary, fallbackInstanceId: FALLBACK },
+            turnId: null,
+            createdAt: "2026-01-01T00:00:03.000Z",
+          },
+          createdAt: "2026-01-01T00:00:03.000Z",
+        }),
+      );
       await harness.runEffect(
         harness.engine.dispatch({
           type: "thread.session.set",
@@ -4306,4 +4648,49 @@ describe("ProviderCommandReactor", () => {
       });
     });
   });
+
+  effectIt.effect("stops a ready provider session after automatic settlement", () =>
+    Effect.gen(function* () {
+      const sessionStopped = yield* Deferred.make<void>();
+      const harness = yield* Effect.promise(() =>
+        createHarness({
+          stopSessionEffect: () => Deferred.succeed(sessionStopped, undefined).pipe(Effect.asVoid),
+        }),
+      );
+      const now = "2026-01-01T00:00:00.000Z";
+
+      yield* harness.engine.dispatch({
+        type: "thread.session.set",
+        commandId: CommandId.make("cmd-session-set-for-auto-settle"),
+        threadId: ThreadId.make("thread-1"),
+        session: {
+          threadId: ThreadId.make("thread-1"),
+          status: "ready",
+          providerName: "codex",
+          providerInstanceId: ProviderInstanceId.make("codex_work"),
+          runtimeMode: "approval-required",
+          activeTurnId: null,
+          lastError: null,
+          updatedAt: now,
+        },
+        createdAt: now,
+      });
+      const beforeSettlement = yield* Effect.promise(() => harness.readModel());
+
+      yield* harness.engine.dispatch({
+        type: "thread.auto-settle",
+        commandId: CommandId.make("cmd-auto-settle-with-session"),
+        threadId: ThreadId.make("thread-1"),
+        snapshotSequence: beforeSettlement.snapshotSequence,
+      });
+
+      yield* Deferred.await(sessionStopped);
+      yield* Effect.promise(() => harness.drain());
+      const readModel = yield* Effect.promise(() => harness.readModel());
+      const thread = readModel.threads.find((entry) => entry.id === ThreadId.make("thread-1"));
+      expect(thread?.settledOverride).toBe("settled");
+      expect(thread?.session?.status).toBe("stopped");
+      expect(thread?.session?.providerInstanceId).toBe(ProviderInstanceId.make("codex_work"));
+    }),
+  );
 });

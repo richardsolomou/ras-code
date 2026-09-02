@@ -36,6 +36,7 @@ export const makeProviderRegistryMock = (
         Effect.map((nowMs) => effectiveUsageLimit(liveUsageLimits.get(instanceId), nowMs)),
       ),
     streamChanges: Stream.empty,
+    refreshWorkspaceSnapshot: () => Effect.succeed(providers),
   };
 };
 

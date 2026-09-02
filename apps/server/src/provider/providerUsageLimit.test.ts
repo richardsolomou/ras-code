@@ -12,6 +12,8 @@ import {
 const RESETS_AT_SECONDS = 1_800_000_000;
 const RESETS_AT_ISO = "2027-01-15T08:00:00.000Z";
 const DAY_MS = 24 * 60 * 60 * 1000;
+const WEEKLY_RESETS_AT_SECONDS = RESETS_AT_SECONDS + 4 * 24 * 60 * 60;
+const WEEKLY_RESETS_AT_ISO = "2027-01-19T08:00:00.000Z";
 
 describe("normalizeProviderUsageLimit", () => {
   it("reads a rejected Claude rate limit event as exhausted", () => {
@@ -30,6 +32,7 @@ describe("normalizeProviderUsageLimit", () => {
       resetsAt: RESETS_AT_ISO,
       kind: "five_hour",
       utilization: 1,
+      windows: [{ name: "five_hour", usedPercent: 100, resetsAt: RESETS_AT_ISO }],
     });
   });
 
@@ -64,7 +67,82 @@ describe("normalizeProviderUsageLimit", () => {
       resetsAt: RESETS_AT_ISO,
       kind: "primary",
       utilization: 1,
+      windows: [
+        { name: "primary", usedPercent: 100, resetsAt: RESETS_AT_ISO },
+        { name: "secondary", usedPercent: 40, resetsAt: null },
+      ],
     });
+  });
+
+  it("waits for the weekly window when both Codex windows are full", () => {
+    expect(
+      normalizeProviderUsageLimit({
+        rateLimits: {
+          primary: { usedPercent: 100, resetsAt: RESETS_AT_SECONDS, windowDurationMins: 300 },
+          secondary: {
+            usedPercent: 100,
+            resetsAt: WEEKLY_RESETS_AT_SECONDS,
+            windowDurationMins: 10_080,
+          },
+          rateLimitReachedType: "primary",
+        },
+      })?.resetsAt,
+    ).toBe(WEEKLY_RESETS_AT_ISO);
+  });
+
+  it("ignores a later reset on a window that still has quota", () => {
+    expect(
+      normalizeProviderUsageLimit({
+        rateLimits: {
+          primary: { usedPercent: 100, resetsAt: RESETS_AT_SECONDS, windowDurationMins: 300 },
+          secondary: {
+            usedPercent: 99,
+            resetsAt: WEEKLY_RESETS_AT_SECONDS,
+            windowDurationMins: 10_080,
+          },
+          rateLimitReachedType: "primary",
+        },
+      })?.resetsAt,
+    ).toBe(RESETS_AT_ISO);
+  });
+
+  it("records every Codex window the provider reported", () => {
+    expect(
+      normalizeProviderUsageLimit({
+        rateLimits: {
+          primary: { usedPercent: 100, resetsAt: RESETS_AT_SECONDS, windowDurationMins: 300 },
+          secondary: {
+            usedPercent: 42,
+            resetsAt: WEEKLY_RESETS_AT_SECONDS,
+            windowDurationMins: 10_080,
+          },
+        },
+      })?.windows,
+    ).toEqual([
+      { name: "primary", usedPercent: 100, resetsAt: RESETS_AT_ISO },
+      { name: "secondary", usedPercent: 42, resetsAt: WEEKLY_RESETS_AT_ISO },
+    ]);
+  });
+
+  it("records the Claude window under the name the provider gave it", () => {
+    expect(
+      normalizeProviderUsageLimit({
+        type: "rate_limit_event",
+        rate_limit_info: {
+          status: "rejected",
+          resetsAt: RESETS_AT_SECONDS,
+          rateLimitType: "seven_day",
+          utilization: 1,
+        },
+      })?.windows,
+    ).toEqual([{ name: "seven_day", usedPercent: 100, resetsAt: RESETS_AT_ISO }]);
+  });
+
+  it("names no windows when the state came from a failure message", () => {
+    expect(
+      exhaustedUsageLimitFromError({ nowMs: Date.parse(RESETS_AT_ISO), message: "usage limit" })
+        .windows,
+    ).toBeUndefined();
   });
 
   it("reads a Codex rateLimitReachedType as exhausted even below 100 percent", () => {
@@ -80,6 +158,7 @@ describe("normalizeProviderUsageLimit", () => {
       resetsAt: null,
       kind: "workspace_owner_credits_depleted",
       utilization: 0.1,
+      windows: [{ name: "primary", usedPercent: 10, resetsAt: null }],
     });
   });
 
@@ -88,7 +167,16 @@ describe("normalizeProviderUsageLimit", () => {
       normalizeProviderUsageLimit({
         rateLimits: { primary: { usedPercent: 12 }, secondary: { usedPercent: 55 } },
       }),
-    ).toEqual({ status: "ok", resetsAt: null, kind: "secondary", utilization: 0.55 });
+    ).toEqual({
+      status: "ok",
+      resetsAt: null,
+      kind: "secondary",
+      utilization: 0.55,
+      windows: [
+        { name: "primary", usedPercent: 12, resetsAt: null },
+        { name: "secondary", usedPercent: 55, resetsAt: null },
+      ],
+    });
   });
 
   it("returns null for a payload it does not recognise", () => {
