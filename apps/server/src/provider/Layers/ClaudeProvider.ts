@@ -1,4 +1,5 @@
 import {
+  ProviderDriverKind,
   type ClaudeSettings,
   type ModelCapabilities,
   type ModelSelection,
@@ -17,6 +18,7 @@ import {
   getModelSelectionStringOptionValue,
   getProviderOptionCurrentValue,
   getProviderOptionDescriptors,
+  normalizeModelSlug,
 } from "@ras-code/shared/model";
 import { resolveSpawnCommand } from "@ras-code/shared/shell";
 import { compareSemverVersions } from "@ras-code/shared/semver";
@@ -52,12 +54,56 @@ const CLAUDE_PRESENTATION = {
   displayName: "Claude",
   showInteractionModeToggle: true,
 } as const;
+const CLAUDE_DRIVER_KIND = ProviderDriverKind.make("claudeAgent");
+
+/** Claude Code appends this to request a model's 1M-context variant. */
+const CLAUDE_CONTEXT_WINDOW_SUFFIX_PATTERN = /(\[1m\])+$/i;
+const MINIMUM_CLAUDE_FABLE_5_1_VERSION = "2.1.257";
 const MINIMUM_CLAUDE_OPUS_5_VERSION = "2.1.219";
 const MINIMUM_CLAUDE_FABLE_5_VERSION = "2.1.169";
 const MINIMUM_CLAUDE_OPUS_4_8_VERSION = "2.1.154";
 const MINIMUM_CLAUDE_OPUS_4_7_VERSION = "2.1.111";
 
+// Effort levels, fast mode, and 1M eligibility mirror Claude Code's own
+// per-model capabilities. The CLI reports these only for the handful of rows in
+// its `/model` picker, which is alias-keyed and reshapeable by managed settings,
+// so they are curated here instead of read back at runtime.
 const CLAUDE_MODEL_CATALOG: ReadonlyArray<ServerProviderModel> = [
+  {
+    slug: "claude-fable-5-1",
+    name: "Claude Fable 5.1",
+    isCustom: false,
+    capabilities: createModelCapabilities({
+      optionDescriptors: [
+        buildSelectOptionDescriptor({
+          id: "effort",
+          label: "Reasoning",
+          options: [
+            { value: "low", label: "Low" },
+            { value: "medium", label: "Medium" },
+            { value: "high", label: "High", isDefault: true },
+            { value: "xhigh", label: "Extra High" },
+            { value: "max", label: "Max" },
+            {
+              value: "ultracode",
+              label: "Ultracode",
+              description: "xhigh effort plus multi-agent workflow orchestration",
+            },
+            { value: "ultrathink", label: "Ultrathink" },
+          ],
+          promptInjectedValues: ["ultrathink"],
+        }),
+        buildSelectOptionDescriptor({
+          id: "contextWindow",
+          label: "Context Window",
+          options: [
+            { value: "200k", label: "200k" },
+            { value: "1m", label: "1M", isDefault: true },
+          ],
+        }),
+      ],
+    }),
+  },
   {
     slug: "claude-fable-5",
     name: "Claude Fable 5",
@@ -161,6 +207,14 @@ const CLAUDE_MODEL_CATALOG: ReadonlyArray<ServerProviderModel> = [
           id: "fastMode",
           label: "Fast Mode",
         }),
+        buildSelectOptionDescriptor({
+          id: "contextWindow",
+          label: "Context Window",
+          options: [
+            { value: "200k", label: "200k" },
+            { value: "1m", label: "1M", isDefault: true },
+          ],
+        }),
       ],
     }),
   },
@@ -183,9 +237,13 @@ const CLAUDE_MODEL_CATALOG: ReadonlyArray<ServerProviderModel> = [
           ],
           promptInjectedValues: ["ultrathink"],
         }),
-        buildBooleanOptionDescriptor({
-          id: "fastMode",
-          label: "Fast Mode",
+        buildSelectOptionDescriptor({
+          id: "contextWindow",
+          label: "Context Window",
+          options: [
+            { value: "200k", label: "200k" },
+            { value: "1m", label: "1M", isDefault: true },
+          ],
         }),
       ],
     }),
@@ -207,10 +265,6 @@ const CLAUDE_MODEL_CATALOG: ReadonlyArray<ServerProviderModel> = [
             { value: "ultrathink", label: "Ultrathink" },
           ],
           promptInjectedValues: ["ultrathink"],
-        }),
-        buildBooleanOptionDescriptor({
-          id: "fastMode",
-          label: "Fast Mode",
         }),
         buildSelectOptionDescriptor({
           id: "contextWindow",
@@ -236,12 +290,7 @@ const CLAUDE_MODEL_CATALOG: ReadonlyArray<ServerProviderModel> = [
             { value: "low", label: "Low" },
             { value: "medium", label: "Medium" },
             { value: "high", label: "High", isDefault: true },
-            { value: "max", label: "Max" },
           ],
-        }),
-        buildBooleanOptionDescriptor({
-          id: "fastMode",
-          label: "Fast Mode",
         }),
       ],
     }),
@@ -326,6 +375,10 @@ const CLAUDE_MODEL_CATALOG: ReadonlyArray<ServerProviderModel> = [
 // so the catalog itself carries no `isLegacy` flags.
 const BUILT_IN_MODELS: ReadonlyArray<ServerProviderModel> = CLAUDE_MODEL_CATALOG;
 
+function supportsClaudeFable51(version: string | null | undefined): boolean {
+  return version ? compareSemverVersions(version, MINIMUM_CLAUDE_FABLE_5_1_VERSION) >= 0 : false;
+}
+
 function supportsClaudeOpus5(version: string | null | undefined): boolean {
   return version ? compareSemverVersions(version, MINIMUM_CLAUDE_OPUS_5_VERSION) >= 0 : false;
 }
@@ -346,6 +399,9 @@ function getBuiltInClaudeModelsForVersion(
   version: string | null | undefined,
 ): ReadonlyArray<ServerProviderModel> {
   return BUILT_IN_MODELS.filter((model) => {
+    if (model.slug === "claude-fable-5-1") {
+      return supportsClaudeFable51(version);
+    }
     if (model.slug === "claude-opus-5") {
       return supportsClaudeOpus5(version);
     }
@@ -360,6 +416,40 @@ function getBuiltInClaudeModelsForVersion(
     }
     return true;
   });
+}
+
+/**
+ * Slugs already reported this run. The catalog only changes across releases, so
+ * one line per unknown slug per server is enough; provider checks re-run often.
+ */
+const reportedUnknownClaudeModels = new Set<string>();
+
+/**
+ * Notices models the installed CLI offers but this build has never heard of, so
+ * a new Claude release surfaces from real usage instead of waiting for someone
+ * to spot it. Deliberately does not change the catalog: the menu is alias-keyed
+ * and reshapeable by managed settings, so it is a signal, not a source.
+ */
+const reportUnknownClaudeModels = (
+  resolvedModelSlugs: ReadonlyArray<string> | undefined,
+): Effect.Effect<void> =>
+  Effect.gen(function* () {
+    for (const resolved of resolvedModelSlugs ?? []) {
+      // The menu resolves `haiku` to a dated snapshot the alias map already
+      // folds onto a slug we carry, so canonicalize before deciding.
+      const slug = normalizeModelSlug(resolved, CLAUDE_DRIVER_KIND) ?? resolved;
+      if (BUILT_IN_MODELS.some((model) => model.slug === slug)) continue;
+      if (reportedUnknownClaudeModels.has(slug)) continue;
+      reportedUnknownClaudeModels.add(slug);
+      yield* Effect.logWarning("Claude Code offers a model missing from the RAS Code catalog.", {
+        model: slug,
+      });
+    }
+  });
+
+function formatClaudeFable51UpgradeMessage(version: string | null): string {
+  const versionLabel = version ? `v${version}` : "the installed version";
+  return `Claude Code ${versionLabel} is too old for Claude Fable 5.1. Upgrade to v${MINIMUM_CLAUDE_FABLE_5_1_VERSION} or newer to access it.`;
 }
 
 function formatClaudeOpus5UpgradeMessage(version: string | null): string {
@@ -380,103 +470,6 @@ function formatClaudeOpus48UpgradeMessage(version: string | null): string {
 function formatClaudeOpus47UpgradeMessage(version: string | null): string {
   const versionLabel = version ? `v${version}` : "the installed version";
   return `Claude Code ${versionLabel} is too old for Claude Opus 4.7. Upgrade to v${MINIMUM_CLAUDE_OPUS_4_7_VERSION} or newer to access it.`;
-}
-
-/** The SDK's suffix for the same model with a 1M context window. */
-const CLAUDE_ONE_MILLION_SUFFIX = "[1m]";
-
-/**
- * Prefer the CLI's live model metadata, falling back to the static catalog's
- * option descriptors where the SDK omits them. A `[1m]` value is the same
- * model with a wider context window, so both entries fold into one row whose
- * context window is an option.
- */
-export function mergeClaudeLiveModels(
-  liveModels: ReadonlyArray<ClaudeSdkModelInfo> | undefined,
-  builtInModels: ReadonlyArray<ServerProviderModel>,
-): ReadonlyArray<ServerProviderModel> {
-  if (!liveModels || liveModels.length === 0) return builtInModels;
-
-  const builtInBySlug = new Map(builtInModels.map((model) => [model.slug, model]));
-  const oneMillionSlugs = new Set<string>();
-  const liveBySlug = new Map<string, ClaudeSdkModelInfo>();
-
-  for (const liveModel of liveModels) {
-    const isOneMillion = liveModel.value.endsWith(CLAUDE_ONE_MILLION_SUFFIX);
-    const slug = isOneMillion
-      ? liveModel.value.slice(0, -CLAUDE_ONE_MILLION_SUFFIX.length)
-      : liveModel.value;
-    if (!slug) continue;
-    if (isOneMillion) oneMillionSlugs.add(slug);
-    // The plain entry holds the metadata for the row; a `[1m]` entry stands in
-    // only for a model the SDK lists no plain entry for.
-    if (!isOneMillion || !liveBySlug.has(slug)) liveBySlug.set(slug, liveModel);
-  }
-
-  const merged: ServerProviderModel[] = [];
-  for (const [slug, liveModel] of liveBySlug) {
-    const fallback = builtInBySlug.get(slug);
-    const effortDescriptor = liveModel.supportedEffortLevels
-      ? buildSelectOptionDescriptor({
-          id: "effort",
-          label: "Reasoning",
-          options: liveModel.supportedEffortLevels.map((value) => ({
-            value,
-            label: formatClaudeEffortLabel(value),
-            ...(value === "high" ? { isDefault: true } : {}),
-          })),
-        })
-      : fallback?.capabilities?.optionDescriptors?.find(
-          (descriptor) => descriptor.type === "select" && descriptor.id === "effort",
-        );
-    const optionDescriptors = [
-      ...(effortDescriptor ? [effortDescriptor] : []),
-      ...(liveModel.supportsFastMode
-        ? [buildBooleanOptionDescriptor({ id: "fastMode", label: "Fast Mode" })]
-        : []),
-      ...(oneMillionSlugs.has(slug)
-        ? [
-            buildSelectOptionDescriptor({
-              id: "contextWindow",
-              label: "Context Window",
-              options: [
-                { value: "200k", label: "200k" },
-                { value: "1m", label: "1M", isDefault: true },
-              ],
-            }),
-          ]
-        : []),
-    ];
-
-    merged.push({
-      slug,
-      name: nonEmptyProbeString(liveModel.displayName) ?? fallback?.name ?? slug,
-      isCustom: false,
-      capabilities:
-        optionDescriptors.length > 0
-          ? createModelCapabilities({ optionDescriptors })
-          : (fallback?.capabilities ?? DEFAULT_CLAUDE_MODEL_CAPABILITIES),
-    });
-  }
-
-  return merged;
-}
-
-function formatClaudeEffortLabel(value: string): string {
-  switch (value) {
-    case "low":
-      return "Low";
-    case "medium":
-      return "Medium";
-    case "high":
-      return "High";
-    case "xhigh":
-      return "Extra High";
-    case "max":
-      return "Max";
-    default:
-      return value;
-  }
 }
 
 export function getClaudeModelCapabilities(model: string | null | undefined): ModelCapabilities {
@@ -501,15 +494,25 @@ export function resolveClaudeEffort(
 }
 
 /**
- * Normalize a resolved Claude effort value into one suitable for the Claude
- * CLI's `--effort` flag.
+ * Normalize a resolved Claude effort value into one the Claude CLI's
+ * `--effort` flag accepts; ClaudeAdapter's `getEffectiveClaudeAgentEffort`
+ * delegates here so both call paths clamp identically.
  *
- * Mirrors the mapping used when invoking the Claude Agent SDK
- * ({@link getEffectiveClaudeAgentEffort} in ClaudeAdapter): `ultracode` is a
- * Claude Code setting that pairs with `xhigh`, `ultrathink` is filtered out
- * because it is a prompt-prefix mode, and older model compatibility mappings
- * are preserved for current Claude Code behavior.
+ * `ultracode` is a Claude Code setting paired with `xhigh`, not an effort
+ * level, and `ultrathink` is a prompt prefix, so neither reaches the flag.
+ * `xhigh` clamps for models whose catalog entry does not offer it, so adding a
+ * model to the catalog cannot leave a stale exclusion list behind.
  */
+/** Whether the catalog offers `value` as a reasoning option for `model`. */
+function claudeModelOffersEffort(model: string | null | undefined, value: string): boolean {
+  const descriptor = getClaudeModelCapabilities(model).optionDescriptors?.find(
+    (candidate) => candidate.type === "select" && candidate.id === "effort",
+  );
+  return descriptor?.type === "select"
+    ? descriptor.options.some((option) => option.id === value)
+    : false;
+}
+
 export function normalizeClaudeCliEffort(
   effort: string | null | undefined,
   model: string | null | undefined,
@@ -520,13 +523,7 @@ export function normalizeClaudeCliEffort(
   if (effort === "ultracode") {
     return "xhigh";
   }
-  if (
-    effort === "xhigh" &&
-    model !== "claude-fable-5" &&
-    model !== "claude-opus-5" &&
-    model !== "claude-opus-4-8" &&
-    model !== "claude-sonnet-5"
-  ) {
+  if (effort === "xhigh" && !claudeModelOffersEffort(model, "xhigh")) {
     return "max";
   }
   if (effort === "max" && model === "claude-sonnet-4-6") {
@@ -734,32 +731,30 @@ type ClaudeCapabilitiesProbe = {
    */
   readonly apiProvider: string | undefined;
   readonly slashCommands: ReadonlyArray<ServerProviderSlashCommand>;
-  readonly models: ReadonlyArray<ClaudeSdkModelInfo>;
+  /**
+   * Real model ids behind the CLI's `/model` menu rows, context-window suffix
+   * stripped. Used only to notice models this build of RAS Code has never
+   * heard of; the catalog above still owns every capability.
+   */
+  readonly resolvedModelSlugs: ReadonlyArray<string>;
 };
 
 /**
- * Deduplicates the CLI's model list by value and keeps only the fields the
- * picker reads. The CLI sends more than `ModelInfo` declares, so a spread
- * would hand every consumer an undeclared and unstable shape.
+ * Menu rows are alias-keyed (`opus[1m]`, `default`), so `value` is not a model
+ * id. `resolvedModel` is, but the SDK's `ModelInfo` type omits it, so read it
+ * defensively and tolerate its absence.
  */
-function parseClaudeInitializationModels(
+function parseClaudeResolvedModelSlugs(
   models: ReadonlyArray<ClaudeSdkModelInfo> | undefined,
-): ReadonlyArray<ClaudeSdkModelInfo> {
-  const byValue = new Map<string, ClaudeSdkModelInfo>();
+): ReadonlyArray<string> {
+  const slugs = new Set<string>();
   for (const model of models ?? []) {
-    const value = nonEmptyProbeString(model.value);
-    if (!value || byValue.has(value)) continue;
-    byValue.set(value, {
-      value,
-      displayName: model.displayName,
-      description: model.description,
-      ...(model.supportedEffortLevels
-        ? { supportedEffortLevels: model.supportedEffortLevels }
-        : {}),
-      ...(model.supportsFastMode ? { supportsFastMode: model.supportsFastMode } : {}),
-    });
+    const resolved = (model as { readonly resolvedModel?: unknown }).resolvedModel;
+    if (typeof resolved !== "string") continue;
+    const slug = resolved.trim().replace(CLAUDE_CONTEXT_WINDOW_SUFFIX_PATTERN, "");
+    if (slug) slugs.add(slug);
   }
-  return [...byValue.values()];
+  return [...slugs];
 }
 
 function parseClaudeInitializationCommands(
@@ -889,7 +884,7 @@ const probeClaudeCapabilities = (
         tokenSource: account?.tokenSource,
         apiProvider: account?.apiProvider,
         slashCommands: parseClaudeInitializationCommands(init.commands),
-        models: parseClaudeInitializationModels(init.models),
+        resolvedModelSlugs: parseClaudeResolvedModelSlugs(init.models),
       } satisfies ClaudeCapabilitiesProbe;
     });
   }).pipe(
@@ -1027,25 +1022,27 @@ export const checkClaudeProviderStatus = Effect.fn("checkClaudeProviderStatus")(
     });
   }
 
-  const versionUpgradeMessage = supportsClaudeOpus5(parsedVersion)
+  const models = providerModelsFromSettings(
+    getBuiltInClaudeModelsForVersion(parsedVersion),
+    claudeSettings.customModels,
+    DEFAULT_CLAUDE_MODEL_CAPABILITIES,
+  );
+  const versionUpgradeMessage = supportsClaudeFable51(parsedVersion)
     ? undefined
-    : supportsClaudeFable5(parsedVersion)
-      ? formatClaudeOpus5UpgradeMessage(parsedVersion)
-      : supportsClaudeOpus48(parsedVersion)
-        ? formatClaudeFable5UpgradeMessage(parsedVersion)
-        : supportsClaudeOpus47(parsedVersion)
-          ? formatClaudeOpus48UpgradeMessage(parsedVersion)
-          : formatClaudeOpus47UpgradeMessage(parsedVersion);
+    : supportsClaudeOpus5(parsedVersion)
+      ? formatClaudeFable51UpgradeMessage(parsedVersion)
+      : supportsClaudeFable5(parsedVersion)
+        ? formatClaudeOpus5UpgradeMessage(parsedVersion)
+        : supportsClaudeOpus48(parsedVersion)
+          ? formatClaudeFable5UpgradeMessage(parsedVersion)
+          : supportsClaudeOpus47(parsedVersion)
+            ? formatClaudeOpus48UpgradeMessage(parsedVersion)
+            : formatClaudeOpus47UpgradeMessage(parsedVersion);
 
   const capabilities = resolveCapabilities
     ? yield* resolveCapabilities(claudeSettings).pipe(Effect.orElseSucceed(() => undefined))
     : undefined;
-
-  const models = providerModelsFromSettings(
-    mergeClaudeLiveModels(capabilities?.models, getBuiltInClaudeModelsForVersion(parsedVersion)),
-    claudeSettings.customModels,
-    DEFAULT_CLAUDE_MODEL_CAPABILITIES,
-  );
+  yield* reportUnknownClaudeModels(capabilities?.resolvedModelSlugs);
   const skills = yield* discoverClaudeSkills(claudeSettings, cwd, resolvedEnvironment);
   const slashCommands = [
     {

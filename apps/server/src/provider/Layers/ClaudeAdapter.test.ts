@@ -503,7 +503,7 @@ describe("ClaudeAdapterLive", () => {
     );
   });
 
-  it.effect("maps the Claude Opus 4.7 default effort to the SDK-supported max value", () => {
+  it.effect("keeps the Claude Opus 4.7 default xhigh effort intact", () => {
     const harness = makeHarness();
     return Effect.gen(function* () {
       const adapter = yield* ClaudeAdapter;
@@ -518,14 +518,14 @@ describe("ClaudeAdapterLive", () => {
       });
 
       const createInput = harness.getLastCreateQueryInput();
-      assert.equal(createInput?.options.effort, "max");
+      assert.equal(createInput?.options.effort, "xhigh");
     }).pipe(
       Effect.provideService(Random.Random, makeDeterministicRandomService()),
       Effect.provide(harness.layer),
     );
   });
 
-  it.effect("maps xhigh effort for Claude Opus 4.7 to the SDK-supported max value", () => {
+  it.effect("forwards xhigh effort for Claude Opus 4.7 unchanged", () => {
     const harness = makeHarness();
     return Effect.gen(function* () {
       const adapter = yield* ClaudeAdapter;
@@ -541,7 +541,7 @@ describe("ClaudeAdapterLive", () => {
       });
 
       const createInput = harness.getLastCreateQueryInput();
-      assert.equal(createInput?.options.effort, "max");
+      assert.equal(createInput?.options.effort, "xhigh");
     }).pipe(
       Effect.provideService(Random.Random, makeDeterministicRandomService()),
       Effect.provide(harness.layer),
@@ -697,7 +697,7 @@ describe("ClaudeAdapterLive", () => {
         provider: ProviderDriverKind.make("claudeAgent"),
         modelSelection: createModelSelection(
           ProviderInstanceId.make("claudeAgent"),
-          "claude-opus-4-6",
+          "claude-opus-4-8",
           [{ id: "fastMode", value: true }],
         ),
         runtimeMode: "full-access",
