@@ -591,6 +591,7 @@ export function SourceControlSettingsPanel() {
       )}
 
       {environmentId !== null ? <SourceControlWritingSettingsSection /> : null}
+      <SourceControlWritingSettingsSection />
     </SettingsPageContainer>
   );
 }
