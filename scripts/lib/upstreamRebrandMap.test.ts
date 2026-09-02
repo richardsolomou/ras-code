@@ -1,6 +1,7 @@
 import { assert, describe, it } from "@effect/vitest";
 
 import {
+  collectUnmappedBrandTokensFromDiff,
   findResidualBrandTokens,
   mapPatchPaths,
   mapUpstreamPath,
@@ -284,5 +285,39 @@ describe("findResidualBrandTokens", () => {
 
   it("does not mistake typed-array reads for brand tokens", () => {
     assert.deepStrictEqual(findResidualBrandTokens("view.getUint32(0)"), []);
+  });
+});
+
+describe("collectUnmappedBrandTokensFromDiff", () => {
+  it("reports a token the table cannot decide, counted across the lines that add it", () => {
+    const diff = [
+      "diff --git a/a.ts b/a.ts",
+      "+++ b/a.ts",
+      '+const scheme = "t3-citation";',
+      '+const other = "t3-citation";',
+    ].join("\n");
+    assert.deepStrictEqual(collectUnmappedBrandTokensFromDiff(diff), [
+      { token: "t3-citation", count: 2 },
+    ]);
+  });
+
+  it("ignores removed and context lines, which are not arriving here", () => {
+    const diff = ['-const scheme = "t3-citation";', ' const kept = "t3-citation";'].join("\n");
+    assert.deepStrictEqual(collectUnmappedBrandTokensFromDiff(diff), []);
+  });
+
+  it("stays quiet about a token the table already rewrites", () => {
+    assert.deepStrictEqual(
+      collectUnmappedBrandTokensFromDiff('+import x from "@t3tools/contracts";'),
+      [],
+    );
+  });
+
+  it("puts the most frequent token first so the map gets the biggest win", () => {
+    const diff = ['+"t3-one";', '+"t3-two";', '+"t3-two";'].join("\n");
+    assert.deepStrictEqual(
+      collectUnmappedBrandTokensFromDiff(diff).map((entry) => entry.token),
+      ["t3-two", "t3-one"],
+    );
   });
 });

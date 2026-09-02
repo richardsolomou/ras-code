@@ -31,6 +31,8 @@ git remote add t3code git@github.com:pingdotgg/t3code.git
 
 The report is an index, not a judgement. It tells you where to look. The decision comes from the diff.
 
+It ends with the brand tokens the rebrand table cannot decide across the whole range, most frequent first. Extend `scripts/lib/upstreamRebrandMap.ts` for those **before picking anything**. Left alone they arrive one at a time, mid-pick, and each one costs a detour: the last round hand-renamed `t3-citation`, `t3-file-icon-video` and `t3-upload-uuid` separately, and spent seven commits teaching the map afterwards.
+
 ## Decide each change on the real diff
 
 For every change in the report, in upstream history order:
@@ -46,6 +48,12 @@ Standing precedent:
 - Keep the wire protocol compatible. Adopt contract changes, and never rename the identifiers on the do-not-rename list below.
 - Adopt a better structure rather than defending ours. When upstream's design is the better one, converge on it and re-express what is ours on top; do not preserve our version merely because it is ours.
 - Defer, do not skip, a change we want but cannot land now. `deferred` keeps it visible; `skipped` closes it.
+
+## Merge main first, and keep the round small
+
+Start by merging `origin/main` into the sync branch, and merge it again before opening the pull request. A sync that runs long enough for `main` to move pays for it twice: once in conflicts, and once in decisions that contradict each other. The last round adopted upstream's manifest-driven Claude catalog while `main` was reverting the fork's live-model merge underneath it, and reconciling the two cost more than any single pick.
+
+The same reasoning bounds the round: a day of upstream is a batch worth doing, a week is a merge conflict with a ledger attached.
 
 ## Pick a track
 
@@ -64,10 +72,11 @@ git cherry-pick -x <sha>
 node scripts/upstream-rebrand.ts <files git left conflicted>
 # resolve whatever is left by hand
 node scripts/upstream-sync.ts verify
-node_modules/.bin/vp test run <test files for what you touched>
 git add <explicit paths>
 git cherry-pick --continue
 ```
+
+Run the tests for a change you had to think about — anything you adapted or reimplemented, where you rewrote behaviour and want to know it still holds. A clean pick does not earn a test run of its own; `gate` covers it.
 
 `upstream-rebrand.ts` applies the substitution table in `scripts/lib/upstreamRebrandMap.ts`. Run it first on every conflicted file: most upstream conflicts are only the rebrand. What is left after that is a real conflict, and you resolve it by hand. The helper also prints the brand tokens it could not decide; check those.
 
@@ -107,12 +116,28 @@ A cherry-pick that reports no conflict still breaks the tree in ways git cannot 
 So after each pick, before moving on:
 
 ```bash
-node scripts/upstream-sync.ts verify        # upstream scopes and paths
-vp run --filter <package> typecheck          # the tree still compiles
-vp test run <files for what you touched>
+node scripts/upstream-sync.ts verify
 ```
 
-Run the typecheck for every package the change touched, not just the one whose tests you ran. Most of these failures are invisible to a per-file test.
+`verify` runs in under a second, so it stays per pick. It reports upstream scopes, upstream identifier namespaces, upstream paths, and any package a **fork-only** file imports that no manifest declares any more — upstream prunes dependencies against upstream's tree, so a removal that is correct there can still be wrong here.
+
+Typecheck and tests do **not** belong per pick. Half of a round is clean cherry-picks: last round 63 of 125 entries read `"Clean cherry-pick."` verbatim. A per-package typecheck is ~8s and a test pass is more, so running both after each of those costs far more than it ever catches, and catches nothing that surviving to `gate` would miss.
+
+For a run of changes you have already read and judged as adopt:
+
+```bash
+node scripts/upstream-sync.ts batch --sha <a> --sha <b> --sha <c>
+```
+
+It rebrands and picks each in order, runs `verify` after each, and stops at the first conflict or residue, leaving that one in the working tree for you. Judgement is still yours per change — batching removes the waiting, not the reading.
+
+## Gate once, before you push
+
+```bash
+node scripts/upstream-sync.ts gate          # add --quick to skip release:smoke and the full test run
+```
+
+`gate` runs what CI runs, in the order that fails cheapest first. Reinstalling from the lockfile comes first and is the whole point: everything after it is a lie without it. A stale `node_modules` still resolves a dependency the picks removed, so the tree typechecks locally and fails on a fresh checkout. That is exactly how `@effect/platform-node-shared` reached CI last round, along with a SwiftLint violation no local loop ran and a patch orphaned by a version bump that only a from-scratch lockfile regeneration shows.
 
 ## Skip, defer, or mark obsolete
 
@@ -135,7 +160,7 @@ One rule: **a surface we are migrating toward is not a divergence.** `divergedPr
 
 ## Batching
 
-Independent changes can fan out to subagents, one worktree each. Follow the repository's worktree rules: worktree state lives in that worktree's gitignored `.ras-code`, `vp i` runs there, and subagents do not start dev servers. Merge the results back onto the branch in upstream history order so the ledger stays ordered, and let one agent run `mark` per change.
+Sequential batching on one branch is `batch`, above. Fan-out is for when the round is genuinely large and the changes are independent: one worktree each. Follow the repository's worktree rules: worktree state lives in that worktree's gitignored `.ras-code`, `vp i` runs there, and subagents do not start dev servers. Merge the results back onto the branch in upstream history order so the ledger stays ordered, and let one agent run `mark` per change.
 
 Do not batch with a shell loop that assumes word splitting. `zsh` does not split unquoted variables, so `git add $files` silently adds nothing while the loop reports success — which writes ledger entries for changes that never landed. Use a bash script with arrays, and check `git log` against the ledger afterwards.
 

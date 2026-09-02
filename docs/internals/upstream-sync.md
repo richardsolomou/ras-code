@@ -61,9 +61,30 @@ node scripts/upstream-sync.ts verify
 
 A cherry-pick that reports no conflict can still leave the tree wrong, because git only reports overlapping edits. `verify` fails when the tree still names upstream: package scopes (`@t3tools/...`) surviving in files no conflict touched, identifier namespaces (`"t3.mobile.connection-runtime"`, `"t3/provider/OpenCodeServerOwner"`) surviving inside string literals, or upstream directory names arriving as new paths. These compile-break, resurrect upstream's layout, or never surface at all, and none of them shows up until a full typecheck runs — usually several changes later.
 
+It also fails when a **fork-only** file — one that exists here and not upstream — imports a package no manifest declares any more. Upstream prunes dependencies against upstream's own code, so a removal that is correct there can still be wrong here: #9150 dropped `@effect/platform-node-shared`, which only the fork-only relay connector imports. The pick was read and adapted, and nothing failed until `node_modules` was reinstalled from the merged lockfile, one CI round-trip later. The check skips test files, whose string fixtures contain code that reads as imports and is not.
+
 It exempts the rebrand map and its fixtures, which name upstream deliberately. A bare `grep | xargs` over the tree does not, and rewriting them breaks the map.
 
-Run it after every pick, then a typecheck for each package the change touched. Per-file tests do not catch this class of failure.
+`verify` runs in under a second, so it belongs after every pick. Typecheck and tests do not: half of a round is clean cherry-picks, and per-pick compilation costs far more than it catches. Those move to `gate`.
+
+## Batching picks
+
+```bash
+node scripts/upstream-sync.ts batch --sha <a> --sha <b>
+```
+
+Rebrands and cherry-picks a run of already-judged changes in order, running `verify` after each, and stops at the first conflict or residue with that change left in the working tree. It batches the waiting, not the reading: every change still gets its own decision from its own diff.
+
+## The gate
+
+```bash
+node scripts/upstream-sync.ts gate
+node scripts/upstream-sync.ts gate --quick   # skip release:smoke and the full test run
+```
+
+Runs what CI runs, once, before pushing: `install --frozen-lockfile`, `verify`, typecheck, lint, the mobile native static check, `release:smoke`, and the test suite, stopping at the first failure.
+
+The install leads deliberately. Everything after it is a lie without it — a stale `node_modules` still resolves a dependency the picks removed, which is how a broken tree typechecks locally and fails on a fresh checkout. `release:smoke` matters for the same reason in reverse: it regenerates the lockfile from scratch, which is the only place a patch orphaned by a version bump inside its range shows up.
 
 ## The report
 
@@ -76,6 +97,8 @@ node scripts/upstream-sync.ts report --no-fetch  # skip the fetch
 The report fetches the `t3code` remote, lists the first-parent commits in `lastReviewed..t3code/main`, and groups them by the `(#1234)` marker in the subject. Commits without one are their own change. We avoid the conventional name `upstream` because RAS Code treats that name as the canonical repository identity when grouping projects and presenting repository names.
 
 For each change it reports the files touched with our path mapping applied, the areas hit, the paths that land on surfaces we keep compatible or replaced, the files we already changed since the fork point, and the `git show` command to read the diff.
+
+It closes with the brand tokens the rebrand table cannot decide anywhere in the range, most frequent first, so the table gets extended once before picking starts. Left to the per-file helper these arrive one at a time, mid-pick: the round through `70cd258d8` carried 63 distinct undecided tokens and spent seven commits teaching the map after the fact.
 
 The report is an index, not a judgement. It says where a change lands, never whether it belongs here. There is deliberately no conflict prediction: the agent cherry-picks and resolves whatever git actually reports.
 

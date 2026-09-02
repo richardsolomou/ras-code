@@ -1,10 +1,15 @@
 import { describe, expect, it } from "vite-plus/test";
 
 import {
+  collectDeclaredDependencies,
+  findExternalImports,
   findImportResidue,
   findPathResidue,
+  findUndeclaredForkDependencies,
   formatResidue,
+  formatUndeclaredForkDependencies,
   isContentExempt,
+  packageNameFromSpecifier,
 } from "./upstreamVerify.ts";
 
 describe("findImportResidue", () => {
@@ -129,5 +134,136 @@ describe("formatResidue", () => {
     expect(report).toContain("a.ts:3");
     expect(report).toContain("upstream path name");
     expect(report).toContain("upstream-rebrand.ts");
+  });
+});
+
+describe("packageNameFromSpecifier", () => {
+  it("keeps both segments of a scoped package so a subpath does not become the name", () => {
+    expect(packageNameFromSpecifier("@effect/platform-node-shared/NodeSocket")).toBe(
+      "@effect/platform-node-shared",
+    );
+  });
+
+  it("drops the subpath of an unscoped package", () => {
+    expect(packageNameFromSpecifier("expo-router/entry")).toBe("expo-router");
+  });
+
+  it("ignores relative imports, which no manifest declares", () => {
+    expect(packageNameFromSpecifier("./RasRelayConnector.ts")).toBeNull();
+  });
+
+  it("ignores prefixed Node builtins", () => {
+    expect(packageNameFromSpecifier("node:child_process")).toBeNull();
+  });
+
+  it("ignores bare Node builtins", () => {
+    expect(packageNameFromSpecifier("crypto")).toBeNull();
+  });
+});
+
+describe("findExternalImports", () => {
+  it("reports the line so the importer does not have to be searched by hand", () => {
+    const found = findExternalImports('import * as A from "node:fs";\nimport B from "ws";\n');
+    expect(found).toStrictEqual([{ packageName: "ws", line: 2 }]);
+  });
+
+  it("counts a package once however many times it is imported", () => {
+    const found = findExternalImports(
+      'import A from "effect/Effect";\nimport B from "effect/Schema";\n',
+    );
+    expect(found).toStrictEqual([{ packageName: "effect", line: 1 }]);
+  });
+
+  it("sees re-exports, which import a package without naming a binding", () => {
+    const found = findExternalImports('export { Socket } from "@effect/platform-node";\n');
+    expect(found).toStrictEqual([{ packageName: "@effect/platform-node", line: 1 }]);
+  });
+
+  it("sees a bare side-effect import", () => {
+    const found = findExternalImports('import "react-native-gesture-handler";\n');
+    expect(found).toStrictEqual([{ packageName: "react-native-gesture-handler", line: 1 }]);
+  });
+});
+
+describe("collectDeclaredDependencies", () => {
+  it("reads every dependency field, because a test imports dev dependencies too", () => {
+    const declared = collectDeclaredDependencies({
+      dependencies: { effect: "catalog:" },
+      devDependencies: { vitest: "^4" },
+      peerDependencies: { react: "^19" },
+      optionalDependencies: { fsevents: "^2" },
+    });
+    expect([...declared].toSorted()).toStrictEqual(["effect", "fsevents", "react", "vitest"]);
+  });
+
+  it("treats a manifest with no dependency fields as declaring nothing", () => {
+    expect(collectDeclaredDependencies({ name: "ras-code" }).size).toBe(0);
+  });
+});
+
+describe("findUndeclaredForkDependencies", () => {
+  const declared = (names: ReadonlyArray<string>) => () => new Set(names);
+
+  it("catches the dependency an upstream prune removed from under a fork-only file", () => {
+    const found = findUndeclaredForkDependencies(
+      [
+        {
+          path: "apps/server/src/cloud/RasRelayConnector.ts",
+          contents: 'import * as NodeSocket from "@effect/platform-node-shared/NodeSocket";\n',
+        },
+      ],
+      declared(["@effect/platform-node"]),
+    );
+    expect(found).toStrictEqual([
+      {
+        path: "apps/server/src/cloud/RasRelayConnector.ts",
+        line: 1,
+        packageName: "@effect/platform-node-shared",
+      },
+    ]);
+  });
+
+  it("stays quiet while the manifest still declares the import", () => {
+    const found = findUndeclaredForkDependencies(
+      [
+        {
+          path: "apps/server/src/cloud/RasRelayConnector.ts",
+          contents: 'import * as NodeSocket from "@effect/platform-node-shared/NodeSocket";\n',
+        },
+      ],
+      declared(["@effect/platform-node-shared"]),
+    );
+    expect(found).toStrictEqual([]);
+  });
+
+  it("spares the rebrand fixtures, whose imports name upstream on purpose", () => {
+    const found = findUndeclaredForkDependencies(
+      [
+        {
+          path: "scripts/lib/upstreamRebrandMap.test.ts",
+          contents: 'import x from "@t3tools/contracts";\n',
+        },
+      ],
+      declared([]),
+    );
+    expect(found).toStrictEqual([]);
+  });
+});
+
+describe("formatUndeclaredForkDependencies", () => {
+  it("groups every importer under the package so one prune reads as one problem", () => {
+    const message = formatUndeclaredForkDependencies([
+      { path: "apps/server/src/a.ts", line: 1, packageName: "@effect/platform-node-shared" },
+      { path: "apps/server/src/b.ts", line: 4, packageName: "@effect/platform-node-shared" },
+    ]);
+    expect(message).toContain(
+      "  @effect/platform-node-shared — imported by apps/server/src/a.ts:1, apps/server/src/b.ts:4",
+    );
+  });
+
+  it("says so plainly when nothing is undeclared", () => {
+    expect(formatUndeclaredForkDependencies([])).toBe(
+      "No fork-only file imports a package its manifest has stopped declaring.",
+    );
   });
 });
