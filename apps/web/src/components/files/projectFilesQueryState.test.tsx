@@ -186,7 +186,9 @@ describe("project query refresh", () => {
     atomHooks.registry = registry;
     let renderedPaths: readonly string[] = [];
 
-    const render = (mutationId: string | null) => {
+    // Named as a hook so `react/rules-of-hooks` reads it as one: the harness
+    // calls it once per simulated render.
+    const useRenderQuery = (mutationId: string | null) => {
       reactHooks.beginRender();
       const query = useProjectEntriesQuery(environmentId, "/repo");
       renderedPaths = query.data?.entries.map((entry) => entry.path) ?? [];
@@ -203,14 +205,14 @@ describe("project query refresh", () => {
       requests[0]!.resolve(projectEntries(["src/old.ts"]));
       await flushEffects();
 
-      render("mutation-1");
+      useRenderQuery("mutation-1");
       expect(renderedPaths).toEqual(["src/old.ts"]);
       await flushEffects();
       expect(requests).toHaveLength(2);
 
       requests[1]!.resolve(projectEntries(["src/new.ts"]));
       await flushEffects();
-      render("mutation-1");
+      useRenderQuery("mutation-1");
       expect(renderedPaths).toEqual(["src/new.ts"]);
       expect(requests).toHaveLength(2);
     } finally {

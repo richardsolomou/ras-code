@@ -38,7 +38,6 @@ import { useThemeColor } from "../../lib/useThemeColor";
 import { mobilePreferencesAtom, updateMobilePreferencesAtom } from "../../state/preferences";
 import { serverEnvironment } from "../../state/server";
 import { useAtomCommand } from "../../state/use-atom-command";
-import type { EnvironmentId } from "@ras-code/contracts";
 import { useEnvironments } from "../../state/environments";
 import {
   DEFAULT_SERVER_SETTINGS,
