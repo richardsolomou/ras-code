@@ -350,3 +350,30 @@ export function rebrandPatch(patch: string): string {
     .map((line) => (isPatchBodyLine(line) ? line[0] + rebrandText(line.slice(1)) : line))
     .join("\n");
 }
+
+export interface UnmappedBrandToken {
+  readonly token: string;
+  readonly count: number;
+}
+
+/**
+ * Brand tokens the table cannot decide, counted across every line a diff adds.
+ *
+ * Left to the per-file helper these surface one at a time, mid-cherry-pick, and each one costs a
+ * detour to extend the table. Reading them off a whole range first turns a round's worth of
+ * interruptions into one edit before any picking starts.
+ */
+export function collectUnmappedBrandTokensFromDiff(
+  diff: string,
+): ReadonlyArray<UnmappedBrandToken> {
+  const counts = new Map<string, number>();
+  for (const line of diff.split("\n")) {
+    if (!line.startsWith("+") || line.startsWith("+++")) continue;
+    for (const residual of findResidualBrandTokens(rebrandText(line.slice(1)))) {
+      counts.set(residual.token, (counts.get(residual.token) ?? 0) + 1);
+    }
+  }
+  return [...counts]
+    .map(([token, count]) => ({ token, count }))
+    .toSorted((left, right) => right.count - left.count || left.token.localeCompare(right.token));
+}

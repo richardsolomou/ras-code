@@ -23,8 +23,19 @@ import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 import { Command, Flag } from "effect/unstable/cli";
 
-import { mapUpstreamPath } from "./lib/upstreamRebrandMap.ts";
-import { findImportResidue, findPathResidue, formatResidue } from "./lib/upstreamVerify.ts";
+import {
+  collectUnmappedBrandTokensFromDiff,
+  mapUpstreamPath,
+  type UnmappedBrandToken,
+} from "./lib/upstreamRebrandMap.ts";
+import {
+  collectDeclaredDependencies,
+  findImportResidue,
+  findPathResidue,
+  findUndeclaredForkDependencies,
+  formatResidue,
+  formatUndeclaredForkDependencies,
+} from "./lib/upstreamVerify.ts";
 import {
   UPSTREAM_SYNC_LEDGER_PATH,
   UpstreamSyncDecision,
@@ -176,10 +187,20 @@ const changeHeading = (report: ChangeReport) =>
 const changeLink = (pr: number | null, sha: string) =>
   pr === null ? `\`${sha.slice(0, 9)}\`` : `[#${pr}](${upstreamRepositoryUrl}/pull/${pr})`;
 
+/** Reads the range's added lines and asks the rebrand table which brand tokens it cannot decide. */
+export function collectUnmappedBrandTokens(
+  git: GitRunner,
+  range: string,
+): ReadonlyArray<UnmappedBrandToken> {
+  const diff = git.run(["diff", "--no-renames", range]);
+  return diff.status === 0 ? collectUnmappedBrandTokensFromDiff(diff.stdout) : [];
+}
+
 export function renderReport(input: {
   readonly ledger: UpstreamSyncLedger;
   readonly upstreamHead: string;
   readonly reports: ReadonlyArray<ChangeReport>;
+  readonly unmappedTokens?: ReadonlyArray<UnmappedBrandToken>;
   readonly generatedAt: string;
 }): string {
   const { ledger, reports, upstreamHead } = input;
@@ -202,6 +223,22 @@ export function renderReport(input: {
 
   lines.push(`${commitCount} unreviewed commits in ${reports.length} changes.`);
   lines.push("");
+
+  const unmapped = input.unmappedTokens ?? [];
+  if (unmapped.length > 0) {
+    lines.push("## Brand tokens the rebrand map cannot decide");
+    lines.push("");
+    lines.push(
+      "Extend `scripts/lib/upstreamRebrandMap.ts` before picking, or each of these interrupts a pick.",
+    );
+    lines.push("");
+    lines.push("| Token | Added lines |");
+    lines.push("| --- | --- |");
+    for (const { token, count } of unmapped) {
+      lines.push(`| \`${token}\` | ${count} |`);
+    }
+    lines.push("");
+  }
   lines.push("| Change | Title | Areas | Files | +/- | Suggested |");
   lines.push("| --- | --- | --- | --- | --- | --- |");
   for (const report of reports) {
@@ -298,6 +335,7 @@ export const runReport = Effect.fn("runReport")(function* (options: {
     ledger,
     upstreamHead,
     reports,
+    unmappedTokens: collectUnmappedBrandTokens(git, upstreamRange(ledger)),
     generatedAt: new Date().toISOString().slice(0, 10),
   });
 
@@ -447,7 +485,72 @@ const validateCommand = Command.make("validate", { ledger: ledgerFlag }, ({ ledg
  * Checks the working tree for upstream leftovers a cherry-pick can introduce without conflicting.
  * Run it after every pick, not just the ones that conflicted.
  */
-export const runVerify = Effect.fn("runVerify")(function* (options: { readonly repoRoot: string }) {
+
+/**
+ * Files that exist here and not upstream. Upstream prunes dependencies against its own tree, so
+ * these are exactly the files whose imports no upstream reviewer ever sees.
+ */
+const listForkOnlyFiles = Effect.fn("listForkOnlyFiles")(function* (
+  git: GitRunner,
+  upstreamRef: string,
+) {
+  const upstreamTree = git.run(["ls-tree", "-r", "--name-only", upstreamRef]);
+  if (upstreamTree.status !== 0) return null;
+  const upstream = new Set(upstreamTree.stdout.split("\n").filter((line) => line.length > 0));
+  return (
+    (yield* gitOrFail(git, ["ls-files"]))
+      .split("\n")
+      .filter((line) => line.length > 0 && !upstream.has(line))
+      // Test files carry code fixtures inside string literals, which read as imports and are not.
+      .filter((line) => /\.(?:ts|tsx|mts|cts)$/u.test(line) && !/\.(?:test|spec)\./u.test(line))
+  );
+});
+
+/**
+ * The dependency names visible to a file: its own package's manifest plus the workspace root's.
+ * Anything else would have to be hoisted by accident, which is the bug this looks for.
+ */
+const makeDeclaredLookup = Effect.fn("makeDeclaredLookup")(function* (repoRoot: string) {
+  const fs = yield* FileSystem.FileSystem;
+  const cache = new Map<string, ReadonlySet<string>>();
+
+  const readManifest = Effect.fn("readManifest")(function* (dir: string) {
+    const cached = cache.get(dir);
+    if (cached) return cached;
+    const raw = yield* fs
+      .readFileString(`${repoRoot}/${dir === "" ? "" : `${dir}/`}package.json`)
+      .pipe(Effect.orElseSucceed(() => ""));
+    // @effect-diagnostics-next-line preferSchemaOverJson:off
+    const declared = raw === "" ? new Set<string>() : collectDeclaredDependencies(JSON.parse(raw));
+    cache.set(dir, declared);
+    return declared;
+  });
+
+  const root = yield* readManifest("");
+  const owners = new Map<string, ReadonlySet<string>>();
+
+  return Effect.fn("declaredFor")(function* (path: string) {
+    const segments = path.split("/");
+    for (let depth = segments.length - 1; depth > 0; depth -= 1) {
+      const dir = segments.slice(0, depth).join("/");
+      const known = owners.get(dir);
+      if (known) return known;
+      const exists = yield* fs
+        .exists(`${repoRoot}/${dir}/package.json`)
+        .pipe(Effect.orElseSucceed(() => false));
+      if (!exists) continue;
+      const declared = new Set([...(yield* readManifest(dir)), ...root]);
+      owners.set(dir, declared);
+      return declared as ReadonlySet<string>;
+    }
+    return root;
+  });
+});
+
+export const runVerify = Effect.fn("runVerify")(function* (options: {
+  readonly repoRoot: string;
+  readonly ledgerPath: string;
+}) {
   const fs = yield* FileSystem.FileSystem;
   const git = createGitRunner(options.repoRoot);
   const tracked = (yield* gitOrFail(git, ["ls-files"]))
@@ -464,14 +567,208 @@ export const runVerify = Effect.fn("runVerify")(function* (options: { readonly r
   }
 
   yield* Console.log(formatResidue(residue));
-  if (residue.length > 0) {
+
+  const ledger = yield* readLedger(options.ledgerPath).pipe(Effect.orElseSucceed(() => null));
+  const upstreamRef = ledger === null ? null : `${ledger.upstreamRemote}/${ledger.upstreamBranch}`;
+  const forkOnly = upstreamRef === null ? null : yield* listForkOnlyFiles(git, upstreamRef);
+  let undeclaredCount = 0;
+  if (forkOnly === null) {
+    yield* Console.log(
+      "Skipped the fork-only dependency check: the upstream remote is not in this clone.",
+    );
+  } else {
+    const declaredFor = yield* makeDeclaredLookup(options.repoRoot);
+    const files: Array<{ path: string; contents: string }> = [];
+    for (const path of forkOnly) {
+      files.push({
+        path,
+        contents: yield* fs.readFileString(path).pipe(Effect.orElseSucceed(() => "")),
+      });
+    }
+    const declaredByPath = new Map<string, ReadonlySet<string>>();
+    for (const file of files) {
+      declaredByPath.set(file.path, yield* declaredFor(file.path));
+    }
+    const undeclared = findUndeclaredForkDependencies(
+      files,
+      (path) => declaredByPath.get(path) ?? new Set<string>(),
+    );
+    undeclaredCount = undeclared.length;
+    yield* Console.log(formatUndeclaredForkDependencies(undeclared));
+  }
+
+  if (residue.length > 0 || undeclaredCount > 0) {
     return yield* new UpstreamSyncGitError({ args: ["verify"], status: 1, stderr: "" });
   }
 });
 
-const verifyCommand = Command.make("verify", {}, () => runVerify({ repoRoot: "." })).pipe(
+const verifyCommand = Command.make(
+  "verify",
+  { ledger: ledgerFlag, repo: repoFlag },
+  ({ ledger, repo }) => runVerify({ repoRoot: repo, ledgerPath: ledger }),
+).pipe(
   Command.withDescription(
-    "Fail if the tree still names upstream: package scopes in files no conflict touched, or upstream directory names added as new paths.",
+    "Fail if the tree still names upstream, or if a fork-only file imports a package no manifest declares.",
+  ),
+);
+
+interface GateStep {
+  readonly name: string;
+  readonly command: string;
+  readonly args: ReadonlyArray<string>;
+}
+
+/**
+ * The checks CI runs, in the order that fails cheapest first.
+ *
+ * `install --frozen-lockfile` leads because everything after it is a lie without it: a stale
+ * `node_modules` still resolves a dependency the picks removed, so typecheck and tests pass here
+ * and fail on a fresh checkout. `release:smoke` regenerates the lockfile from scratch, which is the
+ * only place a patch orphaned by a version bump shows up.
+ */
+const gateSteps: ReadonlyArray<GateStep> = [
+  { name: "install", command: "vp", args: ["install", "--frozen-lockfile"] },
+  { name: "typecheck", command: "vp", args: ["run", "typecheck"] },
+  { name: "lint", command: "vp", args: ["run", "lint"] },
+  { name: "lint:mobile", command: "vp", args: ["run", "lint:mobile"] },
+  { name: "release:smoke", command: "vp", args: ["run", "release:smoke"] },
+  { name: "test", command: "vp", args: ["run", "test"] },
+];
+
+export const runGate = Effect.fn("runGate")(function* (options: {
+  readonly repoRoot: string;
+  readonly ledgerPath: string;
+  readonly quick: boolean;
+}) {
+  const skipped = new Set(options.quick ? ["release:smoke", "test"] : []);
+  const steps = gateSteps.filter((step) => !skipped.has(step.name));
+
+  yield* Console.log(`Running ${steps.length + 1} gate steps. Ctrl-C is safe: nothing is written.`);
+
+  const install = steps[0];
+  if (install !== undefined && install.name === "install") {
+    yield* Console.log(`\n--- ${install.name} ---`);
+    const started = Date.now();
+    const result = NodeChildProcess.spawnSync(install.command, [...install.args], {
+      cwd: options.repoRoot,
+      stdio: "inherit",
+    });
+    yield* Console.log(`${install.name}: ${((Date.now() - started) / 1000).toFixed(1)}s`);
+    if ((result.status ?? 1) !== 0) {
+      yield* Console.log(`\nGate stopped at ${install.name}.`);
+      return yield* new UpstreamSyncGitError({ args: ["gate"], status: 1, stderr: "" });
+    }
+  }
+
+  // After the install, so it reads the manifests the picks actually left behind.
+  yield* Console.log("\n--- verify ---");
+  yield* runVerify({ repoRoot: options.repoRoot, ledgerPath: options.ledgerPath });
+
+  for (const step of steps.slice(1)) {
+    yield* Console.log(`\n--- ${step.name} ---`);
+    const started = Date.now();
+    const result = NodeChildProcess.spawnSync(step.command, [...step.args], {
+      cwd: options.repoRoot,
+      stdio: "inherit",
+    });
+    yield* Console.log(`${step.name}: ${((Date.now() - started) / 1000).toFixed(1)}s`);
+    if ((result.status ?? 1) !== 0) {
+      yield* Console.log(`\nGate stopped at ${step.name}.`);
+      return yield* new UpstreamSyncGitError({ args: ["gate"], status: 1, stderr: "" });
+    }
+  }
+
+  yield* Console.log("\nGate passed. Push.");
+});
+
+const gateCommand = Command.make(
+  "gate",
+  {
+    ledger: ledgerFlag,
+    repo: repoFlag,
+    quick: Flag.boolean("quick").pipe(
+      Flag.withDescription("Skip release:smoke and the full test run."),
+      Flag.withDefault(false),
+    ),
+  },
+  ({ ledger, repo, quick }) => runGate({ repoRoot: repo, ledgerPath: ledger, quick }),
+).pipe(
+  Command.withDescription(
+    "Run the checks CI runs, once, before pushing a sync branch. Reinstalls from the lockfile first so a stale node_modules cannot hide a dependency the picks removed.",
+  ),
+);
+
+/**
+ * Applies a run of already-judged changes, rebranding each and checking only what is cheap.
+ *
+ * The expensive checks are the reason a sync takes hours: half of a round's changes are clean
+ * cherry-picks, and running a typecheck and a test pass after each one costs far more than it ever
+ * catches. `verify` is under a second, so it stays per pick; typecheck and tests move to `gate`,
+ * once, at the end. A batch stops at the first conflict, so the run that needs hands is the one
+ * left in the working tree.
+ */
+export const runBatch = Effect.fn("runBatch")(function* (options: {
+  readonly repoRoot: string;
+  readonly ledgerPath: string;
+  readonly shas: ReadonlyArray<string>;
+}) {
+  const git = createGitRunner(options.repoRoot);
+  const applied: Array<string> = [];
+
+  for (const sha of options.shas) {
+    yield* Console.log(`\n--- ${sha.slice(0, 9)} ---`);
+    const picked = git.run(["cherry-pick", "-x", sha]);
+    if (picked.status !== 0) {
+      git.run(["cherry-pick", "--abort"]);
+      yield* Console.log(
+        [
+          `${sha.slice(0, 9)} does not apply cleanly, so the batch stops here.`,
+          "Pick it by hand, decide it, then start another batch after it.",
+          applied.length === 0 ? "" : `Applied before it: ${applied.length}.`,
+        ]
+          .filter((line) => line.length > 0)
+          .join("\n"),
+      );
+      return { applied, stoppedAt: sha } as const;
+    }
+
+    const residue = yield* runVerify({
+      repoRoot: options.repoRoot,
+      ledgerPath: options.ledgerPath,
+    }).pipe(Effect.result);
+    if (residue._tag === "Failure") {
+      yield* Console.log(
+        `${sha.slice(0, 9)} applied but left upstream residue. Fix it here before continuing.`,
+      );
+      return { applied, stoppedAt: sha } as const;
+    }
+    applied.push(sha);
+  }
+
+  yield* Console.log(
+    [
+      `\nApplied ${applied.length} change${applied.length === 1 ? "" : "s"}.`,
+      "Now run `node scripts/upstream-sync.ts gate` once, then `mark` each change.",
+    ].join("\n"),
+  );
+  return { applied, stoppedAt: null } as const;
+});
+
+const batchCommand = Command.make(
+  "batch",
+  {
+    ledger: ledgerFlag,
+    repo: repoFlag,
+    shas: Flag.string("sha").pipe(
+      Flag.withDescription("An upstream commit to apply. Repeat, in upstream history order."),
+      (flag) => Flag.atLeast(flag, 1),
+    ),
+  },
+  ({ ledger, repo, shas }) =>
+    runBatch({ repoRoot: repo, ledgerPath: ledger, shas }).pipe(Effect.asVoid),
+).pipe(
+  Command.withDescription(
+    "Cherry-pick a run of changes you have already judged, checking only `verify` per pick. Stops at the first conflict. Run `gate` once afterwards, not per pick.",
   ),
 );
 
@@ -484,7 +781,14 @@ const upstreamSyncCommand = Command.make("upstream-sync", {}, () =>
   }),
 ).pipe(
   Command.withDescription("Track upstream changes and record what we did with them."),
-  Command.withSubcommands([reportCommand, markCommand, validateCommand, verifyCommand]),
+  Command.withSubcommands([
+    reportCommand,
+    markCommand,
+    validateCommand,
+    verifyCommand,
+    gateCommand,
+    batchCommand,
+  ]),
 );
 
 if (import.meta.main) {
