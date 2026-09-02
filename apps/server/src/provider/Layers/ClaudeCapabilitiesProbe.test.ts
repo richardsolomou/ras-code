@@ -127,13 +127,13 @@ it.layer(NodeServices.layer)("Claude capability probe SDK boundary", (it) => {
             input: { hint: "[path]" },
           },
         ],
+        // The stub sends `resolvedModel` and `supportsEffort` as the real CLI
+        // does; the probe keeps only the fields the picker reads.
         models: [
           {
             value: "claude-fable-5-1[1m]",
-            resolvedModel: "claude-fable-5-1",
             displayName: "Fable",
             description: "Fable 5.1",
-            supportsEffort: true,
             supportedEffortLevels: ["low", "high"],
           },
         ],

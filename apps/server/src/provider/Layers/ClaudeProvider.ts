@@ -382,10 +382,14 @@ function formatClaudeOpus47UpgradeMessage(version: string | null): string {
   return `Claude Code ${versionLabel} is too old for Claude Opus 4.7. Upgrade to v${MINIMUM_CLAUDE_OPUS_4_7_VERSION} or newer to access it.`;
 }
 
+/** The SDK's suffix for the same model with a 1M context window. */
+const CLAUDE_ONE_MILLION_SUFFIX = "[1m]";
+
 /**
- * Prefer the CLI's live model metadata, but keep the static catalog's richer
- * option descriptors when the SDK metadata omits them. SDK model values are
- * picker entries; `[1m]` is a context-window suffix, not a separate model.
+ * Prefer the CLI's live model metadata, falling back to the static catalog's
+ * option descriptors where the SDK omits them. A `[1m]` value is the same
+ * model with a wider context window, so both entries fold into one row whose
+ * context window is an option.
  */
 export function mergeClaudeLiveModels(
   liveModels: ReadonlyArray<ClaudeSdkModelInfo> | undefined,
@@ -394,21 +398,25 @@ export function mergeClaudeLiveModels(
   if (!liveModels || liveModels.length === 0) return builtInModels;
 
   const builtInBySlug = new Map(builtInModels.map((model) => [model.slug, model]));
-  const merged = new Map<string, ServerProviderModel>();
+  const oneMillionSlugs = new Set<string>();
+  const liveBySlug = new Map<string, ClaudeSdkModelInfo>();
 
   for (const liveModel of liveModels) {
-    const isOneMillion = liveModel.value.endsWith("[1m]");
-    const slug = isOneMillion ? liveModel.value.slice(0, -4) : liveModel.value;
+    const isOneMillion = liveModel.value.endsWith(CLAUDE_ONE_MILLION_SUFFIX);
+    const slug = isOneMillion
+      ? liveModel.value.slice(0, -CLAUDE_ONE_MILLION_SUFFIX.length)
+      : liveModel.value;
     if (!slug) continue;
-    const contextWindow = isOneMillion ? "1m" : undefined;
+    if (isOneMillion) oneMillionSlugs.add(slug);
+    // The plain entry holds the metadata for the row; a `[1m]` entry stands in
+    // only for a model the SDK lists no plain entry for.
+    if (!isOneMillion || !liveBySlug.has(slug)) liveBySlug.set(slug, liveModel);
+  }
 
+  const merged: ServerProviderModel[] = [];
+  for (const [slug, liveModel] of liveBySlug) {
     const fallback = builtInBySlug.get(slug);
-    const displayName = nonEmptyProbeString(liveModel.displayName) ?? fallback?.name ?? slug;
-    const description = nonEmptyProbeString(liveModel.description);
-    const effortDescriptor = fallback?.capabilities?.optionDescriptors?.find(
-      (descriptor) => descriptor.type === "select" && descriptor.id === "effort",
-    );
-    const effortOptions = liveModel.supportedEffortLevels
+    const effortDescriptor = liveModel.supportedEffortLevels
       ? buildSelectOptionDescriptor({
           id: "effort",
           label: "Reasoning",
@@ -418,13 +426,15 @@ export function mergeClaudeLiveModels(
             ...(value === "high" ? { isDefault: true } : {}),
           })),
         })
-      : effortDescriptor;
-    const capabilityDescriptors = [
-      ...(effortOptions ? [effortOptions] : []),
+      : fallback?.capabilities?.optionDescriptors?.find(
+          (descriptor) => descriptor.type === "select" && descriptor.id === "effort",
+        );
+    const optionDescriptors = [
+      ...(effortDescriptor ? [effortDescriptor] : []),
       ...(liveModel.supportsFastMode
         ? [buildBooleanOptionDescriptor({ id: "fastMode", label: "Fast Mode" })]
         : []),
-      ...(contextWindow
+      ...(oneMillionSlugs.has(slug)
         ? [
             buildSelectOptionDescriptor({
               id: "contextWindow",
@@ -438,27 +448,18 @@ export function mergeClaudeLiveModels(
         : []),
     ];
 
-    const model: ServerProviderModel = {
+    merged.push({
       slug,
-      name: displayName,
+      name: nonEmptyProbeString(liveModel.displayName) ?? fallback?.name ?? slug,
       isCustom: false,
-      ...(description ? {} : {}),
       capabilities:
-        capabilityDescriptors.length > 0
-          ? createModelCapabilities({ optionDescriptors: capabilityDescriptors })
+        optionDescriptors.length > 0
+          ? createModelCapabilities({ optionDescriptors })
           : (fallback?.capabilities ?? DEFAULT_CLAUDE_MODEL_CAPABILITIES),
-    };
-
-    const existing = merged.get(slug);
-    if (existing && existing.slug === slug) {
-      // Prefer the non-1M entry as the canonical picker row.
-      if (!isOneMillion) merged.set(slug, model);
-      continue;
-    }
-    merged.set(slug, model);
+    });
   }
 
-  return [...merged.values()];
+  return merged;
 }
 
 function formatClaudeEffortLabel(value: string): string {
@@ -736,6 +737,11 @@ type ClaudeCapabilitiesProbe = {
   readonly models: ReadonlyArray<ClaudeSdkModelInfo>;
 };
 
+/**
+ * Deduplicates the CLI's model list by value and keeps only the fields the
+ * picker reads. The CLI sends more than `ModelInfo` declares, so a spread
+ * would hand every consumer an undeclared and unstable shape.
+ */
 function parseClaudeInitializationModels(
   models: ReadonlyArray<ClaudeSdkModelInfo> | undefined,
 ): ReadonlyArray<ClaudeSdkModelInfo> {
@@ -743,7 +749,15 @@ function parseClaudeInitializationModels(
   for (const model of models ?? []) {
     const value = nonEmptyProbeString(model.value);
     if (!value || byValue.has(value)) continue;
-    byValue.set(value, { ...model, value });
+    byValue.set(value, {
+      value,
+      displayName: model.displayName,
+      description: model.description,
+      ...(model.supportedEffortLevels
+        ? { supportedEffortLevels: model.supportedEffortLevels }
+        : {}),
+      ...(model.supportsFastMode ? { supportsFastMode: model.supportsFastMode } : {}),
+    });
   }
   return [...byValue.values()];
 }

@@ -2128,6 +2128,52 @@ it.layer(Layer.mergeAll(NodeServices.layer, ServerSettingsModule.layerTest(), Te
         ),
       );
 
+      // The SDK lists the wider context window as its own `[1m]` entry, so the
+      // pair has to fold into one row that still offers the option.
+      it.effect("keeps the 1M option when the SDK lists both context windows", () =>
+        Effect.gen(function* () {
+          const status = yield* checkClaudeProviderStatus(
+            defaultClaudeSettings,
+            claudeCapabilities({
+              models: [
+                {
+                  value: "claude-fable-5-1",
+                  displayName: "Fable",
+                  description: "Fable 5.1",
+                  supportedEffortLevels: ["low", "high"],
+                },
+                {
+                  value: "claude-fable-5-1[1m]",
+                  displayName: "Fable",
+                  description: "Fable 5.1",
+                  supportedEffortLevels: ["low", "high"],
+                },
+              ],
+            }),
+          );
+
+          const rows = status.models.filter((model) => model.slug === "claude-fable-5-1");
+          assert.strictEqual(rows.length, 1);
+          const contextWindow = rows[0]?.capabilities?.optionDescriptors?.find(
+            (descriptor) => descriptor.type === "select" && descriptor.id === "contextWindow",
+          );
+          assert.deepStrictEqual(
+            contextWindow?.type === "select"
+              ? contextWindow.options.map((option) => option.id)
+              : undefined,
+            ["200k", "1m"],
+          );
+        }).pipe(
+          Effect.provide(
+            mockSpawnerLayer((args) => {
+              const joined = args.join(" ");
+              if (joined === "--version") return { stdout: "2.1.258\n", stderr: "", code: 0 };
+              throw new Error(`Unexpected args: ${joined}`);
+            }),
+          ),
+        ),
+      );
+
       it.effect("hides Claude Opus 5 on older Claude Code versions", () =>
         Effect.gen(function* () {
           const status = yield* checkClaudeProviderStatus(
