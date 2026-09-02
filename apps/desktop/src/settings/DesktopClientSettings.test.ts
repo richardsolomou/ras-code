@@ -23,6 +23,8 @@ const clientSettings: ClientSettings = {
   browserRecordingFrameRate: 60,
   browserAutoShowFloatingPreview: false,
   notifications: DEFAULT_NOTIFICATION_SETTINGS,
+  browserProfiles: [{ id: "work", name: "Work", kind: "persistent" }],
+  browserDefaultProfileId: "work",
   confirmQuit: "double-click",
   continueThreadsAfterServerUpdate: true,
   contextWindowMeterEnabled: false,
