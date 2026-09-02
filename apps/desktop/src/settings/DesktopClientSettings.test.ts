@@ -39,6 +39,7 @@ const clientSettings: ClientSettings = {
   fontSizePrompt: 14,
   fontSizeTerminal: 12,
   panelAnimationDurationMs: 0,
+  proactivePanelsEnabled: true,
   showSkillsInSlashMenu: false,
   providerModelPreferences: {},
   sidebarProjectGroupingMode: "repository_path",
