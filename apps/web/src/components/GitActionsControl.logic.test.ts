@@ -1170,7 +1170,7 @@ describe("when: the thread's own PR conflicts with its base", () => {
     assert.deepInclude(quick, { kind: "resolve_conflicts", label: "Resolve conflicts" });
   });
 
-  it("resolveQuickAction still names the step that has to come first", () => {
+  it("resolveQuickAction takes the button even while the branch has its own step to name", () => {
     const quick = resolveQuickAction(
       status({ pr: openPr, hasWorkingTreeChanges: true }),
       false,
@@ -1178,19 +1178,32 @@ describe("when: the thread's own PR conflicts with its base", () => {
       true,
       conflicting,
     );
-    assert.deepInclude(quick, { kind: "run_action", label: "Commit & push" });
+    assert.deepInclude(quick, { kind: "resolve_conflicts", label: "Resolve conflicts" });
   });
 
-  it("buildMenuItems keeps viewing the PR reachable alongside both helpers", () => {
+  it("resolveQuickAction leaves a running git action on the button", () => {
+    const quick = resolveQuickAction(status({ pr: openPr }), true, false, true, conflicting);
+    assert.deepInclude(quick, { kind: "show_hint", disabled: true });
+  });
+
+  it("buildMenuItems never offers conflict resolution, which belongs to the button alone", () => {
     const items = buildMenuItems(status({ pr: openPr }), false, true, conflicting);
     assert.deepEqual(
       items.map((item) => item.label),
-      ["Commit", "Push", "View PR", "Resolve conflicts", "Babysit PR"],
+      ["Commit", "Push", "View PR", "Babysit PR"],
     );
   });
 
-  it("buildMenuItems offers no PR helpers while the ref has no open PR", () => {
+  it("buildMenuItems keeps babysitting when the checkout has drifted off the PR's branch", () => {
     const items = buildMenuItems(status({ aheadCount: 1 }), false, true, conflicting);
+    assert.deepEqual(
+      items.map((item) => item.label),
+      ["Commit", "Push", "Create PR", "Babysit PR"],
+    );
+  });
+
+  it("buildMenuItems offers no PR helpers for a thread with no change request", () => {
+    const items = buildMenuItems(status({ aheadCount: 1 }), false, true);
     assert.deepEqual(
       items.map((item) => item.label),
       ["Commit", "Push", "Create PR"],
