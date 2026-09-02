@@ -1371,7 +1371,7 @@ describe("deriveMessagesTimelineRows", () => {
     [undefined, true],
     ["inProgress", true],
     ["completed", false],
-    ["failed", false],
+    ["failed", null],
     ["declined", false],
     ["stopped", false],
   ] as const)(
@@ -1407,7 +1407,13 @@ describe("deriveMessagesTimelineRows", () => {
         checkpointTurnCountByAssistantMessageId: new Map(),
       });
 
-      expect(rows.find((row) => row.kind === "work-live")).toMatchObject({ active });
+      const workLiveRow = rows.find((row) => row.kind === "work-live");
+      if (active === null) {
+        expect(workLiveRow).toBeUndefined();
+        expect(rows.at(-1)).toMatchObject({ kind: "thinking", id: "live-activity-row" });
+      } else {
+        expect(workLiveRow).toMatchObject({ active });
+      }
     },
   );
 
