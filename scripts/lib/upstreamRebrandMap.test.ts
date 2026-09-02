@@ -60,6 +60,14 @@ describe("rebrandText", () => {
     assert.strictEqual(rebrandText("Connect through T3 Connect."), "Connect through RAS Connect.");
   });
 
+  it("keeps upstream repository slugs and forks of them", () => {
+    assert.strictEqual(
+      rebrandText('url: "https://github.com/binbandit/t3code/pull/642"'),
+      'url: "https://github.com/binbandit/t3code/pull/642"',
+    );
+    assert.strictEqual(rebrandText('repo: "t3tools/t3code"'), 'repo: "richardsolomou/ras-code"');
+  });
+
   it("rewrites the remote access product name in ids and search terms", () => {
     assert.strictEqual(rebrandText('id: "t3-connect"'), 'id: "ras-connect"');
     assert.strictEqual(rebrandText('"tunnel saved t3 connect"'), '"tunnel saved ras connect"');

@@ -25,7 +25,9 @@ export const preservedPatterns: ReadonlyArray<RegExp> = [
   /\bt3-chat\b/g,
   /\b[\w-]*\.?t3\.(?:codes|chat|tools|sh)\b/g,
   /\bt3\.(?:nano|micro|small|medium|large|xlarge|\d+xlarge)\b/g,
-  /\bpingdotgg\/t3code\b/g,
+  // Upstream's repository and anyone's fork of it keep their real slug; only
+  // the fork identity `t3tools/t3code` becomes ours.
+  /\b(?!t3tools\/)[\w-]+\/t3code\b/g,
   /\bt3_relay\b/g,
 ];
 
