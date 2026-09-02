@@ -114,12 +114,17 @@ interface GitActionsControlProps {
   onOpenPullRequest?: ((number: number) => void) | undefined;
   /**
    * Seeds the composer with a conflict-resolution prompt for the thread's own change request.
-   * Present only while that change request collides with its base, which is what promotes it over
-   * the view action.
+   * Present only while that change request collides with its base, which is what hands it the
+   * button.
    */
   onResolveConflicts?: (() => void) | undefined;
   /** Seeds the composer with a babysit prompt. Present while the thread's change request is open. */
   onBabysitPullRequest?: (() => void) | undefined;
+  /**
+   * Re-reads the thread's change request. Called when the menu opens, so what it offers answers
+   * to the state the host reports now rather than to the last poll.
+   */
+  onRefreshChangeRequest?: (() => void) | undefined;
 }
 
 interface PendingDefaultBranchAction {
@@ -368,7 +373,6 @@ function GitActionItemIcon({
 }) {
   if (icon === "commit") return <GitCommitIcon />;
   if (icon === "push") return <CloudUploadIcon />;
-  if (icon === "conflicts") return <TriangleAlertIcon />;
   if (icon === "babysit") return <EyeIcon />;
   return <SourceControlIcon />;
 }
@@ -383,7 +387,7 @@ function GitQuickActionIcon({
   const iconClassName = "size-3.5";
   if (quickAction.kind === "open_pr") return <SourceControlIcon className={iconClassName} />;
   if (quickAction.kind === "resolve_conflicts") {
-    return <TriangleAlertIcon className={iconClassName} />;
+    return <TriangleAlertIcon className={cn(iconClassName, "text-warning")} />;
   }
   if (quickAction.kind === "open_publish") return <CloudUploadIcon className={iconClassName} />;
   if (quickAction.kind === "run_pull") return <CloudDownloadIcon className={iconClassName} />;
@@ -1009,6 +1013,7 @@ export default function GitActionsControl({
   onOpenPullRequest,
   onResolveConflicts,
   onBabysitPullRequest,
+  onRefreshChangeRequest,
 }: GitActionsControlProps) {
   const updateThreadMetadata = useAtomCommand(
     threadEnvironment.updateMetadata,
@@ -1667,10 +1672,6 @@ export default function GitActionsControl({
       void openExistingPr();
       return;
     }
-    if (item.kind === "resolve_conflicts") {
-      onResolveConflicts?.();
-      return;
-    }
     if (item.kind === "babysit_pr") {
       onBabysitPullRequest?.();
       return;
@@ -1797,7 +1798,11 @@ export default function GitActionsControl({
             <Button
               variant="outline"
               size="xs"
-              className="ps-[8.5px]"
+              className={cn(
+                "ps-[8.5px]",
+                quickAction.kind === "resolve_conflicts" &&
+                  "border-warning/32 bg-warning-surface text-warning-foreground dark:bg-warning-surface",
+              )}
               disabled={isGitActionRunning || quickAction.disabled}
               onClick={runQuickAction}
             >
@@ -1812,6 +1817,7 @@ export default function GitActionsControl({
             onOpenChange={(open) => {
               if (open) {
                 requestVcsStatusRefresh(refreshVcsStatus, activeEnvironmentId, gitCwd);
+                onRefreshChangeRequest?.();
               }
             }}
           >

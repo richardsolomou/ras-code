@@ -30,6 +30,7 @@ import {
 import { type EnvironmentConnectionPresentation } from "@ras-code/client-runtime/connection";
 import { wasBootstrapThreadDeleted } from "@ras-code/client-runtime/errors";
 import { resolveActiveProviderInstanceId } from "@ras-code/client-runtime/provider-fallback";
+import { resolveThreadPullRequestRef } from "@ras-code/client-runtime/state/pull-requests";
 import { type CodexArtifactTemplate } from "@ras-code/client-runtime/codex-artifact-templates";
 import { effectiveSnoozed, threadWokeAt } from "@ras-code/client-runtime/state/thread-settled";
 import {
@@ -271,9 +272,9 @@ import { environmentCatalog } from "../connection/catalog";
 import { selectThreadTerminalUiState, useTerminalUiStateStore } from "../terminalUiStateStore";
 import { useKnownTerminalSessions, useThreadRunningTerminalIds } from "../state/terminalSessions";
 import { projectEnvironment } from "../state/projects";
-import { linkedPullRequestDetailAtom } from "../state/pullRequests";
 import { useEnvironmentQuery } from "../state/query";
 import { pullRequestEnvironment } from "../state/pullRequests";
+import { linkedPullRequestDetailAtom } from "../state/pullRequests";
 import {
   environmentServerConfigsAtom,
   primaryServerAvailableEditorsAtom,
@@ -4713,25 +4714,6 @@ function ChatViewContent(
     activeThreadRef?.environmentId ?? null,
     linkedThreadPullRequest,
   );
-  // Mergeability is not in the linked-PR summary the sidebar shares, so the
-  // active thread reads the full detail for its own linked pull request.
-  const linkedPullRequestDetail = useEnvironmentQuery(
-    activeThreadRef && linkedThreadPullRequest
-      ? pullRequestEnvironment.detail({
-          environmentId: activeThreadRef.environmentId,
-          input: {
-            projectId: linkedThreadPullRequest.projectId,
-            repository: linkedThreadPullRequest.repository,
-            number: linkedThreadPullRequest.number,
-          },
-        })
-      : null,
-  ).data;
-  const conflictingPullRequest =
-    linkedPullRequestDetail?.state === "open" &&
-    linkedPullRequestDetail.mergeability === "conflicting"
-      ? linkedPullRequestDetail
-      : null;
   /** Appends to whatever is already typed rather than replacing it, and leaves sending to the user. */
   const seedComposerPrompt = useCallback(
     (seed: string) => {
@@ -4748,17 +4730,6 @@ function ChatViewContent(
     },
     [composerDraftTarget, composerRef, scheduleComposerFocus, setComposerDraftPrompt],
   );
-  const addConflictResolutionPrompt = useCallback(() => {
-    if (conflictingPullRequest === null) return;
-    seedComposerPrompt(
-      buildResolveConflictsPrompt({
-        number: conflictingPullRequest.number,
-        url: conflictingPullRequest.url,
-        headBranch: conflictingPullRequest.headBranch,
-        baseBranch: conflictingPullRequest.baseBranch,
-      }),
-    );
-  }, [conflictingPullRequest, seedComposerPrompt]);
   const activeThreadPr = resolveDisplayedThreadPr({
     threadBranch: activeThread?.branch ?? null,
     gitStatus: gitStatusQuery.data ?? null,
@@ -4778,7 +4749,6 @@ function ChatViewContent(
         number: babysittablePullRequest.number,
         url: babysittablePullRequest.url,
         headBranch: babysittablePullRequest.headRef,
-        baseBranch: babysittablePullRequest.baseRef,
       }),
     );
   }, [babysittablePullRequest, seedComposerPrompt]);
@@ -4873,6 +4843,42 @@ function ChatViewContent(
       },
     );
   }, [activeThreadReferenceCopyTarget]);
+  // Read off the same change request the header shows rather than the linked record, which only a
+  // completed turn writes: a pull request opened from this menu is unlinked until the next turn,
+  // and its conflicts are exactly what the user comes back to resolve.
+  const threadPullRequestRef = resolveThreadPullRequestRef({
+    linkedPullRequest: linkedThreadPullRequest,
+    projectId: activeProject?.id ?? null,
+    repository: threadRepository,
+    branchPullRequest: activeThreadPr,
+  });
+  // Mergeability is not in the linked-PR summary the sidebar shares, so the active
+  // thread reads the full detail for the one pull request it shows.
+  const threadPullRequestQuery = useEnvironmentQuery(
+    activeThreadRef == null || threadPullRequestRef === null
+      ? null
+      : pullRequestEnvironment.detail({
+          environmentId: activeThreadRef.environmentId,
+          input: threadPullRequestRef,
+        }),
+  );
+  const threadPullRequestDetail = threadPullRequestQuery.data;
+  const conflictingPullRequest =
+    threadPullRequestDetail?.state === "open" &&
+    threadPullRequestDetail.mergeability === "conflicting"
+      ? threadPullRequestDetail
+      : null;
+  const addConflictResolutionPrompt = useCallback(() => {
+    if (conflictingPullRequest === null) return;
+    seedComposerPrompt(
+      buildResolveConflictsPrompt({
+        number: conflictingPullRequest.number,
+        url: conflictingPullRequest.url,
+        headBranch: conflictingPullRequest.headBranch,
+        baseBranch: conflictingPullRequest.baseBranch,
+      }),
+    );
+  }, [conflictingPullRequest, seedComposerPrompt]);
   // The right panel offers the thread's own change request, so it can only offer it once the
   // branch has one; until then the picker says so rather than opening an empty panel.
   const addPullRequestSurface = useCallback(() => {
@@ -7495,6 +7501,7 @@ function ChatViewContent(
             {...(babysittablePullRequest === null
               ? {}
               : { onBabysitPullRequest: addPullRequestBabysitPrompt })}
+            onRefreshChangeRequest={threadPullRequestQuery.refresh}
             onNewThreadInProject={handleNewThreadInActiveProject}
             onRunProjectScript={runProjectScript}
             onAddProjectScript={saveProjectScript}

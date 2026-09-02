@@ -72,6 +72,7 @@ interface ChatHeaderProps {
   readonly onResolveConflicts?: (() => void) | undefined;
   /** Present only while the thread's own change request is open. */
   readonly onBabysitPullRequest?: (() => void) | undefined;
+  readonly onRefreshChangeRequest?: (() => void) | undefined;
   onNewThreadInProject: () => void;
   onRunProjectScript: (script: ProjectScript) => void;
   onAddProjectScript: (input: NewProjectScriptInput) => Promise<ProjectScriptActionResult>;
@@ -145,6 +146,7 @@ export const ChatHeader = memo(function ChatHeader({
   onOpenPullRequest,
   onResolveConflicts,
   onBabysitPullRequest,
+  onRefreshChangeRequest,
   onNewThreadInProject,
   onRunProjectScript,
   onAddProjectScript,
@@ -426,6 +428,7 @@ export const ChatHeader = memo(function ChatHeader({
             onOpenPullRequest={onOpenPullRequest}
             onResolveConflicts={onResolveConflicts}
             onBabysitPullRequest={onBabysitPullRequest}
+            onRefreshChangeRequest={onRefreshChangeRequest}
             {...(draftId ? { draftId } : {})}
           />
         )}

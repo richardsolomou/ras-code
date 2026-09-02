@@ -1249,7 +1249,7 @@
       "title": "feat(models): discover Claude models from remote manifest",
       "decision": "adapted",
       "ours": "4b52b478679fa7c6499a0f18575cf0aa9b15da97",
-      "reason": "Converged on the manifest-driven catalog and deleted our hand-maintained CLAUDE_MODEL_CATALOG, then re-expressed our live-SDK model merge (mergeClaudeLiveModels, including the folded 1M context-window option) on top of it. Kept only the two live-metadata tests; upstream's catalog tests now cover version gating.",
+      "reason": "Converged on the manifest-driven catalog, moving our hand-maintained CLAUDE_MODEL_CATALOG into ClaudeModelCatalog.ts as the bundled fallback. Dropped our live-SDK merge (mergeClaudeLiveModels) rather than re-expressing it: #96 reverted that merge on main for being alias-keyed, incomplete and reshapeable, and the manifest already carries every alias, the per-model minVersion gating and the 1M context-window option declaratively. The probe now reports canonical resolvedModelSlugs and reportUnknownClaudeModels warns about models the catalog lacks, so the live SDK stays a signal and never a source.",
       "reviewedAt": "2026-09-02T13:17:54.586Z"
     },
     {

@@ -11,6 +11,7 @@ import * as ServerSettings from "../serverSettings.ts";
 import {
   BUNDLED_MODEL_MANIFEST,
   classifyModels,
+  isLegacyModel,
   make,
   resolveProviderCatalog,
   type ModelManifestData,
@@ -25,12 +26,49 @@ import {
  */
 
 const CODEX = ProviderDriverKind.make("codex");
+const CLAUDE = ProviderDriverKind.make("claudeAgent");
+const CURSOR = ProviderDriverKind.make("cursor");
+
 const model = (overrides: Partial<ServerProviderModel>): ServerProviderModel => ({
   slug: "gpt-test",
   name: "GPT Test",
   isCustom: false,
   capabilities: null,
   ...overrides,
+});
+
+describe("isLegacyModel", () => {
+  it("reads status from the provider catalog and falls back to currentModels", () => {
+    const manifest: ModelManifestData = {
+      version: 1,
+      currentModels: { codex: ["listed-current"] },
+      providers: {
+        [CLAUDE]: {
+          profiles: {},
+          models: [
+            { slug: "catalog-current", name: "Current", status: "current", profile: "p" },
+            { slug: "catalog-superseded", name: "Superseded", status: "legacy", profile: "p" },
+          ],
+        },
+      },
+    } as ModelManifestData;
+    assert.deepStrictEqual(
+      [
+        ["catalog-current", isLegacyModel(manifest, CLAUDE, "catalog-current")],
+        ["catalog-superseded", isLegacyModel(manifest, CLAUDE, "catalog-superseded")],
+        ["listed-current", isLegacyModel(manifest, CODEX, "listed-current")],
+        ["unlisted", isLegacyModel(manifest, CODEX, "unlisted")],
+        ["no-entry", isLegacyModel(manifest, CURSOR, "anything")],
+      ],
+      [
+        ["catalog-current", false],
+        ["catalog-superseded", true],
+        ["listed-current", false],
+        ["unlisted", true],
+        ["no-entry", false],
+      ],
+    );
+  });
 });
 
 describe("classifyModels", () => {

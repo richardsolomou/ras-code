@@ -53,9 +53,11 @@ RAS Code works with the platforms your team already uses:
   **Open on GitHub** in the error view
 - Command-click (Control-click on Windows and Linux) a pull request number in the sidebar to open it in your browser instead of in RAS Code
 - Check out a teammate's branch to review code locally
-- When a linked pull request conflicts with its base branch, the Git actions button in the toolbar
-  becomes **Resolve conflicts**, which writes a conflict-resolution request into the composer for
-  the same thread. Viewing the pull request stays in the button's menu
+- While the thread's pull request conflicts with its base branch, the Git actions button in the
+  toolbar is **Resolve conflicts**, which writes a conflict-resolution request into the composer
+  for the same thread. It holds the button until the conflict is gone; everything else the branch
+  can do stays in the button's menu. The branch's own open pull request counts, so this works
+  whether or not a turn linked it
 - Hand the branch's open pull request the wait-and-fix loop with **Babysit PR** in the same menu: it
   writes a request to watch the checks and review comments, push fixes, and report back when it is
   ready to merge. The merge itself stays with you

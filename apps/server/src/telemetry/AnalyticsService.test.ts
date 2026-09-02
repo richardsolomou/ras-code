@@ -254,12 +254,65 @@ it.layer(NodeServices.layer)("AnalyticsService test", (it) => {
 
       assert.equal(exceptions.length, 1);
       assert.equal(exceptions[0]?.error.message, "Provider turn failed");
+      assert.equal(
+        exceptions[0]?.properties?.$exception_fingerprint,
+        "ras-code:provider.turn:claude",
+      );
+      assert.equal(exceptions[0]?.properties?.$issue_name, "Provider turn failed (claude)");
       const capturedText = [
         exceptions[0]?.error.message,
         ...Object.values(exceptions[0]?.properties ?? {}).map(String),
       ].join("\n");
       assert.notInclude(capturedText, "private prompt");
       assert.notInclude(capturedText, "phx_secret");
+    }),
+  );
+
+  it.effect("captures a Codex failure once when runtime.error and the failed turn both fire", () =>
+    Effect.gen(function* () {
+      const exceptions: AnalyticsService.TelemetryException[] = [];
+      const client = makeTelemetryPostHogClientTest({ exceptions });
+
+      yield* Effect.gen(function* () {
+        const analytics = yield* AnalyticsService.AnalyticsService;
+        yield* analytics.recordProviderRuntimeEvent({
+          eventId: eventId("event-start"),
+          provider: provider("codex"),
+          threadId: threadId("thread-5"),
+          turnId: turnId("turn-5"),
+          createdAt: "2026-01-01T00:00:00.000Z",
+          type: "turn.started",
+          payload: { model: "gpt-5.6" },
+        });
+        yield* analytics.recordProviderRuntimeEvent({
+          eventId: eventId("event-error"),
+          provider: provider("codex"),
+          threadId: threadId("thread-5"),
+          turnId: turnId("turn-5"),
+          createdAt: "2026-01-01T00:00:01.000Z",
+          type: "runtime.error",
+          payload: { message: "private prompt and token phx_secret", class: "provider_error" },
+        });
+        yield* analytics.recordProviderRuntimeEvent({
+          eventId: eventId("event-failed"),
+          provider: provider("codex"),
+          threadId: threadId("thread-5"),
+          turnId: turnId("turn-5"),
+          createdAt: "2026-01-01T00:00:02.000Z",
+          type: "turn.completed",
+          payload: { state: "failed", errorMessage: "private prompt and token phx_secret" },
+        });
+      }).pipe(Effect.provide(makeRuntimeLayer(client)));
+
+      assert.equal(exceptions.length, 1);
+      assert.equal(
+        exceptions[0]?.properties?.$exception_fingerprint,
+        "ras-code:provider.runtime:codex:provider_error",
+      );
+      assert.equal(exceptions[0]?.properties?.$issue_name, "Provider runtime error (codex)");
+      assert.equal(exceptions[0]?.properties?.model, "gpt-5.6");
+      assert.notInclude(NodeUtil.inspect(exceptions[0]), "private prompt");
+      assert.notInclude(NodeUtil.inspect(exceptions[0]), "phx_secret");
     }),
   );
 

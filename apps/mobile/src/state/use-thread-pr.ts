@@ -5,6 +5,7 @@ import type { EnvironmentId, OrchestrationThreadShell } from "@ras-code/contract
 import {
   createLinkedPullRequestSummaryAtomFamily,
   pullRequestDetailToVcsStatus,
+  resolveThreadPullRequestRef,
 } from "@ras-code/client-runtime/state/pull-requests";
 import { createEnvironmentRpcQueryAtomFamily } from "@ras-code/client-runtime/state/runtime";
 import { WS_METHODS } from "@ras-code/contracts";
@@ -19,7 +20,7 @@ import { vcsEnvironment } from "./vcs";
 
 const linkedPullRequestDetailAtom = createLinkedPullRequestSummaryAtomFamily(connectionAtomRuntime);
 // The summary omits mergeability, so the open thread reads the full detail for
-// its own linked pull request rather than for every row in the list.
+// the one pull request it shows rather than for every row in the list.
 const linkedPullRequestFullDetailAtom = createEnvironmentRpcQueryAtomFamily(connectionAtomRuntime, {
   label: "mobile-data:pull-requests:detail",
   tag: WS_METHODS.pullRequestsDetail,
@@ -45,25 +46,6 @@ export {
   type ThreadPrPresentation,
 } from "./thread-pr-presentation";
 
-/** Full detail, including mergeability, for the open thread's linked pull request. */
-export function useLinkedPullRequestFullDetail(
-  thread: Pick<OrchestrationThreadShell, "linkedPullRequest">,
-  environmentId: EnvironmentId,
-) {
-  return useEnvironmentQuery(
-    thread.linkedPullRequest == null
-      ? null
-      : linkedPullRequestFullDetailAtom({
-          environmentId,
-          input: {
-            projectId: thread.linkedPullRequest.projectId,
-            repository: thread.linkedPullRequest.repository,
-            number: thread.linkedPullRequest.number,
-          },
-        }),
-  ).data;
-}
-
 export function useLinkedPullRequestDetail(
   thread: Pick<OrchestrationThreadShell, "linkedPullRequest">,
   environmentId: EnvironmentId,
@@ -79,6 +61,33 @@ export function useLinkedPullRequestDetail(
             number: thread.linkedPullRequest.number,
           },
         }),
+  ).data;
+}
+
+/**
+ * Detail for the pull request the thread shows: its linked record when a turn wrote one, and
+ * otherwise the open pull request on its branch, which is the only thing a pull request opened
+ * outside a turn ever has. The branch lookup needs the project's repository to address the read,
+ * so a project without one leaves the thread on its linked record alone.
+ */
+export function useThreadPullRequestDetail(
+  thread: Pick<OrchestrationThreadShell, "projectId" | "branch" | "linkedPullRequest">,
+  environmentId: EnvironmentId,
+  project: { readonly cwd: string | null; readonly repository: string | null },
+) {
+  const gitStatus = useEnvironmentQuery(
+    thread.linkedPullRequest == null && thread.branch !== null && project.cwd !== null
+      ? vcsEnvironment.status({ environmentId, input: { cwd: project.cwd } })
+      : null,
+  ).data;
+  const ref = resolveThreadPullRequestRef({
+    linkedPullRequest: thread.linkedPullRequest,
+    projectId: thread.projectId,
+    repository: project.repository,
+    branchPullRequest: gitStatus?.refName === thread.branch ? gitStatus.pr : null,
+  });
+  return useEnvironmentQuery(
+    ref === null ? null : linkedPullRequestFullDetailAtom({ environmentId, input: ref }),
   ).data;
 }
 

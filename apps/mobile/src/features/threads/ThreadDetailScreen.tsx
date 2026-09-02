@@ -94,7 +94,7 @@ import {
 import { ThreadFeed } from "./ThreadFeed";
 import type { ThreadContentPresentation } from "./threadContentPresentation";
 import { resolveThreadFeedSubmissionAnchor } from "./thread-feed-live-follow";
-import { useLinkedPullRequestFullDetail } from "../../state/use-thread-pr";
+import { useThreadPullRequestDetail } from "../../state/use-thread-pr";
 
 export interface ThreadDetailScreenProps {
   readonly selectedThread: OrchestrationThreadShell;
@@ -121,6 +121,8 @@ export interface ThreadDetailScreenProps {
   readonly loadEarlier?: { readonly loading: boolean; readonly onLoadEarlier: () => void } | null;
   readonly environmentId: EnvironmentId;
   readonly projectWorkspaceRoot: string | null;
+  /** `owner/name` for the thread's project, needed to read the detail of a pull request on its branch. */
+  readonly projectRepository: string | null;
   readonly threadCwd: string | null;
   readonly selectedThreadQueueCount: number;
   readonly serverConfig: RasCodeServerConfig | null;
@@ -276,14 +278,15 @@ export const ThreadDetailScreen = memo(function ThreadDetailScreen(props: Thread
   const selectedInstanceId = resolveActiveProviderInstanceId(props.selectedThread);
   const agentLabel = `${selectedInstanceId} agent`;
   const selectedThreadKey = scopedThreadKey(props.environmentId, props.selectedThread.id);
-  const linkedPullRequestDetail = useLinkedPullRequestFullDetail(
+  const threadPullRequestDetail = useThreadPullRequestDetail(
     props.selectedThread,
     props.environmentId,
+    { cwd: props.threadCwd, repository: props.projectRepository },
   );
   const conflictingPullRequest =
-    linkedPullRequestDetail?.state === "open" &&
-    linkedPullRequestDetail.mergeability === "conflicting"
-      ? linkedPullRequestDetail
+    threadPullRequestDetail?.state === "open" &&
+    threadPullRequestDetail.mergeability === "conflicting"
+      ? threadPullRequestDetail
       : null;
   const conflictSuggestionKey =
     conflictingPullRequest === null

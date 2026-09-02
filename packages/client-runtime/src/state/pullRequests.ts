@@ -1,8 +1,11 @@
 import {
   WS_METHODS,
+  type ProjectId,
   type PullRequestDetail,
   type PullRequestDiffInput,
   type PullRequestSummary,
+  type PullRequestRef,
+  type ThreadLinkedPullRequest,
   type VcsStatusResult,
 } from "@ras-code/contracts";
 import * as Data from "effect/Data";
@@ -59,6 +62,35 @@ export function pullRequestDetailToVcsStatus(
     state: detail.state,
     updatedAt: detail.updatedAt,
   };
+}
+
+/**
+ * Which pull request a thread's own helpers — conflict resolution, babysitting — read the detail
+ * of. The record a turn linked when there is one, and otherwise the open pull request on the
+ * thread's branch: only a completed turn links a thread, so a pull request opened from the git
+ * actions menu or from outside RAS Code has no record, and its conflicts still need resolving.
+ *
+ * A branch pull request is addressed by the project it was found in, so a project whose
+ * repository is unknown leaves the thread with nothing to read.
+ */
+export function resolveThreadPullRequestRef(input: {
+  readonly linkedPullRequest: ThreadLinkedPullRequest | null | undefined;
+  readonly projectId: ProjectId | null | undefined;
+  readonly repository: string | null;
+  readonly branchPullRequest:
+    | Pick<NonNullable<VcsStatusResult["pr"]>, "number" | "state">
+    | null
+    | undefined;
+}): PullRequestRef | null {
+  const linked = input.linkedPullRequest;
+  if (linked != null) {
+    return { projectId: linked.projectId, repository: linked.repository, number: linked.number };
+  }
+  const branchPullRequest = input.branchPullRequest;
+  if (branchPullRequest == null || branchPullRequest.state !== "open") return null;
+  const projectId = input.projectId ?? null;
+  if (projectId === null || input.repository === null) return null;
+  return { projectId, repository: input.repository, number: branchPullRequest.number };
 }
 
 /**

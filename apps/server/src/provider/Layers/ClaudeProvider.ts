@@ -1,7 +1,6 @@
 import {
   type ClaudeSettings,
   type ModelCapabilities,
-  type ServerProviderModel,
   type ServerProviderSlashCommand,
 } from "@ras-code/contracts";
 import * as DateTime from "effect/DateTime";
@@ -23,8 +22,6 @@ import {
 } from "@anthropic-ai/claude-agent-sdk";
 
 import {
-  buildBooleanOptionDescriptor,
-  buildSelectOptionDescriptor,
   buildServerProvider,
   DEFAULT_TIMEOUT_MS,
   isCommandMissingCause,
@@ -40,109 +37,13 @@ import {
   BUNDLED_CLAUDE_MODEL_CATALOG,
   type ClaudeModelCatalog,
   formatClaudeVersionUpgradeMessage,
+  resolveClaudeModelSlug,
   resolveClaudeModelsForVersion,
 } from "../ClaudeModelCatalog.ts";
 
 const DEFAULT_CLAUDE_MODEL_CAPABILITIES: ModelCapabilities = createModelCapabilities({
   optionDescriptors: [],
 });
-
-/** The SDK's suffix for the same model with a 1M context window. */
-const CLAUDE_ONE_MILLION_SUFFIX = "[1m]";
-
-/**
- * Prefer the CLI's live model metadata, falling back to the static catalog's
- * option descriptors where the SDK omits them. A `[1m]` value is the same
- * model with a wider context window, so both entries fold into one row whose
- * context window is an option.
- */
-export function mergeClaudeLiveModels(
-  liveModels: ReadonlyArray<ClaudeSdkModelInfo> | undefined,
-  builtInModels: ReadonlyArray<ServerProviderModel>,
-): ReadonlyArray<ServerProviderModel> {
-  if (!liveModels || liveModels.length === 0) return builtInModels;
-
-  const builtInBySlug = new Map(builtInModels.map((model) => [model.slug, model]));
-  const oneMillionSlugs = new Set<string>();
-  const liveBySlug = new Map<string, ClaudeSdkModelInfo>();
-
-  for (const liveModel of liveModels) {
-    const isOneMillion = liveModel.value.endsWith(CLAUDE_ONE_MILLION_SUFFIX);
-    const slug = isOneMillion
-      ? liveModel.value.slice(0, -CLAUDE_ONE_MILLION_SUFFIX.length)
-      : liveModel.value;
-    if (!slug) continue;
-    if (isOneMillion) oneMillionSlugs.add(slug);
-    // The plain entry holds the metadata for the row; a `[1m]` entry stands in
-    // only for a model the SDK lists no plain entry for.
-    if (!isOneMillion || !liveBySlug.has(slug)) liveBySlug.set(slug, liveModel);
-  }
-
-  const merged: ServerProviderModel[] = [];
-  for (const [slug, liveModel] of liveBySlug) {
-    const fallback = builtInBySlug.get(slug);
-    const effortDescriptor = liveModel.supportedEffortLevels
-      ? buildSelectOptionDescriptor({
-          id: "effort",
-          label: "Reasoning",
-          options: liveModel.supportedEffortLevels.map((value) => ({
-            value,
-            label: formatClaudeEffortLabel(value),
-            ...(value === "high" ? { isDefault: true } : {}),
-          })),
-        })
-      : fallback?.capabilities?.optionDescriptors?.find(
-          (descriptor) => descriptor.type === "select" && descriptor.id === "effort",
-        );
-    const optionDescriptors = [
-      ...(effortDescriptor ? [effortDescriptor] : []),
-      ...(liveModel.supportsFastMode
-        ? [buildBooleanOptionDescriptor({ id: "fastMode", label: "Fast Mode" })]
-        : []),
-      ...(oneMillionSlugs.has(slug)
-        ? [
-            buildSelectOptionDescriptor({
-              id: "contextWindow",
-              label: "Context Window",
-              options: [
-                { value: "200k", label: "200k" },
-                { value: "1m", label: "1M", isDefault: true },
-              ],
-            }),
-          ]
-        : []),
-    ];
-
-    merged.push({
-      slug,
-      name: nonEmptyProbeString(liveModel.displayName) ?? fallback?.name ?? slug,
-      isCustom: false,
-      capabilities:
-        optionDescriptors.length > 0
-          ? createModelCapabilities({ optionDescriptors })
-          : (fallback?.capabilities ?? DEFAULT_CLAUDE_MODEL_CAPABILITIES),
-    });
-  }
-
-  return merged;
-}
-
-function formatClaudeEffortLabel(value: string): string {
-  switch (value) {
-    case "low":
-      return "Low";
-    case "medium":
-      return "Medium";
-    case "high":
-      return "High";
-    case "xhigh":
-      return "Extra High";
-    case "max":
-      return "Max";
-    default:
-      return value;
-  }
-}
 
 const CLAUDE_PRESENTATION = {
   displayName: "Claude",
@@ -326,7 +227,12 @@ type ClaudeCapabilitiesProbe = {
    */
   readonly apiProvider: string | undefined;
   readonly slashCommands: ReadonlyArray<ServerProviderSlashCommand>;
-  readonly models: ReadonlyArray<ClaudeSdkModelInfo>;
+  /**
+   * Real model ids behind the CLI's `/model` menu rows, context-window suffix
+   * stripped. Used only to notice models the manifest catalog has never heard
+   * of; the catalog still owns every capability.
+   */
+  readonly resolvedModelSlugs: ReadonlyArray<string>;
 };
 
 /**
@@ -334,24 +240,25 @@ type ClaudeCapabilitiesProbe = {
  * picker reads. The CLI sends more than `ModelInfo` declares, so a spread
  * would hand every consumer an undeclared and unstable shape.
  */
-function parseClaudeInitializationModels(
+/** Claude Code appends this to request a model's 1M-context variant. */
+const CLAUDE_CONTEXT_WINDOW_SUFFIX_PATTERN = /(\[1m\])+$/i;
+
+/**
+ * Menu rows are alias-keyed (`opus[1m]`, `default`), so `value` is not a model
+ * id. `resolvedModel` is, but the SDK's `ModelInfo` type omits it, so read it
+ * defensively and tolerate its absence.
+ */
+function parseClaudeResolvedModelSlugs(
   models: ReadonlyArray<ClaudeSdkModelInfo> | undefined,
-): ReadonlyArray<ClaudeSdkModelInfo> {
-  const byValue = new Map<string, ClaudeSdkModelInfo>();
+): ReadonlyArray<string> {
+  const slugs = new Set<string>();
   for (const model of models ?? []) {
-    const value = nonEmptyProbeString(model.value);
-    if (!value || byValue.has(value)) continue;
-    byValue.set(value, {
-      value,
-      displayName: model.displayName,
-      description: model.description,
-      ...(model.supportedEffortLevels
-        ? { supportedEffortLevels: model.supportedEffortLevels }
-        : {}),
-      ...(model.supportsFastMode ? { supportsFastMode: model.supportsFastMode } : {}),
-    });
+    const resolved = (model as { readonly resolvedModel?: unknown }).resolvedModel;
+    if (typeof resolved !== "string") continue;
+    const slug = resolved.trim().replace(CLAUDE_CONTEXT_WINDOW_SUFFIX_PATTERN, "");
+    if (slug) slugs.add(slug);
   }
-  return [...byValue.values()];
+  return [...slugs];
 }
 
 function parseClaudeInitializationCommands(
@@ -481,7 +388,7 @@ const probeClaudeCapabilities = (
         tokenSource: account?.tokenSource,
         apiProvider: account?.apiProvider,
         slashCommands: parseClaudeInitializationCommands(init.commands),
-        models: parseClaudeInitializationModels(init.models),
+        resolvedModelSlugs: parseClaudeResolvedModelSlugs(init.models),
       } satisfies ClaudeCapabilitiesProbe;
     });
   }).pipe(
@@ -514,6 +421,30 @@ const runClaudeCommand = Effect.fn("runClaudeCommand")(function* (
   });
   return yield* spawnAndCollect(claudeSettings.binaryPath, command);
 });
+
+const reportedUnknownClaudeModels = new Set<string>();
+
+/**
+ * Notices models the installed CLI offers but the catalog has never heard of, so
+ * a new Claude release surfaces from real usage instead of waiting for someone
+ * to spot it. Deliberately does not change the catalog: the menu is alias-keyed
+ * and reshapeable by managed settings, so it is a signal, not a source.
+ */
+const reportUnknownClaudeModels = (
+  catalog: ClaudeModelCatalog,
+  resolvedModelSlugs: ReadonlyArray<string> | undefined,
+): Effect.Effect<void> =>
+  Effect.gen(function* () {
+    for (const resolved of resolvedModelSlugs ?? []) {
+      const slug = resolveClaudeModelSlug(catalog, resolved);
+      if (catalog.models.some((entry) => entry.model.slug === slug)) continue;
+      if (reportedUnknownClaudeModels.has(slug)) continue;
+      reportedUnknownClaudeModels.add(slug);
+      yield* Effect.logWarning("Claude Code offers a model missing from the RAS Code catalog.", {
+        model: slug,
+      });
+    }
+  });
 
 export const checkClaudeProviderStatus = Effect.fn("checkClaudeProviderStatus")(function* (
   claudeSettings: ClaudeSettings,
@@ -626,11 +557,10 @@ export const checkClaudeProviderStatus = Effect.fn("checkClaudeProviderStatus")(
     ? yield* resolveCapabilities(claudeSettings).pipe(Effect.orElseSucceed(() => undefined))
     : undefined;
 
+  yield* reportUnknownClaudeModels(modelCatalog, capabilities?.resolvedModelSlugs);
+
   const models = providerModelsFromSettings(
-    mergeClaudeLiveModels(
-      capabilities?.models,
-      resolveClaudeModelsForVersion(modelCatalog, parsedVersion),
-    ),
+    resolveClaudeModelsForVersion(modelCatalog, parsedVersion),
     claudeSettings.customModels,
     DEFAULT_CLAUDE_MODEL_CAPABILITIES,
   );

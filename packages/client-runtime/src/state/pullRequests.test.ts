@@ -17,7 +17,7 @@ import * as EnvironmentRegistry from "../connection/registry.ts";
 import * as EnvironmentSupervisor from "../connection/supervisor.ts";
 import type { WsRpcProtocolClient } from "../rpc/protocol.ts";
 import type { RpcSession } from "../rpc/session.ts";
-import { createPullRequestEnvironmentAtoms } from "./pullRequests.ts";
+import { createPullRequestEnvironmentAtoms, resolveThreadPullRequestRef } from "./pullRequests.ts";
 import { PullRequestDiffLoader } from "./pullRequestDiffHttp.ts";
 import { executeAtomQuery } from "./runtime.ts";
 
@@ -141,3 +141,63 @@ it.effect("refreshes pull request activity after a comment is updated", () =>
     }),
   ),
 );
+
+const LINKED_PULL_REQUEST = {
+  projectId: ProjectId.make("project-1"),
+  repository: "acme/web",
+  number: 7,
+  url: "https://github.com/acme/web/pull/7",
+} as const;
+
+const BRANCH_PULL_REQUEST = {
+  number: 12,
+  title: "Add trays",
+  url: "https://github.com/acme/web/pull/12",
+  baseRef: "main",
+  headRef: "feature/trays",
+  state: "open",
+} as const;
+
+it("reads the pull request a turn linked to the thread", () => {
+  expect(
+    resolveThreadPullRequestRef({
+      linkedPullRequest: LINKED_PULL_REQUEST,
+      projectId: ProjectId.make("project-2"),
+      repository: "acme/other",
+      branchPullRequest: BRANCH_PULL_REQUEST,
+    }),
+  ).toEqual({ projectId: ProjectId.make("project-1"), repository: "acme/web", number: 7 });
+});
+
+it("reads the open pull request on the branch when no turn linked one", () => {
+  expect(
+    resolveThreadPullRequestRef({
+      linkedPullRequest: null,
+      projectId: ProjectId.make("project-1"),
+      repository: "acme/web",
+      branchPullRequest: BRANCH_PULL_REQUEST,
+    }),
+  ).toEqual({ projectId: ProjectId.make("project-1"), repository: "acme/web", number: 12 });
+});
+
+it("reads nothing for a branch pull request that is no longer open", () => {
+  expect(
+    resolveThreadPullRequestRef({
+      linkedPullRequest: null,
+      projectId: ProjectId.make("project-1"),
+      repository: "acme/web",
+      branchPullRequest: { ...BRANCH_PULL_REQUEST, state: "merged" },
+    }),
+  ).toBeNull();
+});
+
+it("reads nothing for a branch pull request whose repository is unknown", () => {
+  expect(
+    resolveThreadPullRequestRef({
+      linkedPullRequest: null,
+      projectId: ProjectId.make("project-1"),
+      repository: null,
+      branchPullRequest: BRANCH_PULL_REQUEST,
+    }),
+  ).toBeNull();
+});
