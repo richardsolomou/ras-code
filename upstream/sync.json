@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "42a8fd5103b4af57b16be721a9864ca3a5c18c5b",
+  "lastReviewed": "70cd258d8aac43ea57494527b00bf36de3efa6c0",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -1008,6 +1008,906 @@
       "ours": "a28e78b42d1f74a939be26c925cd4e3980927c0b",
       "reason": "Clean cherry-pick.",
       "reviewedAt": "2026-09-02T12:37:35.313Z"
+    },
+    {
+      "upstream": "b17cc3d1bf0f4a5deee6dd6a470e36970b864a9b",
+      "pr": 8988,
+      "title": "perf(server): reduce frequency of full tool call output being loaded into memory from db",
+      "decision": "adapted",
+      "ours": "0b12acce6177efb3a146e97540adc7939e2adea8",
+      "reason": "Kept our trimmed comment where upstream reworded theirs.",
+      "reviewedAt": "2026-09-02T12:38:09.033Z"
+    },
+    {
+      "upstream": "d35c71d1b975660ec6a71bbceb6aa7dfd0e8c3d5",
+      "pr": 8809,
+      "title": "feat(web): add pull request list filters",
+      "decision": "adopted",
+      "ours": "ad6232b9102ccb802fe6975dd0b404a47742eb52",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T12:38:12.793Z"
+    },
+    {
+      "upstream": "ff93aba61dc1f7839713580bc8ee08da2a395f9a",
+      "pr": 8831,
+      "title": "feat(web): search individual settings by detail",
+      "decision": "adapted",
+      "ours": "7472213b814f6d99b025653acff49c8598043f1b",
+      "reason": "Took upstream's search catalog and dropped the entries for surfaces we removed (theme editor, legacy toggles) while keeping ours (hedgehog mode, default model, notifications). Ported the Advanced-opens-on-search-target behaviour onto our provider panel and kept our device-scope selection instead of upstream's inline environment picker; upstream's ThemeSettings.tsx no longer exists here.",
+      "reviewedAt": "2026-09-02T12:47:01.505Z"
+    },
+    {
+      "upstream": "ce71c04f0aa9d2e5cd340e2a04cb1b0d5e24419d",
+      "pr": 8936,
+      "title": "feat(client): render viewed images in work logs",
+      "decision": "adapted",
+      "ours": "5b7bf3831f97df7431f162457e8d62bd988d47f1",
+      "reason": "Cherry-pick applied cleanly; renamed the upstream identifiers it carried into files that never conflicted.",
+      "reviewedAt": "2026-09-02T12:47:09.992Z"
+    },
+    {
+      "upstream": "0947c30e6946b2ad6d6cd518fd44292e75e834e8",
+      "pr": 9010,
+      "title": "fix(client): use package import for markdown image helpers",
+      "decision": "adapted",
+      "ours": "ecb6954442d02277c1e9ff2bc1a07af5effa2697",
+      "reason": "Cherry-pick applied cleanly; renamed the upstream identifiers it carried into files that never conflicted.",
+      "reviewedAt": "2026-09-02T12:47:13.797Z"
+    },
+    {
+      "upstream": "73776d4e52087331245e82ebf3c053ae0991935d",
+      "pr": 9008,
+      "title": "test: remove static presentation snapshots",
+      "decision": "adopted",
+      "ours": "73eb46bddc347612b17b83a6cbd23615a89b0686",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T12:47:16.796Z"
+    },
+    {
+      "upstream": "a9ffb8279614df6ae2f1f4b7f09a0dc42edef797",
+      "pr": 9000,
+      "title": "perf(server): bound snapshot activity payload memory",
+      "decision": "adopted",
+      "ours": "035961693077e3e0c96434c7eb9903657cbb1d10",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T12:47:20.050Z"
+    },
+    {
+      "upstream": "0bfb6df34b26dfe0162db6c09dca00bc8c5a5ec4",
+      "pr": 8187,
+      "title": "perf(server): cut idle CPU use and stop provider event leaks",
+      "decision": "adopted",
+      "ours": "d495ad3d3588ab732431e3ff22a8e5c050440a2b",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T12:47:23.403Z"
+    },
+    {
+      "upstream": "8f1ef8b9eb72ac6cd8510364608e01dc7febf9c1",
+      "pr": 9024,
+      "title": "perf(server): scan only appended transcript bytes for usage summaries",
+      "decision": "adapted",
+      "ours": "4fb5785dd342d10a236179e7ad86653dfcc62393",
+      "reason": "Cherry-pick applied cleanly; renamed the upstream identifiers it carried into files that never conflicted.",
+      "reviewedAt": "2026-09-02T12:47:27.805Z"
+    },
+    {
+      "upstream": "7e4ce3bbb16c3cfa1ea756de917d8f9398e5999e",
+      "pr": 8368,
+      "title": "perf(server): cut chatty tool-update frames by 90%",
+      "decision": "adapted",
+      "ours": "ea56190a1029970b8ad1e5b48b2c05b0fb53baa5",
+      "reason": "Cherry-pick applied cleanly; renamed the upstream identifiers it carried into files that never conflicted.",
+      "reviewedAt": "2026-09-02T12:47:31.712Z"
+    },
+    {
+      "upstream": "f32f9a2f41342bf8a1a109d6ebe9b70044c5311b",
+      "pr": 8600,
+      "title": "fix(server): settle threads server-side",
+      "decision": "adapted",
+      "ours": "1e73e8ea4f56115ca38cd3ed77bdf7023b8177f0",
+      "reason": "Adopted server-side settling and removed the client-side merge-settle recorders it supersedes (web Sidebar effect, mobile useThreadListActions/HomeScreen chain, effectiveSettled/shouldRecordMergeSettle). Kept our notification settings and our settledReason projection column, which the decider now records only for explicit settles; auto-settle writes no reason. Dropped upstream's legacySidebarEnabled, thread confirmation settings, and ThemeSettings references, which this fork does not carry.",
+      "reviewedAt": "2026-09-02T13:04:00.887Z"
+    },
+    {
+      "upstream": "8b033de48247086c1b6c6968ce7cf33b358a1ec5",
+      "pr": 8043,
+      "title": "fix(clients): dedupe skills in composer menus",
+      "decision": "adapted",
+      "ours": "854d930fa3e8dd73ddc7273dcee451d1e18cea07",
+      "reason": "Cherry-pick applied cleanly; renamed the upstream identifiers it carried into files that never conflicted.",
+      "reviewedAt": "2026-09-02T13:04:50.784Z"
+    },
+    {
+      "upstream": "62d39bf00d5ddd83a9b36a81321fe9aa4d2502bb",
+      "pr": 9005,
+      "title": "fix(server): stop OpenCode child sessions",
+      "decision": "adopted",
+      "ours": "5a23b4aa51449ab8e3e3407fb0488fa2531f4dc0",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T13:05:07.374Z"
+    },
+    {
+      "upstream": "3c73fa7ce02b7ee6b2904ec58e47c06262aebf5d",
+      "pr": 6471,
+      "title": "perf(web): defer pull request line stats until visible",
+      "decision": "adopted",
+      "ours": "8d1d04ac50ed594ac2d7c9b2124c19ee41bba94f",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T13:05:15.736Z"
+    },
+    {
+      "upstream": "e86604d3372acccd9f6a33a2c4ae46f4e2685541",
+      "pr": 9032,
+      "title": "perf(server): skip full-message reads while streaming",
+      "decision": "adopted",
+      "ours": "52a87bc3552efae67c7e3b1ea497479cd10836b4",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T13:05:26.497Z"
+    },
+    {
+      "upstream": "b883fc066ea5c9bebbe1c3e9b4bc2471aab3685f",
+      "pr": 8367,
+      "title": "perf(client-runtime): halve server config bootstrap traffic",
+      "decision": "adapted",
+      "ours": "ec6cfc98ac0bc4f8d966fb27d9a499c52940b295",
+      "reason": "Kept our removal of the web relay-client install test harness that upstream reworked.",
+      "reviewedAt": "2026-09-02T13:06:31.853Z"
+    },
+    {
+      "upstream": "9dbdcece5f488c66f6b9ac516b610f45bbbb676a",
+      "pr": 9033,
+      "title": "fix(web): align un-settle banner action",
+      "decision": "adopted",
+      "ours": "6ba2933b76fd360074b2938f7dfa50338252d444",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T13:06:47.674Z"
+    },
+    {
+      "upstream": "b5b6abb11e61ad2c9946b8d1346653c6c43d2261",
+      "pr": 8139,
+      "title": "fix(web): block type-to-focus behind open dialogs",
+      "decision": "adopted",
+      "ours": "3cf110d046affc5fd5dd1d570e0b18a1c667730c",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T13:06:52.790Z"
+    },
+    {
+      "upstream": "2d156a83b96ebf2e4a9c6017251baad357ae6ab1",
+      "pr": 8994,
+      "title": "feat(shortcuts): copy active thread reference",
+      "decision": "adapted",
+      "ours": "0c9109ba7cad7ca437c27768bc357a2944af82ff",
+      "reason": "Kept our fork-thread palette action and babysit-PR composer prompt alongside the new copy-reference ones, renamed the new Android keyboard-commands module and its native bridge file, and registered it in our expo module config.",
+      "reviewedAt": "2026-09-02T13:08:37.958Z"
+    },
+    {
+      "upstream": "261380f91f764673c7fcefcb6a3f775526dbb776",
+      "pr": 9013,
+      "title": "fix(mobile): keep thread scroll bounds current after animations",
+      "decision": "adapted",
+      "ours": "fad844a1127498ba7fa72f38cf9a0c6c6adc4a86",
+      "reason": "Took the tighter header margin while keeping our explicit dark-variant border classes over upstream's adaptive token.",
+      "reviewedAt": "2026-09-02T13:09:28.935Z"
+    },
+    {
+      "upstream": "643b21edaa08eb1d19d633dbb0b275164bfa60be",
+      "pr": 9080,
+      "title": "fix(server): cache project favicon resolution",
+      "decision": "adopted",
+      "ours": "3bc7aa97bedc3dce6760d38060ea303251a1eb83",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T13:09:39.580Z"
+    },
+    {
+      "upstream": "c17d02cff98f2e7b590d4c3a5775d1faa47c2e7b",
+      "pr": 9078,
+      "title": "feat(claude): add Claude Fable 5.1 model",
+      "decision": "adopted",
+      "ours": "7f19b0626abd185d32a5f7cb3ee0cc75d450a036",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T13:10:02.827Z"
+    },
+    {
+      "upstream": "ef7014d851f56bb037a9da963095ffd883c7fa08",
+      "pr": 9001,
+      "title": "fix(preview): restore recording and macOS rendering after Electron 43",
+      "decision": "adapted",
+      "ours": "5e8a893f88fd465e31b2ad5d1a95842e08f06d8e",
+      "reason": "Cherry-pick applied cleanly; renamed the upstream identifiers it carried into files that never conflicted.",
+      "reviewedAt": "2026-09-02T13:10:23.295Z"
+    },
+    {
+      "upstream": "9d1879b142a2f5d01383357646a4679d1a2bd202",
+      "pr": 9076,
+      "title": "feat(desktop): add configurable quit shortcut confirmation",
+      "decision": "adapted",
+      "ours": "b3d5d71b3d500ae89b4a90cd1cd64e038e3409fc",
+      "reason": "Took the three-mode quit setting into our existing desktop quit row and dropped upstream's thread confirmation rows and ContextMenuItemSchema, which this fork does not carry.",
+      "reviewedAt": "2026-09-02T13:12:21.921Z"
+    },
+    {
+      "upstream": "cb007469161ff0db2bc2dc8123c4b30e186aae50",
+      "pr": 8925,
+      "title": "feat(web): open project settings from thread menus",
+      "decision": "adapted",
+      "ours": "738361c8239cfc8ea37be431f517926416a73a11",
+      "reason": "Kept our open-in-split thread action alongside the new project-settings one; upstream's LegacySidebar.tsx no longer exists here.",
+      "reviewedAt": "2026-09-02T13:12:49.599Z"
+    },
+    {
+      "upstream": "a924fbe08e681ef56d8cfb8b99e1e803d52aa463",
+      "pr": 9062,
+      "title": "fix(chat): reuse one row for live activity",
+      "decision": "adopted",
+      "ours": "f95c8288d2e29afcd63c067a04e976ee14093a83",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T13:13:00.495Z"
+    },
+    {
+      "upstream": "03542836834d008a097450cf24d0d9c6f965b859",
+      "pr": 9084,
+      "title": "feat(models): discover Claude models from remote manifest",
+      "decision": "adapted",
+      "ours": "4b52b478679fa7c6499a0f18575cf0aa9b15da97",
+      "reason": "Converged on the manifest-driven catalog and deleted our hand-maintained CLAUDE_MODEL_CATALOG, then re-expressed our live-SDK model merge (mergeClaudeLiveModels, including the folded 1M context-window option) on top of it. Kept only the two live-metadata tests; upstream's catalog tests now cover version gating.",
+      "reviewedAt": "2026-09-02T13:17:54.586Z"
+    },
+    {
+      "upstream": "163d50846bc8989b5858802bb02253254dcee0dd",
+      "pr": 9096,
+      "title": "Revert \"fix(chat): reuse one row for live activity\"",
+      "decision": "adopted",
+      "ours": "6ee1593bb4aab9fb2d824c3ee7c4c186e3dfae5a",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T13:18:09.074Z"
+    },
+    {
+      "upstream": "692eb1a5792b9930959b19805acf2bf2611318c9",
+      "pr": 9092,
+      "title": "fix(web): sync sidebar PR state from open panel",
+      "decision": "adapted",
+      "ours": "afe4b2f32ddfde36d3bb1bc5e3e282c4f264e8cc",
+      "reason": "Kept our babysit-PR composer prompt alongside the new panel-driven sidebar refresh.",
+      "reviewedAt": "2026-09-02T13:20:22.586Z"
+    },
+    {
+      "upstream": "3b3465f2a9dbc541a8806e39d2889abb77b93f5d",
+      "pr": 9097,
+      "title": "fix(web): changing projects no longer creates a draft",
+      "decision": "adapted",
+      "ours": "c4ec022f6301ce05bb3e86344ed26e2cbe8371ad",
+      "reason": "Rebrand-only import conflict.",
+      "reviewedAt": "2026-09-02T13:20:51.482Z"
+    },
+    {
+      "upstream": "d0b4acbd13b2b602710e4a7d60c42f4799a409be",
+      "pr": 9104,
+      "title": "fix(web): keep theme placeholder text dimmer than entered text",
+      "decision": "adapted",
+      "ours": "dea63eb1a268d7301a63c36aa3e71a413042d859",
+      "reason": "Kept our deletion of vscodeThemeImport.test.ts, which git wanted to restore as a delete/modify conflict.",
+      "reviewedAt": "2026-09-02T13:21:19.419Z"
+    },
+    {
+      "upstream": "c0995d2eaf8ec787b3318ed1169ae266ed1529f8",
+      "pr": 9102,
+      "title": "fix(web): keep the selected environment when changing projects",
+      "decision": "adopted",
+      "ours": "94f454806fa2ddaa89c30b85a76de49684012be2",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T13:21:31.833Z"
+    },
+    {
+      "upstream": "0222aa255d11babd242dbe5ed0947e5fc5eaefee",
+      "pr": 8500,
+      "title": "fix(web): preserve theme when toggling advanced colors",
+      "decision": "obsolete",
+      "ours": null,
+      "reason": "Touches only apps/web/src/components/settings/ThemeEditorPanel.tsx, part of the custom theme editor we removed in #51.",
+      "reviewedAt": "2026-09-02T13:21:45.089Z"
+    },
+    {
+      "upstream": "590a579f2e9292ce314c69e459e19620004578fe",
+      "pr": 9098,
+      "title": "fix(chat): keep latest command live between messages",
+      "decision": "adopted",
+      "ours": "075f5873bf702a3a2419279a14bb7b3fe9a4043d",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T13:22:37.624Z"
+    },
+    {
+      "upstream": "60cef47ec983637ddc68faed7b1488b6f3c3a175",
+      "pr": null,
+      "title": "chore(release): prepare v0.0.38",
+      "decision": "skipped",
+      "ours": null,
+      "reason": "Upstream's own release version bump. Our package versions are set by release.yml's finalize job against our tags, so tracking theirs would couple our release cadence to upstream's.",
+      "reviewedAt": "2026-09-02T13:23:02.181Z"
+    },
+    {
+      "upstream": "beae2147a9487ec47ac992319f2216914b4cb62d",
+      "pr": 9023,
+      "title": "fix(media): preview host files and stream videos across clients",
+      "decision": "adapted",
+      "ours": "7cc8049a97ae7488cd2fa62f020017273a496084",
+      "reason": "Re-expressed our failure-detail image fallback (path plus assetUrlFailureLabel reason) on upstream's media fallback, pointed the new expanded-media dialog at our contextMenu module instead of the contextMenuFallback we removed in #42, and renamed the new file-icon symbol id and temp-directory prefixes.",
+      "reviewedAt": "2026-09-02T13:27:24.255Z"
+    },
+    {
+      "upstream": "04efa7907e9ec207e2d6af459ce3b2ffd55f6107",
+      "pr": 8824,
+      "title": "feat(cli): open projects in the running desktop app",
+      "decision": "adapted",
+      "ours": "a23ef59071f427af21f5b4a714f81bcbee11e240",
+      "reason": "Cherry-pick applied cleanly; renamed the upstream identifiers it carried into files that never conflicted.",
+      "reviewedAt": "2026-09-02T13:27:55.650Z"
+    },
+    {
+      "upstream": "b21d87243ea637fbb6fb50667e9a8547e1b6c4e8",
+      "pr": 9131,
+      "title": "chore: vouch six repeat contributors",
+      "decision": "skipped",
+      "ours": null,
+      "reason": "Upstream's contributor trust list (.github/VOUCHED.td), which controls who the vouch workflow trusts on this repo; that is our security decision to make, not one to inherit.",
+      "reviewedAt": "2026-09-02T13:28:09.488Z"
+    },
+    {
+      "upstream": "08aad594f0059d28dd23914f9d37ad4e695fff75",
+      "pr": 9129,
+      "title": "chore: delete dead code, unused deps, and duplicate helpers",
+      "decision": "adapted",
+      "ours": "3f87b1aab7d14e47ebeefb7f7f45d315dee47290",
+      "reason": "Took the dead-code sweep but kept useThreadMessages and findThreadRef, which are live here in ChatView and the notification coordinator, and kept our boot-service names, our scripts dependency, and our deletions of threadPresentation and the legacy plan-mode hook.",
+      "reviewedAt": "2026-09-02T13:31:21.080Z"
+    },
+    {
+      "upstream": "98725df00a729ba226ae8610a3488e5b9168029f",
+      "pr": 9063,
+      "title": "fix(web): mute routine notices and update actions",
+      "decision": "adapted",
+      "ours": "b46257dbb224cea4a385b4688dec224de85a347e",
+      "reason": "Adopted the muted update action; the provider card header no longer carries the advisory icon upstream muted, so that hunk had nothing to land on here.",
+      "reviewedAt": "2026-09-02T13:32:26.070Z"
+    },
+    {
+      "upstream": "9a7b1e21e51609266adf657bcab0b43b6bcd445c",
+      "pr": 8909,
+      "title": "perf(provider): bound persisted session lookups",
+      "decision": "adopted",
+      "ours": "32749d147da82b99bcf21e4da0321e03ac3abde5",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T13:32:40.290Z"
+    },
+    {
+      "upstream": "ea71a19d4181ce13b0e8f374f45ba9237ee4a9ce",
+      "pr": 9128,
+      "title": "fix(claude): skills picked from the composer now run",
+      "decision": "adapted",
+      "ours": "10b9b13df8c078962f8ee152fc1195fc14b9e867",
+      "reason": "Took the new skill precedence and its tests, kept our PostHog AI Gateway sections in the Claude doc, and renamed the new temp-directory prefix.",
+      "reviewedAt": "2026-09-02T13:33:39.906Z"
+    },
+    {
+      "upstream": "feb3ea7ebf83de2e301adb1f20300b262773ec54",
+      "pr": 8360,
+      "title": "fix(web): stop highlighter freezes and worker spin by using the Oniguruma WASM engine",
+      "decision": "adopted",
+      "ours": "725cba2262a3f9e93d982a2afbe187ac29e70527",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T13:33:54.142Z"
+    },
+    {
+      "upstream": "c2283ce14628127ef1758974ddab4f5b1f89d47a",
+      "pr": 9152,
+      "title": "perf: make streaming projection and activity appends incremental",
+      "decision": "adapted",
+      "ours": "b6d1da54d5f40b106b8a8d48e6c8cb82cad85608",
+      "reason": "Dropped our streaming-delta guard on the summary refresh: the new incremental message-sent fold replaces the full refresh it was guarding.",
+      "reviewedAt": "2026-09-02T13:34:49.099Z"
+    },
+    {
+      "upstream": "7e460f429b740180cd72730418262a2df971ba54",
+      "pr": 8992,
+      "title": "fix(server): bound orchestration replay payloads",
+      "decision": "adopted",
+      "ours": "558060f3f09c0045b385a02cad595380f68854f5",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T13:34:59.086Z"
+    },
+    {
+      "upstream": "6866fd6b5ccff82333ad4386ce68cdec03531b68",
+      "pr": 9145,
+      "title": "perf(client-runtime): keep turn and checkpoint refs stable while streaming",
+      "decision": "adopted",
+      "ours": "994a24e616dd75e8bdfb120629f2873fda18f1f1",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T13:35:17.546Z"
+    },
+    {
+      "upstream": "fc53b273039cf5e0a932582b1fbb56e7223ad4ab",
+      "pr": 9052,
+      "title": "perf(clients): lease sidebar status by visibility",
+      "decision": "adapted",
+      "ours": "af46a3fe308d869ee0b7e4ec57cf2d6350ce0d42",
+      "reason": "Kept our deletion of LegacySidebar.tsx and our useLinkedPullRequestDetail helper, whose return is the detail itself rather than upstream's query wrapper.",
+      "reviewedAt": "2026-09-02T14:12:38.407Z"
+    },
+    {
+      "upstream": "5014e5fcdd6e5f4a53d0fea4cbecba733821a854",
+      "pr": 9138,
+      "title": "fix(desktop): show newest changes in nightly previews",
+      "decision": "adapted",
+      "ours": "b0760f1da66395b76ef8bf064d01db1b5cb91792",
+      "reason": "Took the release-notes popover and renamed the nightly channel to our canary in the new component, tests and doc, and pointed the release-history URL and its fixtures at our repository.",
+      "reviewedAt": "2026-09-02T14:14:57.773Z"
+    },
+    {
+      "upstream": "8efd4e95fcb08478c9c6e8eee384bfca559f62cc",
+      "pr": 9147,
+      "title": "fix(settings): sync auto-settle and other shared preferences across environments",
+      "decision": "adapted",
+      "ours": "5b4ce7109de6fc1bd8fd8a52736dc254375e26d6",
+      "reason": "Kept our device tabs above the new shared-settings mismatch alert.",
+      "reviewedAt": "2026-09-02T14:15:57.549Z"
+    },
+    {
+      "upstream": "0e77fbd3d0d79eec5247e75583a04590a1785133",
+      "pr": 5302,
+      "title": "fix(server): prevent accidental service downgrades",
+      "decision": "adapted",
+      "ours": "54bb8b0d757a842faec62eeeb36072a0a6f3f08f",
+      "reason": "Took the downgrade guard and its option-bearing install signature, kept our restart-on-onboarding path and its test, and renamed the service unit, launchd label and npx package in the new strings and fixtures.",
+      "reviewedAt": "2026-09-02T14:17:51.720Z"
+    },
+    {
+      "upstream": "716069f40f000887cb01685099a16e19d9194307",
+      "pr": 7941,
+      "title": "fix(server): keep attachments until the command commits",
+      "decision": "adopted",
+      "ours": "f36297445201b2491ac3613a989464bedcb9b523",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T14:18:04.582Z"
+    },
+    {
+      "upstream": "d0b19b32e01d7abc8829c01353d759fed3d304ed",
+      "pr": 9119,
+      "title": "fix(claude): preview images read from the workspace",
+      "decision": "adapted",
+      "ours": "4a73bfba8edfb627d6b83d0a5c475c141c3040ff",
+      "reason": "Cherry-pick applied cleanly; renamed the upstream identifiers it carried into files that never conflicted.",
+      "reviewedAt": "2026-09-02T14:18:25.359Z"
+    },
+    {
+      "upstream": "cdbf324aa043b1bc5705159127d2b55f186d1b9b",
+      "pr": 9113,
+      "title": "fix(web): keep generated muted foreground dimmer than entered text",
+      "decision": "adopted",
+      "ours": "e3f6a2f6173d10571d4e1a1137106e01f828666e",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T14:18:33.908Z"
+    },
+    {
+      "upstream": "083d4de5b0fd33efa28363546b6ed89e191c5200",
+      "pr": 9120,
+      "title": "fix(clients): stop repeating expanded commands",
+      "decision": "adopted",
+      "ours": "fbece4b0b7a3981135c3175cb7eae4e850dcf8b8",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T14:18:53.523Z"
+    },
+    {
+      "upstream": "a434677eca737771dd64703545c13eb11ba92ce2",
+      "pr": 9154,
+      "title": "fix(grok): health check, model selection, and stop all work against the real CLI",
+      "decision": "adapted",
+      "ours": "2add558eb2c5fe9c6f1af327fa23580cf7f4827a",
+      "reason": "Took the shared fake-CLI test helper in place of our inline fixture, and reworded a comment that named upstream.",
+      "reviewedAt": "2026-09-02T14:21:09.042Z"
+    },
+    {
+      "upstream": "80c708a1fa8986bce0b2d1ba4d35e79d9e4094ba",
+      "pr": 9058,
+      "title": "perf(web): halve the cold-start bundle by splitting Clerk and cold routes",
+      "decision": "adapted",
+      "ours": "c0f3943c93db9e6ab5c6d3e3e540006ff40465b0",
+      "reason": "Kept our deletion of ThemeEditorHost.tsx, which the route split still referenced upstream.",
+      "reviewedAt": "2026-09-02T14:21:30.673Z"
+    },
+    {
+      "upstream": "b2f25d390a8546e42eb6186115b673a53b8c38dc",
+      "pr": 6554,
+      "title": "feat(desktop): update the desktop app on remote Macs from the Update button",
+      "decision": "adapted",
+      "ours": "f81b54802546a296e887dd4510c624e0868d0e10",
+      "reason": "Took the extracted updates test harness and remote-update flow, renamed the nightly channel to our canary in the new test and doc rows, and renamed the new temp-directory prefixes.",
+      "reviewedAt": "2026-09-02T14:23:40.499Z"
+    },
+    {
+      "upstream": "c37fd136edf546fd58daeac146548436c1fa38c2",
+      "pr": 9157,
+      "title": "test(server): measure shell, second client, and reconnect transfer",
+      "decision": "adopted",
+      "ours": "82f4c4f2fbe1972ddbd8d86aafcc5c8eaf61e9ce",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T14:23:55.016Z"
+    },
+    {
+      "upstream": "0e1570bde5b64458449a45989f1b56d6fd651883",
+      "pr": 9142,
+      "title": "fix(web): project default model works on the hosted app",
+      "decision": "adapted",
+      "ours": "57cade8c71c980de3e954eeaadc5d89cdfcba6b3",
+      "reason": "Our project settings already resolve against the project's own environment, so only upstream's projectSettings naming landed; kept our environment-scoped source-control guard and our removals of plan mode and the legacy features section.",
+      "reviewedAt": "2026-09-02T14:25:15.391Z"
+    },
+    {
+      "upstream": "8401f4d85887786fbb773d3fd41b8f07a77624b8",
+      "pr": 9064,
+      "title": "fix(web): darken neutral control surfaces",
+      "decision": "skipped",
+      "ours": null,
+      "reason": "A retune of upstream's neutral dark palette. Ours is a different palette (a #151515 canvas with an amber primary), and our composer already follows --app-theme-surface-raised for themed builds, so there is nothing separable to take.",
+      "reviewedAt": "2026-09-02T14:26:02.301Z"
+    },
+    {
+      "upstream": "f2a914b8588bf3038472c14b129fbc5ddb3a2992",
+      "pr": 8968,
+      "title": "fix(web): preserve panel state across workspace refreshes",
+      "decision": "adopted",
+      "ours": "3f25ef91029e68e2e5cf32dd20cc0f87201725bd",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T14:26:15.386Z"
+    },
+    {
+      "upstream": "f46a709ee487e1e6e04423fcb7032a26eb103129",
+      "pr": 9140,
+      "title": "feat(files): open markdown, HTML, and PDF files outside the workspace",
+      "decision": "adapted",
+      "ours": "4855dd9f622495ed8428dab6a4556ea6120ae410",
+      "reason": "Cherry-pick applied cleanly; renamed the upstream identifiers it carried into files that never conflicted.",
+      "reviewedAt": "2026-09-02T14:26:39.947Z"
+    },
+    {
+      "upstream": "d937e30759ceae421bf3cc1b84414de4b67df76c",
+      "pr": 9143,
+      "title": "feat(web): render HTML and PDF files in the file viewer",
+      "decision": "adopted",
+      "ours": "aa2b7689505efdb863e0c14fc39f05b0d8b6d575",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T14:26:46.671Z"
+    },
+    {
+      "upstream": "fea1af81fdab64a19353224d60b4efa60f929740",
+      "pr": 9160,
+      "title": "fix(web): compact project settings actions",
+      "decision": "adopted",
+      "ours": "58a8b305a45c795cee19e81618d30602aa08617b",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T14:26:52.690Z"
+    },
+    {
+      "upstream": "47a95332a2b8fe47da9fb0af97fd6f0b542a18ee",
+      "pr": 8910,
+      "title": "fix(web): browse folders from file breadcrumbs",
+      "decision": "adapted",
+      "ours": "3f3cc99530c848a64ea4ee3eb25ff10dbbe16412",
+      "reason": "Rebrand-only import conflict; renamed a fixture path that named upstream.",
+      "reviewedAt": "2026-09-02T14:27:36.287Z"
+    },
+    {
+      "upstream": "9fdafdf114a88bd7309883b4578e74cbe786d04d",
+      "pr": 9086,
+      "title": "feat(pull-requests): copy provider checkout commands",
+      "decision": "adapted",
+      "ours": "c36aed11d3929cbfceea88bf8183e2f05912670e",
+      "reason": "Kept our buildResolveConflictsPrompt re-export alongside the new checkout builder, and renamed the Bitbucket clone directory prefix to ours.",
+      "reviewedAt": "2026-09-02T14:28:28.685Z"
+    },
+    {
+      "upstream": "2ab7973fe06eecf8b0a0d1da8481d926fca1ee1b",
+      "pr": 9159,
+      "title": "fix(web): hide build pill in narrow sidebars",
+      "decision": "adopted",
+      "ours": "9424937ae629e09ff48bf01830b1646c20d073d7",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T14:28:38.671Z"
+    },
+    {
+      "upstream": "e7deb2aaf4d4d089618dc0c8f393fa0b8b6c77e9",
+      "pr": 9146,
+      "title": "feat(web): cite assistant responses with inline citations",
+      "decision": "adapted",
+      "ours": "34b47ecc5651b893d9f8116058b55b57c391c3d6",
+      "reason": "Renamed the citation URI scheme and CSS highlight names to ours, kept our composerRef-from-props and pane-opening hooks alongside the new citation handlers, dropped upstream's stage-art palette block again, and moved our dispatchCommand helper onto the harness runtime.",
+      "reviewedAt": "2026-09-02T14:34:26.481Z"
+    },
+    {
+      "upstream": "941acb4f919bcef337d4d9e1623101bdc30d3616",
+      "pr": 9075,
+      "title": "fix(provider): drop removed custom models from the model picker",
+      "decision": "adopted",
+      "ours": "805fbc106db5b22aa608501c52c99dfd06a55f11",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T14:34:48.676Z"
+    },
+    {
+      "upstream": "e9db39ce05c706122bb747fd5e7e70e1aac78935",
+      "pr": 8890,
+      "title": "fix(web): align composer notices and stash",
+      "decision": "adopted",
+      "ours": "c414c38a374bbf6a9eca77b12bee342f7001a415",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T14:35:26.141Z"
+    },
+    {
+      "upstream": "a1a2bb1cd9f000f53fbeae752ed5c38f152eadf2",
+      "pr": 8664,
+      "title": "fix(web): label keybinding condition removal actions",
+      "decision": "adopted",
+      "ours": "6236e1b999fa71c9235a9ca429cea6900d260f17",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T14:35:41.097Z"
+    },
+    {
+      "upstream": "cde12790d721ab2a90471750fd75d9f5bf13f57d",
+      "pr": 8238,
+      "title": "fix(contracts): accept legacy pull request checkout results",
+      "decision": "adopted",
+      "ours": "ddb2525668a1a69a4cf8d9f8e7291afd4e84851c",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T14:35:59.639Z"
+    },
+    {
+      "upstream": "b8262b41228e03b2e1e14b701be449034349c8ba",
+      "pr": 9141,
+      "title": "fix(desktop): hold-to-quit no longer gets stuck",
+      "decision": "adopted",
+      "ours": "cd44354e98e4ca4ba1b4175cba5807a43f294171",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T14:36:04.421Z"
+    },
+    {
+      "upstream": "db4bf9497b524f35e665af9e941aa8faeb05ea9e",
+      "pr": 9150,
+      "title": "chore: remove unused code and brittle tests",
+      "decision": "adapted",
+      "ours": "7a5fa4c63e5e48e0cfe0ccedce8a5e3c92055bc1",
+      "reason": "Took the dead-code and brittle-test removals, kept our marketing brand assets that upstream deleted, and dropped two stage-artwork tests for a surface this fork does not have.",
+      "reviewedAt": "2026-09-02T14:38:59.169Z"
+    },
+    {
+      "upstream": "b520120cf169ce63a5606447a292451e97622c9a",
+      "pr": 9106,
+      "title": "fix(chat): improve tool group summaries and scrolling",
+      "decision": "adapted",
+      "ours": "46e76d6ba41c8180796e888913f4cd7943a16205",
+      "reason": "Ported upstream's restructured work log onto our theme hooks, explicit dark-variant classes and two-line fallback rows (which now opt out of the fixed row size), used our RasCodeWordmark as the MCP tool icon instead of the T3 mark upstream added, and renamed the MCP server token from t3-code to ras-code across the matcher, icons and fixtures so RAS Code tool calls resolve their labels again.",
+      "reviewedAt": "2026-09-02T15:10:15.951Z"
+    },
+    {
+      "upstream": "133db22fae34cfb2e62a806e99d22674b0376f35",
+      "pr": 9166,
+      "title": "feat(web): copy the full error report from the error page",
+      "decision": "adapted",
+      "ours": "387ef4161874520faa2a43b193abd1e049d99a34",
+      "reason": "Kept our PostHog error-boundary telemetry alongside the new copy-error-report button, and dropped upstream's theme editor host from the root route again.",
+      "reviewedAt": "2026-09-02T15:14:28.880Z"
+    },
+    {
+      "upstream": "c15735dd8894f829ce396c922ce4b5a48073f05a",
+      "pr": 9165,
+      "title": "fix(chat): replace failed tools with thinking",
+      "decision": "adopted",
+      "ours": "c40fe968ef35cd350b53156d7049875feda70e07",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T15:15:06.749Z"
+    },
+    {
+      "upstream": "8339508f5c244a63a845004393d7d9e701152d6e",
+      "pr": 9172,
+      "title": "fix(chat): align failed task progress test",
+      "decision": "adopted",
+      "ours": "ae54d58d8d6f896b6dcab3eb0120b66924c04ed3",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T15:15:10.565Z"
+    },
+    {
+      "upstream": "43bafd4674841fb8782f5174033b684aa0d83f67",
+      "pr": 9006,
+      "title": "fix(web): open PR toast actions in app",
+      "decision": "adopted",
+      "ours": "49e20e802042d586249f69df2232df4ab7186378",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T15:15:18.200Z"
+    },
+    {
+      "upstream": "082358f9ef6feaadfaafd59a7512da26beb00100",
+      "pr": 8975,
+      "title": "fix(desktop): check artifact build prerequisites",
+      "decision": "adopted",
+      "ours": "226a72ba5665e05d256c67a12e2becd3342d9ad2",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T15:15:22.849Z"
+    },
+    {
+      "upstream": "80a14b6588f0e856983e6d10002cde9e00e9d3e2",
+      "pr": 8778,
+      "title": "fix(server): discover project skills for Codex and OpenCode",
+      "decision": "adapted",
+      "ours": "8ab401acea57cfc71bfa64d8be9eff1b08e6d3d0",
+      "reason": "Kept our commandPath-based Codex native check next to the new cwd-based skill probe, and folded our volatile usage-limit stripping into upstream's machine-provider cache destructure.",
+      "reviewedAt": "2026-09-02T15:18:57.389Z"
+    },
+    {
+      "upstream": "0681d854994ec0ceed0562ae74549ccf8ef2ec41",
+      "pr": 9174,
+      "title": "fix(pull-requests): expand code tab diffs by default",
+      "decision": "adopted",
+      "ours": "501d0a52411ef5666ad27918b1caedb5a7ad9031",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T15:19:04.928Z"
+    },
+    {
+      "upstream": "f9d1c65d475807f70d29deff71b16a922a61c4c0",
+      "pr": 9155,
+      "title": "chore: bump vendored GhosttyKit and update terminal integration",
+      "decision": "adapted",
+      "ours": "e15d78e5ab76abf5de4ce018f6d1fe7ae190836e",
+      "reason": "Took the GhosttyKit bump and its vendored header removals, keeping our RasCodeTerminalView naming in the module README.",
+      "reviewedAt": "2026-09-02T15:23:23.537Z"
+    },
+    {
+      "upstream": "535c83dea5025e49df12df4a14b4d1dfb7d373ce",
+      "pr": 8448,
+      "title": "fix(web): copying a code block no longer copies triple backticks",
+      "decision": "adopted",
+      "ours": "48b3fb171370060e6db3d873e0d9d0f80d76b619",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T15:23:53.177Z"
+    },
+    {
+      "upstream": "5392c9bb99c4be1f1c3fd78743df62885fd214dd",
+      "pr": 9164,
+      "title": "fix(models): restore sticky new-thread selections",
+      "decision": "adapted",
+      "ours": "ad89c1ca3a013b3266f2f23277b996829daae27d",
+      "reason": "Renumbered upstream's ClearAutomaticProjectModelDefaults migration to 048 behind our four fork migrations and repointed its test bounds; adjusted the composer dispatch expectation for our contextWindow default.",
+      "reviewedAt": "2026-09-02T15:31:25.076Z"
+    },
+    {
+      "upstream": "827345a07a3d2348abc63e5215e57184024078d8",
+      "pr": 9177,
+      "title": "fix(web): model info button opens its details on click",
+      "decision": "adopted",
+      "ours": "be2d82996a75432b559e3db558c0b14f597fdc77",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T15:31:52.681Z"
+    },
+    {
+      "upstream": "7a8df3338f910cd18543cd3ea98b8b10385e8dcd",
+      "pr": 9184,
+      "title": "fix(desktop): skip cached monitor compiler check",
+      "decision": "adopted",
+      "ours": "7229288c51b4aed1aa148515a6e347011387f99c",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T15:31:56.511Z"
+    },
+    {
+      "upstream": "d2042d288eaf7aaf7feda85eb7d1a6f546302c12",
+      "pr": 8630,
+      "title": "fix(web): avoid stale file writes on close",
+      "decision": "adopted",
+      "ours": "43eac88cb86eb23c54374971ad17126c437a66d6",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T15:32:03.615Z"
+    },
+    {
+      "upstream": "4116db9807cb37b49d3db35c7a45301f5e851b01",
+      "pr": 8750,
+      "title": "fix(server): bound OpenCode version probes",
+      "decision": "adopted",
+      "ours": "174183da4001538344a9c60d8278d060ce11f7e2",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T15:32:14.377Z"
+    },
+    {
+      "upstream": "a56b0cd7178dfef299aa49b26773a80a34abe205",
+      "pr": 8572,
+      "title": "fix(server): allow large Azure DevOps PR lists",
+      "decision": "adopted",
+      "ours": "aceda1305f51ef10f95e23ba1f6c3ef14682439a",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T15:32:24.283Z"
+    },
+    {
+      "upstream": "a81a52afbb4e03ba82b2743801772151ed8c7d70",
+      "pr": 8751,
+      "title": "fix(server): allow local-only worktree bases",
+      "decision": "adapted",
+      "ours": "cf2e4b8a6a2b938b2007db045be46021e4189083",
+      "reason": "Took upstream's removal of the bootstrap ref fixture our branch prefix had diverged.",
+      "reviewedAt": "2026-09-02T15:34:31.118Z"
+    },
+    {
+      "upstream": "6ff537f03c4df500da7283c0566fe6f8feca709b",
+      "pr": 8798,
+      "title": "fix(web): remove projects with archived threads",
+      "decision": "adapted",
+      "ours": "e78b893519c80c656049a6289e979b75196db6b3",
+      "reason": "Kept our deletion of LegacySidebar.tsx.",
+      "reviewedAt": "2026-09-02T15:35:09.743Z"
+    },
+    {
+      "upstream": "a19f01fc19d209d9962c4bb66372ed9e03e320a9",
+      "pr": 9190,
+      "title": "feat(web): make context window indicator opt-in",
+      "decision": "adapted",
+      "ours": "9224a11f9ed8d270de2038a7b024e13af1442875",
+      "reason": "Took the opt-in context window indicator and gave it a row in General, since this fork has no legacy features section to hold upstream's; dropped upstream's plan-mode setting again.",
+      "reviewedAt": "2026-09-02T15:42:29.917Z"
+    },
+    {
+      "upstream": "9e646ad84c9d5008187eabf479e85619df9de8ca",
+      "pr": 9178,
+      "title": "fix(connect): refresh relay credentials before expiry",
+      "decision": "adapted",
+      "ours": "6bceb38d1e240eb333fc92a814cf5f8f77aa5926",
+      "reason": "Carried the new expiresAtEpochMs onto our extra bundled-session authorization branch, which upstream does not have.",
+      "reviewedAt": "2026-09-02T15:46:36.814Z"
+    },
+    {
+      "upstream": "dd6879ffea24da9fc16cb62d7d6072d2c5b2bae3",
+      "pr": 9176,
+      "title": "fix(pull-requests): reuse github api reads",
+      "decision": "adapted",
+      "ours": "ab1825b847924dc66fdd09521b7a99e25bb25db7",
+      "reason": "Adopted the lighter linked-PR summary and kept our conflict-resolution suggestion by reading the full detail only for the open thread, on web and mobile.",
+      "reviewedAt": "2026-09-02T16:03:40.884Z"
+    },
+    {
+      "upstream": "14f15cfed48bc7519e8e5eeac03f483f4b11ef3a",
+      "pr": 9191,
+      "title": "fix(server): stop titling linked PR threads from local git history",
+      "decision": "adopted",
+      "ours": "c94446555d2e4743609882c5bf786449fc8a02a2",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T16:04:27.265Z"
+    },
+    {
+      "upstream": "5b7d72aad14ed37e8e5e4c02a6d49814bfe528ac",
+      "pr": 9167,
+      "title": "feat(updates): continue active threads across server restarts",
+      "decision": "adapted",
+      "ours": "16d6b3f283d0f7bda9e23d3bdc8930e67bcfd8b7",
+      "reason": "Cherry-pick applied cleanly; renamed the upstream identifiers it carried into files that never conflicted.",
+      "reviewedAt": "2026-09-02T16:04:56.331Z"
+    },
+    {
+      "upstream": "7e9d5a7efa70f92f91d960a4f50243ba44d805da",
+      "pr": 9195,
+      "title": "fix(mobile): prevent message and composer overlap",
+      "decision": "adopted",
+      "ours": "98b0fe466185985bcd892f6b752b036da568cd7a",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T16:05:06.774Z"
+    },
+    {
+      "upstream": "f14f41b894448298a86865c9114e6700245356e7",
+      "pr": 9197,
+      "title": "fix(web): preserve composer draft during worktree setup",
+      "decision": "adopted",
+      "ours": "0d766744c9b875fc173581f7b138715045e4025c",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T16:05:11.045Z"
+    },
+    {
+      "upstream": "70cd258d8aac43ea57494527b00bf36de3efa6c0",
+      "pr": 9101,
+      "title": "fix(web): prevent two-digit list markers from being clipped",
+      "decision": "adopted",
+      "ours": "6417eacfa863b760f125bcf0ad49a2e4b4f6c9dd",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-02T16:05:19.118Z"
     }
   ]
 }
