@@ -248,6 +248,12 @@ export const SETTINGS_SEARCH_ITEMS = [
     to: "/settings/general",
   },
   {
+    id: "legacy-context-window-indicator",
+    title: "Context window indicator",
+    to: "/settings/general",
+    searchTerms: ["composer meter usage tokens circle old"],
+  },
+  {
     id: "notification-sound",
     title: "Notification sound",
     to: "/settings/general",
