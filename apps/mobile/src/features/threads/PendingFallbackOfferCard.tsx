@@ -1,9 +1,12 @@
 import {
-  PROVIDER_DISPLAY_NAMES,
   type ApprovalRequestId,
   type ProviderFallbackOfferDecision,
   type ServerProvider,
 } from "@ras-code/contracts";
+import {
+  fallbackInstanceIsMetered,
+  fallbackInstanceLabel,
+} from "@ras-code/client-runtime/provider-fallback";
 import { Pressable, View } from "react-native";
 
 import { AppText as Text } from "../../components/AppText";
@@ -19,18 +22,10 @@ interface PendingFallbackOfferCardProps {
   ) => Promise<unknown>;
 }
 
-function instanceName(instanceId: string, providers: ReadonlyArray<ServerProvider>): string {
-  const provider = providers.find((entry) => String(entry.instanceId) === instanceId);
-  return (
-    provider?.displayName ??
-    (provider ? PROVIDER_DISPLAY_NAMES[provider.driver] : undefined) ??
-    instanceId
-  );
-}
-
 export function PendingFallbackOfferCard(props: PendingFallbackOfferCardProps) {
-  const primaryName = instanceName(props.offer.primaryInstanceId, props.providers);
-  const fallbackName = instanceName(props.offer.fallbackInstanceId, props.providers);
+  const primaryName = fallbackInstanceLabel(props.providers, props.offer.primaryInstanceId);
+  const fallbackName = fallbackInstanceLabel(props.providers, props.offer.fallbackInstanceId);
+  const metered = fallbackInstanceIsMetered(props.providers, props.offer.fallbackInstanceId);
   const disabled = props.respondingFallbackId === props.offer.requestId;
 
   return (
@@ -42,8 +37,8 @@ export function PendingFallbackOfferCard(props: PendingFallbackOfferCardProps) {
         {primaryName} hit its usage limit
       </Text>
       <Text className="font-sans text-sm leading-normal text-neutral-600 dark:text-neutral-400">
-        Continue with {props.offer.modelLabel ?? props.offer.model} via {fallbackName} using
-        usage-based tokens, or wait for the subscription to reset?
+        Continue with {props.offer.modelLabel ?? props.offer.model} via {fallbackName}
+        {metered ? " using usage-based tokens" : ""}, or wait for the subscription to reset?
       </Text>
       {props.offer.restartsSession ? (
         <Text className="font-sans text-xs leading-normal text-neutral-500 dark:text-neutral-500">
@@ -63,13 +58,13 @@ export function PendingFallbackOfferCard(props: PendingFallbackOfferCardProps) {
           </Text>
         </Pressable>
         <Pressable
-          accessibilityLabel="Continue via PostHog AI Gateway"
+          accessibilityLabel={`Continue via ${fallbackName}`}
           accessibilityRole="button"
           className="items-center justify-center rounded-[14px] bg-blue-500 px-3.5 py-3"
           disabled={disabled}
           onPress={() => void props.onRespond(props.offer.requestId, "switch")}
         >
-          <Text className="font-ras-code-extrabold text-sm text-white">Continue via PostHog</Text>
+          <Text className="font-ras-code-extrabold text-sm text-white">Continue</Text>
         </Pressable>
       </View>
     </View>

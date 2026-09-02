@@ -1,10 +1,22 @@
-import { ProviderInstanceId } from "@ras-code/contracts";
+import { ProviderDriverKind, ProviderInstanceId } from "@ras-code/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import {
+  fallbackInstanceIsMetered,
+  fallbackInstanceLabel,
   resolveActiveProviderInstanceId,
   resolveActiveProviderModelSelection,
 } from "./providerFallback.ts";
+
+const codexPersonal = {
+  instanceId: ProviderInstanceId.make("codex_personal"),
+  driver: ProviderDriverKind.make("codex"),
+  displayName: "Codex Personal",
+};
+const gateway = {
+  instanceId: ProviderInstanceId.make("posthog_gateway"),
+  driver: ProviderDriverKind.make("posthogGateway"),
+};
 
 const claudeSelection = {
   instanceId: ProviderInstanceId.make("claudeAgent"),
@@ -56,5 +68,27 @@ describe("resolveActiveProviderModelSelection", () => {
       instanceId: ProviderInstanceId.make("posthog_gateway"),
       model: "claude-sonnet-4-5",
     });
+  });
+});
+
+describe("fallbackInstanceLabel", () => {
+  it("falls back to the driver name when the instance has no display name", () => {
+    expect(fallbackInstanceLabel([codexPersonal, gateway], "posthog_gateway")).toBe(
+      "PostHog AI Gateway",
+    );
+  });
+
+  it("names an unknown instance by its id", () => {
+    expect(fallbackInstanceLabel([codexPersonal], "codex_work")).toBe("codex_work");
+  });
+});
+
+describe("fallbackInstanceIsMetered", () => {
+  it("reads a second subscription as already paid for", () => {
+    expect(fallbackInstanceIsMetered([codexPersonal, gateway], "codex_personal")).toBe(false);
+  });
+
+  it("reads the gateway as metered", () => {
+    expect(fallbackInstanceIsMetered([codexPersonal, gateway], "posthog_gateway")).toBe(true);
   });
 });

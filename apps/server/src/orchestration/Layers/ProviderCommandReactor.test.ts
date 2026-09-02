@@ -190,6 +190,9 @@ describe("ProviderCommandReactor", () => {
     readonly providerInstances?: Record<string, unknown>;
     readonly usageLimits?: Map<ProviderInstanceId, ProviderUsageLimit>;
     readonly extraProviderSnapshots?: ReadonlyArray<Record<string, unknown>>;
+    readonly primaryProviderSnapshot?: Record<string, unknown>;
+    /** Continuation keys for instances of one driver that do not share a home. */
+    readonly continuationKeys?: Record<string, string>;
   }) {
     const now = "2026-01-01T00:00:00.000Z";
     const baseDir =
@@ -353,6 +356,7 @@ describe("ProviderCommandReactor", () => {
         ...(input?.requiresNewThreadForModelChange === true
           ? { requiresNewThreadForModelChange: true }
           : {}),
+        ...input?.primaryProviderSnapshot,
       },
       ...(input?.extraProviderSnapshots ?? []),
     ];
@@ -385,12 +389,13 @@ describe("ProviderCommandReactor", () => {
             // The composite gateway driver adopts the Claude harness key on
             // purpose, which is what lets a started Claude thread move to it.
             continuationKey:
-              driverKind === ProviderDriverKind.make("codex")
+              input?.continuationKeys?.[String(instanceId)] ??
+              (driverKind === ProviderDriverKind.make("codex")
                 ? "codex:home:/shared-codex"
                 : driverKind === ProviderDriverKind.make("claudeAgent") ||
                     driverKind === ProviderDriverKind.make("posthogGateway")
                   ? "claude:home:/shared-claude"
-                  : `${driverKind}:instance:${instanceId}`,
+                  : `${driverKind}:instance:${instanceId}`),
           },
         });
       },
@@ -3614,6 +3619,181 @@ describe("ProviderCommandReactor", () => {
       expect(findActivity(await harness.readModel(), "provider.fallback.offered")).toBeUndefined();
     });
 
+    const SECOND_SUBSCRIPTION = ProviderInstanceId.make("claude_personal");
+    const sonnetModel = {
+      slug: PRIMARY_SELECTION.model,
+      name: "Claude Sonnet 4.5",
+      isCustom: false,
+      capabilities: null,
+    };
+    const gatewaySnapshot = {
+      instanceId: FALLBACK,
+      driver: "posthogGateway",
+      enabled: true,
+      displayName: "PostHog AI Gateway",
+      models: [sonnetModel],
+    };
+    const secondSubscriptionSnapshot = {
+      instanceId: SECOND_SUBSCRIPTION,
+      driver: "claudeAgent",
+      enabled: true,
+      displayName: "Claude Personal",
+      models: [sonnetModel],
+    };
+
+    const offeredFallbackInstanceId = async (
+      harness: Awaited<ReturnType<typeof createHarness>>,
+    ) => {
+      await waitFor(
+        async () =>
+          findActivity(await harness.readModel(), "provider.fallback.offered") !== undefined,
+      );
+      const offer = findActivity(await harness.readModel(), "provider.fallback.offered");
+      return (offer?.payload as Record<string, unknown> | undefined)?.fallbackInstanceId;
+    };
+
+    it("offers another subscription before the metered gateway", async () => {
+      const harness = await createHarness({
+        threadModelSelection: PRIMARY_SELECTION,
+        usageLimits: new Map([[PRIMARY, EXHAUSTED]]),
+        extraProviderSnapshots: [gatewaySnapshot, secondSubscriptionSnapshot],
+      });
+      await dispatchTurn(harness, "cmd-fallback-second-subscription");
+
+      expect(await offeredFallbackInstanceId(harness)).toBe(SECOND_SUBSCRIPTION);
+    });
+
+    it("skips an instance signed in to the exhausted account", async () => {
+      const harness = await createHarness({
+        threadModelSelection: PRIMARY_SELECTION,
+        usageLimits: new Map([[PRIMARY, EXHAUSTED]]),
+        primaryProviderSnapshot: {
+          auth: { status: "authenticated", email: "work@example.com" },
+        },
+        extraProviderSnapshots: [
+          {
+            ...secondSubscriptionSnapshot,
+            auth: { status: "authenticated", email: "Work@example.com " },
+          },
+          gatewaySnapshot,
+        ],
+      });
+      await dispatchTurn(harness, "cmd-fallback-same-account");
+
+      expect(await offeredFallbackInstanceId(harness)).toBe(FALLBACK);
+    });
+
+    it("passes over an instance nobody has logged into", async () => {
+      const harness = await createHarness({
+        threadModelSelection: PRIMARY_SELECTION,
+        usageLimits: new Map([[PRIMARY, EXHAUSTED]]),
+        extraProviderSnapshots: [
+          { ...secondSubscriptionSnapshot, auth: { status: "unauthenticated" } },
+          gatewaySnapshot,
+        ],
+      });
+      await dispatchTurn(harness, "cmd-fallback-unauthenticated");
+
+      expect(await offeredFallbackInstanceId(harness)).toBe(FALLBACK);
+    });
+
+    it("passes over a candidate that is itself out of quota", async () => {
+      const harness = await createHarness({
+        threadModelSelection: PRIMARY_SELECTION,
+        usageLimits: new Map([
+          [PRIMARY, EXHAUSTED],
+          [SECOND_SUBSCRIPTION, EXHAUSTED],
+        ]),
+        extraProviderSnapshots: [secondSubscriptionSnapshot, gatewaySnapshot],
+      });
+      await dispatchTurn(harness, "cmd-fallback-candidate-exhausted");
+
+      expect(await offeredFallbackInstanceId(harness)).toBe(FALLBACK);
+    });
+
+    it("carries the transcript home from a subscription with its own home", async () => {
+      const primary = ProviderInstanceId.make("claude_work");
+      const selection = { instanceId: primary, model: PRIMARY_SELECTION.model } as const;
+      const harness = await createHarness({
+        threadModelSelection: selection,
+        usageLimits: new Map<ProviderInstanceId, ProviderUsageLimit>(),
+        continuationKeys: {
+          [String(primary)]: "claude:home:/work",
+          [String(SECOND_SUBSCRIPTION)]: "claude:home:/personal",
+        },
+        extraProviderSnapshots: [secondSubscriptionSnapshot],
+      });
+      await dispatchTurn(harness, "cmd-fallback-home-1");
+      await waitFor(() => harness.sendTurn.mock.calls.length === 1);
+
+      // The record a real crossing leaves behind. It is what survives the
+      // restart below.
+      await harness.runEffect(
+        harness.engine.dispatch({
+          type: "thread.activity.append",
+          commandId: CommandId.make("cmd-fallback-home-engaged"),
+          threadId: ThreadId.make("thread-1"),
+          activity: {
+            id: EventId.make("activity-fallback-home-engaged"),
+            tone: "info",
+            kind: "provider.fallback.engaged",
+            summary: "Usage limit reached; continuing with Claude Personal.",
+            payload: {
+              primaryInstanceId: primary,
+              fallbackInstanceId: SECOND_SUBSCRIPTION,
+            },
+            turnId: null,
+            createdAt: "2026-01-01T00:00:03.000Z",
+          },
+          createdAt: "2026-01-01T00:00:03.000Z",
+        }),
+      );
+      await harness.runEffect(
+        harness.engine.dispatch({
+          type: "thread.session.set",
+          commandId: CommandId.make("cmd-fallback-home-park"),
+          threadId: ThreadId.make("thread-1"),
+          session: {
+            threadId: ThreadId.make("thread-1"),
+            status: "ready",
+            providerName: "claudeAgent",
+            providerInstanceId: SECOND_SUBSCRIPTION,
+            runtimeMode: "approval-required",
+            activeTurnId: null,
+            lastError: null,
+            updatedAt: "2026-01-01T00:00:04.000Z",
+          },
+          createdAt: "2026-01-01T00:00:04.000Z",
+        }),
+      );
+      harness.runtimeSessions.length = 0;
+
+      await dispatchCommand(harness, {
+        type: "thread.turn.start",
+        commandId: CommandId.make("cmd-fallback-home-2"),
+        threadId: ThreadId.make("thread-1"),
+        message: {
+          messageId: asMessageId("user-message-2"),
+          role: "user",
+          text: "second turn",
+          attachments: [],
+        },
+        interactionMode: DEFAULT_PROVIDER_INTERACTION_MODE,
+        runtimeMode: "approval-required",
+        createdAt: "2026-01-01T00:00:05.000Z",
+      });
+
+      await waitFor(() => harness.sendTurn.mock.calls.length === 2);
+      const returned = harness.sendTurn.mock.calls[1]?.[0];
+      const returnedInput =
+        typeof returned === "object" && returned !== null && "input" in returned
+          ? returned.input
+          : undefined;
+      if (typeof returnedInput !== "string") throw new Error("Return prompt was not text.");
+      expect(returned).toMatchObject({ modelSelection: selection });
+      expect(returnedInput).toMatch(/<\/provider-switch-conversation>\n\nsecond turn$/);
+    });
+
     it("returns to the requested provider after its usage limit clears", async () => {
       const usageLimits = new Map<ProviderInstanceId, ProviderUsageLimit>([[PRIMARY, EXHAUSTED]]);
       const harness = await createHarness({
@@ -4263,8 +4443,25 @@ describe("ProviderCommandReactor", () => {
       await dispatchTurn(harness, "cmd-fallback-restart-1");
       await waitFor(() => harness.sendTurn.mock.calls.length === 1);
 
-      // A restart leaves the bound session in the read model but drops every
-      // live provider session and the reactor's in-memory fallback route.
+      // A restart keeps the bound session and the crossing activity in the
+      // read model. It drops the live sessions and the in-memory route.
+      await harness.runEffect(
+        harness.engine.dispatch({
+          type: "thread.activity.append",
+          commandId: CommandId.make("cmd-fallback-restart-engaged"),
+          threadId: ThreadId.make("thread-1"),
+          activity: {
+            id: EventId.make("activity-fallback-restart-engaged"),
+            tone: "info",
+            kind: "provider.fallback.engaged",
+            summary: "Usage limit reached; continuing via PostHog AI Gateway.",
+            payload: { primaryInstanceId: primary, fallbackInstanceId: FALLBACK },
+            turnId: null,
+            createdAt: "2026-01-01T00:00:03.000Z",
+          },
+          createdAt: "2026-01-01T00:00:03.000Z",
+        }),
+      );
       await harness.runEffect(
         harness.engine.dispatch({
           type: "thread.session.set",

@@ -21,6 +21,7 @@ import {
 } from "@ras-code/contracts";
 import type { EnvironmentConnectionPresentation } from "@ras-code/client-runtime/connection";
 import {
+  fallbackInstanceLabel,
   resolveActiveProviderInstanceId,
   resolveActiveProviderModelSelection,
 } from "@ras-code/client-runtime/provider-fallback";
@@ -3550,6 +3551,10 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
                     <ComposerBanner.Actions>
                       <ComposerPendingFallbackOfferActions
                         requestId={activePendingFallbackOffer.requestId}
+                        fallbackName={fallbackInstanceLabel(
+                          providerStatuses,
+                          activePendingFallbackOffer.fallbackInstanceId,
+                        )}
                         isResponding={respondingFallbackRequestIds.includes(
                           activePendingFallbackOffer.requestId,
                         )}
