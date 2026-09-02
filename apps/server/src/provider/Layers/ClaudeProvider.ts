@@ -22,6 +22,7 @@ import { resolveSpawnCommand } from "@ras-code/shared/shell";
 import { compareSemverVersions } from "@ras-code/shared/semver";
 import {
   query as claudeQuery,
+  type ModelInfo as ClaudeSdkModelInfo,
   type Options as ClaudeQueryOptions,
   type SlashCommand as ClaudeSlashCommand,
   type SDKUserMessage,
@@ -381,6 +382,102 @@ function formatClaudeOpus47UpgradeMessage(version: string | null): string {
   return `Claude Code ${versionLabel} is too old for Claude Opus 4.7. Upgrade to v${MINIMUM_CLAUDE_OPUS_4_7_VERSION} or newer to access it.`;
 }
 
+/**
+ * Prefer the CLI's live model metadata, but keep the static catalog's richer
+ * option descriptors when the SDK metadata omits them. SDK model values are
+ * picker entries; `[1m]` is a context-window suffix, not a separate model.
+ */
+export function mergeClaudeLiveModels(
+  liveModels: ReadonlyArray<ClaudeSdkModelInfo> | undefined,
+  builtInModels: ReadonlyArray<ServerProviderModel>,
+): ReadonlyArray<ServerProviderModel> {
+  if (!liveModels || liveModels.length === 0) return builtInModels;
+
+  const builtInBySlug = new Map(builtInModels.map((model) => [model.slug, model]));
+  const merged = new Map<string, ServerProviderModel>();
+
+  for (const liveModel of liveModels) {
+    const isOneMillion = liveModel.value.endsWith("[1m]");
+    const slug = isOneMillion ? liveModel.value.slice(0, -4) : liveModel.value;
+    if (!slug) continue;
+    const contextWindow = isOneMillion ? "1m" : undefined;
+
+    const fallback = builtInBySlug.get(slug);
+    const displayName = nonEmptyProbeString(liveModel.displayName) ?? fallback?.name ?? slug;
+    const description = nonEmptyProbeString(liveModel.description);
+    const effortDescriptor = fallback?.capabilities?.optionDescriptors?.find(
+      (descriptor) => descriptor.type === "select" && descriptor.id === "effort",
+    );
+    const effortOptions = liveModel.supportedEffortLevels
+      ? buildSelectOptionDescriptor({
+          id: "effort",
+          label: "Reasoning",
+          options: liveModel.supportedEffortLevels.map((value) => ({
+            value,
+            label: formatClaudeEffortLabel(value),
+            ...(value === "high" ? { isDefault: true } : {}),
+          })),
+        })
+      : effortDescriptor;
+    const capabilityDescriptors = [
+      ...(effortOptions ? [effortOptions] : []),
+      ...(liveModel.supportsFastMode
+        ? [buildBooleanOptionDescriptor({ id: "fastMode", label: "Fast Mode" })]
+        : []),
+      ...(contextWindow
+        ? [
+            buildSelectOptionDescriptor({
+              id: "contextWindow",
+              label: "Context Window",
+              options: [
+                { value: "200k", label: "200k" },
+                { value: "1m", label: "1M", isDefault: true },
+              ],
+            }),
+          ]
+        : []),
+    ];
+
+    const model: ServerProviderModel = {
+      slug,
+      name: displayName,
+      isCustom: false,
+      ...(description ? {} : {}),
+      capabilities:
+        capabilityDescriptors.length > 0
+          ? createModelCapabilities({ optionDescriptors: capabilityDescriptors })
+          : (fallback?.capabilities ?? DEFAULT_CLAUDE_MODEL_CAPABILITIES),
+    };
+
+    const existing = merged.get(slug);
+    if (existing && existing.slug === slug) {
+      // Prefer the non-1M entry as the canonical picker row.
+      if (!isOneMillion) merged.set(slug, model);
+      continue;
+    }
+    merged.set(slug, model);
+  }
+
+  return [...merged.values()];
+}
+
+function formatClaudeEffortLabel(value: string): string {
+  switch (value) {
+    case "low":
+      return "Low";
+    case "medium":
+      return "Medium";
+    case "high":
+      return "High";
+    case "xhigh":
+      return "Extra High";
+    case "max":
+      return "Max";
+    default:
+      return value;
+  }
+}
+
 export function getClaudeModelCapabilities(model: string | null | undefined): ModelCapabilities {
   const slug = model?.trim();
   return (
@@ -636,7 +733,20 @@ type ClaudeCapabilitiesProbe = {
    */
   readonly apiProvider: string | undefined;
   readonly slashCommands: ReadonlyArray<ServerProviderSlashCommand>;
+  readonly models: ReadonlyArray<ClaudeSdkModelInfo>;
 };
+
+function parseClaudeInitializationModels(
+  models: ReadonlyArray<ClaudeSdkModelInfo> | undefined,
+): ReadonlyArray<ClaudeSdkModelInfo> {
+  const byValue = new Map<string, ClaudeSdkModelInfo>();
+  for (const model of models ?? []) {
+    const value = nonEmptyProbeString(model.value);
+    if (!value || byValue.has(value)) continue;
+    byValue.set(value, { ...model, value });
+  }
+  return [...byValue.values()];
+}
 
 function parseClaudeInitializationCommands(
   commands: ReadonlyArray<ClaudeSlashCommand> | undefined,
@@ -765,6 +875,7 @@ const probeClaudeCapabilities = (
         tokenSource: account?.tokenSource,
         apiProvider: account?.apiProvider,
         slashCommands: parseClaudeInitializationCommands(init.commands),
+        models: parseClaudeInitializationModels(init.models),
       } satisfies ClaudeCapabilitiesProbe;
     });
   }).pipe(
@@ -902,11 +1013,6 @@ export const checkClaudeProviderStatus = Effect.fn("checkClaudeProviderStatus")(
     });
   }
 
-  const models = providerModelsFromSettings(
-    getBuiltInClaudeModelsForVersion(parsedVersion),
-    claudeSettings.customModels,
-    DEFAULT_CLAUDE_MODEL_CAPABILITIES,
-  );
   const versionUpgradeMessage = supportsClaudeOpus5(parsedVersion)
     ? undefined
     : supportsClaudeFable5(parsedVersion)
@@ -920,6 +1026,12 @@ export const checkClaudeProviderStatus = Effect.fn("checkClaudeProviderStatus")(
   const capabilities = resolveCapabilities
     ? yield* resolveCapabilities(claudeSettings).pipe(Effect.orElseSucceed(() => undefined))
     : undefined;
+
+  const models = providerModelsFromSettings(
+    mergeClaudeLiveModels(capabilities?.models, getBuiltInClaudeModelsForVersion(parsedVersion)),
+    claudeSettings.customModels,
+    DEFAULT_CLAUDE_MODEL_CAPABILITIES,
+  );
   const skills = yield* discoverClaudeSkills(claudeSettings, cwd, resolvedEnvironment);
   const slashCommands = [
     {
