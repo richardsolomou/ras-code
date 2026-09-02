@@ -371,7 +371,7 @@ export function ProviderModelsSection({
     <Tooltip>
       <TooltipTrigger render={<span className="flex shrink-0 items-center" />}>
         <Switch
-          className="sm:[--thumb-size:--spacing(3.5)]"
+          size="sm"
           checked={!isHidden}
           disabled={model.isCustom}
           onCheckedChange={(checked) => setHidden(model.slug, !checked)}
@@ -444,7 +444,7 @@ export function ProviderModelsSection({
               value={filter}
               onChange={(event) => setFilter(event.target.value)}
               placeholder="Filter models"
-              size="compact"
+              size="sm"
               className="w-56"
               spellCheck={false}
               aria-label="Filter models"
@@ -492,6 +492,7 @@ export function ProviderModelsSection({
         <div className="mt-3 flex flex-col gap-2 sm:flex-row">
           <Input
             id={`provider-instance-${instanceId}-custom-model`}
+            size="sm"
             autoFocus
             value={input}
             onChange={(event) => {
@@ -512,10 +513,10 @@ export function ProviderModelsSection({
             spellCheck={false}
           />
           <div className="flex shrink-0 gap-2">
-            <Button variant="outline" onClick={handleAdd}>
+            <Button size="sm" variant="outline" onClick={handleAdd}>
               Add
             </Button>
-            <Button variant="ghost" onClick={cancelAdd}>
+            <Button size="sm" variant="ghost" onClick={cancelAdd}>
               Cancel
             </Button>
           </div>

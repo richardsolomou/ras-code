@@ -736,11 +736,11 @@ export function EnvironmentProviderSettings({
         headerAction={
           !readOnly ? (
             <Button
-              size="compact"
+              size="icon-xs"
               variant="outline"
               onClick={() => setIsAddInstanceDialogOpen(true)}
             >
-              <PlusIcon className="size-3.5" />
+              <PlusIcon />
               Add provider
             </Button>
           ) : null
@@ -775,7 +775,7 @@ export function EnvironmentProviderSettings({
                     <TooltipTrigger
                       render={
                         <Button
-                          size="compact"
+                          size="xs"
                           variant="ghost-muted"
                           disabled={isRefreshingProviders}
                           onClick={() => void refreshProviders()}
