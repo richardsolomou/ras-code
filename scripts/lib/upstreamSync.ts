@@ -115,6 +115,8 @@ const replacedPrefixes: ReadonlyArray<readonly [string, string]> = [
   ["packaging/", "packaging metadata, which we renamed"],
 ];
 
+const THEME_EDITOR = "the custom theme editor, which we removed";
+
 /**
  * Surfaces we deleted outright. A change that only touches these has nothing to land against, so it
  * is `obsolete` rather than skipped: skipping implies a judgement, obsolete states a fact.
@@ -123,6 +125,23 @@ const removedPrefixes: ReadonlyArray<readonly [string, string]> = [
   ["experiments/", "experiments, which we do not carry"],
   [".macroscope/", "Macroscope review configuration, which we do not carry"],
   [".coderabbit.yaml", "CodeRabbit review configuration, which we do not carry"],
+  // The custom theme editor and its VS Code / OpenVSX theme import, removed in
+  // #51 in favour of the fixed theme set.
+  ["apps/web/src/components/settings/ThemeColorPicker", THEME_EDITOR],
+  ["apps/web/src/components/settings/ThemeEditor", THEME_EDITOR],
+  ["apps/web/src/components/settings/ThemeImportDialog", THEME_EDITOR],
+  ["apps/web/src/components/settings/ThemePreviewCircles", THEME_EDITOR],
+  ["apps/web/src/components/settings/ThemeSearchSection", THEME_EDITOR],
+  ["apps/web/src/components/settings/ThemeSettings", THEME_EDITOR],
+  ["apps/web/src/components/settings/ThemeWireframe", THEME_EDITOR],
+  ["apps/web/src/components/settings/themeEditorStore", THEME_EDITOR],
+  ["apps/web/src/components/settings/themeInspector", THEME_EDITOR],
+  ["apps/web/src/hooks/useCustomThemes", THEME_EDITOR],
+  ["apps/web/src/hooks/useDefaultTheme", THEME_EDITOR],
+  ["apps/web/src/hooks/useEnvironmentTheme", THEME_EDITOR],
+  ["apps/web/src/openVsxThemes", THEME_EDITOR],
+  ["apps/web/src/vscodeThemeImport", THEME_EDITOR],
+  ["docs/user/environment-theme.md", THEME_EDITOR],
 ];
 
 /**
