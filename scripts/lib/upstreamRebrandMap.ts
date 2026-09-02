@@ -31,6 +31,11 @@ export const preservedPatterns: ReadonlyArray<RegExp> = [
   /\bPingDotGG\/T3Code\b/g,
   /\bbinbandit\/t3code\b/g,
   /\bt3_relay\b/g,
+  // The WSL runtime cache still lives under these names on users' disks, so
+  // renaming them here would orphan every installed runtime.
+  /\$HOME\/\.t3\/wsl-runtime/g,
+  /\.t3code-wsl-runtime-(?:ready|selected)\b/g,
+  /\bt3code-wsl-node-pty\.json\b/g,
 ];
 
 const textRules: ReadonlyArray<RebrandRule> = [

@@ -70,6 +70,14 @@ describe("rebrandText", () => {
     assert.strictEqual(rebrandText('repo: "T3Tools/T3Code"'), 'repo: "richardsolomou/ras-code"');
   });
 
+  it("keeps the WSL runtime cache paths that already exist on disk", () => {
+    assert.strictEqual(
+      rebrandText('runtime_parent="$HOME/.t3/wsl-runtime"'),
+      'runtime_parent="$HOME/.t3/wsl-runtime"',
+    );
+    assert.strictEqual(rebrandText('".t3code-wsl-runtime-ready"'), '".t3code-wsl-runtime-ready"');
+  });
+
   it("rewrites the PascalCase product name without doubling Code", () => {
     assert.strictEqual(rebrandText("ios/T3Code"), "ios/RasCode");
   });
