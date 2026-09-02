@@ -143,12 +143,6 @@ const FALLBACK_OFFER_EXPIRED_ACTIVITY_KIND = "provider.fallback.offer-expired";
 const LATEST_ASSISTANT_SUMMARY_MAX_LENGTH = 140;
 
 function shouldRefreshThreadShellSummary(event: OrchestrationEvent): boolean {
-  if (event.type === "thread.message-sent") {
-    // A settled assistant message moves the shell preview; streaming deltas
-    // arrive by the hundreds and must not each rescan the thread.
-    return event.payload.role === "user" || !event.payload.streaming;
-  }
-
   if (event.type !== "thread.activity-appended") {
     return true;
   }
@@ -1046,7 +1040,29 @@ const makeOrchestrationProjectionPipeline = Effect.fn("makeOrchestrationProjecti
           return;
         }
 
-        case "thread.message-sent":
+        // A message cannot change any summary field except latestUserMessageAt,
+        // which is a monotonic maximum that folds in directly. The full refresh
+        // would re-read every message body in the thread per user message.
+        case "thread.message-sent": {
+          const existingRow = yield* projectionThreadRepository.getById({
+            threadId: event.payload.threadId,
+          });
+          if (Option.isNone(existingRow)) {
+            return;
+          }
+          const previousLatest = existingRow.value.latestUserMessageAt;
+          yield* projectionThreadRepository.upsert({
+            ...existingRow.value,
+            updatedAt: event.occurredAt,
+            latestUserMessageAt:
+              event.payload.role === "user" &&
+              (previousLatest === null || event.payload.createdAt > previousLatest)
+                ? event.payload.createdAt
+                : previousLatest,
+          });
+          return;
+        }
+
         case "thread.proposed-plan-upserted":
         case "thread.activity-appended":
         case "thread.approval-response-requested":
