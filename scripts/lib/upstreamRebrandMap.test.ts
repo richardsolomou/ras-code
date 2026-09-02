@@ -60,6 +60,11 @@ describe("rebrandText", () => {
     assert.strictEqual(rebrandText("Connect through T3 Connect."), "Connect through RAS Connect.");
   });
 
+  it("rewrites the remote access product name in ids and search terms", () => {
+    assert.strictEqual(rebrandText('id: "t3-connect"'), 'id: "ras-connect"');
+    assert.strictEqual(rebrandText('"tunnel saved t3 connect"'), '"tunnel saved ras connect"');
+  });
+
   it("keeps project file types on the Ras prefix", () => {
     assert.strictEqual(rebrandText("T3ProjectFileLoader"), "RasProjectFileLoader");
   });

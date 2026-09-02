@@ -82,6 +82,16 @@ const textRules: ReadonlyArray<RebrandRule> = [
     description: "remote access product name",
   },
   {
+    pattern: /\bt3-connect\b/g,
+    replacement: "ras-connect",
+    description: "remote access product name in kebab-case ids",
+  },
+  {
+    pattern: /\bt3 connect\b/g,
+    replacement: "ras connect",
+    description: "remote access product name in prose and search terms",
+  },
+  {
     pattern: /\bT3 Code\b/g,
     replacement: "RAS Code",
     description: "product name",
