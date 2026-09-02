@@ -3,6 +3,7 @@ import type { EnvironmentId, OrchestrationThreadShell } from "@ras-code/contract
 import {
   createLinkedPullRequestDetailAtomFamily,
   pullRequestDetailToVcsStatus,
+  resolveThreadPullRequestRef,
 } from "@ras-code/client-runtime/state/pull-requests";
 
 import { connectionAtomRuntime } from "../connection/runtime";
@@ -33,6 +34,33 @@ export function useLinkedPullRequestDetail(
             number: thread.linkedPullRequest.number,
           },
         }),
+  ).data;
+}
+
+/**
+ * Detail for the pull request the thread shows: its linked record when a turn wrote one, and
+ * otherwise the open pull request on its branch, which is the only thing a pull request opened
+ * outside a turn ever has. The branch lookup needs the project's repository to address the read,
+ * so a project without one leaves the thread on its linked record alone.
+ */
+export function useThreadPullRequestDetail(
+  thread: Pick<OrchestrationThreadShell, "projectId" | "branch" | "linkedPullRequest">,
+  environmentId: EnvironmentId,
+  project: { readonly cwd: string | null; readonly repository: string | null },
+) {
+  const gitStatus = useEnvironmentQuery(
+    thread.linkedPullRequest == null && thread.branch !== null && project.cwd !== null
+      ? vcsEnvironment.status({ environmentId, input: { cwd: project.cwd } })
+      : null,
+  ).data;
+  const ref = resolveThreadPullRequestRef({
+    linkedPullRequest: thread.linkedPullRequest,
+    projectId: thread.projectId,
+    repository: project.repository,
+    branchPullRequest: gitStatus?.refName === thread.branch ? gitStatus.pr : null,
+  });
+  return useEnvironmentQuery(
+    ref === null ? null : linkedPullRequestDetailAtom({ environmentId, input: ref }),
   ).data;
 }
 

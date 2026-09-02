@@ -10,16 +10,16 @@ import {
   type ChangeRequestTerminology,
 } from "../sourceControlPresentation";
 
-export type GitActionIconName = "commit" | "push" | "pr" | "conflicts" | "babysit";
+export type GitActionIconName = "commit" | "push" | "pr" | "babysit";
 
 export type GitDialogAction = "commit" | "push" | "create_pr";
 
 export interface GitActionMenuItem {
-  id: "commit" | "push" | "pr" | "resolve_conflicts" | "babysit_pr";
+  id: "commit" | "push" | "pr" | "babysit_pr";
   label: string;
   disabled: boolean;
   icon: GitActionIconName;
-  kind: "open_dialog" | "open_pr" | "resolve_conflicts" | "babysit_pr";
+  kind: "open_dialog" | "open_pr" | "babysit_pr";
   dialogAction?: GitDialogAction;
 }
 
@@ -153,33 +153,20 @@ export function buildMenuItems(
     return [commitItem];
   }
 
-  // Both change-request helpers stay in the menu even when one of them is the quick action, so
-  // viewing the change request never becomes unreachable and neither helper moves as state changes.
-  const assistanceItems: GitActionMenuItem[] = !hasOpenPr
+  // Conflict resolution is never here: it is the one-press action for as long as it applies, and
+  // an offer in two places at once reads as two different things. Babysitting answers to the
+  // thread's own change request rather than to the checkout, so a thread whose worktree is gone
+  // can still hand it over.
+  const assistanceItems: GitActionMenuItem[] = !assistance.babysittable
     ? []
     : [
-        ...(assistance.conflicting
-          ? [
-              {
-                id: "resolve_conflicts",
-                label: "Resolve conflicts",
-                disabled: isBusy,
-                icon: "conflicts",
-                kind: "resolve_conflicts",
-              } satisfies GitActionMenuItem,
-            ]
-          : []),
-        ...(assistance.babysittable
-          ? [
-              {
-                id: "babysit_pr",
-                label: `Babysit ${terminology.shortLabel}`,
-                disabled: isBusy,
-                icon: "babysit",
-                kind: "babysit_pr",
-              } satisfies GitActionMenuItem,
-            ]
-          : []),
+        {
+          id: "babysit_pr",
+          label: `Babysit ${terminology.shortLabel}`,
+          disabled: isBusy,
+          icon: "babysit",
+          kind: "babysit_pr",
+        },
       ];
 
   return [
@@ -213,10 +200,13 @@ export function buildMenuItems(
 }
 
 /**
- * The one-press action for the current branch state. A conflicting change request replaces the
- * "view" action only: every other state names a step that has to happen first anyway, and burying
- * "commit your changes" behind a conflict the branch cannot resolve dirty helps nobody. The menu
- * keeps both.
+ * The one-press action for the current branch state, and the only place conflict resolution is
+ * offered: a change request that collides with its base takes the button outright, because
+ * nothing else the branch could do lands while it collides. Whatever step the branch names —
+ * committing, pushing — stays in the menu, where it was reachable anyway.
+ *
+ * A running git action still wins: the button is that action's progress, and it has nothing to
+ * say about a conflict until it finishes.
  */
 export function resolveQuickAction(
   gitStatus: VcsStatusResult | null,
@@ -225,9 +215,10 @@ export function resolveQuickAction(
   hasPrimaryRemote = true,
   assistance: ThreadChangeRequestAssistance = NO_THREAD_CHANGE_REQUEST_ASSISTANCE,
 ): GitQuickAction {
-  const action = resolveBranchQuickAction(gitStatus, isBusy, isDefaultRef, hasPrimaryRemote);
-  if (action.kind !== "open_pr" || !assistance.conflicting) return action;
-  return { label: "Resolve conflicts", disabled: false, kind: "resolve_conflicts" };
+  if (assistance.conflicting && !isBusy) {
+    return { label: "Resolve conflicts", disabled: false, kind: "resolve_conflicts" };
+  }
+  return resolveBranchQuickAction(gitStatus, isBusy, isDefaultRef, hasPrimaryRemote);
 }
 
 function resolveBranchQuickAction(

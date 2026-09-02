@@ -789,6 +789,7 @@ function ThreadRouteContent(
           loadEarlier={loadEarlierTurns}
           environmentId={selectedThread.environmentId}
           projectWorkspaceRoot={selectedThreadProject?.workspaceRoot ?? null}
+          projectRepository={selectedThreadProject?.repositoryIdentity?.displayName ?? null}
           threadCwd={selectedThreadCwd}
           selectedThreadQueueCount={composer.selectedThreadQueueCount}
           layoutVariant={layout.variant}
