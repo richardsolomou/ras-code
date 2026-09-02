@@ -13,11 +13,14 @@
  */
 
 /**
- * Budget for the rendered transcript. Generous enough for a normal thread,
- * small enough that a very long parent cannot crowd out the actual request.
- * Oldest messages are dropped first, so the turns nearest the fork survive.
+ * Budget for the rendered transcript, in characters. Roughly 30k tokens: an
+ * easy fit for the context window of any model a thread can cross to, and
+ * enough to carry a whole conversation rather than its tail. Sizing it to a
+ * tail is the expensive mistake — the oldest messages are dropped first, and
+ * those are the ones holding the original request and the decisions behind
+ * the work the new provider is about to continue.
  */
-const MAX_TRANSCRIPT_CHARACTERS = 24_000;
+export const MAX_TRANSCRIPT_CHARACTERS = 120_000;
 
 const ROLE_LABELS = {
   user: "User",

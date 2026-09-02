@@ -286,6 +286,13 @@ turn is prefixed with a rendered transcript of the inherited prefix instead
 ([`forkTranscript.ts`][forktranscript]). The workspace carries the real state either way: the fork
 point's checkpoint is restored into the fork's worktree.
 
+The same renderer and the same budget serve the usage-limit handoff. Only message text crosses —
+tool calls, diffs, and provider-side reasoning never do — and the budget is sized to carry a whole
+conversation rather than its tail, because oldest-first truncation drops the original request
+before anything else. Provider-side compaction does not shrink what crosses: it arrives as a
+`context-compaction` activity carrying the boundary's metadata, and no message is ever pruned, so a
+compacted thread hands over more than the provider it is leaving still held.
+
 An adapter that gains a fork primitive only has to emit an anchor and read `forkAtAnchor`; nothing
 above it changes.
 
