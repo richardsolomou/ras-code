@@ -1,6 +1,5 @@
 import type { EnvironmentId, SidebarThreadSortOrder } from "@ras-code/contracts";
 import type { MenuAction } from "@react-native-menu/menu";
-import Constants from "expo-constants";
 import { NativeHeaderToolbar, NativeStackScreenOptions } from "../../native/StackHeader";
 import { useCallback, useMemo, useRef } from "react";
 import { Platform, Pressable, Text as RNText, TextInput, View } from "react-native";
@@ -11,7 +10,6 @@ import { ControlPillMenu } from "../../components/ControlPill";
 import { SymbolView } from "../../components/AppSymbol";
 import { RasCodeWordmark } from "../../components/RasCodeWordmark";
 import { HOME_HORIZONTAL_INSET } from "../../lib/layoutMetrics";
-import { resolveMobileStageLabel } from "../../lib/mobileBranding";
 import { useThemeColor } from "../../lib/useThemeColor";
 import { useHardwareKeyboardCommand } from "../keyboard/hardwareKeyboardCommands";
 import { withNativeGlassHeaderItem } from "../layout/native-glass-header-items";
@@ -64,7 +62,6 @@ function AndroidHomeHeader(props: HomeHeaderProps) {
   const insets = useSafeAreaInsets();
   const iconColor = useThemeColor("--color-icon");
   const mutedColor = useThemeColor("--color-foreground-muted");
-  const stageLabel = resolveMobileStageLabel(Constants.expoConfig?.extra?.appVariant);
   // The list lays out in fixed creation order, so sort/group controls would be
   // silently ignored: the "customized" icon state keys off the filters alone.
   const hasCustomListOptions =
@@ -180,13 +177,7 @@ function AndroidHomeHeader(props: HomeHeaderProps) {
               brand={
                 <View className="flex-row items-center gap-2">
                   <RasCodeWordmark height={13} />
-                  {stageLabel ? (
-                    <View className="rounded-full bg-subtle px-2 py-0.75">
-                      <RNText className="text-[11px] font-ras-code-legend text-foreground-muted">
-                        {stageLabel}
-                      </RNText>
-                    </View>
-                  ) : null}
+                  <RNText className="text-[13px] font-ras-code-bold text-foreground">Code</RNText>
                 </View>
               }
             />

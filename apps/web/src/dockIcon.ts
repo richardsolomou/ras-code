@@ -106,8 +106,8 @@ export function resolveDockIconColors(): DockIconColors | null {
   if (typeof document === "undefined" || typeof getComputedStyle === "undefined") return null;
   const styles = getComputedStyle(document.body);
   return {
-    plate: styles.getPropertyValue("--brand-background").trim(),
-    empty: styles.getPropertyValue("--brand-empty").trim(),
+    plate: styles.getPropertyValue("--dock-icon-background").trim(),
+    empty: styles.getPropertyValue("--dock-icon-empty").trim(),
     low: styles.getPropertyValue("--brand-low").trim(),
     medium: styles.getPropertyValue("--brand-medium").trim(),
     high: styles.getPropertyValue("--brand-high").trim(),
