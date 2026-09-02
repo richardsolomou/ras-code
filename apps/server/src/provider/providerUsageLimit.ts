@@ -52,6 +52,9 @@ const trimmedOrNull = (value: unknown): string | null => {
   return trimmed.length > 0 ? trimmed : null;
 };
 
+const percentFromFraction = (value: number | null): number | null =>
+  value === null ? null : value * 100;
+
 const clampUtilization = (value: unknown, scale: number): number | null => {
   if (!Predicate.isNumber(value) || !Number.isFinite(value)) {
     return null;
@@ -67,12 +70,18 @@ const normalizeClaude = (payload: Record<string, unknown>): ProviderUsageLimit |
   const rawStatus = trimmedOrNull(info.status);
   const status: ProviderUsageLimit["status"] =
     rawStatus === "rejected" ? "exhausted" : rawStatus === "allowed_warning" ? "warning" : "ok";
+  const kind = trimmedOrNull(info.rateLimitType);
+  // The SDK reports utilization as a 0..1 fraction.
+  const utilization = clampUtilization(info.utilization, 1);
+  const resetsAt = isoFromUnixSeconds(info.resetsAt);
   return {
     status,
-    resetsAt: isoFromUnixSeconds(info.resetsAt),
-    kind: trimmedOrNull(info.rateLimitType),
-    // The SDK reports utilization as a 0..1 fraction.
-    utilization: clampUtilization(info.utilization, 1),
+    resetsAt,
+    kind,
+    utilization,
+    // Claude reports one window at a time, so the summary already describes
+    // it. Recorded anyway to keep the field's meaning uniform per provider.
+    windows: [{ name: kind ?? "window", usedPercent: percentFromFraction(utilization), resetsAt }],
   };
 };
 
@@ -80,6 +89,11 @@ const normalizeClaude = (payload: Record<string, unknown>): ProviderUsageLimit |
  * Pick the window that best describes the account's state: the one that is
  * exhausted, else the most-consumed one. Codex reports several rolling
  * windows and a turn is blocked as soon as any of them is full.
+ *
+ * Because any full window blocks a turn, quota returns only once the last
+ * full window has reset. Reporting the most-consumed window's reset instead
+ * would send the thread back to a subscription that is still out of quota:
+ * a full five-hour window resets long before a full weekly one.
  */
 const normalizeCodex = (payload: Record<string, unknown>): ProviderUsageLimit | null => {
   // The Codex adapter forwards the whole notification, which wraps the
@@ -113,6 +127,17 @@ const normalizeCodex = (payload: Record<string, unknown>): ProviderUsageLimit | 
     }
     return { status: "exhausted", resetsAt: null, kind: reachedType, utilization: null };
   }
+  const lastExhaustedReset = windows.reduce<number | null>((latest, candidate) => {
+    const percent = candidate.window.usedPercent;
+    if (!Predicate.isNumber(percent) || percent < CODEX_EXHAUSTED_PERCENT) {
+      return latest;
+    }
+    const reset = candidate.window.resetsAt;
+    if (!Predicate.isNumber(reset)) {
+      return latest;
+    }
+    return latest === null || reset > latest ? reset : latest;
+  }, null);
   const status: ProviderUsageLimit["status"] =
     reachedType !== null || (usedPercent !== null && usedPercent >= CODEX_EXHAUSTED_PERCENT)
       ? "exhausted"
@@ -121,9 +146,16 @@ const normalizeCodex = (payload: Record<string, unknown>): ProviderUsageLimit | 
         : "ok";
   return {
     status,
-    resetsAt: isoFromUnixSeconds(worst.window.resetsAt),
+    resetsAt: isoFromUnixSeconds(lastExhaustedReset) ?? isoFromUnixSeconds(worst.window.resetsAt),
     kind: reachedType ?? worst.name,
     utilization: clampUtilization(usedPercent, 100),
+    windows: windows.map((candidate) => ({
+      name: candidate.name,
+      usedPercent: Predicate.isNumber(candidate.window.usedPercent)
+        ? candidate.window.usedPercent
+        : null,
+      resetsAt: isoFromUnixSeconds(candidate.window.resetsAt),
+    })),
   };
 };
 
