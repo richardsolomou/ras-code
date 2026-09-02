@@ -20,6 +20,10 @@ describe("rebrandText", () => {
     assert.strictEqual(rebrandText("process.env.T3CODE_HOME"), "process.env.RAS_CODE_HOME");
   });
 
+  it("keeps the session cookie name off the ras_code_ prefix", () => {
+    assert.strictEqual(rebrandText('cookie: "t3_session_5775"'), 'cookie: "ras_session_5775"');
+  });
+
   it("rewrites remaining screaming-snake identifiers to the RAS_ prefix", () => {
     assert.strictEqual(rebrandText("T3_ACP_EMIT_TOOL_CALLS"), "RAS_ACP_EMIT_TOOL_CALLS");
   });

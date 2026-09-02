@@ -143,6 +143,11 @@ const textRules: ReadonlyArray<RebrandRule> = [
     description: "kebab-case product id",
   },
   {
+    pattern: /\bt3_session/g,
+    replacement: "ras_session",
+    description: "browser session cookie name",
+  },
+  {
     pattern: /\bt3_/g,
     replacement: "ras_code_",
     description: "snake_case identifiers",
