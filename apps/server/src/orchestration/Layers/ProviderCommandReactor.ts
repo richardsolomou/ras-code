@@ -674,6 +674,7 @@ const make = Effect.gen(function* () {
     readonly model: string;
     readonly modelLabel: string;
     readonly resetsAt: string | null;
+    readonly restartsSession: boolean;
     readonly createdAt: string;
   }) =>
     appendThreadActivity({
@@ -688,6 +689,7 @@ const make = Effect.gen(function* () {
         model: input.model,
         modelLabel: input.modelLabel,
         resetsAt: input.resetsAt,
+        restartsSession: input.restartsSession,
       },
       createdAt: input.createdAt,
     });
@@ -744,6 +746,13 @@ const make = Effect.gen(function* () {
       createdAt: input.createdAt,
     });
 
+  /**
+   * Pick the gateway instance that can serve this selection while the primary
+   * is out of quota, or `undefined` when none can. Instances that share a
+   * continuation key resume the thread's provider conversation; the rest take
+   * it over as a fresh session with the transcript handed across, which is
+   * what `restartsSession` on the result reports.
+   */
   const resolveFallbackSelection = Effect.fn("resolveFallbackSelection")(function* (input: {
     readonly selection: ModelSelection;
     readonly hasStartedSession: boolean;
@@ -810,11 +819,12 @@ const make = Effect.gen(function* () {
       instanceInfo !== undefined &&
       instanceInfo.primary.continuationIdentity.continuationKey ===
         instanceInfo.fallback.continuationIdentity.continuationKey;
-    if (input.hasStartedSession && !sharesContinuation) {
-      return undefined;
-    }
 
     return {
+      // A started thread whose fallback cannot resume its provider
+      // conversation keeps going as a fresh session carrying the transcript,
+      // so the offer can say the conversation restarts rather than resumes.
+      restartsSession: input.hasStartedSession && !sharesContinuation,
       selection: {
         ...input.selection,
         instanceId: fallbackSnapshot.instanceId,
@@ -1800,6 +1810,7 @@ const make = Effect.gen(function* () {
           model: baseSelection.model,
           modelLabel: routed.modelLabel,
           resetsAt: routed.resetsAt,
+          restartsSession: routed.restartsSession,
           createdAt: event.payload.createdAt,
         }).pipe(Effect.ignoreCause({ log: true }));
         return;
@@ -1997,6 +2008,7 @@ const make = Effect.gen(function* () {
       model: baseSelection.model,
       modelLabel: routed.modelLabel,
       resetsAt: routed.resetsAt,
+      restartsSession: routed.restartsSession,
       createdAt: pending.event.payload.createdAt,
     }).pipe(Effect.ignoreCause({ log: true }));
   });

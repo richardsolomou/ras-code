@@ -45,6 +45,11 @@ export function PendingFallbackOfferCard(props: PendingFallbackOfferCardProps) {
         Continue with {props.offer.modelLabel ?? props.offer.model} via {fallbackName} using
         usage-based tokens, or wait for the subscription to reset?
       </Text>
+      {props.offer.restartsSession ? (
+        <Text className="font-sans text-xs leading-normal text-neutral-500 dark:text-neutral-500">
+          {fallbackName} continues from a copy of this chat, so older detail may be lost.
+        </Text>
+      ) : null}
       <View className="flex-row flex-wrap gap-2.5">
         <Pressable
           accessibilityLabel="Wait for subscription reset"

@@ -105,6 +105,11 @@ export interface PendingFallbackOfferPayload {
   readonly model: string;
   readonly modelLabel?: string;
   readonly resetsAt: string | null;
+  /**
+   * The fallback cannot resume this thread's provider conversation, so
+   * accepting restarts it there with the transcript replayed as context.
+   */
+  readonly restartsSession: boolean;
 }
 
 export interface PendingFallbackOfferActivity extends PendingFallbackOfferPayload {
@@ -141,6 +146,7 @@ export function readPendingFallbackOfferPayload(
     model,
     ...(typeof modelLabel === "string" ? { modelLabel } : {}),
     resetsAt: typeof resetsAt === "string" ? resetsAt : null,
+    restartsSession: record.restartsSession === true,
   };
 }
 

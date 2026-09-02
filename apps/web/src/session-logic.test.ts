@@ -382,6 +382,7 @@ describe("derivePendingFallbackOffers", () => {
         fallbackInstanceId: "posthog_gateway",
         model: "claude-sonnet-4-5",
         resetsAt: "2026-02-23T05:00:00.000Z",
+        restartsSession: false,
         createdAt: "2026-02-23T00:00:05.000Z",
       },
     ]);

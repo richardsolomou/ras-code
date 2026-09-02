@@ -59,6 +59,7 @@ export interface PendingFallbackOffer {
   readonly model: string;
   readonly modelLabel?: string;
   readonly resetsAt: string | null;
+  readonly restartsSession: boolean;
   readonly createdAt: string;
 }
 
