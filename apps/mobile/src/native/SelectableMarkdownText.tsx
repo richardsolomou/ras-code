@@ -3,6 +3,8 @@ import type { SelectableMarkdownTextProps } from "@ras-code/mobile-markdown-text
 type MobileSelectableMarkdownTextProps = Omit<SelectableMarkdownTextProps, "highlightCode">;
 
 export type {
+  MarkdownFileContextMenu,
+  MarkdownFileContextMenuAction,
   MarkdownImageRenderer,
   MarkdownImageRequest,
   NativeMarkdownTextStyle,
