@@ -25,9 +25,11 @@ export const preservedPatterns: ReadonlyArray<RegExp> = [
   /\bt3-chat\b/g,
   /\b[\w-]*\.?t3\.(?:codes|chat|tools|sh)\b/g,
   /\bt3\.(?:nano|micro|small|medium|large|xlarge|\d+xlarge)\b/g,
-  // Upstream's repository and anyone's fork of it keep their real slug; only
-  // the fork identity `t3tools/t3code` becomes ours.
-  /\b(?!t3tools\/)[\w-]+\/t3code\b/g,
+  // Upstream's repository, and the forks of it named in fixtures, keep their
+  // real slug; only the fork identity `t3tools/t3code` becomes ours.
+  /\bpingdotgg\/t3code\b/g,
+  /\bPingDotGG\/T3Code\b/g,
+  /\bbinbandit\/t3code\b/g,
   /\bt3_relay\b/g,
 ];
 
@@ -38,7 +40,7 @@ const textRules: ReadonlyArray<RebrandRule> = [
     description: "workspace package scope",
   },
   {
-    pattern: /\bt3tools\/t3code\b/g,
+    pattern: /\bt3tools\/t3code\b/gi,
     replacement: "richardsolomou/ras-code",
     description: "fork repository slug",
   },
@@ -107,6 +109,11 @@ const textRules: ReadonlyArray<RebrandRule> = [
     pattern: /\bt3ProjectFile/g,
     replacement: "rasProjectFile",
     description: "project file helpers",
+  },
+  {
+    pattern: /\bT3Code\b/g,
+    replacement: "RasCode",
+    description: "PascalCase product name",
   },
   {
     pattern: /T3(?=[A-Z])/g,

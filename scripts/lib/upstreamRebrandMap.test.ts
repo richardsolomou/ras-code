@@ -65,7 +65,13 @@ describe("rebrandText", () => {
       rebrandText('url: "https://github.com/binbandit/t3code/pull/642"'),
       'url: "https://github.com/binbandit/t3code/pull/642"',
     );
+    assert.strictEqual(rebrandText('repo: "PingDotGG/T3Code"'), 'repo: "PingDotGG/T3Code"');
     assert.strictEqual(rebrandText('repo: "t3tools/t3code"'), 'repo: "richardsolomou/ras-code"');
+    assert.strictEqual(rebrandText('repo: "T3Tools/T3Code"'), 'repo: "richardsolomou/ras-code"');
+  });
+
+  it("rewrites the PascalCase product name without doubling Code", () => {
+    assert.strictEqual(rebrandText("ios/T3Code"), "ios/RasCode");
   });
 
   it("rewrites the remote access product name in ids and search terms", () => {
