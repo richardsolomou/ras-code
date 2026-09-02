@@ -218,6 +218,7 @@ const config: ExpoConfig = {
       },
       NSLocalNetworkUsageDescription:
         "Allow RAS Code to connect to RAS Code servers on your local network or tailnet.",
+      NSPhotoLibraryAddUsageDescription: "Allow RAS Code to save images to your photo library.",
       ITSAppUsesNonExemptEncryption: false,
       // The App Store screenshot harness rotates the iPad interface from
       // inside the app (CI denies osascript the Accessibility access that
@@ -317,7 +318,7 @@ const config: ExpoConfig = {
     [
       "expo-audio",
       {
-        microphonePermission: "Allow T3 Code to use your microphone for voice input.",
+        microphonePermission: "Allow RAS Code to use your microphone for voice input.",
         recordAudioAndroid: false,
         enableBackgroundPlayback: false,
         enableBackgroundRecording: false,

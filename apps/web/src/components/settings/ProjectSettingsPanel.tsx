@@ -302,7 +302,7 @@ function ProjectDetail({ group }: { group: SidebarProjectSnapshot }) {
     group.memberProjects.find(
       (member) => member.environmentId === group.environmentId && member.id === group.id,
     ) ?? group.memberProjects[0]!;
-  const settings = useEnvironmentSettings(representative.environmentId);
+  const projectSettings = useEnvironmentSettings(representative.environmentId);
   const updateClientSettings = useUpdateClientSettings();
   const projectGroupingSettings = useClientSettings(selectProjectGroupingSettings);
   const serverProviders =
@@ -429,21 +429,29 @@ function ProjectDetail({ group }: { group: SidebarProjectSnapshot }) {
   // the global default from Settings, resolved against available providers.
   const resolvedSelection = resolveDefaultProviderModelSelection(
     serverProviders,
-    resolveEffectiveDefaultModelSelection(representative, settings),
+    resolveEffectiveDefaultModelSelection(representative, projectSettings),
   );
   const resolvedInstanceId = resolvedSelection?.instanceId ?? null;
   const resolvedModel = resolvedSelection?.model ?? null;
   const instanceEntries = useMemo(
     () =>
       sortProviderInstanceEntries(
-        applyProviderInstanceSettings(deriveProviderInstanceEntries(serverProviders), settings),
+        applyProviderInstanceSettings(
+          deriveProviderInstanceEntries(serverProviders),
+          projectSettings,
+        ),
       ),
-    [serverProviders, settings],
+    [serverProviders, projectSettings],
   );
   const modelOptionsByInstance = useMemo(
     () =>
-      getCustomModelOptionsByInstance(settings, serverProviders, resolvedInstanceId, resolvedModel),
-    [resolvedInstanceId, resolvedModel, serverProviders, settings],
+      getCustomModelOptionsByInstance(
+        projectSettings,
+        serverProviders,
+        resolvedInstanceId,
+        resolvedModel,
+      ),
+    [resolvedInstanceId, resolvedModel, serverProviders, projectSettings],
   );
   const activeEntry = instanceEntries.find((entry) => entry.instanceId === resolvedInstanceId);
   const setDefaultModel = useCallback(
@@ -523,7 +531,8 @@ function ProjectDetail({ group }: { group: SidebarProjectSnapshot }) {
   );
   // What the "Default" option resolves to while no override is set: the
   // repo's ras.json value when present, otherwise the global setting.
-  const inheritedEnvMode = rasFile.file?.defaultThreadEnvMode ?? settings.defaultThreadEnvMode;
+  const inheritedEnvMode =
+    rasFile.file?.defaultThreadEnvMode ?? projectSettings.defaultThreadEnvMode;
   const inheritedEnvModeSource = rasFile.file?.defaultThreadEnvMode != null ? "ras.json" : "global";
   const importableScripts = useMemo(
     () =>
@@ -734,8 +743,10 @@ function ProjectDetail({ group }: { group: SidebarProjectSnapshot }) {
                 ]
               : [`This removes ${members.length} grouped project entries.`]),
             ...(projectThreads.length > 0
-              ? ["This permanently clears conversation history for those threads."]
-              : []),
+              ? [
+                  "This permanently clears conversation history for those threads and any archived threads.",
+                ]
+              : ["This permanently clears any archived conversation history."]),
             isWholeGroup
               ? "This removes only the project entries, not the files on disk."
               : "Other entries in this grouped project are unaffected.",
@@ -803,7 +814,7 @@ function ProjectDetail({ group }: { group: SidebarProjectSnapshot }) {
 
   return (
     <>
-      <SettingsPageContainer>
+      <SettingsPageContainer width="wide" className="gap-8">
         <SettingsSection title="Project">
           <SettingsRow
             title="Name"
@@ -886,9 +897,6 @@ function ProjectDetail({ group }: { group: SidebarProjectSnapshot }) {
               </div>
             }
           />
-        </SettingsSection>
-
-        <SettingsSection title="New threads">
           <SettingsRow
             title="Model"
             description={
@@ -1180,10 +1188,7 @@ function ProjectDetail({ group }: { group: SidebarProjectSnapshot }) {
                         icon={script.icon}
                         className="size-4 shrink-0 text-muted-foreground"
                       />
-                      <span className="max-w-40 shrink-0 truncate">{script.name}</span>
-                      <code className="min-w-0 flex-1 truncate font-mono font-normal text-muted-foreground">
-                        {script.command}
-                      </code>
+                      <span className="min-w-0 truncate">{script.name}</span>
                       {script.runOnWorktreeCreate ? (
                         <span className="shrink-0 rounded-sm border border-border/60 px-1.5 py-px text-[11px] font-normal text-muted-foreground">
                           setup
@@ -1195,6 +1200,9 @@ function ProjectDetail({ group }: { group: SidebarProjectSnapshot }) {
                         </span>
                       ) : null}
                     </span>
+                  }
+                  description={
+                    <code className="block max-w-full truncate font-mono">{script.command}</code>
                   }
                   control={
                     <>

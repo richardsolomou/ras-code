@@ -1,4 +1,7 @@
 import {
+  type AssetCreateUrlInput,
+  type AssetCreateUrlResult,
+  type ChatFileAttachment,
   type EnvironmentId,
   isProviderDriverKind,
   ProjectId,
@@ -16,6 +19,12 @@ import {
 } from "@ras-code/contracts";
 import { selectForkInheritedPrefix } from "@ras-code/shared/forkHistory";
 import { isPostHogGatewayCrossShapeModelChange } from "@ras-code/shared/posthogGateway";
+import { resolveAssetUrl } from "@ras-code/client-runtime/state/assets";
+import {
+  squashAtomCommandFailure,
+  type AtomCommandResult,
+} from "@ras-code/client-runtime/state/runtime";
+import { videoMimeType } from "@ras-code/shared/video";
 import {
   appendCodexArtifactTemplateUsePrompt,
   codexArtifactTemplateUsePrompt,
@@ -95,6 +104,22 @@ export function shouldReleaseTimelineAnchorForToolActivity(input: {
   });
 }
 
+export function toolGroupConsumesUpwardNavigation(target: EventTarget | null): boolean {
+  const elementTarget = target instanceof Element ? target : null;
+  const group = elementTarget?.closest<HTMLElement>("[data-tool-group-scroll]");
+  if (!group) return false;
+
+  // A nested result or the group itself can consume an upward scroll.
+  for (let element = elementTarget; element; element = element.parentElement) {
+    if (element.scrollTop > 0) {
+      const overflowY = getComputedStyle(element).overflowY;
+      if (overflowY === "auto" || overflowY === "scroll") return true;
+    }
+    if (element === group) break;
+  }
+  return false;
+}
+
 export function resolveDraftHeroState(input: {
   isLocalDraftThread: boolean;
   hasTimelineEntries: boolean;
@@ -115,13 +140,19 @@ export function resolveDraftHeroState(input: {
 
 export function resolveDraftPromotionNavigationTarget(input: {
   serverThreadRef: ScopedThreadRef | null;
-  serverThreadStarted: boolean;
+  serverThread: Pick<Thread, "latestTurn" | "session"> | null | undefined;
   backgroundSubmissionPending: boolean;
 }): ScopedThreadRef | null {
   if (input.backgroundSubmissionPending) {
     return null;
   }
-  return input.serverThreadStarted ? input.serverThreadRef : null;
+  const sessionStatus = input.serverThread?.session?.status;
+  const turnStarted = input.serverThread?.latestTurn?.startedAt != null;
+  const startupStopped =
+    sessionStatus === "error" || sessionStatus === "stopped" || sessionStatus === "interrupted";
+  // Keep local preparation feedback mounted until the server can render the
+  // running turn or its startup error on the canonical thread route.
+  return turnStarted || startupStopped ? input.serverThreadRef : null;
 }
 
 export function scheduleEnvironmentReconnectWarning(showWarning: () => void): () => void {
@@ -420,10 +451,32 @@ export function revokeBlobPreviewUrl(previewUrl: string | undefined): void {
   URL.revokeObjectURL(previewUrl);
 }
 
-export async function loadVideoPreviewUrl(url: string, signal?: AbortSignal): Promise<string> {
-  const response = await fetch(url, signal ? { signal } : {});
-  if (!response.ok) throw new Error(`Could not load video (${response.status}).`);
-  return URL.createObjectURL(await response.blob());
+/** Signs an attachment URL without reading its bytes, so video playback can request byte ranges. */
+export async function resolveFileAttachmentUrl(input: {
+  attachment: ChatFileAttachment;
+  environmentId: EnvironmentId;
+  httpBaseUrl: string;
+  createAssetUrl: (input: {
+    environmentId: EnvironmentId;
+    input: AssetCreateUrlInput;
+  }) => Promise<AtomCommandResult<AssetCreateUrlResult, unknown>>;
+}): Promise<string> {
+  const { attachment } = input;
+  const result = await input.createAssetUrl({
+    environmentId: input.environmentId,
+    input: {
+      resource: {
+        _tag: "attachment",
+        attachmentId: attachment.id,
+        fileName: attachment.name,
+        mimeType: videoMimeType(attachment) ?? attachment.mimeType,
+      },
+    },
+  });
+  if (result._tag === "Failure") throw squashAtomCommandFailure(result);
+  const url = resolveAssetUrl(input.httpBaseUrl, result.value.relativeUrl);
+  if (url === null) throw new Error("The environment returned an invalid attachment URL.");
+  return url;
 }
 
 export function isVideoPreviewRequestCurrent(

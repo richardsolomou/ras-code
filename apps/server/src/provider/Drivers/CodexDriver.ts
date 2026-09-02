@@ -21,7 +21,7 @@
  *
  * @module provider/Drivers/CodexDriver
  */
-import { CodexSettings, ProviderDriverKind, type ServerProvider } from "@ras-code/contracts";
+import { CodexSettings, ProviderDriverKind } from "@ras-code/contracts";
 import * as Crypto from "effect/Crypto";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -36,7 +36,12 @@ import { ServerConfig } from "../../config.ts";
 import { ServerSettingsService } from "../../serverSettings.ts";
 import { ProviderDriverError } from "../Errors.ts";
 import { makeCodexAdapter } from "../Layers/CodexAdapter.ts";
-import { checkCodexProviderStatus, makePendingCodexProvider } from "../Layers/CodexProvider.ts";
+import {
+  checkCodexProviderStatus,
+  makePendingCodexProvider,
+  probeCodexSkillsForCwd,
+} from "../Layers/CodexProvider.ts";
+import { resolveCodexLaunchArgs } from "../Layers/codexLaunchArgs.ts";
 import { ProviderEventLoggers } from "../Layers/ProviderEventLoggers.ts";
 import { makeManagedServerProvider } from "../makeManagedServerProvider.ts";
 import * as ModelManifest from "../ModelManifest.ts";
@@ -45,7 +50,7 @@ import type {
   ProviderDriverCreateInput,
   ProviderInstance,
 } from "../ProviderDriver.ts";
-import type { ServerProviderDraft } from "../providerSnapshot.ts";
+import { withInstanceIdentity } from "./instanceIdentity.ts";
 import { mergeProviderInstanceEnvironment } from "../ProviderInstanceEnvironment.ts";
 import {
   enrichProviderSnapshotWithVersionAdvisory,
@@ -110,28 +115,6 @@ export type CodexDriverEnv =
   | ServerConfig
   | ServerSettingsService;
 
-/**
- * Stamp instance identity onto a `ServerProvider` snapshot produced by the
- * driver-kind-only codex helpers. Once `buildServerProvider` in
- * `providerSnapshot.ts` is widened to accept `instanceId`/`driver`, this
- * wrapper disappears.
- */
-const withInstanceIdentity =
-  (input: {
-    readonly instanceId: ProviderInstance["instanceId"];
-    readonly displayName: string | undefined;
-    readonly accentColor: string | undefined;
-    readonly continuationGroupKey: string;
-  }) =>
-  (snapshot: ServerProviderDraft): ServerProvider => ({
-    ...snapshot,
-    instanceId: input.instanceId,
-    driver: DRIVER_KIND,
-    ...(input.displayName ? { displayName: input.displayName } : {}),
-    ...(input.accentColor ? { accentColor: input.accentColor } : {}),
-    continuation: { groupKey: input.continuationGroupKey },
-  });
-
 export const createCodexInstance = (
   {
     instanceId,
@@ -154,6 +137,7 @@ export const createCodexInstance = (
     const continuationIdentity = codexContinuationIdentity(homeLayout);
     const stampIdentity = withInstanceIdentity({
       instanceId,
+      driverKind: DRIVER_KIND,
       displayName,
       accentColor,
       continuationGroupKey: continuationIdentity.continuationKey,
@@ -247,6 +231,34 @@ export const createCodexInstance = (
           }),
       ),
     );
+    const snapshotForCwd = (cwd: string) =>
+      !effectiveConfig.enabled
+        ? snapshot.getSnapshot
+        : Effect.all([
+            snapshot.getSnapshot,
+            probeCodexSkillsForCwd({
+              binaryPath: effectiveConfig.binaryPath,
+              homePath: effectiveConfig.homePath,
+              launchArgs: resolveCodexLaunchArgs(effectiveConfig.launchArgs, processEnv),
+              cwd,
+              environment: processEnv,
+            }).pipe(
+              Effect.scoped,
+              Effect.timeout("20 seconds"),
+              Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, spawner),
+            ),
+          ]).pipe(
+            Effect.map(([machineSnapshot, skills]) => ({ ...machineSnapshot, skills })),
+            Effect.mapError(
+              (cause) =>
+                new ProviderDriverError({
+                  driver: DRIVER_KIND,
+                  instanceId,
+                  detail: `Failed to probe Codex skills for '${cwd}'`,
+                  cause,
+                }),
+            ),
+          );
 
     return {
       instanceId,
@@ -256,6 +268,7 @@ export const createCodexInstance = (
       accentColor,
       enabled,
       snapshot,
+      snapshotForCwd,
       adapter,
       textGeneration,
     } satisfies ProviderInstance;

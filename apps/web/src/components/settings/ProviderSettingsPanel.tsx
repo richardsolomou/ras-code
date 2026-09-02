@@ -24,7 +24,7 @@ import * as Duration from "effect/Duration";
 import * as Equal from "effect/Equal";
 import * as Result from "effect/Result";
 import { ChevronDownIcon, LoaderIcon, PlusIcon, RefreshCwIcon } from "lucide-react";
-import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { isElectron } from "../../env";
 import { usePrimarySessionState } from "../../environments/primary";
@@ -74,6 +74,7 @@ import {
   SettingsRow,
   SettingsSection,
   useRelativeTimeTick,
+  useSettingsSearchTargetId,
 } from "./settingsLayout";
 import {
   classifyProviderEnvironmentAccess,
@@ -152,7 +153,7 @@ function EnvironmentUnavailableRow({
   // No spinner: this state can persist indefinitely for a wedged device, and a
   // continuously repainting animation would run the whole time.
   return (
-    <SettingsSection title="Providers">
+    <SettingsSection {...searchableSetting("providers")}>
       {deviceTabs}
       <SettingsRow title={title} description={description} />
     </SettingsSection>
@@ -174,7 +175,7 @@ export function ProviderSettingsPanel() {
   return (
     <SettingsPageContainer width="expanded" className="gap-8">
       {options.length === 0 ? (
-        <SettingsSection title="Providers">
+        <SettingsSection {...searchableSetting("providers")}>
           <SettingsRow
             title={isReady ? "No connected devices" : "Loading devices"}
             description={
@@ -335,11 +336,18 @@ export function EnvironmentProviderSettings({
   const [selectedInstanceId, setSelectedInstanceId] = useState<ProviderInstanceId | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const advancedVisible = readOnly || advancedOpen;
+  const searchTargetId = useSettingsSearchTargetId();
   const [updatingProviderDrivers, setUpdatingProviderDrivers] = useState<
     ReadonlySet<ProviderDriverKind>
   >(() => new Set());
   const refreshingRef = useRef(false);
   const updatingDriversRef = useRef<Set<ProviderDriverKind>>(new Set());
+
+  useEffect(() => {
+    if (searchTargetId === searchableSetting("provider-health-check-interval").id) {
+      setAdvancedOpen(true);
+    }
+  }, [searchTargetId]);
 
   const providerUpdateCandidates = useMemo(
     () => collectProviderUpdateCandidates(serverProviders),
@@ -814,9 +822,10 @@ export function EnvironmentProviderSettings({
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <SettingsRow
+                  id={searchableSetting("provider-health-check-interval").id}
                   title={
                     <span className="inline-flex items-center gap-1.5">
-                      Health check interval
+                      {searchableSetting("provider-health-check-interval").title}
                       <PolicyTooltip>
                         This interval is configured here, then the shared Background activity policy
                         decides whether provider probes may run when the timer fires. Custom

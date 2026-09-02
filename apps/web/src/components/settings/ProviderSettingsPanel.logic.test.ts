@@ -3,9 +3,33 @@ import { describe, expect, it } from "vite-plus/test";
 
 import {
   classifyProviderEnvironmentAccess,
+  isProviderSettingsEnvironmentAvailable,
   resolvePrimaryOperateAccess,
   resolveRemoteOperateAccess,
 } from "./ProviderSettingsPanel.logic";
+
+describe("provider settings availability", () => {
+  it("requires a connected environment with server config for searchable provider settings", () => {
+    expect(
+      isProviderSettingsEnvironmentAvailable({
+        connectionPhase: "connected",
+        hasServerConfig: true,
+      }),
+    ).toBe(true);
+    expect(
+      isProviderSettingsEnvironmentAvailable({
+        connectionPhase: "reconnecting",
+        hasServerConfig: true,
+      }),
+    ).toBe(false);
+    expect(
+      isProviderSettingsEnvironmentAvailable({
+        connectionPhase: "connected",
+        hasServerConfig: false,
+      }),
+    ).toBe(false);
+  });
+});
 
 describe("provider environment access", () => {
   it("allows connected environments with config and operate access", () => {

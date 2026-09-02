@@ -6,7 +6,7 @@ import type {
 } from "@ras-code/contracts";
 import { PROVIDER_DISPLAY_NAMES } from "@ras-code/contracts";
 import {
-  buildProviderOptionSelectionsFromDescriptors,
+  buildExplicitProviderOptionSelectionsFromDescriptors,
   getProviderOptionDescriptors,
 } from "@ras-code/shared/model";
 import { isPostHogGatewayCrossShapeModelChange } from "@ras-code/shared/posthogGateway";
@@ -71,11 +71,12 @@ function normalizeSelectionOptions(
   if (!capabilities) {
     return selection;
   }
-  const options = buildProviderOptionSelectionsFromDescriptors(
+  const options = buildExplicitProviderOptionSelectionsFromDescriptors(
     getProviderOptionDescriptors({
       caps: capabilities,
       selections: selection.options,
     }),
+    selection.options,
   );
   return options
     ? { ...selection, options }

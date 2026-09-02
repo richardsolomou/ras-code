@@ -4,12 +4,14 @@ import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 
 import * as ServerConfig from "../config.ts";
+import * as ServerEnvironment from "../environment/ServerEnvironment.ts";
 import * as EnvironmentAuthPolicy from "./EnvironmentAuthPolicy.ts";
 
 const makeEnvironmentAuthPolicyLayer = (
   overrides?: Partial<ServerConfig.ServerConfig["Service"]>,
 ) =>
   EnvironmentAuthPolicy.layer.pipe(
+    Layer.provide(ServerEnvironment.identityLayer),
     Layer.provide(
       Layer.effect(
         ServerConfig.ServerConfig,
@@ -109,7 +111,7 @@ it.layer(NodeServices.layer)("EnvironmentAuthPolicy.layer", (it) => {
 
       expect(descriptor.policy).toBe("remote-reachable");
       expect(descriptor.bootstrapMethods).toEqual(["one-time-token"]);
-      expect(descriptor.sessionCookieName).toBe("ras_session");
+      expect(descriptor.sessionCookieName).toMatch(/^ras_session_[a-f0-9]{12}$/);
     }).pipe(
       Effect.provide(
         makeEnvironmentAuthPolicyLayer({
@@ -145,7 +147,7 @@ it.layer(NodeServices.layer)("EnvironmentAuthPolicy.layer", (it) => {
       const descriptor = yield* policy.getDescriptor();
 
       expect(descriptor.policy).toBe("remote-reachable");
-      expect(descriptor.sessionCookieName).toBe("ras_session");
+      expect(descriptor.sessionCookieName).toMatch(/^ras_session_[a-f0-9]{12}$/);
     }).pipe(
       Effect.provide(
         makeEnvironmentAuthPolicyLayer({

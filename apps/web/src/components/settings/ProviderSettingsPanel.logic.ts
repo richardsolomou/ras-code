@@ -1,6 +1,13 @@
 import type { EnvironmentConnectionPhase } from "@ras-code/client-runtime/connection";
 import { AuthOrchestrationOperateScope, type AuthSessionState } from "@ras-code/contracts";
 
+export function isProviderSettingsEnvironmentAvailable(input: {
+  readonly connectionPhase: EnvironmentConnectionPhase;
+  readonly hasServerConfig: boolean;
+}): boolean {
+  return input.connectionPhase === "connected" && input.hasServerConfig;
+}
+
 export type ProviderEnvironmentAccess =
   | { readonly kind: "editable" }
   /** `reason` distinguishes waiting on the device from waiting on permissions. */
