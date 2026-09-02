@@ -52,6 +52,9 @@ const trimmedOrNull = (value: unknown): string | null => {
   return trimmed.length > 0 ? trimmed : null;
 };
 
+const percentFromFraction = (value: number | null): number | null =>
+  value === null ? null : value * 100;
+
 const clampUtilization = (value: unknown, scale: number): number | null => {
   if (!Predicate.isNumber(value) || !Number.isFinite(value)) {
     return null;
@@ -67,12 +70,18 @@ const normalizeClaude = (payload: Record<string, unknown>): ProviderUsageLimit |
   const rawStatus = trimmedOrNull(info.status);
   const status: ProviderUsageLimit["status"] =
     rawStatus === "rejected" ? "exhausted" : rawStatus === "allowed_warning" ? "warning" : "ok";
+  const kind = trimmedOrNull(info.rateLimitType);
+  // The SDK reports utilization as a 0..1 fraction.
+  const utilization = clampUtilization(info.utilization, 1);
+  const resetsAt = isoFromUnixSeconds(info.resetsAt);
   return {
     status,
-    resetsAt: isoFromUnixSeconds(info.resetsAt),
-    kind: trimmedOrNull(info.rateLimitType),
-    // The SDK reports utilization as a 0..1 fraction.
-    utilization: clampUtilization(info.utilization, 1),
+    resetsAt,
+    kind,
+    utilization,
+    // Claude reports one window at a time, so the summary already describes
+    // it. Recorded anyway to keep the field's meaning uniform per provider.
+    windows: [{ name: kind ?? "window", usedPercent: percentFromFraction(utilization), resetsAt }],
   };
 };
 
@@ -140,6 +149,13 @@ const normalizeCodex = (payload: Record<string, unknown>): ProviderUsageLimit | 
     resetsAt: isoFromUnixSeconds(lastExhaustedReset) ?? isoFromUnixSeconds(worst.window.resetsAt),
     kind: reachedType ?? worst.name,
     utilization: clampUtilization(usedPercent, 100),
+    windows: windows.map((candidate) => ({
+      name: candidate.name,
+      usedPercent: Predicate.isNumber(candidate.window.usedPercent)
+        ? candidate.window.usedPercent
+        : null,
+      resetsAt: isoFromUnixSeconds(candidate.window.resetsAt),
+    })),
   };
 };
 

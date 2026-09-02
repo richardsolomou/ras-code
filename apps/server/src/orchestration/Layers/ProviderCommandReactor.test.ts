@@ -3506,6 +3506,38 @@ describe("ProviderCommandReactor", () => {
       await respondToFallbackOffer(harness, commandId, requestId, "switch");
     };
 
+    it("records the primary's quota windows on the offer it writes", async () => {
+      const harness = await createHarness(
+        fallbackHarnessInput({
+          usageLimits: new Map([
+            [
+              PRIMARY,
+              {
+                ...EXHAUSTED,
+                windows: [
+                  { name: "primary", usedPercent: 100, resetsAt: "2099-01-01T00:00:00.000Z" },
+                  { name: "secondary", usedPercent: 100, resetsAt: "2099-01-05T00:00:00.000Z" },
+                ],
+              },
+            ],
+          ]),
+        }),
+      );
+      await dispatchTurn(harness, "cmd-fallback-windows");
+
+      await waitFor(
+        async () =>
+          findActivity(await harness.readModel(), "provider.fallback.offered") !== undefined,
+      );
+      const offer = findActivity(await harness.readModel(), "provider.fallback.offered");
+      expect(offer?.payload).toMatchObject({
+        usageWindows: [
+          { name: "primary", usedPercent: 100, resetsAt: "2099-01-01T00:00:00.000Z" },
+          { name: "secondary", usedPercent: 100, resetsAt: "2099-01-05T00:00:00.000Z" },
+        ],
+      });
+    });
+
     it("discovers a PostHog gateway with the same model without a fallback setting", async () => {
       const harness = await createHarness({
         threadModelSelection: PRIMARY_SELECTION,

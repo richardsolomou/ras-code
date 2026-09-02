@@ -8,6 +8,7 @@ import {
   type OrchestrationEvent,
   ProviderDriverKind,
   type ProviderInstanceId,
+  type ProviderUsageLimitWindow,
   type ProviderRuntimeEvent,
   type ProjectId,
   type OrchestrationSession,
@@ -677,6 +678,11 @@ const make = Effect.gen(function* () {
     readonly modelLabel: string;
     readonly resetsAt: string | null;
     readonly restartsSession: boolean;
+    // The primary's reported quota windows at the moment it ran dry. Written
+    // for diagnosis only: nothing reads it back, and quota state is otherwise
+    // in-memory, so an exhaustion leaves no other trace of which window
+    // caused it.
+    readonly usageWindows: ReadonlyArray<ProviderUsageLimitWindow> | null;
     readonly createdAt: string;
   }) =>
     appendThreadActivity({
@@ -692,6 +698,7 @@ const make = Effect.gen(function* () {
         modelLabel: input.modelLabel,
         resetsAt: input.resetsAt,
         restartsSession: input.restartsSession,
+        usageWindows: input.usageWindows,
       },
       createdAt: input.createdAt,
     });
@@ -888,6 +895,7 @@ const make = Effect.gen(function* () {
       primaryInstanceId: input.selection.instanceId,
       sharesContinuation,
       resetsAt: primaryUsage.resetsAt,
+      usageWindows: primaryUsage.windows ?? null,
     } as const;
   });
 
@@ -1880,6 +1888,7 @@ const make = Effect.gen(function* () {
           modelLabel: routed.modelLabel,
           resetsAt: routed.resetsAt,
           restartsSession: routed.restartsSession,
+          usageWindows: routed.usageWindows,
           createdAt: event.payload.createdAt,
         }).pipe(Effect.ignoreCause({ log: true }));
         return;
@@ -2094,6 +2103,7 @@ const make = Effect.gen(function* () {
       modelLabel: routed.modelLabel,
       resetsAt: routed.resetsAt,
       restartsSession: routed.restartsSession,
+      usageWindows: routed.usageWindows,
       createdAt: pending.event.payload.createdAt,
     }).pipe(Effect.ignoreCause({ log: true }));
   });

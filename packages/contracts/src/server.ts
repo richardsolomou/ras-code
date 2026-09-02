@@ -199,6 +199,20 @@ export type ServerProviderUpdateState = typeof ServerProviderUpdateState.Type;
 export const ProviderUsageLimitStatus = Schema.Literals(["ok", "warning", "exhausted"]);
 export type ProviderUsageLimitStatus = typeof ProviderUsageLimitStatus.Type;
 
+/**
+ * One rolling quota window as the provider reported it, before the fields
+ * above reduce them to a single verdict. Recorded so an exhaustion can be
+ * explained after the fact: the summary alone cannot say whether a short
+ * window or a long one is the thing holding the account back.
+ */
+export const ProviderUsageLimitWindow = Schema.Struct({
+  name: TrimmedNonEmptyString,
+  // Percentage of the window consumed, 0..100, when the provider reports it.
+  usedPercent: Schema.NullOr(Schema.Number),
+  resetsAt: Schema.NullOr(IsoDateTime),
+});
+export type ProviderUsageLimitWindow = typeof ProviderUsageLimitWindow.Type;
+
 export const ProviderUsageLimit = Schema.Struct({
   status: ProviderUsageLimitStatus,
   resetsAt: Schema.NullOr(IsoDateTime),
@@ -207,6 +221,9 @@ export const ProviderUsageLimit = Schema.Struct({
   kind: Schema.NullOr(TrimmedNonEmptyString),
   // Fraction of the window consumed, 0..1, when the provider reports it.
   utilization: Schema.NullOr(Schema.Number),
+  // Absent when the state was inferred from a failure message rather than a
+  // structured report, which names no windows.
+  windows: Schema.optional(Schema.Array(ProviderUsageLimitWindow)),
 });
 export type ProviderUsageLimit = typeof ProviderUsageLimit.Type;
 

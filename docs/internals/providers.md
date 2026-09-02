@@ -91,6 +91,12 @@ the reset of the _last_ full window rather than the most-consumed one. A five-ho
 long before a full weekly one, and returning at the earlier instant would hand the thread back to a
 subscription that is still out of quota.
 
+`ProviderUsageLimit.windows` keeps the per-window breakdown the provider reported, which the four
+summary fields reduce to one verdict. Nothing reads it back — routing decides from `status` and
+`resetsAt` — but the `provider.fallback.offered` activity records it, and because quota state is
+never otherwise persisted that activity is the only durable evidence of which window ran an account
+dry. It is absent when the state was inferred from a failure message, which names no windows.
+
 `ProviderCommandReactor` owns the routing. It offers the gateway only when the subscription is
 exhausted, the gateway advertises the exact requested model, and the gateway is available and not
 exhausted. Instances that share a continuation key move the thread's provider conversation intact —
