@@ -11,7 +11,6 @@ import type {
   ThreadId,
   TurnId,
 } from "@ras-code/contracts";
-import { classifyMarkdownImageSource } from "@ras-code/client-runtime/markdown-images";
 import {
   CHAT_LIST_ANCHOR_OFFSET,
   resolveChatListAnchoredEndSpace,
@@ -614,7 +613,11 @@ function ThreadMarkdownImage(props: {
       }
       unavailable={assetUrl._tag === "Failure"}
       {...(assetUrl._tag === "Failure" ? { failureReason: assetUrl.reason } : {})}
-      detail={props.path}
+      detail={
+        props.resource._tag === "workspace-file"
+          ? props.resource.path
+          : (props.resource.fileName ?? null)
+      }
       alt={props.alt}
       onPressPreview={props.onPressPreview}
     />

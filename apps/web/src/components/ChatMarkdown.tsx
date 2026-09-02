@@ -1256,7 +1256,11 @@ export const ChatMarkdownAssetImage = memo(function ChatMarkdownAssetImage(props
     return (
       <ChatMarkdownImageFallback
         alt={props.alt}
-        path={props.path}
+        {...(props.resource._tag === "workspace-file"
+          ? { path: props.resource.path }
+          : props.resource.fileName !== undefined
+            ? { path: props.resource.fileName }
+            : {})}
         copyMarkdown={props.copyMarkdown}
         reason={assetUrl._tag === "Failure" ? assetUrl.reason : "unavailable"}
       />
