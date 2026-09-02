@@ -61,6 +61,7 @@ import { ProviderCommandReactor } from "../Services/ProviderCommandReactor.ts";
 import { ProjectionSnapshotQuery } from "../Services/ProjectionSnapshotQuery.ts";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as Clock from "effect/Clock";
+import * as DateTime from "effect/DateTime";
 import { ServerSettingsService } from "../../serverSettings.ts";
 import { VcsStatusBroadcaster } from "../../vcs/VcsStatusBroadcaster.ts";
 import * as GitWorkflowService from "../../git/GitWorkflowService.ts";
@@ -4035,6 +4036,137 @@ describe("ProviderCommandReactor", () => {
       });
     });
 
+    it("resumes a reaped gateway session instead of refusing the turn", async () => {
+      const primary = ProviderInstanceId.make("codex");
+      const selection = { instanceId: primary, model: "gpt-5.6-codex" } as const;
+      const harness = await createHarness({
+        threadModelSelection: selection,
+        usageLimits: new Map<ProviderInstanceId, ProviderUsageLimit>([[primary, EXHAUSTED]]),
+        extraProviderSnapshots: [
+          {
+            instanceId: FALLBACK,
+            driver: "posthogGateway",
+            enabled: true,
+            displayName: "PostHog AI Gateway",
+            models: [
+              {
+                slug: `openai/${selection.model}`,
+                name: "GPT-5.6 Codex",
+                isCustom: false,
+                capabilities: null,
+              },
+            ],
+          },
+        ],
+      });
+      await dispatchTurn(harness, "cmd-fallback-reaped-1");
+      await confirmSwitchOnce(harness, "cmd-fallback-reaped-confirm");
+      await waitFor(() => harness.sendTurn.mock.calls.length === 1);
+
+      // The reaper stops an idle session, leaving the thread bound to the
+      // gateway in the read model with no live session behind it.
+      harness.runtimeSessions.length = 0;
+
+      await dispatchCommand(harness, {
+        type: "thread.turn.start",
+        commandId: CommandId.make("cmd-fallback-reaped-2"),
+        threadId: ThreadId.make("thread-1"),
+        message: {
+          messageId: asMessageId("user-message-2"),
+          role: "user",
+          text: "second turn",
+          attachments: [],
+        },
+        interactionMode: DEFAULT_PROVIDER_INTERACTION_MODE,
+        runtimeMode: "approval-required",
+        createdAt: "2026-01-01T00:00:05.000Z",
+      });
+
+      await waitFor(async () => {
+        const failed = findActivity(await harness.readModel(), "provider.turn.start.failed");
+        return harness.sendTurn.mock.calls.length === 2 || failed !== undefined;
+      });
+      expect(findActivity(await harness.readModel(), "provider.turn.start.failed")).toBeUndefined();
+      expect(harness.sendTurn.mock.calls[1]?.[0]).toMatchObject({
+        modelSelection: { instanceId: FALLBACK },
+      });
+    });
+
+    it("carries the transcript home when a restart forgot the thread was on the gateway", async () => {
+      const primary = ProviderInstanceId.make("codex_subscription");
+      const selection = { instanceId: primary, model: "gpt-5.6-codex" } as const;
+      const harness = await createHarness({
+        threadModelSelection: selection,
+        usageLimits: new Map<ProviderInstanceId, ProviderUsageLimit>(),
+        extraProviderSnapshots: [
+          {
+            instanceId: FALLBACK,
+            driver: "posthogGateway",
+            enabled: true,
+            displayName: "PostHog AI Gateway",
+            models: [
+              {
+                slug: `openai/${selection.model}`,
+                name: "GPT-5.6 Codex",
+                isCustom: false,
+                capabilities: null,
+              },
+            ],
+          },
+        ],
+      });
+      await dispatchTurn(harness, "cmd-fallback-restart-1");
+      await waitFor(() => harness.sendTurn.mock.calls.length === 1);
+
+      // A restart leaves the bound session in the read model but drops every
+      // live provider session and the reactor's in-memory fallback route.
+      await harness.runEffect(
+        harness.engine.dispatch({
+          type: "thread.session.set",
+          commandId: CommandId.make("cmd-fallback-restart-park"),
+          threadId: ThreadId.make("thread-1"),
+          session: {
+            threadId: ThreadId.make("thread-1"),
+            status: "ready",
+            providerName: "posthogGateway",
+            providerInstanceId: FALLBACK,
+            runtimeMode: "approval-required",
+            activeTurnId: null,
+            lastError: null,
+            updatedAt: "2026-01-01T00:00:04.000Z",
+          },
+          createdAt: "2026-01-01T00:00:04.000Z",
+        }),
+      );
+      harness.runtimeSessions.length = 0;
+
+      await dispatchCommand(harness, {
+        type: "thread.turn.start",
+        commandId: CommandId.make("cmd-fallback-restart-2"),
+        threadId: ThreadId.make("thread-1"),
+        message: {
+          messageId: asMessageId("user-message-2"),
+          role: "user",
+          text: "second turn",
+          attachments: [],
+        },
+        interactionMode: DEFAULT_PROVIDER_INTERACTION_MODE,
+        runtimeMode: "approval-required",
+        createdAt: "2026-01-01T00:00:05.000Z",
+      });
+
+      await waitFor(() => harness.sendTurn.mock.calls.length === 2);
+      const returned = harness.sendTurn.mock.calls[1]?.[0];
+      const returnedInput =
+        typeof returned === "object" && returned !== null && "input" in returned
+          ? returned.input
+          : undefined;
+      if (typeof returnedInput !== "string") throw new Error("Return prompt was not text.");
+      expect(returned).toMatchObject({ modelSelection: selection });
+      expect(returnedInput).toContain("hello reactor");
+      expect(returnedInput).toMatch(/<\/provider-switch-conversation>\n\nsecond turn$/);
+    });
+
     it("keeps the primary instance mid-thread when the driver forbids switching", async () => {
       const usageLimits = new Map<ProviderInstanceId, ProviderUsageLimit>();
       const harness = await createHarness(
@@ -4067,6 +4199,31 @@ describe("ProviderCommandReactor", () => {
             FALLBACK,
         ),
       ).toBe(false);
+    });
+
+    it("records the reset instant the failure message named", async () => {
+      const harness = await createHarness(fallbackHarnessInput({ usageLimits: new Map() }));
+      await awaitRuntimeSubscriber(harness);
+      await dispatchTurn(harness, "cmd-fallback-reset-instant");
+      await waitFor(() => harness.sendTurn.mock.calls.length === 1);
+
+      const nowMs = await harness.runEffect(Clock.currentTimeMillis);
+      const resetsAt = DateTime.formatIso(DateTime.makeUnsafe(nowMs + 3 * 24 * 60 * 60 * 1000));
+      await harness.publishRuntimeEvent({
+        eventId: EventId.make("runtime-event-turn-failed-reset-instant"),
+        provider: ProviderDriverKind.make("claudeAgent"),
+        providerInstanceId: PRIMARY,
+        threadId: ThreadId.make("thread-1"),
+        createdAt: "2026-01-01T00:00:01.000Z",
+        type: "turn.completed",
+        payload: {
+          state: "failed",
+          errorMessage: `Claude AI usage limit reached, try again at ${resetsAt}`,
+        },
+      });
+
+      await waitFor(() => harness.usageLimits.get(PRIMARY)?.status === "exhausted");
+      expect(harness.usageLimits.get(PRIMARY)?.resetsAt).toBe(resetsAt);
     });
 
     it("does not retry a usage-limit failure that already produced assistant output", async () => {

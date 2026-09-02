@@ -146,16 +146,78 @@ export const normalizeProviderUsageLimit = (rateLimits: unknown): ProviderUsageL
 };
 
 /**
- * Build the state recorded when a turn fails with a usage-limit error and the
- * provider never told us when the window reopens.
+ * Furthest reset instant a failure message is allowed to claim. Quota windows
+ * are hourly, five-hourly, or weekly, so anything beyond this is a misparse,
+ * and honouring it would park a working instance for days.
+ */
+const USAGE_LIMIT_MAX_RESET_MS = 14 * 24 * 60 * 60 * 1000;
+
+/** `Sep 7th, 2026 5:27 AM`, optionally zoned. Codex's wording. */
+const MONTH_NAME_INSTANT =
+  /\b((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2}(?:st|nd|rd|th)?,?\s+\d{4}(?:,?\s+\d{1,2}:\d{2}(?::\d{2})?\s*(?:[AaPp]\.?[Mm]\.?)?)?(?:\s*(?:UTC|GMT|Z|[+-]\d{2}:?\d{2}))?)/;
+
+/** Fractional seconds are part of the match: cutting them strips the zone that follows, and an
+ * unzoned ISO string reads as local time. */
+const ISO_INSTANT =
+  /\b(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d{1,9})?)?(?:Z|[+-]\d{2}:?\d{2})?)/;
+
+/** Claude Code appends the reset as `|<unix seconds>`. */
+const PIPED_UNIX_SECONDS = /\|\s*(\d{10})(?!\d)/;
+
+const ORDINAL_DAY = /\b(\d{1,2})(?:st|nd|rd|th)\b/i;
+
+/**
+ * Read the reset instant a provider named in its usage-limit failure text.
+ *
+ * Worth the parsing: a subscription whose window reopens in five days
+ * otherwise carries only the blind cooldown, so every thread re-probes it
+ * every half hour. A bare wall-clock string carries no zone, which is right
+ * to read as local — the harness formatted it on this machine.
+ *
+ * Refuses anything that does not parse, already passed, or lands beyond
+ * `USAGE_LIMIT_MAX_RESET_MS`, so a stray date cannot strand an instance.
+ */
+export const usageLimitResetFromMessage = (input: {
+  readonly message: string | undefined | null;
+  readonly nowMs: number;
+}): string | null => {
+  if (!input.message) {
+    return null;
+  }
+  const unixSeconds = PIPED_UNIX_SECONDS.exec(input.message)?.[1];
+  const candidates = [
+    unixSeconds === undefined ? Number.NaN : Number(unixSeconds) * 1000,
+    ...[ISO_INSTANT, MONTH_NAME_INSTANT].map((pattern) => {
+      const text = pattern.exec(input.message ?? "")?.[1];
+      return text === undefined ? Number.NaN : Date.parse(text.replace(ORDINAL_DAY, "$1"));
+    }),
+  ];
+  for (const resetsAtMs of candidates) {
+    if (
+      !Number.isNaN(resetsAtMs) &&
+      resetsAtMs > input.nowMs &&
+      resetsAtMs - input.nowMs <= USAGE_LIMIT_MAX_RESET_MS
+    ) {
+      return DateTime.formatIso(DateTime.makeUnsafe(resetsAtMs));
+    }
+  }
+  return null;
+};
+
+/**
+ * Build the state recorded when a turn fails with a usage-limit error. The
+ * message's own reset instant is used when it carries one; the cooldown is
+ * the fallback for a provider that only says "later".
  */
 export const exhaustedUsageLimitFromError = (input: {
   readonly nowMs: number;
   readonly kind?: string | undefined;
+  readonly message?: string | undefined;
 }): ProviderUsageLimit => ({
   status: "exhausted",
   resetsAt: IsoDateTime.make(
-    DateTime.formatIso(DateTime.makeUnsafe(input.nowMs + USAGE_LIMIT_DEFAULT_COOLDOWN_MS)),
+    usageLimitResetFromMessage({ message: input.message, nowMs: input.nowMs }) ??
+      DateTime.formatIso(DateTime.makeUnsafe(input.nowMs + USAGE_LIMIT_DEFAULT_COOLDOWN_MS)),
   ),
   kind: input.kind ?? null,
   utilization: null,
