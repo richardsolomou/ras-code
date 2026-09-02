@@ -84,7 +84,16 @@ it.layer(NodeServices.layer)("Claude capability probe SDK boundary", (it) => {
           "        agents: [],",
           '        output_style: "default",',
           '        available_output_styles: ["default"],',
-          "        models: [],",
+          "        models: [",
+          "          {",
+          '            value: "claude-fable-5-1[1m]",',
+          '            resolvedModel: "claude-fable-5-1",',
+          '            displayName: "Fable",',
+          '            description: "Fable 5.1",',
+          "            supportsEffort: true,",
+          '            supportedEffortLevels: ["low", "high"],',
+          "          },",
+          "        ],",
           '        account: { email: "dev@example.com", subscriptionType: "pro", tokenSource: "oauth" },',
           "      },",
           "    },",
@@ -116,6 +125,16 @@ it.layer(NodeServices.layer)("Claude capability probe SDK boundary", (it) => {
             name: "review",
             description: "Review changes",
             input: { hint: "[path]" },
+          },
+        ],
+        // The stub sends `resolvedModel` and `supportsEffort` as the real CLI
+        // does; the probe keeps only the fields the picker reads.
+        models: [
+          {
+            value: "claude-fable-5-1[1m]",
+            displayName: "Fable",
+            description: "Fable 5.1",
+            supportedEffortLevels: ["low", "high"],
           },
         ],
       });

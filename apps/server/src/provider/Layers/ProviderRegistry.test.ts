@@ -33,6 +33,7 @@ import { applyServerSettingsPatch } from "@ras-code/shared/serverSettings";
 
 import { checkCodexProviderStatus, type CodexAppServerProviderSnapshot } from "./CodexProvider.ts";
 import { checkClaudeProviderStatus } from "./ClaudeProvider.ts";
+import type { ModelInfo as ClaudeSdkModelInfo } from "@anthropic-ai/claude-agent-sdk";
 import * as BackgroundPolicy from "../../background/BackgroundPolicy.ts";
 import * as ModelManifest from "../ModelManifest.ts";
 import * as OpenCodeRuntime from "../opencodeRuntime.ts";
@@ -134,6 +135,7 @@ type TestClaudeCapabilities = {
   readonly tokenSource: string | undefined;
   readonly apiProvider: string | undefined;
   readonly slashCommands: ReadonlyArray<ServerProviderSlashCommand>;
+  readonly models: ReadonlyArray<ClaudeSdkModelInfo>;
 };
 
 function claudeCapabilities(overrides: Partial<TestClaudeCapabilities> = {}) {
@@ -144,6 +146,7 @@ function claudeCapabilities(overrides: Partial<TestClaudeCapabilities> = {}) {
       tokenSource: undefined,
       apiProvider: undefined,
       slashCommands: [],
+      models: [],
       ...overrides,
     });
 }
@@ -2070,6 +2073,101 @@ it.layer(Layer.mergeAll(NodeServices.layer, ServerSettingsModule.layerTest(), Te
                   stderr: "",
                   code: 0,
                 };
+              throw new Error(`Unexpected args: ${joined}`);
+            }),
+          ),
+        ),
+      );
+
+      it.effect("uses live Claude SDK model metadata when available", () =>
+        Effect.gen(function* () {
+          const status = yield* checkClaudeProviderStatus(
+            defaultClaudeSettings,
+            claudeCapabilities({
+              models: [
+                {
+                  value: "claude-fable-5-1[1m]",
+                  displayName: "Fable",
+                  description: "Fable 5.1 · hardest tasks",
+                  supportsEffort: true,
+                  supportedEffortLevels: ["low", "high"],
+                  supportsFastMode: true,
+                },
+              ],
+            }),
+          );
+
+          const fable = status.models.find((model) => model.slug === "claude-fable-5-1");
+          assert.strictEqual(fable?.name, "Fable");
+          const effort = fable?.capabilities?.optionDescriptors?.find(
+            (descriptor) => descriptor.type === "select" && descriptor.id === "effort",
+          );
+          assert.deepStrictEqual(
+            effort?.type === "select" ? effort.options.map((option) => option.id) : undefined,
+            ["low", "high"],
+          );
+          const contextWindow = fable?.capabilities?.optionDescriptors?.find(
+            (descriptor) => descriptor.type === "select" && descriptor.id === "contextWindow",
+          );
+          assert.strictEqual(
+            contextWindow?.type === "select" ? contextWindow.options.length : 0,
+            2,
+          );
+          assert.strictEqual(
+            status.models.some((model) => model.slug.endsWith("[1m]")),
+            false,
+          );
+        }).pipe(
+          Effect.provide(
+            mockSpawnerLayer((args) => {
+              const joined = args.join(" ");
+              if (joined === "--version") return { stdout: "2.1.258\n", stderr: "", code: 0 };
+              throw new Error(`Unexpected args: ${joined}`);
+            }),
+          ),
+        ),
+      );
+
+      // The SDK lists the wider context window as its own `[1m]` entry, so the
+      // pair has to fold into one row that still offers the option.
+      it.effect("keeps the 1M option when the SDK lists both context windows", () =>
+        Effect.gen(function* () {
+          const status = yield* checkClaudeProviderStatus(
+            defaultClaudeSettings,
+            claudeCapabilities({
+              models: [
+                {
+                  value: "claude-fable-5-1",
+                  displayName: "Fable",
+                  description: "Fable 5.1",
+                  supportedEffortLevels: ["low", "high"],
+                },
+                {
+                  value: "claude-fable-5-1[1m]",
+                  displayName: "Fable",
+                  description: "Fable 5.1",
+                  supportedEffortLevels: ["low", "high"],
+                },
+              ],
+            }),
+          );
+
+          const rows = status.models.filter((model) => model.slug === "claude-fable-5-1");
+          assert.strictEqual(rows.length, 1);
+          const contextWindow = rows[0]?.capabilities?.optionDescriptors?.find(
+            (descriptor) => descriptor.type === "select" && descriptor.id === "contextWindow",
+          );
+          assert.deepStrictEqual(
+            contextWindow?.type === "select"
+              ? contextWindow.options.map((option) => option.id)
+              : undefined,
+            ["200k", "1m"],
+          );
+        }).pipe(
+          Effect.provide(
+            mockSpawnerLayer((args) => {
+              const joined = args.join(" ");
+              if (joined === "--version") return { stdout: "2.1.258\n", stderr: "", code: 0 };
               throw new Error(`Unexpected args: ${joined}`);
             }),
           ),
