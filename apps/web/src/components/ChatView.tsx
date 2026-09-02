@@ -286,6 +286,7 @@ import {
   requestOlderThreadTurns,
   threadHasOlderTurns,
 } from "@ras-code/client-runtime/state/threads";
+import { resolveProviderSkillsForCwd } from "@ras-code/client-runtime/providerSkills";
 import { vcsEnvironment } from "../state/vcs";
 import { useEnvironments, usePrimaryEnvironment } from "../state/environments";
 import {
@@ -7556,7 +7557,11 @@ function ChatViewContent(
                 resolvedTheme={resolvedTheme}
                 timestampFormat={timestampFormat}
                 workspaceRoot={activeWorkspaceRoot}
-                skills={activeProviderStatus?.skills ?? EMPTY_PROVIDER_SKILLS}
+                skills={
+                  activeProviderStatus
+                    ? resolveProviderSkillsForCwd(activeProviderStatus, gitCwd)
+                    : EMPTY_PROVIDER_SKILLS
+                }
                 providers={providerStatuses as ServerProvider[]}
                 anchorMessageId={timelineAnchorMessageId}
                 onAnchorReady={onTimelineAnchorReady}
