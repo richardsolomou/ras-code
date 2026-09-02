@@ -178,7 +178,10 @@ export function sendDesktopAppActivationRequest(input: {
 }
 
 const appEnvironment = Config.all({
-  rasCodeHome: Config.string("RAS_CODE_HOME").pipe(Config.option, Config.map(Option.getOrUndefined)),
+  rasCodeHome: Config.string("RAS_CODE_HOME").pipe(
+    Config.option,
+    Config.map(Option.getOrUndefined),
+  ),
   sshConnection: Config.string("SSH_CONNECTION").pipe(Config.option),
   sshTty: Config.string("SSH_TTY").pipe(Config.option),
 });

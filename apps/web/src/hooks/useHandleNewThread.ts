@@ -438,12 +438,7 @@ export function useNewThreadHandler() {
         return { draftId, threadId };
       })();
     },
-    [
-      getCurrentRouteTarget,
-      openDraftInPane,
-      primaryServerSettings,
-      projectGroupingSettings,
-    ],
+    [getCurrentRouteTarget, openDraftInPane, primaryServerSettings, projectGroupingSettings],
   );
 }
 
