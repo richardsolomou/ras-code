@@ -60,7 +60,7 @@ describe("buildGrokAcpSpawnInput", () => {
       cwd: "/tmp/project",
       env: {
         XAI_API_KEY: "secret",
-        GROK_OAUTH2_REFERRER: "t3code",
+        GROK_OAUTH2_REFERRER: "ras-code",
       },
     });
   });
@@ -175,6 +175,36 @@ describe("applyGrokAcpModelSelection", () => {
       });
       expect(modelCalls).toEqual([]);
       expect(result).toBe("grok-build");
+    }),
+  );
+
+  it.effect("keeps the session's current model when the product slug is requested", () =>
+    Effect.gen(function* () {
+      const { runtime, modelCalls } = makeRecordingRuntime();
+      const result = yield* applyGrokAcpModelSelection({
+        runtime,
+        currentModelId: "grok-4.6",
+        requestedModelId: "grok-build",
+        mapError: (cause) => cause.message,
+      });
+      expect(modelCalls).toEqual([]);
+      expect(result).toBe("grok-4.6");
+    }),
+  );
+
+  it.effect("applies reasoning to the current model when the product slug is requested", () =>
+    Effect.gen(function* () {
+      const { runtime, modelCalls } = makeRecordingRuntime();
+      const result = yield* applyGrokAcpModelSelection({
+        runtime,
+        currentModelId: "grok-4.6",
+        currentReasoningEffort: "high",
+        requestedModelId: "grok-build",
+        requestedReasoningEffort: "xhigh",
+        mapError: (cause) => cause.message,
+      });
+      expect(modelCalls).toEqual([{ modelId: "grok-4.6", meta: { reasoningEffort: "xhigh" } }]);
+      expect(result).toBe("grok-4.6");
     }),
   );
 
