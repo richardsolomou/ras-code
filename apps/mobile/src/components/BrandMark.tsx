@@ -1,9 +1,7 @@
-import Constants from "expo-constants";
 import { View } from "react-native";
 import Svg, { ClipPath, Defs, G, Rect } from "react-native-svg";
 
 import { useAppearancePreferences } from "../features/settings/appearance/AppearancePreferencesProvider";
-import { resolveMobileStageLabel } from "../lib/mobileBranding";
 import { AppText as Text } from "./AppText";
 import { BRAND_PALETTES } from "./brandPalette";
 
@@ -26,14 +24,11 @@ const CELLS = Array.from({ length: 9 }, (_, row) =>
   Array.from({ length: 9 }, (_, column) => ({ column: column - 1, row: row - 1 })),
 ).flat();
 
-const appVariant = Constants.expoConfig?.extra?.appVariant;
-
 export function BrandMark(props: { readonly compact?: boolean }) {
   const { themeAppearance } = useAppearancePreferences();
   const compact = props.compact ?? false;
   const iconSize = compact ? 32 : 44;
   const palette = BRAND_PALETTES[themeAppearance];
-  const stageLabel = resolveMobileStageLabel(appVariant);
 
   return (
     <View className="flex-row items-center gap-3">
@@ -70,18 +65,9 @@ export function BrandMark(props: { readonly compact?: boolean }) {
         </G>
       </Svg>
       <View className="gap-1">
-        <View className="flex-row items-center gap-2">
-          <Text className="text-lg font-ras-code-bold tracking-[-0.4px] text-foreground">
-            RAS Code
-          </Text>
-          {stageLabel ? (
-            <View className="rounded-full bg-subtle px-2 py-1">
-              <Text className="text-3xs font-ras-code-legend text-foreground-muted">
-                {stageLabel}
-              </Text>
-            </View>
-          ) : null}
-        </View>
+        <Text className="text-lg font-ras-code-bold tracking-[-0.4px] text-foreground">
+          RAS Code
+        </Text>
         {!compact ? (
           <Text className="text-xs font-medium text-foreground-muted">
             Mobile control surface for your live coding environments

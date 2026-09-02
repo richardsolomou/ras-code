@@ -179,7 +179,7 @@ describe("DesktopAppIdentity", () => {
     );
   });
 
-  it.effect("sets the dock icon only when running unpackaged", () => {
+  it.effect("sets the generated dock icon when running unpackaged", () => {
     const calls: ElectronAppCalls = {
       setAboutPanelOptions: [],
       setDockIcon: [],
@@ -191,8 +191,6 @@ describe("DesktopAppIdentity", () => {
         const identity = yield* DesktopAppIdentity.DesktopAppIdentity;
         yield* identity.configure;
 
-        // Electron shows a generic icon for an unpackaged run, which is the
-        // reason this call exists at all.
         assert.deepEqual(calls.setDockIcon, ["/icon.png"]);
       }),
       {

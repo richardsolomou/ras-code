@@ -1761,7 +1761,14 @@ export default function GitActionsControl({
           </span>
         </Button>
       ) : (
-        <Group aria-label="Git actions" className="shrink-0">
+        <Group
+          aria-label="Git actions"
+          className={cn(
+            "shrink-0",
+            quickAction.kind === "resolve_conflicts" &&
+              "rounded-[var(--control-radius)] bg-warning-surface",
+          )}
+        >
           {quickActionDisabledReason ? (
             <Popover>
               <PopoverTrigger
@@ -1805,7 +1812,13 @@ export default function GitActionsControl({
               </span>
             </Button>
           )}
-          <GroupSeparator className="hidden @3xl/header-actions:block" />
+          <GroupSeparator
+            className={cn(
+              "hidden @3xl/header-actions:block",
+              quickAction.kind === "resolve_conflicts" &&
+                "bg-warning/32 before:bg-warning/32 dark:before:bg-warning/32",
+            )}
+          />
           <Menu
             onOpenChange={(open) => {
               if (open) {
@@ -1815,7 +1828,17 @@ export default function GitActionsControl({
             }}
           >
             <MenuTrigger
-              render={<Button aria-label="Git action options" size="icon-xs" variant="outline" />}
+              render={
+                <Button
+                  aria-label="Git action options"
+                  className={cn(
+                    quickAction.kind === "resolve_conflicts" &&
+                      "border-warning/32 bg-warning-surface text-warning-foreground dark:bg-warning-surface",
+                  )}
+                  size="icon-xs"
+                  variant="outline"
+                />
+              }
               disabled={isGitActionRunning}
             >
               <ChevronDownIcon aria-hidden="true" className="size-4" />

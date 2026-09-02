@@ -49,13 +49,6 @@ export const SETTINGS_SEARCH_ITEMS = [
     targetId: "appearance",
   },
   {
-    id: "environment-identification",
-    title: "Environment identification",
-    to: "/settings/appearance",
-    // The setting is stage-dependent, so its parent section is the stable destination.
-    targetId: "appearance",
-  },
-  {
     id: "hedgehog-mode",
     title: "Hedgehog mode",
     to: "/settings/appearance",

@@ -626,7 +626,7 @@ export const ThreadComposer = memo(function ThreadComposer(props: ThreadComposer
 
         {connectionStatus === null && props.conflictSuggestion ? (
           <Animated.View
-            className="mb-2 flex-row items-center gap-2 rounded-2xl border border-amber-500/30 bg-card px-3 py-2 shadow-sm"
+            className="mb-2 flex-row items-center gap-2 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 shadow-sm"
             entering={FadeInDown.duration(180)}
             exiting={FadeOutDown.duration(140)}
           >
