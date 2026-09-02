@@ -50,6 +50,7 @@ import { mergeProviderInstanceEnvironment } from "../ProviderInstanceEnvironment
 import {
   enrichProviderSnapshotWithVersionAdvisory,
   makePackageManagedProviderMaintenanceResolver,
+  normalizeCommandPath,
   resolveProviderMaintenanceCapabilitiesEffect,
 } from "../providerMaintenance.ts";
 import {
@@ -65,11 +66,31 @@ import {
 const decodeCodexSettings = Schema.decodeSync(CodexSettings);
 
 const DRIVER_KIND = ProviderDriverKind.make("codex");
-const UPDATE = makePackageManagedProviderMaintenanceResolver({
+/**
+ * Codex's standalone installer owns its own releases under `~/.codex/packages`
+ * and links them from `~/.local/bin`. A package-manager update would install a
+ * second, shadowed copy and leave the binary on PATH untouched, so these paths
+ * have to route to `codex update` instead.
+ */
+function isCodexNativeCommandPath(commandPath: string): boolean {
+  const normalized = normalizeCommandPath(commandPath);
+  return (
+    normalized.endsWith("/.local/bin/codex") ||
+    normalized.endsWith("/.local/bin/codex.exe") ||
+    normalized.includes("/.codex/packages/")
+  );
+}
+
+export const codexMaintenanceResolver = makePackageManagedProviderMaintenanceResolver({
   provider: DRIVER_KIND,
   npmPackageName: "@openai/codex",
   homebrewFormula: "codex",
-  nativeUpdate: null,
+  nativeUpdate: {
+    executable: "codex",
+    args: ["update"],
+    lockKey: "codex-native",
+    isCommandPath: isCodexNativeCommandPath,
+  },
 });
 
 /**
@@ -153,10 +174,13 @@ export const createCodexInstance = (
       enabled,
       homePath: homeLayout.effectiveHomePath ?? "",
     } satisfies CodexSettings;
-    const maintenanceCapabilities = yield* resolveProviderMaintenanceCapabilitiesEffect(UPDATE, {
-      binaryPath: effectiveConfig.binaryPath,
-      env: processEnv,
-    });
+    const maintenanceCapabilities = yield* resolveProviderMaintenanceCapabilitiesEffect(
+      codexMaintenanceResolver,
+      {
+        binaryPath: effectiveConfig.binaryPath,
+        env: processEnv,
+      },
+    );
 
     // `makeCodexAdapter` and `makeCodexTextGeneration` have `never` error
     // channels at construction time — their failure modes are all on the
