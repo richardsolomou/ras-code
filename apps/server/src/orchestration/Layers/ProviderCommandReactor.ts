@@ -2539,7 +2539,9 @@ const make = Effect.gen(function* () {
       }
     });
 
-    yield* forkParked(Stream.runForEach(orchestrationEngine.streamDomainEvents, processEvent));
+    // Subscribe before returning, even while event handling waits for server activation.
+    const domainEvents = yield* orchestrationEngine.subscribeDomainEvents;
+    yield* forkParked(Stream.runForEach(domainEvents, processEvent));
     yield* forkParked(
       Stream.runForEach(providerService.streamEvents, (event) =>
         processRuntimeEvent(event).pipe(
