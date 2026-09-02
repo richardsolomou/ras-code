@@ -49,9 +49,12 @@ start a new thread.
 
 ## As A Fallback
 
-Connecting this provider also makes it the automatic usage fallback for subscription providers.
+Connecting this provider also makes it an automatic usage fallback for subscription providers.
 There is nothing else to configure. When a subscription runs out, RAS Code offers the gateway only
 if its catalog contains the exact same model.
+
+If you also have a second subscription of the same provider that can run the model, RAS Code offers
+that one first. It is already paid for, and the gateway bills per token.
 
 Started Claude threads can keep their conversation state because the gateway's Claude side shares
 Claude's continuation identity. Every other shape moves too, but the gateway cannot resume the

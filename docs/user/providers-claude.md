@@ -118,6 +118,22 @@ This is different from the recommended Codex setup. Claude Code keeps account an
 multiple files under its config directory, so RAS Code keeps separate config directories isolated
 instead of trying to share part of the state.
 
+A usage limit is the one exception.
+
+## Switching Accounts When One Runs Out
+
+RAS Code does this for you. When the account running a thread hits its usage limit, it asks whether
+to continue on your other Claude account or wait for the reset, and names the account it would move
+to. Answer once per limit; every later turn in that window keeps going there without asking.
+
+Because each account has its own config directory, the other account cannot resume the Claude
+conversation. RAS Code starts a fresh session there and carries the recent transcript into the next
+prompt, so older detail can be lost. The question says so before you accept. The same replay
+happens on the way back, which RAS Code tries on the first turn after your original account resets.
+
+RAS Code skips an account that is signed in to the same login as the exhausted one, one that is out
+of quota itself, and one you have not logged into.
+
 ## I Want To Use OpenRouter
 
 Use this when you want Claude Code to talk to OpenRouter directly, without running a local router.
@@ -203,7 +219,8 @@ OpenRouter's setup can change over time. Use its upstream Claude Code guide for 
 Add and connect a [PostHog AI Gateway](./providers-posthog-gateway.md) provider once. There is no
 fallback setting on Claude. When the Claude subscription reaches its usage limit, RAS Code offers
 to continue through the gateway if it has the exact same model and can preserve the thread's
-conversation state.
+conversation state. A second Claude subscription that can run the model is offered first, because
+the gateway bills per token.
 
 After you accept, the thread stays visually attached to Claude and its original model. A quiet
 `Using <model> via PostHog AI Gateway` label and a timeline event explain how turns are being sent.

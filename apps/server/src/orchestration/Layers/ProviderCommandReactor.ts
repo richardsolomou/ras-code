@@ -357,6 +357,33 @@ function providerDisplayLabel(
   );
 }
 
+/**
+ * The account a provider instance is logged into, when it reports one. Two
+ * instances with the same account draw on the same quota, however differently
+ * they are configured.
+ */
+function providerAccountKey(snapshot: ServerProvider | undefined): string | undefined {
+  const email = snapshot?.auth?.email?.trim().toLowerCase();
+  return email !== undefined && email.length > 0 ? email : undefined;
+}
+
+/**
+ * Order usage-limit fallback candidates; lower runs first. Another
+ * subscription costs nothing per turn, so it outranks the metered gateway
+ * even when crossing to it restarts the provider session. Inside a tier, an
+ * instance that shares the primary's resume state keeps the conversation
+ * where it is.
+ */
+function fallbackCandidateRank(candidate: {
+  readonly snapshot: ServerProvider;
+  readonly sharesContinuation: boolean;
+}): number {
+  return (
+    (candidate.snapshot.driver === POSTHOG_GATEWAY_DRIVER ? 2 : 0) +
+    (candidate.sharesContinuation ? 0 : 1)
+  );
+}
+
 function formatFallbackNotice(input: {
   readonly primaryLabel: string;
   readonly fallbackLabel: string;
@@ -756,20 +783,50 @@ const make = Effect.gen(function* () {
     });
 
   /**
+   * The usage-limit crossing this thread is currently on, read from its own
+   * activities: the last `provider.fallback.engaged` with no later
+   * `provider.fallback.returned`. Persisted state rather than
+   * `activeFallbackRoutes`, which lives in memory — a restart would otherwise
+   * forget the crossing and hand the next turn to an instance with no context
+   * at all.
+   */
+  const openFallbackCrossing = Effect.fn("openFallbackCrossing")(function* (threadId: ThreadId) {
+    const thread = yield* projectionSnapshotQuery
+      .getThreadDetailById(threadId, {
+        activityKinds: ["provider.fallback.engaged", "provider.fallback.returned"],
+      })
+      .pipe(Effect.map(Option.getOrUndefined));
+    let crossing: { readonly primary: string; readonly fallback: string } | undefined;
+    for (const activity of thread?.activities ?? []) {
+      if (activity.kind === "provider.fallback.returned") {
+        crossing = undefined;
+        continue;
+      }
+      const payload =
+        typeof activity.payload === "object" && activity.payload !== null
+          ? (activity.payload as Record<string, unknown>)
+          : undefined;
+      const primary = payload?.primaryInstanceId;
+      const fallback = payload?.fallbackInstanceId;
+      if (typeof primary === "string" && typeof fallback === "string") {
+        crossing = { primary, fallback };
+      }
+    }
+    return crossing;
+  });
+
+  /**
    * Whether this turn has to carry the thread's transcript because the
    * instance about to run it cannot resume the conversation the thread's
    * bound session holds. True in both directions of a fallback: crossing to
-   * the gateway and coming back.
+   * the fallback and coming back.
    *
-   * Read from the bound session rather than `activeFallbackRoutes`, which
-   * lives in memory: a restart would otherwise forget the crossing and hand
-   * the next turn to the subscription with no context at all.
-   *
-   * One of the two instances has to be a gateway, which is what separates a
-   * fallback from a user switching a started thread between incompatible
-   * instances. That switch stays a refusal.
+   * The turn has to be moving along a recorded crossing, which is what
+   * separates a fallback from a user switching a started thread between
+   * incompatible instances. That switch stays a refusal.
    */
   const requiresTranscriptHandoff = Effect.fn("requiresTranscriptHandoff")(function* (input: {
+    readonly threadId: ThreadId;
     readonly sessionInstanceId: ProviderInstanceId | null | undefined;
     readonly desiredInstanceId: ProviderInstanceId;
   }) {
@@ -781,13 +838,19 @@ const make = Effect.gen(function* () {
     ) {
       return false;
     }
-    const providers = yield* providerRegistry.getProviders;
-    const involvesGateway = [sessionInstanceId, input.desiredInstanceId].some(
-      (instanceId) =>
-        providers.find((snapshot) => snapshot.instanceId === instanceId)?.driver ===
-        POSTHOG_GATEWAY_DRIVER,
-    );
-    if (!involvesGateway) {
+    const crossing = yield* openFallbackCrossing(input.threadId);
+    if (crossing === undefined) {
+      return false;
+    }
+    const returning =
+      crossing.fallback === sessionInstanceId && crossing.primary === input.desiredInstanceId;
+    const leaving =
+      crossing.primary === sessionInstanceId &&
+      crossing.fallback === input.desiredInstanceId &&
+      // Leaving a subscription that has quota again is a user switching back
+      // into the instance they once fell back to, not a fallback.
+      (yield* providerRegistry.getProviderUsageLimit(sessionInstanceId))?.status === "exhausted";
+    if (!returning && !leaving) {
       return false;
     }
     const instanceInfo = yield* Effect.all({
@@ -802,11 +865,17 @@ const make = Effect.gen(function* () {
   });
 
   /**
-   * Pick the gateway instance that can serve this selection while the primary
-   * is out of quota, or `undefined` when none can. Instances that share a
+   * Pick the instance that can serve this selection while the primary is out
+   * of quota, or `undefined` when none can. Instances that share a
    * continuation key resume the thread's provider conversation; the rest take
    * it over as a fresh session with the transcript handed across, which is
    * what `restartsSession` on the result reports.
+   *
+   * Candidates are the primary's own driver — a personal Codex account next
+   * to a work one — plus the gateway, which exists to serve any of them. A
+   * third harness that happens to advertise the same model slug is not a
+   * fallback: it is a different tool with a different bill, and picking it
+   * for someone would be a surprise.
    */
   const resolveFallbackSelection = Effect.fn("resolveFallbackSelection")(function* (input: {
     readonly selection: ModelSelection;
@@ -821,27 +890,75 @@ const make = Effect.gen(function* () {
     const primarySnapshot = providers.find(
       (snapshot) => snapshot.instanceId === input.selection.instanceId,
     );
+    // The gateway is the last resort, so it never falls back to anything.
     if (primarySnapshot?.driver === POSTHOG_GATEWAY_DRIVER) {
       return undefined;
     }
-    const fallbackSnapshot = providers.find((snapshot) => {
+    if (input.hasStartedSession && primarySnapshot?.requiresNewThreadForModelChange === true) {
+      return undefined;
+    }
+    const primaryAccount = providerAccountKey(primarySnapshot);
+    const eligible = providers.filter((snapshot) => {
       const supportsModel = snapshot.models?.some((model) =>
         modelIdsMatch(model.slug, input.selection.model),
       );
       return (
-        snapshot.driver === POSTHOG_GATEWAY_DRIVER &&
         snapshot.instanceId !== input.selection.instanceId &&
+        (snapshot.driver === primarySnapshot?.driver ||
+          snapshot.driver === POSTHOG_GATEWAY_DRIVER) &&
         snapshot.enabled &&
         snapshot.installed !== false &&
         snapshot.status !== "error" &&
         snapshot.status !== "disabled" &&
         isProviderAvailable(snapshot) &&
-        supportsModel === true
+        // A configured instance nobody has logged into cannot run the turn.
+        // `unknown` stays eligible: a probe that could not tell is not a no.
+        snapshot.auth?.status !== "unauthenticated" &&
+        supportsModel === true &&
+        // Two instances of one login share a quota pool, so crossing to the
+        // second one just fails again.
+        (primaryAccount === undefined || providerAccountKey(snapshot) !== primaryAccount) &&
+        !(input.hasStartedSession && snapshot.requiresNewThreadForModelChange === true)
       );
     });
-    if (fallbackSnapshot === undefined) {
+    if (eligible.length === 0) {
       return undefined;
     }
+
+    const primaryInfo = yield* providerService
+      .getInstanceInfo(input.selection.instanceId)
+      .pipe(Effect.orElseSucceed(() => undefined));
+    const ranked = yield* Effect.forEach(
+      eligible,
+      (snapshot, index) =>
+        Effect.gen(function* () {
+          const usage = yield* providerRegistry.getProviderUsageLimit(snapshot.instanceId);
+          if (usage?.status === "exhausted") {
+            return undefined;
+          }
+          const info = yield* providerService
+            .getInstanceInfo(snapshot.instanceId)
+            .pipe(Effect.orElseSucceed(() => undefined));
+          const sharesContinuation =
+            primaryInfo !== undefined &&
+            info !== undefined &&
+            primaryInfo.continuationIdentity.continuationKey ===
+              info.continuationIdentity.continuationKey;
+          return { snapshot, sharesContinuation, index } as const;
+        }),
+      { concurrency: "unbounded" },
+    );
+    const [best] = ranked
+      .filter((candidate) => candidate !== undefined)
+      .toSorted(
+        (left, right) =>
+          fallbackCandidateRank(left) - fallbackCandidateRank(right) || left.index - right.index,
+      );
+    if (best === undefined) {
+      return undefined;
+    }
+    const fallbackSnapshot = best.snapshot;
+    const sharesContinuation = best.sharesContinuation;
     const fallbackModel = fallbackSnapshot.models.find((model) =>
       modelIdsMatch(model.slug, input.selection.model),
     );
@@ -851,29 +968,6 @@ const make = Effect.gen(function* () {
     const primaryModel = primarySnapshot?.models?.find((model) =>
       modelIdsMatch(model.slug, input.selection.model),
     );
-    const fallbackUsage = yield* providerRegistry.getProviderUsageLimit(
-      fallbackSnapshot.instanceId,
-    );
-    if (fallbackUsage?.status === "exhausted") {
-      return undefined;
-    }
-    if (
-      input.hasStartedSession &&
-      (primarySnapshot?.requiresNewThreadForModelChange === true ||
-        fallbackSnapshot.requiresNewThreadForModelChange === true)
-    ) {
-      return undefined;
-    }
-
-    const instanceInfo = yield* Effect.all({
-      primary: providerService.getInstanceInfo(input.selection.instanceId),
-      fallback: providerService.getInstanceInfo(fallbackSnapshot.instanceId),
-    }).pipe(Effect.orElseSucceed(() => undefined));
-
-    const sharesContinuation =
-      instanceInfo !== undefined &&
-      instanceInfo.primary.continuationIdentity.continuationKey ===
-        instanceInfo.fallback.continuationIdentity.continuationKey;
 
     return {
       // A started thread whose fallback cannot resume its provider
@@ -1914,6 +2008,7 @@ const make = Effect.gen(function* () {
 
     const turnSelection = effectiveRoute?.selection ?? baseSelection;
     const needsTranscriptHandoff = yield* requiresTranscriptHandoff({
+      threadId: event.payload.threadId,
       sessionInstanceId: thread.session?.providerInstanceId,
       desiredInstanceId: turnSelection.instanceId,
     }).pipe(

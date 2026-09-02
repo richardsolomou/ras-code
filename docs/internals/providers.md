@@ -71,10 +71,12 @@ assistant text. Persisted messages keep their serialized links.
 Adding a driver means writing the driver plus adapter and adding it to `BUILT_IN_DRIVERS`. No
 orchestration, contract, or client change is required for the common case.
 
-## Usage limits and gateway fallback
+## Usage limits and fallback
 
-The PostHog AI Gateway is the only usage fallback. Once a gateway instance is enabled, subscription
-providers discover it automatically. There is no fallback setting or provider graph.
+A fallback candidate is any other instance of the exhausted instance's own driver, plus any PostHog
+AI Gateway instance. Candidates are discovered automatically; there is no fallback setting or
+provider graph. A third harness that happens to advertise the same model slug is not a candidate,
+because picking a different tool with a different bill would be a surprise.
 
 Quota state is derived from the `account.rate-limits.updated` runtime event, which both the Claude
 and Codex adapters forward with their native payload. `providerUsageLimit.ts` normalises those two
@@ -97,28 +99,39 @@ summary fields reduce to one verdict. Nothing reads it back — routing decides 
 never otherwise persisted that activity is the only durable evidence of which window ran an account
 dry. It is absent when the state was inferred from a failure message, which names no windows.
 
-`ProviderCommandReactor` owns the routing. It offers the gateway only when the subscription is
-exhausted, the gateway advertises the exact requested model, and the gateway is available and not
-exhausted. Instances that share a continuation key move the thread's provider conversation intact —
-the composite adopts Claude's continuation identity, so started Claude threads resume. Every other
-shape crosses as a fresh session with the recent transcript carried into the first prompt, which is
-what `restartsSession` on the `provider.fallback.offered` payload tells the clients to warn about.
+`ProviderCommandReactor` owns the routing. It offers a candidate only when the primary is
+exhausted, the candidate advertises the exact requested model, and the candidate is available and
+not exhausted itself. Candidates signed in to the primary's own account are excluded: one login is
+one quota pool, so crossing there would fail again. So are candidates reporting
+`auth.status === "unauthenticated"` — a configured instance nobody has logged into cannot run the
+turn — while `unknown` stays eligible, because a probe that could not tell is not a no. Ties are
+broken by cost first and continuity second — another subscription outranks the metered gateway, and
+inside a tier an instance that shares the primary's continuation key outranks one that does not.
 
-The user confirms the switch once for an exhaustion episode. The saved thread selection remains
-the subscription provider and model while the provider session records the gateway that actually
-runs the turn. This keeps thread identity stable and lets the next turn try the subscription again
-after its reset. When the two harnesses cannot share continuation state, both the crossing and the
-return start a fresh session and carry the recent thread transcript into its first prompt. A
-successful primary turn emits `provider.fallback.returned`; another usage-limit failure before
-output resumes the already-approved gateway without another prompt. The approved route is in
-memory, so the crossing is also derived from durable state. `ensureSessionForThread` reads the
-thread's current instance from its bound session rather than its selection, so a thread whose
-gateway session was reaped or lost to a restart is not read as switching into the gateway and
-refused. `requiresTranscriptHandoff` then carries the transcript whenever the instance about to run
-the turn cannot resume the bound session, in either direction. One of the two instances has to be a
-gateway, which is what keeps a user switching a started thread between incompatible instances a
-refusal. The gateway never falls back to
-itself, no alternative model is selected, and no fallback chain is traversed.
+Instances that share a continuation key move the thread's provider conversation intact — two Codex
+instances over one `CODEX_HOME` resume, and the composite gateway adopts Claude's continuation
+identity, so started Claude threads resume onto it. Every other shape crosses as a fresh session
+with the recent transcript carried into the first prompt, which is what `restartsSession` on the
+`provider.fallback.offered` payload tells the clients to warn about. Two Claude accounts are that
+shape: Claude Code keeps account state across several files under its config directory, so separate
+`CLAUDE_CONFIG_DIR` homes stay isolated.
+
+The user confirms the switch once for an exhaustion episode. The saved thread selection remains the
+primary provider and model while the provider session records the instance that actually runs the
+turn. This keeps thread identity stable and lets the next turn try the primary again after its
+reset. When the two instances cannot share continuation state, both the crossing and the return
+start a fresh session and carry the recent thread transcript into its first prompt. A successful
+primary turn emits `provider.fallback.returned`; another usage-limit failure before output resumes
+the already-approved fallback without another prompt. The approved route is in memory, so the
+crossing is also derived from durable state. `ensureSessionForThread` reads the thread's current
+instance from its bound session rather than its selection, so a thread whose fallback session was
+reaped or lost to a restart is not read as switching providers and refused.
+`requiresTranscriptHandoff` then carries the transcript whenever the instance about to run the turn
+cannot resume the bound session, in either direction. The turn has to be moving along the crossing
+the thread's own `provider.fallback.engaged` activity records — the durable half of the route —
+which is what keeps a user switching a started thread between incompatible instances a refusal. The
+gateway never falls back to anything, no alternative model is selected, and no fallback chain is
+traversed.
 
 ### Grok health check
 

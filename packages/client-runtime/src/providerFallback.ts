@@ -1,10 +1,16 @@
-import type { ModelSelection, ProviderInstanceId, ServerProviderModel } from "@ras-code/contracts";
+import {
+  PROVIDER_DISPLAY_NAMES,
+  type ModelSelection,
+  type ProviderInstanceId,
+  type ServerProvider,
+  type ServerProviderModel,
+} from "@ras-code/contracts";
 
 /**
  * The `provider.fallback.engaged` thread activity: the marker a thread gets
- * when a turn ran through the PostHog AI Gateway because the primary provider
- * instance was out of quota. Shared so web and mobile read the same opaque
- * activity payload the same way; each surface words its own sentence.
+ * when a turn ran on another provider instance because the primary one was
+ * out of quota. Shared so web and mobile read the same opaque activity
+ * payload the same way; each surface words its own sentence.
  */
 
 export const FALLBACK_ENGAGED_ACTIVITY_KIND = "provider.fallback.engaged";
@@ -12,6 +18,48 @@ export const FALLBACK_OFFERED_ACTIVITY_KIND = "provider.fallback.offered";
 export const FALLBACK_DECLINED_ACTIVITY_KIND = "provider.fallback.declined";
 export const FALLBACK_OFFER_EXPIRED_ACTIVITY_KIND = "provider.fallback.offer-expired";
 export const FALLBACK_RETURNED_ACTIVITY_KIND = "provider.fallback.returned";
+
+const POSTHOG_GATEWAY_DRIVER = "posthogGateway";
+
+type FallbackProviderSnapshot = Pick<ServerProvider, "instanceId" | "driver" | "displayName">;
+
+function findFallbackProvider(
+  providers: Iterable<FallbackProviderSnapshot>,
+  instanceId: string,
+): FallbackProviderSnapshot | undefined {
+  for (const provider of providers) {
+    if (String(provider.instanceId) === instanceId) return provider;
+  }
+  return undefined;
+}
+
+/**
+ * Name a provider instance in a fallback notice: the user's display name,
+ * else the driver's name, else the raw instance id, which is always something.
+ */
+export function fallbackInstanceLabel(
+  providers: Iterable<FallbackProviderSnapshot>,
+  instanceId: string,
+): string {
+  const provider = findFallbackProvider(providers, instanceId);
+  return (
+    provider?.displayName?.trim() ||
+    (provider ? PROVIDER_DISPLAY_NAMES[provider.driver] : undefined) ||
+    instanceId
+  );
+}
+
+/**
+ * Whether crossing to this instance spends money per turn. The gateway bills
+ * usage; another subscription is already paid for, so promising "usage-based
+ * tokens" there would be wrong.
+ */
+export function fallbackInstanceIsMetered(
+  providers: Iterable<FallbackProviderSnapshot>,
+  instanceId: string,
+): boolean {
+  return findFallbackProvider(providers, instanceId)?.driver === POSTHOG_GATEWAY_DRIVER;
+}
 
 export function resolveActiveProviderInstanceId(thread: {
   readonly modelSelection: { readonly instanceId: ProviderInstanceId };

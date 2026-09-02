@@ -1,4 +1,8 @@
-import { PROVIDER_DISPLAY_NAMES, type ServerProvider } from "@ras-code/contracts";
+import { type ServerProvider } from "@ras-code/contracts";
+import {
+  fallbackInstanceIsMetered,
+  fallbackInstanceLabel,
+} from "@ras-code/client-runtime/provider-fallback";
 import { memo } from "react";
 import { useClientSettings } from "../../hooks/useSettings";
 import { formatShortTimestamp } from "../../timestampFormat";
@@ -17,16 +21,9 @@ export const ComposerPendingFallbackOfferPanel = memo(function ComposerPendingFa
   className,
 }: ComposerPendingFallbackOfferPanelProps) {
   const timestampFormat = useClientSettings((settings) => settings.timestampFormat);
-  const instanceName = (instanceId: string) => {
-    const provider = providers.find((entry) => String(entry.instanceId) === instanceId);
-    return (
-      provider?.displayName?.trim() ||
-      (provider ? PROVIDER_DISPLAY_NAMES[provider.driver] : undefined) ||
-      instanceId
-    );
-  };
-  const primaryName = instanceName(offer.primaryInstanceId);
-  const fallbackName = instanceName(offer.fallbackInstanceId);
+  const primaryName = fallbackInstanceLabel(providers, offer.primaryInstanceId);
+  const fallbackName = fallbackInstanceLabel(providers, offer.fallbackInstanceId);
+  const metered = fallbackInstanceIsMetered(providers, offer.fallbackInstanceId);
   const resetsAt = offer.resetsAt ? formatShortTimestamp(offer.resetsAt, timestampFormat) : null;
 
   return (
@@ -39,7 +36,8 @@ export const ComposerPendingFallbackOfferPanel = memo(function ComposerPendingFa
         {primaryName} hit its usage limit
       </span>
       <span className="text-sm text-foreground/85">
-        Continue with {offer.modelLabel ?? offer.model} via {fallbackName} using usage-based tokens
+        Continue with {offer.modelLabel ?? offer.model} via {fallbackName}
+        {metered ? " using usage-based tokens" : ""}
         {resetsAt ? `, or wait until ${resetsAt}` : ""}?
       </span>
       {offer.restartsSession ? (
