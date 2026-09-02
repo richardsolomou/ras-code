@@ -237,8 +237,22 @@ function proposedPlanIdFromEvent(event: ProviderRuntimeEvent, threadId: ThreadId
   return `plan:${threadId}:event:${event.eventId}`;
 }
 
+/**
+ * The key an assistant message id is derived from, unique per assistant item
+ * across every thread.
+ *
+ * A provider item id is only ever unique within that provider's own session,
+ * and some are not even that: Codex reached through the PostHog AI Gateway
+ * numbers each response's items from zero, so every reply on every thread
+ * arrives as `msg_0`. Qualifying it with the turn id, which is ours and
+ * globally unique, keeps one message per item while staying derivable from
+ * the event alone, so a restart mid-turn rebuilds the same id.
+ */
 function assistantSegmentBaseKeyFromEvent(event: ProviderRuntimeEvent): string {
-  return String(event.itemId ?? event.turnId ?? event.eventId);
+  if (event.itemId) {
+    return event.turnId ? `${event.turnId}:${event.itemId}` : event.itemId;
+  }
+  return String(event.turnId ?? event.eventId);
 }
 
 function assistantSegmentMessageId(baseKey: string, segmentIndex: number): MessageId {
@@ -1016,6 +1030,23 @@ const make = Effect.gen(function* () {
   const clearAssistantSegmentStateForTurn = (threadId: ThreadId, turnId: TurnId) =>
     Cache.invalidate(assistantSegmentStateByTurnKey, providerTurnKey(threadId, turnId));
 
+  /**
+   * Ends the active segment while remembering the base keys the turn has
+   * already spent, so a provider that reuses one item id for several messages
+   * in a turn opens a new segment instead of overwriting the finished one.
+   */
+  const closeAssistantSegmentForTurn = (threadId: ThreadId, turnId: TurnId) =>
+    Effect.gen(function* () {
+      const state = yield* getAssistantSegmentStateForTurn(threadId, turnId);
+      if (Option.isNone(state)) {
+        return;
+      }
+      yield* setAssistantSegmentStateForTurn(threadId, turnId, {
+        ...state.value,
+        activeMessageId: null,
+      });
+    });
+
   const getActiveAssistantMessageIdForTurn = (threadId: ThreadId, turnId: TurnId) =>
     getAssistantSegmentStateForTurn(threadId, turnId).pipe(
       Effect.map((state) =>
@@ -1754,9 +1785,7 @@ const make = Effect.gen(function* () {
       const assistantCompletion =
         event.type === "item.completed" && event.payload.itemType === "assistant_message"
           ? {
-              messageId: MessageId.make(
-                `assistant:${event.itemId ?? event.turnId ?? event.eventId}`,
-              ),
+              messageId: assistantSegmentMessageId(assistantSegmentBaseKeyFromEvent(event), 0),
               fallbackText: event.payload.detail,
             }
           : undefined;
@@ -1817,7 +1846,7 @@ const make = Effect.gen(function* () {
         }
 
         if (turnId) {
-          yield* clearAssistantSegmentStateForTurn(thread.id, turnId);
+          yield* closeAssistantSegmentForTurn(thread.id, turnId);
         }
       }
 
@@ -1931,8 +1960,9 @@ const make = Effect.gen(function* () {
           if (hasCheckpointForTurn(checkpointContext.checkpoints, turnId)) {
             // Already tracked; no-op.
           } else {
-            const assistantMessageId = MessageId.make(
-              `assistant:${event.itemId ?? event.turnId ?? event.eventId}`,
+            const assistantMessageId = assistantSegmentMessageId(
+              assistantSegmentBaseKeyFromEvent(event),
+              0,
             );
             yield* orchestrationEngine.dispatch({
               type: "thread.turn.diff.complete",
