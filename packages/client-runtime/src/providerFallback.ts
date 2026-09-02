@@ -9,8 +9,8 @@ import {
 /**
  * The `provider.fallback.engaged` thread activity: the marker a thread gets
  * when a turn ran on another provider instance because the primary one was
- * out of quota. Shared so web and mobile read the same opaque activity
- * payload the same way; each surface words its own sentence.
+ * out of quota. Shared so web and mobile read the opaque activity payload the
+ * same way. Each surface writes its own sentence.
  */
 
 export const FALLBACK_ENGAGED_ACTIVITY_KIND = "provider.fallback.engaged";
@@ -35,7 +35,7 @@ function findFallbackProvider(
 
 /**
  * Name a provider instance in a fallback notice: the user's display name,
- * else the driver's name, else the raw instance id, which is always something.
+ * else the driver's name, else the instance id.
  */
 export function fallbackInstanceLabel(
   providers: Iterable<FallbackProviderSnapshot>,
@@ -50,9 +50,8 @@ export function fallbackInstanceLabel(
 }
 
 /**
- * Whether crossing to this instance spends money per turn. The gateway bills
- * usage; another subscription is already paid for, so promising "usage-based
- * tokens" there would be wrong.
+ * Whether crossing to this instance costs money per turn. The gateway bills
+ * usage; a subscription is already paid for.
  */
 export function fallbackInstanceIsMetered(
   providers: Iterable<FallbackProviderSnapshot>,

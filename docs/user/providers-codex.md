@@ -103,13 +103,14 @@ has a `Shadow home path`.
 
 ## Switching Accounts When One Runs Out
 
-RAS Code does this for you. When the account running a thread hits its usage limit, it asks whether
-to continue on your other Codex account or wait for the reset, and names the account it would move
-to. Answer once per limit; every later turn in that window keeps going there without asking.
+RAS Code does this for you. When the account running a thread hits its usage limit, RAS Code asks
+whether to continue on your other Codex account or to wait for the reset. It names the account it
+would move to. Answer once for each limit. Every later turn in that window continues there without
+a question.
 
-With the recommended shared-home setup, the thread keeps its Codex conversation, so nothing is
-replayed. RAS Code tries your original account again on the first turn after its reset and tells
-you when the thread is back on it.
+With the recommended shared-home setup, the thread keeps its Codex conversation and replays
+nothing. RAS Code tries your original account again on the first turn after its reset, and tells you
+when the thread is back on it.
 
 RAS Code skips an account that is signed in to the same login as the exhausted one, one that is out
 of quota itself, and one you have not logged into. If neither account can take the turn and you

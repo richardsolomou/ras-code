@@ -122,14 +122,16 @@ A usage limit is the one exception.
 
 ## Switching Accounts When One Runs Out
 
-RAS Code does this for you. When the account running a thread hits its usage limit, it asks whether
-to continue on your other Claude account or wait for the reset, and names the account it would move
-to. Answer once per limit; every later turn in that window keeps going there without asking.
+RAS Code does this for you. When the account running a thread hits its usage limit, RAS Code asks
+whether to continue on your other Claude account or to wait for the reset. It names the account it
+would move to. Answer once for each limit. Every later turn in that window continues there without
+a question.
 
-Because each account has its own config directory, the other account cannot resume the Claude
+Each account has its own config directory, so the other account cannot resume the Claude
 conversation. RAS Code starts a fresh session there and carries the recent transcript into the next
-prompt, so older detail can be lost. The question says so before you accept. The same replay
-happens on the way back, which RAS Code tries on the first turn after your original account resets.
+prompt. Older detail can be lost. The question tells you this before you accept. The same replay
+happens on the way back, which RAS Code tries on the first turn after your original account
+resets.
 
 RAS Code skips an account that is signed in to the same login as the exhausted one, one that is out
 of quota itself, and one you have not logged into.

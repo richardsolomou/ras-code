@@ -358,9 +358,8 @@ function providerDisplayLabel(
 }
 
 /**
- * The account a provider instance is logged into, when it reports one. Two
- * instances with the same account draw on the same quota, however differently
- * they are configured.
+ * The account an instance is logged into, when it reports one. Two instances
+ * with the same account share one quota pool.
  */
 function providerAccountKey(snapshot: ServerProvider | undefined): string | undefined {
   const email = snapshot?.auth?.email?.trim().toLowerCase();
@@ -368,11 +367,10 @@ function providerAccountKey(snapshot: ServerProvider | undefined): string | unde
 }
 
 /**
- * Order usage-limit fallback candidates; lower runs first. Another
- * subscription costs nothing per turn, so it outranks the metered gateway
- * even when crossing to it restarts the provider session. Inside a tier, an
- * instance that shares the primary's resume state keeps the conversation
- * where it is.
+ * Rank a fallback candidate; the lowest rank wins. Another subscription costs
+ * nothing per turn, so it beats the metered gateway. Inside a tier, an
+ * instance that shares the primary's resume state keeps the conversation in
+ * place.
  */
 function fallbackCandidateRank(candidate: {
   readonly snapshot: ServerProvider;
@@ -783,12 +781,10 @@ const make = Effect.gen(function* () {
     });
 
   /**
-   * The usage-limit crossing this thread is currently on, read from its own
-   * activities: the last `provider.fallback.engaged` with no later
-   * `provider.fallback.returned`. Persisted state rather than
-   * `activeFallbackRoutes`, which lives in memory — a restart would otherwise
-   * forget the crossing and hand the next turn to an instance with no context
-   * at all.
+   * The usage-limit crossing this thread is on: the last
+   * `provider.fallback.engaged` with no later `provider.fallback.returned`.
+   * Read from persisted activities because `activeFallbackRoutes` lives in
+   * memory, and a restart would strand the next turn with no context.
    */
   const openFallbackCrossing = Effect.fn("openFallbackCrossing")(function* (threadId: ThreadId) {
     const thread = yield* projectionSnapshotQuery
@@ -816,14 +812,12 @@ const make = Effect.gen(function* () {
   });
 
   /**
-   * Whether this turn has to carry the thread's transcript because the
-   * instance about to run it cannot resume the conversation the thread's
-   * bound session holds. True in both directions of a fallback: crossing to
-   * the fallback and coming back.
+   * Whether this turn must carry the thread's transcript: the instance about
+   * to run it cannot resume the conversation the bound session holds. True in
+   * both directions of a crossing, out and back.
    *
-   * The turn has to be moving along a recorded crossing, which is what
-   * separates a fallback from a user switching a started thread between
-   * incompatible instances. That switch stays a refusal.
+   * The turn must follow a recorded crossing. That is what keeps a user's own
+   * switch between incompatible instances a refusal.
    */
   const requiresTranscriptHandoff = Effect.fn("requiresTranscriptHandoff")(function* (input: {
     readonly threadId: ThreadId;
@@ -847,8 +841,8 @@ const make = Effect.gen(function* () {
     const leaving =
       crossing.primary === sessionInstanceId &&
       crossing.fallback === input.desiredInstanceId &&
-      // Leaving a subscription that has quota again is a user switching back
-      // into the instance they once fell back to, not a fallback.
+      // A source with quota again is a user switching back into the old
+      // fallback, not a new crossing.
       (yield* providerRegistry.getProviderUsageLimit(sessionInstanceId))?.status === "exhausted";
     if (!returning && !leaving) {
       return false;
@@ -866,16 +860,14 @@ const make = Effect.gen(function* () {
 
   /**
    * Pick the instance that can serve this selection while the primary is out
-   * of quota, or `undefined` when none can. Instances that share a
-   * continuation key resume the thread's provider conversation; the rest take
-   * it over as a fresh session with the transcript handed across, which is
-   * what `restartsSession` on the result reports.
+   * of quota, or `undefined` when none can. An instance that shares a
+   * continuation key resumes the thread's conversation. The rest start a fresh
+   * session and carry the transcript, which `restartsSession` reports.
    *
-   * Candidates are the primary's own driver — a personal Codex account next
-   * to a work one — plus the gateway, which exists to serve any of them. A
-   * third harness that happens to advertise the same model slug is not a
-   * fallback: it is a different tool with a different bill, and picking it
-   * for someone would be a surprise.
+   * Candidates are other instances of the primary's driver, such as a personal
+   * Codex account beside a work one, plus the gateway. A third harness that
+   * advertises the same model slug is not a candidate: different tool,
+   * different bill.
    */
   const resolveFallbackSelection = Effect.fn("resolveFallbackSelection")(function* (input: {
     readonly selection: ModelSelection;
@@ -911,12 +903,12 @@ const make = Effect.gen(function* () {
         snapshot.status !== "error" &&
         snapshot.status !== "disabled" &&
         isProviderAvailable(snapshot) &&
-        // A configured instance nobody has logged into cannot run the turn.
-        // `unknown` stays eligible: a probe that could not tell is not a no.
+        // An instance with no login cannot run the turn. `unknown` stays
+        // eligible, because the probe could not tell either way.
         snapshot.auth?.status !== "unauthenticated" &&
         supportsModel === true &&
-        // Two instances of one login share a quota pool, so crossing to the
-        // second one just fails again.
+        // One login is one quota pool, so the second instance fails the
+        // same way.
         (primaryAccount === undefined || providerAccountKey(snapshot) !== primaryAccount) &&
         !(input.hasStartedSession && snapshot.requiresNewThreadForModelChange === true)
       );
@@ -970,9 +962,8 @@ const make = Effect.gen(function* () {
     );
 
     return {
-      // A started thread whose fallback cannot resume its provider
-      // conversation keeps going as a fresh session carrying the transcript,
-      // so the offer can say the conversation restarts rather than resumes.
+      // A started thread that cannot resume on the fallback continues as a
+      // fresh session with the transcript, which the offer calls a restart.
       restartsSession: input.hasStartedSession && !sharesContinuation,
       selection: {
         ...input.selection,

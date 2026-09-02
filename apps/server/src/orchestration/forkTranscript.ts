@@ -13,12 +13,10 @@
  */
 
 /**
- * Budget for the rendered transcript, in characters. Roughly 30k tokens: an
- * easy fit for the context window of any model a thread can cross to, and
- * enough to carry a whole conversation rather than its tail. Sizing it to a
- * tail is the expensive mistake — the oldest messages are dropped first, and
- * those are the ones holding the original request and the decisions behind
- * the work the new provider is about to continue.
+ * Budget for the rendered transcript, in characters. About 30k tokens, which
+ * fits the context window of any model a thread can cross to. Sized to carry a
+ * whole conversation: truncation drops the oldest messages first, and those
+ * hold the original request.
  */
 export const MAX_TRANSCRIPT_CHARACTERS = 120_000;
 

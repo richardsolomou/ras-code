@@ -74,9 +74,9 @@ orchestration, contract, or client change is required for the common case.
 ## Usage limits and fallback
 
 A fallback candidate is any other instance of the exhausted instance's own driver, plus any PostHog
-AI Gateway instance. Candidates are discovered automatically; there is no fallback setting or
-provider graph. A third harness that happens to advertise the same model slug is not a candidate,
-because picking a different tool with a different bill would be a surprise.
+AI Gateway instance. RAS Code finds them automatically. There is no fallback setting and no provider
+graph. A third harness that advertises the same model slug is not a candidate: it is a different
+tool with a different bill.
 
 Quota state is derived from the `account.rate-limits.updated` runtime event, which both the Claude
 and Codex adapters forward with their native payload. `providerUsageLimit.ts` normalises those two
@@ -101,20 +101,20 @@ dry. It is absent when the state was inferred from a failure message, which name
 
 `ProviderCommandReactor` owns the routing. It offers a candidate only when the primary is
 exhausted, the candidate advertises the exact requested model, and the candidate is available and
-not exhausted itself. Candidates signed in to the primary's own account are excluded: one login is
-one quota pool, so crossing there would fail again. So are candidates reporting
-`auth.status === "unauthenticated"` — a configured instance nobody has logged into cannot run the
-turn — while `unknown` stays eligible, because a probe that could not tell is not a no. Ties are
-broken by cost first and continuity second — another subscription outranks the metered gateway, and
-inside a tier an instance that shares the primary's continuation key outranks one that does not.
+not exhausted itself. Two exclusions follow from that: a candidate signed in to the primary's own
+account, because one login is one quota pool, and a candidate reporting
+`auth.status === "unauthenticated"`, because an instance with no login cannot run the turn.
+`unknown` stays eligible, since the probe could not tell either way. Cost breaks ties first and
+continuity second. Another subscription outranks the metered gateway, and inside a tier an instance
+that shares the primary's continuation key outranks one that does not.
 
-Instances that share a continuation key move the thread's provider conversation intact — two Codex
+Instances that share a continuation key move the thread's provider conversation intact. Two Codex
 instances over one `CODEX_HOME` resume, and the composite gateway adopts Claude's continuation
-identity, so started Claude threads resume onto it. Every other shape crosses as a fresh session
-with the recent transcript carried into the first prompt, which is what `restartsSession` on the
+identity, so a started Claude thread resumes onto it. Every other shape crosses as a fresh session
+and carries the recent transcript into the first prompt. That is what `restartsSession` on the
 `provider.fallback.offered` payload tells the clients to warn about. Two Claude accounts are that
-shape: Claude Code keeps account state across several files under its config directory, so separate
-`CLAUDE_CONFIG_DIR` homes stay isolated.
+shape, because Claude Code keeps account state across several files under its config directory and
+separate `CLAUDE_CONFIG_DIR` homes stay isolated.
 
 The user confirms the switch once for an exhaustion episode. The saved thread selection remains the
 primary provider and model while the provider session records the instance that actually runs the
@@ -286,12 +286,12 @@ turn is prefixed with a rendered transcript of the inherited prefix instead
 ([`forkTranscript.ts`][forktranscript]). The workspace carries the real state either way: the fork
 point's checkpoint is restored into the fork's worktree.
 
-The same renderer and the same budget serve the usage-limit handoff. Only message text crosses —
-tool calls, diffs, and provider-side reasoning never do — and the budget is sized to carry a whole
-conversation rather than its tail, because oldest-first truncation drops the original request
-before anything else. Provider-side compaction does not shrink what crosses: it arrives as a
-`context-compaction` activity carrying the boundary's metadata, and no message is ever pruned, so a
-compacted thread hands over more than the provider it is leaving still held.
+The same renderer and the same budget serve the usage-limit handoff. Only message text crosses; tool
+calls, diffs, and provider-side reasoning do not. The budget carries a whole conversation rather
+than its tail, because truncation drops the original request first. Provider-side compaction does
+not shrink what crosses. It arrives as a `context-compaction` activity holding the boundary
+metadata, and prunes no messages, so a compacted thread hands over more than the provider it leaves
+still held.
 
 An adapter that gains a fork primitive only has to emit an anchor and read `forkAtAnchor`; nothing
 above it changes.

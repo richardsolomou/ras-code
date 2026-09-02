@@ -26,7 +26,7 @@ describe("renderForkTranscript", () => {
   });
 
   it("drops the oldest messages first when the prefix is too long", () => {
-    // Two of these cannot both fit, whatever the budget is set to.
+    // Two of these cannot both fit at any budget.
     const long = "x".repeat(MAX_TRANSCRIPT_CHARACTERS - 100);
     const transcript = renderForkTranscript([
       { role: "user", text: `oldest ${long}` },
@@ -38,8 +38,7 @@ describe("renderForkTranscript", () => {
   });
 
   it("carries a long conversation whole rather than its tail", () => {
-    // A hundred turns of a few hundred characters each: an ordinary long
-    // thread, and the size the budget exists to carry intact.
+    // An ordinary long thread, the size the budget exists to carry whole.
     const messages = Array.from({ length: 100 }, (_, index) => ({
       role: index % 2 === 0 ? ("user" as const) : ("assistant" as const),
       text: `turn ${index} ${"detail ".repeat(100)}`,

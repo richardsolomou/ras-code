@@ -191,7 +191,7 @@ describe("ProviderCommandReactor", () => {
     readonly usageLimits?: Map<ProviderInstanceId, ProviderUsageLimit>;
     readonly extraProviderSnapshots?: ReadonlyArray<Record<string, unknown>>;
     readonly primaryProviderSnapshot?: Record<string, unknown>;
-    /** Per-instance overrides for instances of one driver that do not share a home. */
+    /** Continuation keys for instances of one driver that do not share a home. */
     readonly continuationKeys?: Record<string, string>;
   }) {
     const now = "2026-01-01T00:00:00.000Z";
@@ -3726,8 +3726,8 @@ describe("ProviderCommandReactor", () => {
       await dispatchTurn(harness, "cmd-fallback-home-1");
       await waitFor(() => harness.sendTurn.mock.calls.length === 1);
 
-      // The crossing the thread is on, as the fallback recorded it before the
-      // reactor lost its in-memory route.
+      // The record a real crossing leaves behind. It is what survives the
+      // restart below.
       await harness.runEffect(
         harness.engine.dispatch({
           type: "thread.activity.append",
@@ -4443,9 +4443,8 @@ describe("ProviderCommandReactor", () => {
       await dispatchTurn(harness, "cmd-fallback-restart-1");
       await waitFor(() => harness.sendTurn.mock.calls.length === 1);
 
-      // A restart leaves the bound session and the crossing's own activity in
-      // the read model but drops every live provider session and the reactor's
-      // in-memory fallback route.
+      // A restart keeps the bound session and the crossing activity in the
+      // read model. It drops the live sessions and the in-memory route.
       await harness.runEffect(
         harness.engine.dispatch({
           type: "thread.activity.append",

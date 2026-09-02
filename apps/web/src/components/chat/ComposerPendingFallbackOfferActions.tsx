@@ -4,7 +4,7 @@ import { Button } from "../ui/button";
 
 interface ComposerPendingFallbackOfferActionsProps {
   requestId: ApprovalRequestId;
-  /** Names the destination for screen readers; the panel above says it in full. */
+  /** Names the destination for screen readers. The panel above says it in full. */
   fallbackName: string;
   isResponding: boolean;
   onRespondToFallbackOffer: (
