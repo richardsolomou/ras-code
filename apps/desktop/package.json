@@ -21,7 +21,7 @@
     "@ras-code/ssh": "workspace:*",
     "@ras-code/tailscale": "workspace:*",
     "effect": "catalog:",
-    "electron": "41.5.0",
+    "electron": "43.4.1",
     "electron-store": "^8.2.0",
     "electron-updater": "^6.6.2",
     "playwright-core": "1.60.0",
