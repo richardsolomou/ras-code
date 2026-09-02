@@ -2478,12 +2478,13 @@ describe("ProviderRuntimeIngestion", () => {
       });
     }
 
-    const thread = await waitForThread(
-      harness.readModel,
-      (entry) =>
-        entry.session?.status === "ready" &&
-        entry.session?.activeTurnId === null &&
-        entry.messages.some((message: ProviderRuntimeTestMessage) => !message.streaming),
+    // The last reply's text is ingested whether it opens its own message or is
+    // folded into the first one, so this settles before the split is asserted.
+    const thread = await waitForThread(harness.readModel, (entry) =>
+      entry.messages.some(
+        (message: ProviderRuntimeTestMessage) =>
+          !message.streaming && message.text.includes("turn-reused-second"),
+      ),
     );
     const replies = thread.messages.filter((entry: ProviderRuntimeTestMessage) =>
       entry.id.startsWith("assistant:"),
@@ -2539,12 +2540,11 @@ describe("ProviderRuntimeIngestion", () => {
       },
     });
 
-    const thread = await waitForThread(
-      harness.readModel,
-      (entry) =>
-        entry.session?.status === "ready" &&
-        entry.session?.activeTurnId === null &&
-        entry.messages.some((message: ProviderRuntimeTestMessage) => !message.streaming),
+    const thread = await waitForThread(harness.readModel, (entry) =>
+      entry.messages.some(
+        (message: ProviderRuntimeTestMessage) =>
+          !message.streaming && message.text.includes("second-reply"),
+      ),
     );
     const replies = thread.messages.filter((entry: ProviderRuntimeTestMessage) =>
       entry.id.startsWith("assistant:"),
