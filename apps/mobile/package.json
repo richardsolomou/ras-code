@@ -54,7 +54,6 @@
     "@expo/ui": "~57.0.14",
     "@legendapp/list": "catalog:",
     "@noble/curves": "catalog:",
-    "@noble/hashes": "catalog:",
     "@pierre/diffs": "catalog:",
     "@posthog/react-native-plugin": "^2.5.1",
     "@ras-code/client-runtime": "workspace:*",
