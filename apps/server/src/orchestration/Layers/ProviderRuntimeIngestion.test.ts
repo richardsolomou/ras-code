@@ -2478,8 +2478,8 @@ describe("ProviderRuntimeIngestion", () => {
       });
     }
 
-    // The last reply's text is ingested whether it opens its own message or is
-    // folded into the first one, so this settles before the split is asserted.
+    // The last reply's text lands whether it opens its own message or folds into
+    // the first, so the wait settles before the assertion runs.
     const thread = await waitForThread(harness.readModel, (entry) =>
       entry.messages.some(
         (message: ProviderRuntimeTestMessage) =>

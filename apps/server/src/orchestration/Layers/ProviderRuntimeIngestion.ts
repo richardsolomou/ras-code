@@ -238,15 +238,10 @@ function proposedPlanIdFromEvent(event: ProviderRuntimeEvent, threadId: ThreadId
 }
 
 /**
- * The key an assistant message id is derived from, unique per assistant item
- * across every thread.
- *
- * A provider item id is only ever unique within that provider's own session,
- * and some are not even that: Codex reached through the PostHog AI Gateway
- * numbers each response's items from zero, so every reply on every thread
- * arrives as `msg_0`. Qualifying it with the turn id, which is ours and
- * globally unique, keeps one message per item while staying derivable from
- * the event alone, so a restart mid-turn rebuilds the same id.
+ * Provider item ids repeat: Codex through the PostHog AI Gateway numbers each
+ * response's items from zero, so every reply arrives as `msg_0`. The turn id
+ * qualifies it. Both come from the event, so a mid-turn restart rebuilds the
+ * same id.
  */
 function assistantSegmentBaseKeyFromEvent(event: ProviderRuntimeEvent): string {
   if (event.itemId) {
@@ -1031,9 +1026,9 @@ const make = Effect.gen(function* () {
     Cache.invalidate(assistantSegmentStateByTurnKey, providerTurnKey(threadId, turnId));
 
   /**
-   * Ends the active segment while remembering the base keys the turn has
-   * already spent, so a provider that reuses one item id for several messages
-   * in a turn opens a new segment instead of overwriting the finished one.
+   * Ends the active segment but keeps the base keys the turn already spent. A
+   * provider that reuses one item id then opens a new segment instead of
+   * overwriting the finished message.
    */
   const closeAssistantSegmentForTurn = (threadId: ThreadId, turnId: TurnId) =>
     Effect.gen(function* () {
