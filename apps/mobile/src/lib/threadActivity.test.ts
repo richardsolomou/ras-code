@@ -224,6 +224,7 @@ describe("pending fallback offers", () => {
         model: "claude-sonnet-4-5",
         modelLabel: "Claude Sonnet 4.5",
         resetsAt: null,
+        restartsSession: false,
         createdAt: "2026-08-24T00:00:00.000Z",
       },
     ]);

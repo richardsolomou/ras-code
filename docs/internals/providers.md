@@ -82,19 +82,20 @@ volatile: it is never written to the provider status cache, and an exhausted win
 instance exhausted, with a 30-minute cooldown because that path carries no reset instant.
 
 `ProviderCommandReactor` owns the routing. It offers the gateway only when the subscription is
-exhausted, the gateway advertises the exact requested model, the gateway is available and not
-exhausted, and a started thread can preserve its continuation state. The current composite driver
-shares Claude's continuation identity, so started Claude threads can move across; other harness
-shapes need their own compatible continuation identity before they can do the same.
+exhausted, the gateway advertises the exact requested model, and the gateway is available and not
+exhausted. Instances that share a continuation key move the thread's provider conversation intact —
+the composite adopts Claude's continuation identity, so started Claude threads resume. Every other
+shape crosses as a fresh session with the recent transcript carried into the first prompt, which is
+what `restartsSession` on the `provider.fallback.offered` payload tells the clients to warn about.
 
 The user confirms the switch once for an exhaustion episode. The saved thread selection remains
 the subscription provider and model while the provider session records the gateway that actually
 runs the turn. This keeps thread identity stable and lets the next turn try the subscription again
-after its reset. When the two harnesses cannot share continuation state, the return starts a fresh
-subscription session and carries the recent thread transcript into its first prompt. A successful
-primary turn emits `provider.fallback.returned`; another usage-limit failure before output resumes
-the already-approved gateway without another prompt. The gateway never falls back to itself, no
-alternative model is selected, and no fallback chain is traversed.
+after its reset. When the two harnesses cannot share continuation state, both the crossing and the
+return start a fresh session and carry the recent thread transcript into its first prompt. A
+successful primary turn emits `provider.fallback.returned`; another usage-limit failure before
+output resumes the already-approved gateway without another prompt. The gateway never falls back to
+itself, no alternative model is selected, and no fallback chain is traversed.
 
 ## OpenCode server ownership and catalog
 

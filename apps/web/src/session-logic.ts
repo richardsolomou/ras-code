@@ -152,6 +152,7 @@ export interface PendingFallbackOffer {
   model: string;
   modelLabel?: string;
   resetsAt: string | null;
+  restartsSession: boolean;
   createdAt: string;
 }
 

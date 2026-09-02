@@ -42,6 +42,11 @@ export const ComposerPendingFallbackOfferPanel = memo(function ComposerPendingFa
         Continue with {offer.modelLabel ?? offer.model} via {fallbackName} using usage-based tokens
         {resetsAt ? `, or wait until ${resetsAt}` : ""}?
       </span>
+      {offer.restartsSession ? (
+        <span className="text-xs text-foreground/70">
+          {fallbackName} continues from a copy of this chat, so older detail may be lost.
+        </span>
+      ) : null}
     </div>
   );
 });

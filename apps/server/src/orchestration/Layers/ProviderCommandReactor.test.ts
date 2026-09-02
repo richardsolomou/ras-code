@@ -3870,6 +3870,76 @@ describe("ProviderCommandReactor", () => {
       ).toBe(true);
     });
 
+    it("hands a started Codex thread to the gateway with its transcript", async () => {
+      const primary = ProviderInstanceId.make("codex_subscription");
+      const selection = { instanceId: primary, model: "gpt-5.6-codex" } as const;
+      const usageLimits = new Map<ProviderInstanceId, ProviderUsageLimit>();
+      const harness = await createHarness({
+        threadModelSelection: selection,
+        usageLimits,
+        extraProviderSnapshots: [
+          {
+            instanceId: FALLBACK,
+            driver: "posthogGateway",
+            enabled: true,
+            displayName: "PostHog AI Gateway",
+            models: [
+              {
+                slug: `openai/${selection.model}`,
+                name: "GPT-5.6 Codex",
+                isCustom: false,
+                capabilities: null,
+              },
+            ],
+          },
+        ],
+      });
+      await dispatchTurn(harness, "cmd-fallback-codex-started-1");
+      await waitFor(() => harness.startSession.mock.calls.length === 1);
+
+      usageLimits.set(primary, EXHAUSTED);
+      await dispatchCommand(harness, {
+        type: "thread.turn.start",
+        commandId: CommandId.make("cmd-fallback-codex-started-2"),
+        threadId: ThreadId.make("thread-1"),
+        message: {
+          messageId: asMessageId("user-message-2"),
+          role: "user",
+          text: "second turn",
+          attachments: [],
+        },
+        interactionMode: DEFAULT_PROVIDER_INTERACTION_MODE,
+        runtimeMode: "approval-required",
+        createdAt: "2026-01-01T00:00:05.000Z",
+      });
+
+      await waitFor(
+        async () =>
+          findActivity(await harness.readModel(), "provider.fallback.offered") !== undefined,
+      );
+      expect(
+        findActivity(await harness.readModel(), "provider.fallback.offered")?.payload,
+      ).toMatchObject({ fallbackInstanceId: FALLBACK, restartsSession: true });
+
+      await confirmSwitchOnce(harness, "cmd-fallback-codex-started-confirm");
+
+      await waitFor(() => harness.startSession.mock.calls.length === 2);
+      await waitFor(() => harness.sendTurn.mock.calls.length === 2);
+      expect(harness.startSession.mock.calls[1]?.[1]).toMatchObject({
+        providerInstanceId: FALLBACK,
+        modelSelection: { instanceId: FALLBACK, model: `openai/${selection.model}` },
+      });
+      expect(harness.startSession.mock.calls[1]?.[1]).not.toHaveProperty("resumeCursor");
+      const handoff = harness.sendTurn.mock.calls[1]?.[0];
+      const handoffInput =
+        typeof handoff === "object" && handoff !== null && "input" in handoff
+          ? handoff.input
+          : undefined;
+      if (typeof handoffInput !== "string") throw new Error("Handoff prompt was not text.");
+      expect(handoffInput).toContain("hello reactor");
+      expect(handoffInput).toMatch(/<\/provider-switch-conversation>\n\nsecond turn$/);
+    });
+
     it("returns an unstarted Codex thread with a transcript handoff", async () => {
       const primary = ProviderInstanceId.make("codex_subscription");
       const selection = { instanceId: primary, model: "gpt-5.6-codex" } as const;

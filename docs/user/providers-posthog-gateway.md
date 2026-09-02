@@ -54,8 +54,10 @@ There is nothing else to configure. When a subscription runs out, RAS Code offer
 if its catalog contains the exact same model.
 
 Started Claude threads can keep their conversation state because the gateway's Claude side shares
-Claude's continuation identity. Other harness shapes can use the fallback for a thread that has not
-started, but RAS Code will not move a started thread unless its continuation state is compatible.
+Claude's continuation identity. Every other shape moves too, but the gateway cannot resume the
+harness conversation, so the thread restarts there and its transcript is replayed as context in the
+next prompt. The offer says so before you accept, and the same replay happens on the way back to
+the subscription.
 
 Accepting the offer keeps the thread's original provider icon and model label, with a quiet
 `via PostHog AI Gateway` indicator. RAS Code later tries the subscription again automatically.
