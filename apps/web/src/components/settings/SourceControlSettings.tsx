@@ -18,6 +18,7 @@ import {
 } from "@ras-code/shared/backgroundActivitySettings";
 
 import { useDeviceSettings, useUpdateDeviceSettings } from "../../hooks/useSettings";
+import { SharedSettingsMismatchAlert } from "./SharedSettingsMismatchAlert";
 import { cn } from "../../lib/utils";
 import { useEnvironmentQuery } from "../../state/query";
 import { useSettingsEnvironmentScope } from "../../state/settingsEnvironment";
@@ -547,7 +548,7 @@ export function SourceControlSettingsPanel() {
   return (
     <SettingsPageContainer>
       {deviceTabs}
-
+      <SharedSettingsMismatchAlert />
       {isInitialScanPending ? (
         <>
           <SourceControlSectionSkeleton title="Version Control" headerAction={scanButton} />
