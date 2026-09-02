@@ -113,11 +113,11 @@ function ProviderLastChecked({ lastCheckedAt }: { lastCheckedAt: string | null }
   }
 
   if (lastCheckedRelative.status === "invalid") {
-    return <span className="text-[11px] text-muted-foreground/50">Checked unavailable</span>;
+    return <span>Checked unavailable</span>;
   }
 
   return (
-    <span className="text-[11px] text-muted-foreground/60">
+    <span>
       {lastCheckedRelative.suffix ? (
         <>
           Checked <span className="font-mono tabular-nums">{lastCheckedRelative.value}</span>{" "}
@@ -775,17 +775,20 @@ export function EnvironmentProviderSettings({
                     <TooltipTrigger
                       render={
                         <Button
-                          size="icon-micro"
+                          size="compact"
                           variant="ghost-muted"
                           disabled={isRefreshingProviders}
                           onClick={() => void refreshProviders()}
-                          aria-label="Refresh provider status"
                         >
                           {isRefreshingProviders ? (
-                            <LoaderIcon className="size-3 animate-spin" />
+                            <LoaderIcon className="animate-spin" />
                           ) : (
-                            <RefreshCwIcon className="size-3" />
+                            <RefreshCwIcon />
                           )}
+                          <span className="sr-only">Refresh provider status</span>
+                          <span className="hidden min-w-0 truncate sm:inline">
+                            <ProviderLastChecked lastCheckedAt={lastCheckedAt} />
+                          </span>
                         </Button>
                       }
                     />
@@ -804,16 +807,8 @@ export function EnvironmentProviderSettings({
             </div>
           </div>
 
-          <div
-            inert={readOnly}
-            aria-disabled={readOnly || undefined}
-            className={readOnly ? "opacity-50 select-none" : undefined}
-          >
-            <Collapsible
-              open={advancedVisible}
-              onOpenChange={setAdvancedOpen}
-              className="mt-2 border-t border-border/70"
-            >
+          <div className="mt-2 border-t border-border/70">
+            <Collapsible open={advancedVisible} onOpenChange={setAdvancedOpen}>
               <CollapsibleTrigger className="flex h-10 w-full items-center gap-2 px-3 text-xs text-muted-foreground hover:text-foreground sm:px-4">
                 <ChevronDownIcon
                   className={cn("size-3 transition-transform", advancedVisible && "rotate-180")}
@@ -837,22 +832,31 @@ export function EnvironmentProviderSettings({
                   resetAction={
                     providerHealthRefreshIntervalSeconds !==
                     defaultProviderHealthRefreshIntervalSeconds ? (
-                      <SettingResetButton
-                        label="provider health check interval"
-                        onClick={() =>
-                          updateSettings(
-                            backgroundActivityOverrideSettings(
-                              settings.backgroundActivity,
-                              resolvedBackgroundActivity,
-                              { providerHealthRefreshInterval: undefined },
-                            ),
-                          )
-                        }
-                      />
+                      <span inert={readOnly} className={readOnly ? "opacity-50" : undefined}>
+                        <SettingResetButton
+                          label="provider health check interval"
+                          onClick={() =>
+                            updateSettings(
+                              backgroundActivityOverrideSettings(
+                                settings.backgroundActivity,
+                                resolvedBackgroundActivity,
+                                { providerHealthRefreshInterval: undefined },
+                              ),
+                            )
+                          }
+                        />
+                      </span>
                     ) : null
                   }
                   control={
-                    <div className="flex shrink-0 items-center gap-2">
+                    <div
+                      inert={readOnly}
+                      aria-disabled={readOnly || undefined}
+                      className={cn(
+                        "flex shrink-0 items-center gap-2",
+                        readOnly && "opacity-50 select-none",
+                      )}
+                    >
                       <NumberField
                         value={providerHealthRefreshIntervalSeconds}
                         min={0}
