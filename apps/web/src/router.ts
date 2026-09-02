@@ -10,6 +10,10 @@ export function getRouter(history: RouterHistory) {
     // serves under and every build keeps the same route paths.
     basepath: import.meta.env.BASE_URL,
     context: {},
+    // Route components are split chunks (autoCodeSplitting in vite.config);
+    // fetching them on hover/focus intent hides the load from the first
+    // settings or pull-request navigation.
+    defaultPreload: "intent",
   });
 }
 
