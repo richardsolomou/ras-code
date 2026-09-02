@@ -64,6 +64,10 @@ Two registries separate configuration from live processes:
 [`ProviderService`][service] sits on top. It combines the adapter registry with the provider session
 directory to route session and turn operations for a thread, so callers name a thread, not an agent.
 
+`ProviderService.sendTurn` expands [assistant citations](./assistant-citations.md) into quoted
+reference data before dispatching to any adapter. Bound user comments remain distinct from the quoted
+assistant text. Persisted messages keep their serialized links.
+
 Adding a driver means writing the driver plus adapter and adding it to `BUILT_IN_DRIVERS`. No
 orchestration, contract, or client change is required for the common case.
 
@@ -105,6 +109,17 @@ gateway, which is what keeps a user switching a started thread between incompati
 refusal. The gateway never falls back to
 itself, no alternative model is selected, and no fallback chain is traversed.
 
+### Grok health check
+
+`checkGrokProviderStatus` never opens an ACP session. It runs `grok --version`, then `grok models`
+for login state and model slugs, then a single ACP `initialize` and reads models from
+`_meta.modelState`. `authenticate` and `session/new` are skipped on purpose: `authenticate` can open
+a browser login and `session/new` boots every configured MCP server, both of which made background
+probes hang or surprise the user. A failed `initialize` degrades to `warning` with the CLI's model
+list instead of persisting `error` over a working install. The built-in `grok-build` slug is the
+CLI's product name, not an ACP model id. `applyGrokAcpModelSelection` treats it as "keep the
+session's current model" and never sends it in `session/set_model`.
+
 ## OpenCode server ownership and catalog
 
 Each OpenCode provider instance owns one lazy local server for catalog discovery and
@@ -123,7 +138,7 @@ session operations start. The response must contain a valid version at or above 
 owners cache this result for the lifetime of the spawned process. External actions check once when
 they create their server connection, not for each model or SDK request.
 
-Chat adapters keep their own server per thread. They register a thread-specific `t3-code` MCP
+Chat adapters keep their own server per thread. They register a thread-specific `ras-code` MCP
 connection, while OpenCode stores MCP connections by directory. Sharing these chat servers
 without changing MCP routing would let two threads in one directory replace each other's
 connection.
@@ -140,8 +155,8 @@ active text-generation work can extend process reuse. Changes to the provider co
 environment replace the instance and start a new discovery. Changes to unrelated settings only
 update snapshot enrichment. Other providers retain their existing refresh policy.
 
-T3 Code does not own an external OpenCode process. Native configuration changes there can require
-an external reload or restart before T3 Code's next refresh sees them.
+RAS Code does not own an external OpenCode process. Native configuration changes there can require
+an external reload or restart before RAS Code's next refresh sees them.
 
 The shared server's idle shutdown does not clear the catalog. Failed discovery keeps the last
 known models, slash commands, and skills through the registry's existing merge rules. A successful

@@ -5,7 +5,7 @@ import {
   scopedThreadKey,
 } from "@ras-code/client-runtime/environment";
 import { settlePromise, squashAtomCommandFailure } from "@ras-code/client-runtime/state/runtime";
-import { canSettle, canSnooze, threadWokeAt } from "@ras-code/client-runtime/state/thread-settled";
+import { canSnooze, threadWokeAt } from "@ras-code/client-runtime/state/thread-settled";
 import { EnvironmentId, type ScopedThreadRef, ThreadId } from "@ras-code/contracts";
 import * as Cause from "effect/Cause";
 import * as Schema from "effect/Schema";
@@ -61,18 +61,6 @@ export class ThreadSettlementUnsupportedError extends Schema.TaggedErrorClass<Th
 ) {
   override get message(): string {
     return "This environment's server does not support settling yet. Update the server to use Settle.";
-  }
-}
-
-export class ThreadSettleBlockedError extends Schema.TaggedErrorClass<ThreadSettleBlockedError>()(
-  "ThreadSettleBlockedError",
-  {
-    environmentId: EnvironmentId,
-    threadId: ThreadId,
-  },
-) {
-  override get message(): string {
-    return "This thread still needs attention. Resolve or interrupt it first, then try again.";
   }
 }
 
@@ -484,19 +472,6 @@ export function useThreadActions() {
         );
       }
       const resolved = resolveThreadTarget(target);
-      // Settle may only target what effectiveSettled could classify as
-      // settled: not starting/running sessions, not threads waiting on
-      // approvals or user input. Anything else would hide live work.
-      if (resolved && !canSettle(resolved.thread, { now: new Date().toISOString() })) {
-        return AsyncResult.failure(
-          Cause.fail(
-            new ThreadSettleBlockedError({
-              environmentId: resolved.threadRef.environmentId,
-              threadId: resolved.threadRef.threadId,
-            }),
-          ),
-        );
-      }
       const wokeAt = resolved
         ? threadWokeAt(resolved.thread, { now: new Date().toISOString() })
         : null;

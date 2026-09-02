@@ -25,7 +25,7 @@ it.effect("maps Bitbucket PR summaries into provider-neutral change requests", (
           state: "open",
           updatedAt: Option.none(),
           isCrossRepository: true,
-          headRepositoryNameWithOwner: "fork/t3code",
+          headRepositoryNameWithOwner: "fork/ras-code",
           headRepositoryOwnerLogin: "fork",
         }),
     });
@@ -45,7 +45,7 @@ it.effect("maps Bitbucket PR summaries into provider-neutral change requests", (
       state: "open",
       updatedAt: Option.none(),
       isCrossRepository: true,
-      headRepositoryNameWithOwner: "fork/t3code",
+      headRepositoryNameWithOwner: "fork/ras-code",
       headRepositoryOwnerLogin: "fork",
     });
   }),
@@ -147,22 +147,5 @@ it.effect("creates Bitbucket PRs through provider-neutral input names", () =>
       title: "Provider PR",
       bodyFile: "/tmp/body.md",
     });
-  }),
-);
-
-it.effect("uses Bitbucket API repository detection for default branch lookup", () =>
-  Effect.gen(function* () {
-    let cwdInput: string | null = null;
-    const provider = yield* makeProvider({
-      getDefaultBranch: (input) => {
-        cwdInput = input.cwd;
-        return Effect.succeed("main");
-      },
-    });
-
-    const defaultBranch = yield* provider.getDefaultBranch({ cwd: "/repo" });
-
-    assert.strictEqual(defaultBranch, "main");
-    assert.strictEqual(cwdInput, "/repo");
   }),
 );

@@ -20,6 +20,10 @@ describe("rebrandText", () => {
     assert.strictEqual(rebrandText("process.env.T3CODE_HOME"), "process.env.RAS_CODE_HOME");
   });
 
+  it("keeps the session cookie name off the ras_code_ prefix", () => {
+    assert.strictEqual(rebrandText('cookie: "t3_session_5775"'), 'cookie: "ras_session_5775"');
+  });
+
   it("rewrites remaining screaming-snake identifiers to the RAS_ prefix", () => {
     assert.strictEqual(rebrandText("T3_ACP_EMIT_TOOL_CALLS"), "RAS_ACP_EMIT_TOOL_CALLS");
   });
@@ -54,6 +58,33 @@ describe("rebrandText", () => {
 
   it("rewrites the remote access product name", () => {
     assert.strictEqual(rebrandText("Connect through T3 Connect."), "Connect through RAS Connect.");
+  });
+
+  it("keeps upstream repository slugs and forks of them", () => {
+    assert.strictEqual(
+      rebrandText('url: "https://github.com/binbandit/t3code/pull/642"'),
+      'url: "https://github.com/binbandit/t3code/pull/642"',
+    );
+    assert.strictEqual(rebrandText('repo: "PingDotGG/T3Code"'), 'repo: "PingDotGG/T3Code"');
+    assert.strictEqual(rebrandText('repo: "t3tools/t3code"'), 'repo: "richardsolomou/ras-code"');
+    assert.strictEqual(rebrandText('repo: "T3Tools/T3Code"'), 'repo: "richardsolomou/ras-code"');
+  });
+
+  it("keeps the WSL runtime cache paths that already exist on disk", () => {
+    assert.strictEqual(
+      rebrandText('runtime_parent="$HOME/.t3/wsl-runtime"'),
+      'runtime_parent="$HOME/.t3/wsl-runtime"',
+    );
+    assert.strictEqual(rebrandText('".t3code-wsl-runtime-ready"'), '".t3code-wsl-runtime-ready"');
+  });
+
+  it("rewrites the PascalCase product name without doubling Code", () => {
+    assert.strictEqual(rebrandText("ios/T3Code"), "ios/RasCode");
+  });
+
+  it("rewrites the remote access product name in ids and search terms", () => {
+    assert.strictEqual(rebrandText('id: "t3-connect"'), 'id: "ras-connect"');
+    assert.strictEqual(rebrandText('"tunnel saved t3 connect"'), '"tunnel saved ras connect"');
   });
 
   it("keeps project file types on the Ras prefix", () => {

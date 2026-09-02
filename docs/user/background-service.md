@@ -23,6 +23,22 @@ Update or repair it:
 npx ras-code@latest service update
 ```
 
+The service uses the same RAS Code version as the CLI you run. To install a nightly or an exact
+version, use that version of the CLI:
+
+```sh
+npx ras-code@nightly service update
+npx ras-code@1.2.3 service update
+```
+
+The install and update commands refuse to replace a newer service with an older version. Setup
+through RAS Connect leaves a newer service unchanged. To downgrade, select the exact older version
+and pass `--allow-downgrade`:
+
+```sh
+npx ras-code@1.2.3 service update --allow-downgrade
+```
+
 Stop it and remove it from startup:
 
 ```sh

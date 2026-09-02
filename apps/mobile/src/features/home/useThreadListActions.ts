@@ -1,5 +1,5 @@
 import type { EnvironmentThreadShell } from "@ras-code/client-runtime/state/shell";
-import { canSettle, canSnooze } from "@ras-code/client-runtime/state/thread-settled";
+import { canSnooze } from "@ras-code/client-runtime/state/thread-settled";
 import * as Cause from "effect/Cause";
 import * as Haptics from "expo-haptics";
 import { useCallback, useRef } from "react";
@@ -118,16 +118,6 @@ function useThreadActionExecutor(
           );
           return false;
         }
-        // Settle may only target what effectiveSettled could classify as
-        // settled: not starting/running sessions, not threads waiting on
-        // approvals or user input. Anything else would hide live work.
-        if (action === "settle" && !canSettle(thread, { now: new Date().toISOString() })) {
-          Alert.alert(
-            actionFailureTitle(action),
-            "This thread still needs attention. Resolve or interrupt it first, then try again.",
-          );
-          return false;
-        }
         // Archive keeps its original, narrower guard: never interrupt a
         // thread mid-turn.
         if (
@@ -237,12 +227,8 @@ export function useThreadListActions(): {
     direction: "up" | "down",
   ) => Promise<boolean>;
   readonly regenerateThreadTitle: (thread: EnvironmentThreadShell) => Promise<boolean>;
-  readonly recordMergeSettle: (thread: EnvironmentThreadShell) => Promise<boolean>;
 } {
   const executeAction = useThreadActionExecutor();
-  // Separate from the user-facing settle path: this one is background work, so
-  // it must not buzz the phone or raise an alert when it loses a race.
-  const mergeSettleMutation = useAtomCommand(threadEnvironment.settle, { reportFailure: false });
   const snoozeMutation = useAtomCommand(threadEnvironment.snooze, { reportFailure: false });
   const unsnoozeMutation = useAtomCommand(threadEnvironment.unsnooze, { reportFailure: false });
   const pinMutation = useAtomCommand(threadEnvironment.pin, { reportFailure: false });
@@ -546,21 +532,6 @@ export function useThreadListActions(): {
 
   const confirmDeleteThread = useConfirmDeleteThread(executeAction);
 
-  // Persist this client's auto-settle-on-merge decision so the next cold load,
-  // here and on every other device, reads it from the projection instead of
-  // waiting on a PR lookup. Silent by design: the caller has already decided.
-  const recordMergeSettle = useCallback(
-    async (thread: EnvironmentThreadShell) => {
-      if (!environmentSupportsSettlement(thread.environmentId)) return false;
-      const result = await mergeSettleMutation({
-        environmentId: thread.environmentId,
-        input: { threadId: thread.id, reason: "merge" },
-      });
-      return result._tag !== "Failure";
-    },
-    [mergeSettleMutation],
-  );
-
   return {
     archiveThread,
     confirmDeleteThread,
@@ -572,7 +543,6 @@ export function useThreadListActions(): {
     unpinThread,
     movePinnedThread,
     regenerateThreadTitle,
-    recordMergeSettle,
   };
 }
 
