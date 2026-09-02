@@ -737,7 +737,7 @@ export function syntheticLoadSessionResponseFromInitialize(
     ...(models ? { models } : {}),
     ...(modes ? { modes } : {}),
     _meta: {
-      rasCodeSessionLoadReady: "replay_idle",
+      t3SessionLoadReady: "replay_idle",
     },
   };
 }

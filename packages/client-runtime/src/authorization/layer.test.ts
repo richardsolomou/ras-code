@@ -510,6 +510,7 @@ describe("RemoteEnvironmentAuthorization", () => {
       expect(authorized.httpAuthorization).toEqual({
         _tag: "Dpop",
         accessToken: "bundled-access-token",
+        expiresAtEpochMs: 3_600_000,
       });
       expect((yield* Ref.get(harness.tokens)).get(ENVIRONMENT_ID)).toEqual(
         expect.objectContaining({
