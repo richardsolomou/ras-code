@@ -125,6 +125,7 @@ const removedPrefixes: ReadonlyArray<readonly [string, string]> = [
   ["experiments/", "experiments, which we do not carry"],
   [".macroscope/", "Macroscope review configuration, which we do not carry"],
   [".coderabbit.yaml", "CodeRabbit review configuration, which we do not carry"],
+  [".github/VOUCHED.td", "upstream's contributor trust list, which we do not inherit"],
   // The custom theme editor and its VS Code / OpenVSX theme import, removed in
   // #51 in favour of the fixed theme set.
   ["apps/web/src/components/settings/ThemeColorPicker", THEME_EDITOR],
