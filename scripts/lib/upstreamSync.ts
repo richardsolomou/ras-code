@@ -121,6 +121,8 @@ const replacedPrefixes: ReadonlyArray<readonly [string, string]> = [
  */
 const removedPrefixes: ReadonlyArray<readonly [string, string]> = [
   ["experiments/", "experiments, which we do not carry"],
+  [".macroscope/", "Macroscope review configuration, which we do not carry"],
+  [".coderabbit.yaml", "CodeRabbit review configuration, which we do not carry"],
 ];
 
 /**
