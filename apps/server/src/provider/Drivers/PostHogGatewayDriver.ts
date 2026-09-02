@@ -183,11 +183,51 @@ const indexModelsBySlug = (
 
 const bareSlug = (id: string): string => id.slice(id.lastIndexOf("/") + 1);
 
+const VENDOR_LABELS: Readonly<Record<string, string>> = {
+  anthropic: "Anthropic",
+  deepinfra: "DeepInfra",
+  "github-copilot": "GitHub Copilot",
+  "meta-llama": "Meta",
+  moonshotai: "Moonshot AI",
+  openai: "OpenAI",
+  "zai-org": "Z.ai",
+};
+
+/**
+ * The company behind a gateway model id. Bare ids use the wire shape, since
+ * `claude-*` is Anthropic and every other bare id the gateway serves is
+ * OpenAI. Namespaced ids (`vendor/model`) use the vendor segment; unknown
+ * vendors are title-cased rather than dropped.
+ */
+export function gatewayModelVendor(id: string, shape: GatewayModelShape): string {
+  const slug = id.trim();
+  const separator = slug.indexOf("/");
+  if (separator > 0) {
+    const vendor = slug.slice(0, separator).trim().toLowerCase();
+    if (vendor.length > 0) {
+      return VENDOR_LABELS[vendor] ?? toTitleCase(vendor);
+    }
+  }
+  return shape === "anthropic" ? "Anthropic" : "OpenAI";
+}
+
+function toTitleCase(value: string): string {
+  return value
+    .split(/[\s_-]+/)
+    .filter(Boolean)
+    .map((part) => part[0]!.toUpperCase() + part.slice(1).toLowerCase())
+    .join(" ");
+}
+
 /**
  * Turn the gateway catalog into provider models, taking each model's
  * capabilities from the child that will serve it. Open-weight ids match no
  * harness catalog and carry `capabilities: null`, which the UI renders as
  * "no options".
+ *
+ * Models come out grouped by vendor. The gateway serves one instance holding
+ * every company's catalog, and no client re-sorts a single instance's models,
+ * so this order is what every picker shows.
  */
 export function buildGatewayModels(input: {
   readonly catalog: ReadonlyArray<ProviderRemoteModel>;
@@ -197,20 +237,34 @@ export function buildGatewayModels(input: {
 }): ReadonlyArray<ServerProviderModel> {
   const claudeIndex = indexModelsBySlug(input.claudeModels);
   const codexIndex = indexModelsBySlug(input.codexModels);
-  return input.catalog.map((entry) => {
+  // Keyed by vendor, so insertion order groups the catalog while leaving both
+  // the vendors and each vendor's models in the order the gateway sent them.
+  const byVendor = new Map<string, ServerProviderModel[]>();
+
+  for (const entry of input.catalog) {
     const shape = gatewayModelShape(entry.id);
+    const subProvider = gatewayModelVendor(entry.id, shape);
     const donor =
       shape === "anthropic"
         ? (claudeIndex.get(entry.id) ?? claudeIndex.get(bareSlug(entry.id)))
         : (codexIndex.get(entry.id) ?? codexIndex.get(bareSlug(entry.id)));
-    return {
+    const model = {
       slug: entry.id,
       name: entry.name ?? entry.id,
       isCustom: false,
+      subProvider,
       ...(entry.id === input.defaultModel ? { isDefault: true } : {}),
       capabilities: donor?.capabilities ?? null,
     } satisfies ServerProviderModel;
-  });
+    const group = byVendor.get(subProvider);
+    if (group) {
+      group.push(model);
+    } else {
+      byVendor.set(subProvider, [model]);
+    }
+  }
+
+  return [...byVendor.values()].flat();
 }
 
 const USAGE_LIMIT_SEVERITY: Record<ProviderUsageLimit["status"], number> = {

@@ -242,6 +242,52 @@ describe("buildGatewayModels", () => {
     assert.strictEqual(models[0]?.capabilities, null);
     assert.strictEqual(models[0]?.slug, "zai-org/glm-5.2");
   });
+
+  it("groups an interleaved catalog by vendor without reordering within one", () => {
+    const models = buildGatewayModels({
+      catalog: [
+        { id: "zai-org/glm-5.2", name: null },
+        { id: "openai/gpt-5.4", name: null },
+        { id: "zai-org/glm-5.3-flash", name: null },
+        { id: "anthropic/claude-sonnet-4-6", name: null },
+        { id: "openai/gpt-5.6", name: null },
+      ],
+      claudeModels: [],
+      codexModels: [],
+      defaultModel: "openai/gpt-5.4",
+    });
+
+    assert.deepStrictEqual(
+      models.map((model) => model.slug),
+      [
+        "zai-org/glm-5.2",
+        "zai-org/glm-5.3-flash",
+        "openai/gpt-5.4",
+        "openai/gpt-5.6",
+        "anthropic/claude-sonnet-4-6",
+      ],
+    );
+  });
+
+  it("labels gateway models with their vendor for grouping", () => {
+    const models = buildGatewayModels({
+      catalog: [
+        { id: "claude-sonnet-4-6", name: null },
+        { id: "anthropic/claude-sonnet-4-6", name: null },
+        { id: "openai/gpt-5.4", name: null },
+        { id: "zai-org/glm-5.2", name: null },
+        { id: "moonshotai/kimi-k3", name: null },
+      ],
+      claudeModels: [],
+      codexModels: [],
+      defaultModel: "claude-sonnet-4-6",
+    });
+
+    assert.deepStrictEqual(
+      models.map((model) => model.subProvider),
+      ["Anthropic", "Anthropic", "OpenAI", "Z.ai", "Moonshot AI"],
+    );
+  });
 });
 
 describe("composeGatewaySnapshot", () => {
