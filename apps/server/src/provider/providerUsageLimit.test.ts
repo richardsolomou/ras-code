@@ -5,11 +5,13 @@ import {
   exhaustedUsageLimitFromError,
   isUsageLimitFailureMessage,
   normalizeProviderUsageLimit,
+  usageLimitResetFromMessage,
   USAGE_LIMIT_DEFAULT_COOLDOWN_MS,
 } from "./providerUsageLimit.ts";
 
 const RESETS_AT_SECONDS = 1_800_000_000;
 const RESETS_AT_ISO = "2027-01-15T08:00:00.000Z";
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 describe("normalizeProviderUsageLimit", () => {
   it("reads a rejected Claude rate limit event as exhausted", () => {
@@ -121,11 +123,71 @@ describe("effectiveUsageLimit", () => {
   });
 });
 
+describe("usageLimitResetFromMessage", () => {
+  /** Local, because a bare wall-clock string in the message carries no zone. */
+  const codexReset = Date.parse("Sep 7, 2026 5:27 AM");
+  const codexMessage =
+    "You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Sep 7th, 2026 5:27 AM";
+
+  it("reads the reset instant out of Codex's prose", () => {
+    expect(
+      Date.parse(
+        usageLimitResetFromMessage({ message: codexMessage, nowMs: codexReset - 5 * DAY_MS }) ?? "",
+      ),
+    ).toBe(codexReset);
+  });
+
+  it("reads the unix seconds Claude Code appends to its message", () => {
+    const resetsAtMs = 1_800_000_000_000;
+    expect(
+      usageLimitResetFromMessage({
+        message: `Claude AI usage limit reached|${resetsAtMs / 1000}`,
+        nowMs: resetsAtMs - DAY_MS,
+      }),
+    ).toBe(RESETS_AT_ISO);
+  });
+
+  it("keeps a zoned instant in its own zone rather than reading it as local", () => {
+    const resetsAt = "2027-01-15T08:00:00.597Z";
+    expect(
+      usageLimitResetFromMessage({
+        message: `usage limit reached, try again at ${resetsAt}`,
+        nowMs: Date.parse(resetsAt) - DAY_MS,
+      }),
+    ).toBe(resetsAt);
+  });
+
+  it("refuses a reset instant that has already passed", () => {
+    expect(usageLimitResetFromMessage({ message: codexMessage, nowMs: codexReset + 1 })).toBeNull();
+  });
+
+  it("refuses a reset instant further out than any quota window", () => {
+    expect(
+      usageLimitResetFromMessage({ message: codexMessage, nowMs: codexReset - 15 * DAY_MS }),
+    ).toBeNull();
+  });
+
+  it("finds nothing in a message that names no instant", () => {
+    expect(
+      usageLimitResetFromMessage({ message: "Claude AI usage limit reached", nowMs: 0 }),
+    ).toBeNull();
+  });
+});
+
 describe("exhaustedUsageLimitFromError", () => {
   it("parks the instance for the default cooldown", () => {
     const nowMs = Date.parse(RESETS_AT_ISO);
     const limit = exhaustedUsageLimitFromError({ nowMs });
     expect(Date.parse(limit.resetsAt ?? "")).toBe(nowMs + USAGE_LIMIT_DEFAULT_COOLDOWN_MS);
+  });
+
+  it("prefers the reset instant the failure message named", () => {
+    const nowMs = Date.parse("2026-09-02T00:00:00.000Z");
+    const limit = exhaustedUsageLimitFromError({
+      nowMs,
+      message: "usage limit reached, try again at 2026-09-07T05:27:00Z",
+    });
+    expect(limit.resetsAt).toBe("2026-09-07T05:27:00.000Z");
   });
 });
 

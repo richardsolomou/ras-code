@@ -1934,7 +1934,12 @@ const make = Effect.gen(function* () {
     const nowMs = yield* Clock.currentTimeMillis;
     yield* providerRegistry.setProviderUsageLimit({
       instanceId: pending.instanceId,
-      usageLimit: exhaustedUsageLimitFromError({ nowMs }),
+      usageLimit: exhaustedUsageLimitFromError({
+        nowMs,
+        ...(event.payload.errorMessage !== undefined
+          ? { message: event.payload.errorMessage }
+          : {}),
+      }),
     });
 
     if (

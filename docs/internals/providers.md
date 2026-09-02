@@ -79,7 +79,8 @@ shapes into one `ProviderUsageLimit` (`status`, `resetsAt`, `kind`, `utilization
 `ServerProvider.usageLimit` so clients see it on the provider snapshot. The state is deliberately
 volatile: it is never written to the provider status cache, and an exhausted window reads back as
 `ok` once `resetsAt` has passed. A turn that fails with a usage-limit message also marks its
-instance exhausted, with a 30-minute cooldown because that path carries no reset instant.
+instance exhausted, reading the reset instant out of the message when it names one and falling back
+to a 30-minute cooldown when it does not.
 
 `ProviderCommandReactor` owns the routing. It offers the gateway only when the subscription is
 exhausted, the gateway advertises the exact requested model, and the gateway is available and not

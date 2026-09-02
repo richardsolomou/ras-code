@@ -61,6 +61,7 @@ import { ProviderCommandReactor } from "../Services/ProviderCommandReactor.ts";
 import { ProjectionSnapshotQuery } from "../Services/ProjectionSnapshotQuery.ts";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as Clock from "effect/Clock";
+import * as DateTime from "effect/DateTime";
 import { ServerSettingsService } from "../../serverSettings.ts";
 import { VcsStatusBroadcaster } from "../../vcs/VcsStatusBroadcaster.ts";
 import * as GitWorkflowService from "../../git/GitWorkflowService.ts";
@@ -4067,6 +4068,31 @@ describe("ProviderCommandReactor", () => {
             FALLBACK,
         ),
       ).toBe(false);
+    });
+
+    it("records the reset instant the failure message named", async () => {
+      const harness = await createHarness(fallbackHarnessInput({ usageLimits: new Map() }));
+      await awaitRuntimeSubscriber(harness);
+      await dispatchTurn(harness, "cmd-fallback-reset-instant");
+      await waitFor(() => harness.sendTurn.mock.calls.length === 1);
+
+      const nowMs = await harness.runEffect(Clock.currentTimeMillis);
+      const resetsAt = DateTime.formatIso(DateTime.makeUnsafe(nowMs + 3 * 24 * 60 * 60 * 1000));
+      await harness.publishRuntimeEvent({
+        eventId: EventId.make("runtime-event-turn-failed-reset-instant"),
+        provider: ProviderDriverKind.make("claudeAgent"),
+        providerInstanceId: PRIMARY,
+        threadId: ThreadId.make("thread-1"),
+        createdAt: "2026-01-01T00:00:01.000Z",
+        type: "turn.completed",
+        payload: {
+          state: "failed",
+          errorMessage: `Claude AI usage limit reached, try again at ${resetsAt}`,
+        },
+      });
+
+      await waitFor(() => harness.usageLimits.get(PRIMARY)?.status === "exhausted");
+      expect(harness.usageLimits.get(PRIMARY)?.resetsAt).toBe(resetsAt);
     });
 
     it("does not retry a usage-limit failure that already produced assistant output", async () => {
