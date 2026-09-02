@@ -15,6 +15,7 @@ import {
   CHAT_LIST_ANCHOR_OFFSET,
   resolveChatListAnchoredEndSpace,
 } from "@ras-code/shared/chatList";
+import { renderAssistantCitationsAsText } from "@ras-code/shared/assistantCitations";
 import {
   codexArtifactTemplatePresentationLabel,
   type CodexArtifactTemplate,
@@ -1551,7 +1552,7 @@ function renderFeedEntry(
   if (entry.type === "message") {
     const { message } = entry;
     const isUser = message.role === "user";
-    const renderedText = message.text;
+    const renderedText = renderAssistantCitationsAsText(message.text);
     const styles = isUser ? markdownStyles.user : markdownStyles.assistant;
     const timestampLabel = formatMessageTime(isUser ? message.createdAt : message.updatedAt);
     const attachments = message.attachments ?? [];
@@ -1598,7 +1599,7 @@ function renderFeedEntry(
           >
             {message.text.trim().length > 0 ? (
               <UserMessageContent
-                text={message.text}
+                text={renderedText}
                 markdownStyles={styles}
                 reviewCommentColors={props.reviewCommentColors}
                 skills={props.skills}

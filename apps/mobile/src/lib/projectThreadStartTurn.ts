@@ -7,12 +7,13 @@ import {
   type ProviderInteractionMode,
   type RuntimeMode,
 } from "@ras-code/contracts";
+import { assistantCitationsToPlainText } from "@ras-code/shared/assistantCitations";
 
 import { toUploadChatImageAttachments, type DraftComposerAttachment } from "./composerImages";
 import type { UploadedMobileAttachment } from "./attachmentUpload";
 
 export function deriveThreadTitleFromPrompt(value: string): string {
-  const trimmed = value.trim();
+  const trimmed = assistantCitationsToPlainText(value).trim();
   if (trimmed.length === 0) {
     return "New thread";
   }
