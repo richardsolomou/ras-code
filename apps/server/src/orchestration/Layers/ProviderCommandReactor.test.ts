@@ -4036,6 +4036,81 @@ describe("ProviderCommandReactor", () => {
       });
     });
 
+    it("carries the transcript home when a restart forgot the thread was on the gateway", async () => {
+      const primary = ProviderInstanceId.make("codex_subscription");
+      const selection = { instanceId: primary, model: "gpt-5.6-codex" } as const;
+      const harness = await createHarness({
+        threadModelSelection: selection,
+        usageLimits: new Map<ProviderInstanceId, ProviderUsageLimit>(),
+        extraProviderSnapshots: [
+          {
+            instanceId: FALLBACK,
+            driver: "posthogGateway",
+            enabled: true,
+            displayName: "PostHog AI Gateway",
+            models: [
+              {
+                slug: `openai/${selection.model}`,
+                name: "GPT-5.6 Codex",
+                isCustom: false,
+                capabilities: null,
+              },
+            ],
+          },
+        ],
+      });
+      await dispatchTurn(harness, "cmd-fallback-restart-1");
+      await waitFor(() => harness.sendTurn.mock.calls.length === 1);
+
+      // A restart leaves the bound session in the read model but drops every
+      // live provider session and the reactor's in-memory fallback route.
+      await harness.runEffect(
+        harness.engine.dispatch({
+          type: "thread.session.set",
+          commandId: CommandId.make("cmd-fallback-restart-park"),
+          threadId: ThreadId.make("thread-1"),
+          session: {
+            threadId: ThreadId.make("thread-1"),
+            status: "ready",
+            providerName: "posthogGateway",
+            providerInstanceId: FALLBACK,
+            runtimeMode: "approval-required",
+            activeTurnId: null,
+            lastError: null,
+            updatedAt: "2026-01-01T00:00:04.000Z",
+          },
+          createdAt: "2026-01-01T00:00:04.000Z",
+        }),
+      );
+      harness.runtimeSessions.length = 0;
+
+      await dispatchCommand(harness, {
+        type: "thread.turn.start",
+        commandId: CommandId.make("cmd-fallback-restart-2"),
+        threadId: ThreadId.make("thread-1"),
+        message: {
+          messageId: asMessageId("user-message-2"),
+          role: "user",
+          text: "second turn",
+          attachments: [],
+        },
+        interactionMode: DEFAULT_PROVIDER_INTERACTION_MODE,
+        runtimeMode: "approval-required",
+        createdAt: "2026-01-01T00:00:05.000Z",
+      });
+
+      await waitFor(() => harness.sendTurn.mock.calls.length === 2);
+      const returned = harness.sendTurn.mock.calls[1]?.[0];
+      const returnedInput =
+        typeof returned === "object" && returned !== null && "input" in returned
+          ? returned.input
+          : undefined;
+      if (typeof returnedInput !== "string") throw new Error("Return prompt was not text.");
+      expect(returned).toMatchObject({ modelSelection: selection });
+      expect(returnedInput).toContain("hello reactor");
+      expect(returnedInput).toMatch(/<\/provider-switch-conversation>\n\nsecond turn$/);
+    });
+
     it("keeps the primary instance mid-thread when the driver forbids switching", async () => {
       const usageLimits = new Map<ProviderInstanceId, ProviderUsageLimit>();
       const harness = await createHarness(

@@ -747,6 +747,48 @@ const make = Effect.gen(function* () {
     });
 
   /**
+   * Whether this turn has to carry the thread's transcript because the thread
+   * is parked on a gateway fallback the instance about to run it cannot
+   * resume.
+   *
+   * `activeFallbackRoutes` lives in memory, so a restart would otherwise
+   * forget the crossing and hand the next turn to the subscription with no
+   * context at all. The bound session in the read model says the same thing
+   * durably: a gateway instance that is not the thread's own selection is
+   * only ever a fallback, because nothing else routes a thread away from the
+   * instance it selected.
+   */
+  const requiresParkedFallbackHandoff = Effect.fn("requiresParkedFallbackHandoff")(
+    function* (input: {
+      readonly sessionInstanceId: ProviderInstanceId | null | undefined;
+      readonly desiredInstanceId: ProviderInstanceId;
+    }) {
+      const sessionInstanceId = input.sessionInstanceId;
+      if (
+        sessionInstanceId === null ||
+        sessionInstanceId === undefined ||
+        sessionInstanceId === input.desiredInstanceId
+      ) {
+        return false;
+      }
+      const providers = yield* providerRegistry.getProviders;
+      const parked = providers.find((snapshot) => snapshot.instanceId === sessionInstanceId);
+      if (parked?.driver !== POSTHOG_GATEWAY_DRIVER) {
+        return false;
+      }
+      const instanceInfo = yield* Effect.all({
+        parked: providerService.getInstanceInfo(sessionInstanceId),
+        desired: providerService.getInstanceInfo(input.desiredInstanceId),
+      }).pipe(Effect.orElseSucceed(() => undefined));
+      return (
+        instanceInfo !== undefined &&
+        instanceInfo.parked.continuationIdentity.continuationKey !==
+          instanceInfo.desired.continuationIdentity.continuationKey
+      );
+    },
+  );
+
+  /**
    * Pick the gateway instance that can serve this selection while the primary
    * is out of quota, or `undefined` when none can. Instances that share a
    * continuation key resume the thread's provider conversation; the rest take
@@ -1834,13 +1876,29 @@ const make = Effect.gen(function* () {
       sawWorkItem: false,
     });
 
+    const parkedFallbackHandoff =
+      effectiveRoute === undefined && approvedFallback === undefined
+        ? yield* requiresParkedFallbackHandoff({
+            sessionInstanceId: thread.session?.providerInstanceId,
+            desiredInstanceId: baseSelection.instanceId,
+          }).pipe(
+            Effect.catchCause((cause) =>
+              Effect.logWarning("provider command reactor failed to resolve parked fallback", {
+                threadId: event.payload.threadId,
+                cause: Cause.pretty(cause),
+              }).pipe(Effect.as(false)),
+            ),
+          )
+        : false;
+
     yield* dispatchTurn({
       event,
       messageText: message.text,
       ...(message.attachments !== undefined ? { attachments: message.attachments } : {}),
       modelSelection: effectiveRoute?.selection ?? baseSelection,
       requestedModelSelection: baseSelection,
-      ...(effectiveRoute === undefined && approvedFallback?.sharesContinuation === false
+      ...(effectiveRoute === undefined &&
+      (approvedFallback?.sharesContinuation === false || parkedFallbackHandoff)
         ? { freshProviderHandoff: true }
         : {}),
     });

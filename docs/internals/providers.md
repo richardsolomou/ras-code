@@ -95,7 +95,10 @@ runs the turn. This keeps thread identity stable and lets the next turn try the 
 after its reset. When the two harnesses cannot share continuation state, both the crossing and the
 return start a fresh session and carry the recent thread transcript into its first prompt. A
 successful primary turn emits `provider.fallback.returned`; another usage-limit failure before
-output resumes the already-approved gateway without another prompt. The gateway never falls back to
+output resumes the already-approved gateway without another prompt. The approved route is in
+memory, so the handoff is also derived from durable state: a thread whose bound session sits on a
+gateway instance other than its own selection is parked on a fallback, and its next turn carries
+the transcript even when a restart forgot the crossing. The gateway never falls back to
 itself, no alternative model is selected, and no fallback chain is traversed.
 
 ## OpenCode server ownership and catalog
