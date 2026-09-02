@@ -96,9 +96,13 @@ after its reset. When the two harnesses cannot share continuation state, both th
 return start a fresh session and carry the recent thread transcript into its first prompt. A
 successful primary turn emits `provider.fallback.returned`; another usage-limit failure before
 output resumes the already-approved gateway without another prompt. The approved route is in
-memory, so the handoff is also derived from durable state: a thread whose bound session sits on a
-gateway instance other than its own selection is parked on a fallback, and its next turn carries
-the transcript even when a restart forgot the crossing. The gateway never falls back to
+memory, so the crossing is also derived from durable state. `ensureSessionForThread` reads the
+thread's current instance from its bound session rather than its selection, so a thread whose
+gateway session was reaped or lost to a restart is not read as switching into the gateway and
+refused. `requiresTranscriptHandoff` then carries the transcript whenever the instance about to run
+the turn cannot resume the bound session, in either direction. One of the two instances has to be a
+gateway, which is what keeps a user switching a started thread between incompatible instances a
+refusal. The gateway never falls back to
 itself, no alternative model is selected, and no fallback chain is traversed.
 
 ## OpenCode server ownership and catalog

@@ -747,46 +747,50 @@ const make = Effect.gen(function* () {
     });
 
   /**
-   * Whether this turn has to carry the thread's transcript because the thread
-   * is parked on a gateway fallback the instance about to run it cannot
-   * resume.
+   * Whether this turn has to carry the thread's transcript because the
+   * instance about to run it cannot resume the conversation the thread's
+   * bound session holds. True in both directions of a fallback: crossing to
+   * the gateway and coming back.
    *
-   * `activeFallbackRoutes` lives in memory, so a restart would otherwise
-   * forget the crossing and hand the next turn to the subscription with no
-   * context at all. The bound session in the read model says the same thing
-   * durably: a gateway instance that is not the thread's own selection is
-   * only ever a fallback, because nothing else routes a thread away from the
-   * instance it selected.
+   * Read from the bound session rather than `activeFallbackRoutes`, which
+   * lives in memory: a restart would otherwise forget the crossing and hand
+   * the next turn to the subscription with no context at all.
+   *
+   * One of the two instances has to be a gateway, which is what separates a
+   * fallback from a user switching a started thread between incompatible
+   * instances. That switch stays a refusal.
    */
-  const requiresParkedFallbackHandoff = Effect.fn("requiresParkedFallbackHandoff")(
-    function* (input: {
-      readonly sessionInstanceId: ProviderInstanceId | null | undefined;
-      readonly desiredInstanceId: ProviderInstanceId;
-    }) {
-      const sessionInstanceId = input.sessionInstanceId;
-      if (
-        sessionInstanceId === null ||
-        sessionInstanceId === undefined ||
-        sessionInstanceId === input.desiredInstanceId
-      ) {
-        return false;
-      }
-      const providers = yield* providerRegistry.getProviders;
-      const parked = providers.find((snapshot) => snapshot.instanceId === sessionInstanceId);
-      if (parked?.driver !== POSTHOG_GATEWAY_DRIVER) {
-        return false;
-      }
-      const instanceInfo = yield* Effect.all({
-        parked: providerService.getInstanceInfo(sessionInstanceId),
-        desired: providerService.getInstanceInfo(input.desiredInstanceId),
-      }).pipe(Effect.orElseSucceed(() => undefined));
-      return (
-        instanceInfo !== undefined &&
-        instanceInfo.parked.continuationIdentity.continuationKey !==
-          instanceInfo.desired.continuationIdentity.continuationKey
-      );
-    },
-  );
+  const requiresTranscriptHandoff = Effect.fn("requiresTranscriptHandoff")(function* (input: {
+    readonly sessionInstanceId: ProviderInstanceId | null | undefined;
+    readonly desiredInstanceId: ProviderInstanceId;
+  }) {
+    const sessionInstanceId = input.sessionInstanceId;
+    if (
+      sessionInstanceId === null ||
+      sessionInstanceId === undefined ||
+      sessionInstanceId === input.desiredInstanceId
+    ) {
+      return false;
+    }
+    const providers = yield* providerRegistry.getProviders;
+    const involvesGateway = [sessionInstanceId, input.desiredInstanceId].some(
+      (instanceId) =>
+        providers.find((snapshot) => snapshot.instanceId === instanceId)?.driver ===
+        POSTHOG_GATEWAY_DRIVER,
+    );
+    if (!involvesGateway) {
+      return false;
+    }
+    const instanceInfo = yield* Effect.all({
+      bound: providerService.getInstanceInfo(sessionInstanceId),
+      desired: providerService.getInstanceInfo(input.desiredInstanceId),
+    }).pipe(Effect.orElseSucceed(() => undefined));
+    return (
+      instanceInfo !== undefined &&
+      instanceInfo.bound.continuationIdentity.continuationKey !==
+        instanceInfo.desired.continuationIdentity.continuationKey
+    );
+  });
 
   /**
    * Pick the gateway instance that can serve this selection while the primary
@@ -969,12 +973,25 @@ const make = Effect.gen(function* () {
         detail: `Thread '${threadId}' has an active provider session without a provider instance id.`,
       });
     }
+    // With no live session the thread's own selection is not necessarily
+    // where its conversation lives: a fallback crossing leaves the bound
+    // session on the gateway, and calling the selection "current" would read
+    // the next turn as a switch into the gateway and refuse it. An instance
+    // that no longer exists is ignored rather than failing the turn.
+    const boundInstanceId = thread.session?.providerInstanceId ?? null;
+    const knownBoundInstanceId =
+      boundInstanceId === null
+        ? undefined
+        : yield* providerService.getInstanceInfo(boundInstanceId).pipe(
+            Effect.as(boundInstanceId),
+            Effect.orElseSucceed(() => undefined),
+          );
     const currentInstanceId =
       activeThreadSession !== null &&
       activeSession !== undefined &&
       activeSession.providerInstanceId !== undefined
         ? activeSession.providerInstanceId
-        : thread.modelSelection.instanceId;
+        : (knownBoundInstanceId ?? thread.modelSelection.instanceId);
     const desiredModelSelection = requestedModelSelection ?? thread.modelSelection;
     const desiredInstanceId = desiredModelSelection.instanceId;
     const currentInfo = yield* providerService.getInstanceInfo(currentInstanceId).pipe(
@@ -1876,31 +1893,26 @@ const make = Effect.gen(function* () {
       sawWorkItem: false,
     });
 
-    const parkedFallbackHandoff =
-      effectiveRoute === undefined && approvedFallback === undefined
-        ? yield* requiresParkedFallbackHandoff({
-            sessionInstanceId: thread.session?.providerInstanceId,
-            desiredInstanceId: baseSelection.instanceId,
-          }).pipe(
-            Effect.catchCause((cause) =>
-              Effect.logWarning("provider command reactor failed to resolve parked fallback", {
-                threadId: event.payload.threadId,
-                cause: Cause.pretty(cause),
-              }).pipe(Effect.as(false)),
-            ),
-          )
-        : false;
+    const turnSelection = effectiveRoute?.selection ?? baseSelection;
+    const needsTranscriptHandoff = yield* requiresTranscriptHandoff({
+      sessionInstanceId: thread.session?.providerInstanceId,
+      desiredInstanceId: turnSelection.instanceId,
+    }).pipe(
+      Effect.catchCause((cause) =>
+        Effect.logWarning("provider command reactor failed to resolve transcript handoff", {
+          threadId: event.payload.threadId,
+          cause: Cause.pretty(cause),
+        }).pipe(Effect.as(false)),
+      ),
+    );
 
     yield* dispatchTurn({
       event,
       messageText: message.text,
       ...(message.attachments !== undefined ? { attachments: message.attachments } : {}),
-      modelSelection: effectiveRoute?.selection ?? baseSelection,
+      modelSelection: turnSelection,
       requestedModelSelection: baseSelection,
-      ...(effectiveRoute === undefined &&
-      (approvedFallback?.sharesContinuation === false || parkedFallbackHandoff)
-        ? { freshProviderHandoff: true }
-        : {}),
+      ...(needsTranscriptHandoff ? { freshProviderHandoff: true } : {}),
     });
   });
 

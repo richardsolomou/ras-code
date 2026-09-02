@@ -4036,6 +4036,62 @@ describe("ProviderCommandReactor", () => {
       });
     });
 
+    it("resumes a reaped gateway session instead of refusing the turn", async () => {
+      const primary = ProviderInstanceId.make("codex");
+      const selection = { instanceId: primary, model: "gpt-5.6-codex" } as const;
+      const harness = await createHarness({
+        threadModelSelection: selection,
+        usageLimits: new Map<ProviderInstanceId, ProviderUsageLimit>([[primary, EXHAUSTED]]),
+        extraProviderSnapshots: [
+          {
+            instanceId: FALLBACK,
+            driver: "posthogGateway",
+            enabled: true,
+            displayName: "PostHog AI Gateway",
+            models: [
+              {
+                slug: `openai/${selection.model}`,
+                name: "GPT-5.6 Codex",
+                isCustom: false,
+                capabilities: null,
+              },
+            ],
+          },
+        ],
+      });
+      await dispatchTurn(harness, "cmd-fallback-reaped-1");
+      await confirmSwitchOnce(harness, "cmd-fallback-reaped-confirm");
+      await waitFor(() => harness.sendTurn.mock.calls.length === 1);
+
+      // The reaper stops an idle session, leaving the thread bound to the
+      // gateway in the read model with no live session behind it.
+      harness.runtimeSessions.length = 0;
+
+      await dispatchCommand(harness, {
+        type: "thread.turn.start",
+        commandId: CommandId.make("cmd-fallback-reaped-2"),
+        threadId: ThreadId.make("thread-1"),
+        message: {
+          messageId: asMessageId("user-message-2"),
+          role: "user",
+          text: "second turn",
+          attachments: [],
+        },
+        interactionMode: DEFAULT_PROVIDER_INTERACTION_MODE,
+        runtimeMode: "approval-required",
+        createdAt: "2026-01-01T00:00:05.000Z",
+      });
+
+      await waitFor(async () => {
+        const failed = findActivity(await harness.readModel(), "provider.turn.start.failed");
+        return harness.sendTurn.mock.calls.length === 2 || failed !== undefined;
+      });
+      expect(findActivity(await harness.readModel(), "provider.turn.start.failed")).toBeUndefined();
+      expect(harness.sendTurn.mock.calls[1]?.[0]).toMatchObject({
+        modelSelection: { instanceId: FALLBACK },
+      });
+    });
+
     it("carries the transcript home when a restart forgot the thread was on the gateway", async () => {
       const primary = ProviderInstanceId.make("codex_subscription");
       const selection = { instanceId: primary, model: "gpt-5.6-codex" } as const;
