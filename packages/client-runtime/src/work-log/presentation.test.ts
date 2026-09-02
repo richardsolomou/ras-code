@@ -6,9 +6,217 @@ import {
   commandDetailRepeatsCommand,
   extractCommandOutputText,
   resolveViewedImageAsset,
+  resolveWorkEntryToolPresentation,
+  summarizeToolGroup,
   toolGroupAction,
+  toolGroupSummaryKind,
+  type WorkLogPresentationEntry,
   workEntryViewedImagePath,
 } from "./presentation.js";
+
+describe("resolveWorkEntryToolPresentation", () => {
+  it.each([
+    "mcp__ras-code__preview_click",
+    "mcp__ras_code__preview_click",
+    "mcp__rascode__preview_click",
+    "RAS-code.preview_click",
+    "ras-code · preview_click completed",
+    "ras_code/preview_click",
+    "preview_click",
+  ])("recognizes browser tool names across providers: %s", (label) => {
+    expect(resolveWorkEntryToolPresentation({ label })).toEqual({
+      displayName: "Click in the preview browser",
+      icon: "browser",
+    });
+  });
+
+  it("uses structured MCP identity when the provider supplies a custom title", () => {
+    expect(
+      resolveWorkEntryToolPresentation({
+        label: "Tool call complete",
+        toolTitle: "Inspect the current page",
+        toolData: { server: "ras-code", tool: "preview_snapshot", result: { title: "Example" } },
+      }),
+    ).toEqual({ displayName: "Take a snapshot of the preview page", icon: "browser" });
+  });
+
+  it.each([
+    ["inProgress", "Clicking in the preview browser"],
+    ["completed", "Clicked in the preview browser"],
+    ["failed", "Failed to click in the preview browser"],
+    ["declined", "Declined to click in the preview browser"],
+    ["stopped", "Stopped clicking in the preview browser"],
+    ["unknown", "Click in the preview browser"],
+  ])("describes the tool's own %s state", (toolLifecycleStatus, displayName) => {
+    expect(
+      resolveWorkEntryToolPresentation({
+        label: "RAS-code.preview_click",
+        toolLifecycleStatus,
+      }),
+    ).toEqual({ displayName, icon: "browser" });
+  });
+
+  it("uses the summary's state only when the provider omitted a lifecycle status", () => {
+    const entry = { label: "RAS-code.preview_click" };
+    expect(resolveWorkEntryToolPresentation(entry, "inProgress")?.displayName).toBe(
+      "Clicking in the preview browser",
+    );
+    expect(resolveWorkEntryToolPresentation(entry, "completed")?.displayName).toBe(
+      "Clicked in the preview browser",
+    );
+    expect(
+      resolveWorkEntryToolPresentation({ ...entry, toolLifecycleStatus: "completed" }, "inProgress")
+        ?.displayName,
+    ).toBe("Clicked in the preview browser");
+    expect(
+      resolveWorkEntryToolPresentation({ ...entry, toolLifecycleStatus: "failed" }, "completed")
+        ?.displayName,
+    ).toBe("Failed to click in the preview browser");
+  });
+
+  it.each([
+    ["preview_type", "Typing in the preview browser", "Typed in the preview browser"],
+    [
+      "preview_set_appearance",
+      "Setting preview browser appearance",
+      "Set preview browser appearance",
+    ],
+    [
+      "preview_snapshot",
+      "Taking a snapshot of the preview page",
+      "Took a snapshot of the preview page",
+    ],
+    [
+      "preview_recording_stop",
+      "Stopping recording the preview browser",
+      "Stopped recording the preview browser",
+    ],
+    ["ras_code_thread_read", "Reading a RAS Code thread", "Read a RAS Code thread"],
+    ["ras_code_thread_send", "Sending to a RAS Code thread", "Sent to a RAS Code thread"],
+    [
+      "ras_code_worktree_handoff",
+      "Handing off thread to a git worktree",
+      "Handed off thread to a git worktree",
+    ],
+  ])("preserves verb forms and the rest of %s's label", (tool, running, completed) => {
+    const entry = { label: `ras-code.${tool}` };
+    expect(
+      resolveWorkEntryToolPresentation({ ...entry, toolLifecycleStatus: "inProgress" })
+        ?.displayName,
+    ).toBe(running);
+    expect(
+      resolveWorkEntryToolPresentation({ ...entry, toolLifecycleStatus: "completed" })?.displayName,
+    ).toBe(completed);
+  });
+
+  it("keeps RAS Code branding for non-browser tools and falls back to the original tool label", () => {
+    expect(
+      resolveWorkEntryToolPresentation({
+        label: "mcp__ras_code__task_status",
+        toolTitle: "Check the child task",
+      }),
+    ).toEqual({ displayName: "Get delegated task status", icon: "ras-code" });
+  });
+
+  it("does not brand unknown tools or another server's matching tool name", () => {
+    for (const label of [
+      "mcp__github__preview_click",
+      "ras-code.unknown_tool",
+      "ras-code.toString",
+      "Search files",
+    ]) {
+      expect(resolveWorkEntryToolPresentation({ label })).toBeNull();
+    }
+    expect(
+      resolveWorkEntryToolPresentation({
+        label: "preview_click",
+        toolData: { server: "another-server", tool: "preview_click" },
+      }),
+    ).toBeNull();
+  });
+});
+
+describe("browser group summaries", () => {
+  const browserEntry: WorkLogPresentationEntry = {
+    label: "MCP tool call",
+    toolData: { server: "ras-code", tool: "preview_click" },
+    itemType: "mcp_tool_call",
+    toolLifecycleStatus: "completed",
+    tone: "tool",
+  };
+  const commandEntry: WorkLogPresentationEntry = {
+    label: "Ran command",
+    command: "/bin/bash -lc 'vp test run'",
+    itemType: "command_execution",
+    toolLifecycleStatus: "completed",
+    tone: "tool",
+  };
+
+  it.each([1, 18])("counts %s browser calls separately from generic tools", (count) => {
+    const entries = Array.from({ length: count }, (_, index) => ({
+      ...browserEntry,
+      toolCallId: `browser-${index}`,
+    }));
+    expect(summarizeToolGroup(entries)).toBe(
+      `Used browser ${count} ${count === 1 ? "time" : "times"}`,
+    );
+    expect(toolGroupSummaryKind(entries)).toBe("browser");
+  });
+
+  it("combines command and browser counts in a single sentence", () => {
+    const entries = [
+      ...Array.from({ length: 4 }, () => commandEntry),
+      ...Array.from({ length: 15 }, () => browserEntry),
+    ];
+    expect(summarizeToolGroup(entries)).toBe("Ran 4 commands and used browser 15 times");
+    expect(toolGroupSummaryKind(entries)).toBe("mixed");
+  });
+
+  it("preserves first-seen action ordering alongside non-browser tools", () => {
+    expect(
+      summarizeToolGroup([
+        browserEntry,
+        commandEntry,
+        {
+          ...browserEntry,
+          toolData: { server: "ras-code", tool: "task_status" },
+        },
+      ]),
+    ).toBe("Used browser 1 time, ran 1 command, and used 1 tool");
+  });
+
+  it("recognizes Claude browser identity without treating script metadata as a shell command", () => {
+    expect(
+      summarizeToolGroup([
+        {
+          ...browserEntry,
+          command: "node inspect-page.js",
+          toolData: { toolName: "mcp__ras_code__preview_evaluate" },
+        },
+      ]),
+    ).toBe("Used browser 1 time");
+  });
+
+  it("keeps foreign tools and web searches out of the browser count", () => {
+    expect(
+      summarizeToolGroup([
+        browserEntry,
+        {
+          ...browserEntry,
+          label: "preview_click",
+          toolData: { server: "another-server", tool: "preview_click" },
+        },
+        { label: "Search", tone: "tool", itemType: "web_search" },
+      ]),
+    ).toBe("Used browser 1 time, used 1 tool, and searched the web 1 time");
+  });
+
+  it("keeps browser screenshots in the browser count while preserving their image path", () => {
+    const entry = { ...browserEntry, viewedImagePath: "/workspace/page.png" };
+    expect(summarizeToolGroup([entry])).toBe("Used browser 1 time");
+    expect(workEntryViewedImagePath(entry)).toBe("/workspace/page.png");
+  });
+});
 
 describe("command work-log details", () => {
   it("extracts Claude result blocks and projected output", () => {
