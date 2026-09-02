@@ -59,6 +59,7 @@ import Migration0044 from "./Migrations/044_ProjectionProjectIconEmoji.ts";
 import Migration0045 from "./Migrations/045_ProjectionThreadNotificationSummary.ts";
 import Migration0046 from "./Migrations/046_ThreadForking.ts";
 import Migration0047 from "./Migrations/047_ProjectionThreadsSettledReason.ts";
+import Migration0048 from "./Migrations/048_ClearAutomaticProjectModelDefaults.ts";
 
 /**
  * Migration loader with all migrations defined inline.
@@ -118,6 +119,7 @@ export const migrationEntries = [
   [45, "ProjectionThreadNotificationSummary", Migration0045],
   [46, "ThreadForking", Migration0046],
   [47, "ProjectionThreadsSettledReason", Migration0047],
+  [48, "ClearAutomaticProjectModelDefaults", Migration0048],
 ] as const;
 
 export const migrationManifest = migrationEntries.map(([id, name]) => [id, name] as const);
