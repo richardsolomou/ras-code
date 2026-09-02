@@ -273,6 +273,7 @@ import { useKnownTerminalSessions, useThreadRunningTerminalIds } from "../state/
 import { projectEnvironment } from "../state/projects";
 import { linkedPullRequestDetailAtom } from "../state/pullRequests";
 import { useEnvironmentQuery } from "../state/query";
+import { pullRequestEnvironment } from "../state/pullRequests";
 import {
   environmentServerConfigsAtom,
   primaryServerAvailableEditorsAtom,
@@ -4708,10 +4709,24 @@ function ChatViewContent(
     activeThreadRef?.environmentId ?? null,
     linkedThreadPullRequest,
   );
+  // Mergeability is not in the linked-PR summary the sidebar shares, so the
+  // active thread reads the full detail for its own linked pull request.
+  const linkedPullRequestDetail = useEnvironmentQuery(
+    activeThreadRef && linkedThreadPullRequest
+      ? pullRequestEnvironment.detail({
+          environmentId: activeThreadRef.environmentId,
+          input: {
+            projectId: linkedThreadPullRequest.projectId,
+            repository: linkedThreadPullRequest.repository,
+            number: linkedThreadPullRequest.number,
+          },
+        })
+      : null,
+  ).data;
   const conflictingPullRequest =
-    linkedPullRequestStatus?.detail?.state === "open" &&
-    linkedPullRequestStatus.detail.mergeability === "conflicting"
-      ? linkedPullRequestStatus.detail
+    linkedPullRequestDetail?.state === "open" &&
+    linkedPullRequestDetail.mergeability === "conflicting"
+      ? linkedPullRequestDetail
       : null;
   /** Appends to whatever is already typed rather than replacing it, and leaves sending to the user. */
   const seedComposerPrompt = useCallback(

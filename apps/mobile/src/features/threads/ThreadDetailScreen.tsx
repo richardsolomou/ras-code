@@ -94,7 +94,7 @@ import {
 import { ThreadFeed } from "./ThreadFeed";
 import type { ThreadContentPresentation } from "./threadContentPresentation";
 import { resolveThreadFeedSubmissionAnchor } from "./thread-feed-live-follow";
-import { useLinkedPullRequestDetail } from "../../state/use-thread-pr";
+import { useLinkedPullRequestFullDetail } from "../../state/use-thread-pr";
 
 export interface ThreadDetailScreenProps {
   readonly selectedThread: OrchestrationThreadShell;
@@ -276,7 +276,7 @@ export const ThreadDetailScreen = memo(function ThreadDetailScreen(props: Thread
   const selectedInstanceId = resolveActiveProviderInstanceId(props.selectedThread);
   const agentLabel = `${selectedInstanceId} agent`;
   const selectedThreadKey = scopedThreadKey(props.environmentId, props.selectedThread.id);
-  const linkedPullRequestDetail = useLinkedPullRequestDetail(
+  const linkedPullRequestDetail = useLinkedPullRequestFullDetail(
     props.selectedThread,
     props.environmentId,
   );

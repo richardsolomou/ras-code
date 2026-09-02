@@ -3,9 +3,11 @@ import { scopedThreadKey, scopeThreadRef } from "@ras-code/client-runtime/enviro
 import type { EnvironmentThreadShell } from "@ras-code/client-runtime/state/shell";
 import type { EnvironmentId, OrchestrationThreadShell } from "@ras-code/contracts";
 import {
-  createLinkedPullRequestDetailAtomFamily,
+  createLinkedPullRequestSummaryAtomFamily,
   pullRequestDetailToVcsStatus,
 } from "@ras-code/client-runtime/state/pull-requests";
+import { createEnvironmentRpcQueryAtomFamily } from "@ras-code/client-runtime/state/runtime";
+import { WS_METHODS } from "@ras-code/contracts";
 import { Atom } from "effect/unstable/reactivity";
 import { useCallback, useEffect, useMemo } from "react";
 
@@ -15,7 +17,14 @@ import { useEnvironmentQuery } from "./query";
 import { presentThreadPr, type ThreadPrPresentation } from "./thread-pr-presentation";
 import { vcsEnvironment } from "./vcs";
 
-const linkedPullRequestDetailAtom = createLinkedPullRequestDetailAtomFamily(connectionAtomRuntime);
+const linkedPullRequestDetailAtom = createLinkedPullRequestSummaryAtomFamily(connectionAtomRuntime);
+// The summary omits mergeability, so the open thread reads the full detail for
+// its own linked pull request rather than for every row in the list.
+const linkedPullRequestFullDetailAtom = createEnvironmentRpcQueryAtomFamily(connectionAtomRuntime, {
+  label: "mobile-data:pull-requests:detail",
+  tag: WS_METHODS.pullRequestsDetail,
+  staleTimeMs: 15_000,
+});
 const MAX_THREAD_PR_SNAPSHOTS = 500;
 
 interface ThreadPrSnapshot {
@@ -35,6 +44,25 @@ export {
   type ThreadPr,
   type ThreadPrPresentation,
 } from "./thread-pr-presentation";
+
+/** Full detail, including mergeability, for the open thread's linked pull request. */
+export function useLinkedPullRequestFullDetail(
+  thread: Pick<OrchestrationThreadShell, "linkedPullRequest">,
+  environmentId: EnvironmentId,
+) {
+  return useEnvironmentQuery(
+    thread.linkedPullRequest == null
+      ? null
+      : linkedPullRequestFullDetailAtom({
+          environmentId,
+          input: {
+            projectId: thread.linkedPullRequest.projectId,
+            repository: thread.linkedPullRequest.repository,
+            number: thread.linkedPullRequest.number,
+          },
+        }),
+  ).data;
+}
 
 export function useLinkedPullRequestDetail(
   thread: Pick<OrchestrationThreadShell, "linkedPullRequest">,

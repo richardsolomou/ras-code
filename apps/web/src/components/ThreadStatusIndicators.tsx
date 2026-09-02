@@ -7,7 +7,7 @@ import { pullRequestDetailToVcsStatus } from "@ras-code/client-runtime/state/pul
 import type {
   EnvironmentId,
   OrchestrationThreadShell,
-  PullRequestDetail,
+  PullRequestSummary,
   ThreadLinkedPullRequest,
   VcsStatusResult,
 } from "@ras-code/contracts";
@@ -75,7 +75,7 @@ export function threadPullRequestRefreshSource(input: {
 export interface LinkedThreadPullRequestStatus {
   readonly pr: NonNullable<ThreadPr>;
   readonly sourceControlProvider: NonNullable<VcsStatusResult["sourceControlProvider"]>;
-  readonly detail?: PullRequestDetail;
+  readonly detail?: PullRequestSummary;
 }
 
 export function useLinkedThreadPullRequest(
