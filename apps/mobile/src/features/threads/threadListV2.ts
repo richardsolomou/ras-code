@@ -10,6 +10,7 @@ import type { EnvironmentThreadShell } from "@ras-code/client-runtime/state/shel
 import { threadSearchMatchKey } from "@ras-code/client-runtime/state/thread-search";
 import {
   activeThreadAnchorTimestampMs,
+  resolveSettledThreadTimestamp,
   sortPinnedThreadsByOrderKey,
 } from "@ras-code/client-runtime/state/thread-sort";
 import type { EnvironmentId, ProjectId } from "@ras-code/contracts";
@@ -127,17 +128,6 @@ export function resolveThreadListV2Status(
 function parseTimestampMs(isoDate: string): number {
   const parsed = Date.parse(isoDate);
   return Number.isNaN(parsed) ? 0 : parsed;
-}
-
-/** First VALID timestamp wins: a present-yet-malformed string falls through
-    to the next candidate rather than sinking the row to the epoch. */
-function firstValidTimestampMs(...candidates: ReadonlyArray<string | null | undefined>): number {
-  for (const candidate of candidates) {
-    if (candidate == null) continue;
-    const parsed = Date.parse(candidate);
-    if (!Number.isNaN(parsed)) return parsed;
-  }
-  return 0;
 }
 
 /**
@@ -390,8 +380,8 @@ export function buildThreadListV2Items(input: {
         );
   const orderedSettled = [...settled].sort(
     (left, right) =>
-      firstValidTimestampMs(right.latestUserMessageAt, right.updatedAt) -
-      firstValidTimestampMs(left.latestUserMessageAt, left.updatedAt),
+      parseTimestampMs(resolveSettledThreadTimestamp(right) ?? "") -
+      parseTimestampMs(resolveSettledThreadTimestamp(left) ?? ""),
   );
   const settledLimit = input.settledLimit ?? Number.POSITIVE_INFINITY;
   const pagedSettled =

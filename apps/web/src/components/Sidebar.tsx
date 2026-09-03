@@ -19,6 +19,7 @@ import {
   threadWokeAt,
 } from "@ras-code/client-runtime/state/thread-settled";
 import type { EnvironmentThreadShell } from "@ras-code/client-runtime/state/models";
+import { resolveSettledThreadTimestamp } from "@ras-code/client-runtime/state/thread-sort";
 import {
   scopeProjectRef,
   scopeThreadRef,
@@ -128,7 +129,6 @@ import {
   planPinnedReorder,
   reduceSidebarProjectScopeMenuState,
   resolveAdjacentThreadId,
-  resolveSettledTimestamp,
   resolveSidebarThreadStatus,
   searchSidebarThreadsByTitle,
   shouldCreateNewThreadInCurrentProject,
@@ -216,10 +216,10 @@ function threadTimeLabel(thread: SidebarThreadSummary): string {
 }
 
 // Settled rows read "how long ago did this wrap up", matching their sort
-// key: both go through resolveSettledTimestamp so label and order can't
+// key: both go through resolveSettledThreadTimestamp so label and order can't
 // disagree.
 function settledTimeLabel(thread: SidebarThreadSummary): string {
-  const timestamp = resolveSettledTimestamp(thread);
+  const timestamp = resolveSettledThreadTimestamp(thread);
   return timestamp === null ? "" : compactSidebarTimeLabel(formatRelativeTimeLabel(timestamp));
 }
 
