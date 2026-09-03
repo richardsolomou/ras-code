@@ -23,7 +23,6 @@ import { SymbolView } from "../../components/AppSymbol";
 import { AppText as Text } from "../../components/AppText";
 import { ThemedSwitch } from "../../components/ThemedSwitch";
 import { cn } from "../../lib/cn";
-import { useFontFamily } from "../../lib/useFontFamily";
 import { useThemeColor } from "../../lib/useThemeColor";
 import { NativeHeaderToolbar, NativeStackScreenOptions } from "../../native/StackHeader";
 import { useAtomCommand } from "../../state/use-atom-command";
@@ -194,9 +193,6 @@ export function NewTaskBranchPickerRouteScreen() {
   const flow = useNewTaskFlow();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const placeholderColor = useThemeColor("--color-placeholder");
-  const foregroundColor = useThemeColor("--color-foreground");
-  const fontFamily = useFontFamily("regular");
   const switchRef = useAtomCommand(vcsEnvironment.switchRef, { reportFailure: false });
   const [switchingBranchName, setSwitchingBranchName] = useState<string | null>(null);
   const selectingBranchNameRef = useRef<string | null>(null);
@@ -419,11 +415,10 @@ export function NewTaskBranchPickerRouteScreen() {
           <TextInput
             autoCapitalize="none"
             autoCorrect={false}
-            className="h-11 rounded-xl bg-card px-4 text-base text-foreground"
+            className="h-11 rounded-xl bg-card px-4 font-sans text-base text-foreground"
             onChangeText={flow.setBranchQuery}
             placeholder="Find a branch"
-            placeholderTextColor={placeholderColor}
-            style={{ color: foregroundColor, fontFamily }}
+            placeholderTextColorClassName="accent-placeholder"
             value={flow.branchQuery}
           />
         </View>
