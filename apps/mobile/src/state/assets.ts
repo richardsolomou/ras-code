@@ -1,33 +1,24 @@
 import { useAtomValue } from "@effect/atom-react";
 import {
-  assetUrlFailureReason,
+  type AssetUrlState,
+  assetUrlStateFromResult,
   createAssetEnvironmentAtoms,
-  resolveAssetUrl,
-  type AssetUrlFailureReason,
+  EMPTY_ASSET_URL_ATOM,
 } from "@ras-code/client-runtime/state/assets";
 import type { AssetResource, EnvironmentId } from "@ras-code/contracts";
-import { AsyncResult, Atom } from "effect/unstable/reactivity";
 import { useCallback } from "react";
 
 import { connectionAtomRuntime } from "../connection/runtime";
 import { usePreparedConnection } from "./session";
+import { useAtomQueryRunner } from "./use-atom-query-runner";
 
 export {
   assetUrlFailureLabel,
   type AssetUrlFailureReason,
+  type AssetUrlState,
 } from "@ras-code/client-runtime/state/assets";
-import { useAtomQueryRunner } from "./use-atom-query-runner";
 
 export const assetEnvironment = createAssetEnvironmentAtoms(connectionAtomRuntime);
-
-const EMPTY_ASSET_URL_ATOM = Atom.make(AsyncResult.initial<never, never>(false)).pipe(
-  Atom.withLabel("mobile-asset-url:empty"),
-);
-
-export type AssetUrlState =
-  | { readonly _tag: "Loading" }
-  | { readonly _tag: "Failure"; readonly reason: AssetUrlFailureReason }
-  | { readonly _tag: "Success"; readonly url: string };
 
 export function useAssetUrlState(
   environmentId: EnvironmentId | null,
@@ -39,14 +30,10 @@ export function useAssetUrlState(
       ? EMPTY_ASSET_URL_ATOM
       : assetEnvironment.createUrl({ environmentId, input: { resource } }),
   );
-  if (result._tag === "Failure") {
-    return { _tag: "Failure", reason: assetUrlFailureReason(result.cause) };
-  }
-  if (preparedConnection._tag === "None" || result._tag !== "Success") {
-    return { _tag: "Loading" };
-  }
-  const url = resolveAssetUrl(preparedConnection.value.httpBaseUrl, result.value.relativeUrl);
-  return url === null ? { _tag: "Failure", reason: "unavailable" } : { _tag: "Success", url };
+  return assetUrlStateFromResult(
+    result,
+    preparedConnection._tag === "Some" ? preparedConnection.value.httpBaseUrl : null,
+  );
 }
 
 export function useAssetUrl(
@@ -70,9 +57,10 @@ export function useRefreshAssetUrl(
   });
   return useCallback(async () => {
     if (environmentId === null || resource === null || httpBaseUrl === null) return null;
-    const result = await createUrl({ environmentId, input: { resource } });
-    return result._tag === "Success"
-      ? resolveAssetUrl(httpBaseUrl, result.value.relativeUrl)
-      : null;
+    const state = assetUrlStateFromResult(
+      await createUrl({ environmentId, input: { resource } }),
+      httpBaseUrl,
+    );
+    return state._tag === "Success" ? state.url : null;
   }, [createUrl, environmentId, httpBaseUrl, resource]);
 }

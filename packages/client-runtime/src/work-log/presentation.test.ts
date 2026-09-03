@@ -353,17 +353,11 @@ describe("toolGroupAction", () => {
 describe("resolveViewedImageAsset", () => {
   const threadId = ThreadId.make("thread-1");
 
-  it("loads RAS Code attachment paths as attachments", () => {
-    const attachmentId =
-      "11111111-1111-4111-8111-111111111111-22222222-2222-4222-8222-222222222222";
-    expect(
-      resolveViewedImageAsset(`/Users/demo/.ras-code/dev/attachments/${attachmentId}.png`, {
-        threadId,
-        workspaceRoot: "/workspace",
-      }),
-    ).toEqual({
-      resource: { _tag: "attachment", attachmentId },
-      alt: `${attachmentId}.png`,
+  it("serves ras-code attachment paths in place like any other host path", () => {
+    const path = "/Users/demo/.ras-code/dev/attachments/11111111-1111-4111-8111-111111111111.png";
+    expect(resolveViewedImageAsset(path, { threadId, workspaceRoot: "/workspace" })).toEqual({
+      resource: { _tag: "media-file", threadId, path },
+      alt: "11111111-1111-4111-8111-111111111111.png",
       srcFragment: "",
     });
   });
