@@ -22,6 +22,7 @@ import * as RasProjectFileLoader from "../project/RasProjectFileLoader.ts";
 import * as WorkspacePaths from "../workspace/WorkspacePaths.ts";
 import { assetFileResponse } from "../http.ts";
 import { ASSET_ROUTE_PREFIX, issueAssetUrl, resolveAsset } from "./AssetAccess.ts";
+import * as NativeAppIconResolver from "./NativeAppIconResolver.ts";
 import { openMediaFile } from "./MediaFile.ts";
 
 vi.mock("node:fs/promises", async (importOriginal) => {
@@ -40,6 +41,7 @@ const testLayer = Layer.mergeAll(
     Layer.provide(WorkspacePaths.layer),
     Layer.provide(RasProjectFileLoader.layer),
   ),
+  NativeAppIconResolver.layer.pipe(Layer.provide(configLayer)),
   ServerSecretStore.layer.pipe(Layer.provide(configLayer)),
 ).pipe(Layer.provideMerge(NodeServices.layer));
 
@@ -612,6 +614,21 @@ describe("AssetAccess", () => {
         fileName: "demo.mp4",
         mimeType: "video/mp4",
       });
+    }).pipe(Effect.provide(testLayer)),
+  );
+  it.effect("issues signed native application icon capabilities", () =>
+    Effect.gen(function* () {
+      const result = yield* issueAssetUrl({
+        resource: {
+          _tag: "native-app-icon",
+          app: { _tag: "app-id", appId: "com.example.Editor" },
+        },
+      });
+
+      expect(result.relativeUrl).toMatch(
+        new RegExp(`^${ASSET_ROUTE_PREFIX}/[^/]+/native-app-icon\\.png$`, "u"),
+      );
+      expect(result.expiresAt).toBeGreaterThan(0);
     }).pipe(Effect.provide(testLayer)),
   );
 
