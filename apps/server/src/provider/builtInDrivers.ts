@@ -29,6 +29,7 @@ import {
   PostHogGatewayDriver,
   type PostHogGatewayDriverEnv,
 } from "./Drivers/PostHogGatewayDriver.ts";
+import { AntigravityDriver, type AntigravityDriverEnv } from "./Drivers/AntigravityDriver.ts";
 import type { AnyProviderDriver } from "./ProviderDriver.ts";
 
 /**
@@ -42,7 +43,8 @@ export type BuiltInDriversEnv =
   | CursorDriverEnv
   | GrokDriverEnv
   | OpenCodeDriverEnv
-  | PostHogGatewayDriverEnv;
+  | PostHogGatewayDriverEnv
+  | AntigravityDriverEnv;
 
 /**
  * Ordered list of built-in drivers. Order matters only for tie-breaking in
@@ -56,4 +58,5 @@ export const BUILT_IN_DRIVERS: ReadonlyArray<AnyProviderDriver<BuiltInDriversEnv
   GrokDriver,
   OpenCodeDriver,
   PostHogGatewayDriver,
+  AntigravityDriver,
 ];

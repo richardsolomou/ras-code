@@ -410,11 +410,9 @@ export function NewTaskFlowProvider(props: React.PropsWithChildren) {
   const runtimeMode = selectedProjectDraft.runtimeMode ?? DEFAULT_RUNTIME_MODE;
   const interactionMode = DEFAULT_PROVIDER_INTERACTION_MODE;
 
-  // Stored selections only count while their provider is usable on the
-  // server; otherwise the server's default model wins instead of silently
-  // targeting a disabled provider. The draft selection is an explicit pick
-  // and passes through as-is; the project default (last used, possibly from
-  // desktop) is implicit and additionally never resolves to a legacy model.
+  // Antigravity keeps unavailable selections so sign-out or a catalog change
+  // cannot switch the user's model. Other providers retain their fallback
+  // rules. Implicit defaults also exclude legacy models for those providers.
   const draftModelSelection = resolveSelectableModelSelection(
     selectedEnvironmentServerConfig,
     selectedProjectDraft.modelSelection ?? null,
@@ -485,10 +483,18 @@ export function NewTaskFlowProvider(props: React.PropsWithChildren) {
         return;
       }
       const selection = options ? { ...option.selection, options } : option.selection;
-      updateComposerDraftSettings(selectedProjectDraftKey, { modelSelection: selection });
+      const provider = selectedEnvironmentServerConfig?.providers.find(
+        (candidate) => candidate.instanceId === selection.instanceId,
+      );
+      updateComposerDraftSettings(selectedProjectDraftKey, {
+        modelSelection: selection,
+        ...(provider?.showInteractionModeToggle === false
+          ? { interactionMode: DEFAULT_PROVIDER_INTERACTION_MODE }
+          : {}),
+      });
       setStickyComposerModelSelection(selection);
     },
-    [modelOptions, selectedProjectDraftKey],
+    [modelOptions, selectedEnvironmentServerConfig, selectedProjectDraftKey],
   );
   const setSelectedModelOptions = useCallback(
     (options: ReadonlyArray<ProviderOptionSelection> | undefined) => {
@@ -849,8 +855,8 @@ export function NewTaskFlowProvider(props: React.PropsWithChildren) {
       }
       const draft = getComposerDraftSnapshot(selectedProjectDraftKey);
       const text = draft.text.trim();
-      // Same availability gate the composer display applies: a stored
-      // selection targeting a disabled provider must not ride into the queue.
+      // Use the displayed selection rules without substituting an unavailable
+      // Antigravity model while the task is queued.
       const draftModelSelection =
         resolveSelectableModelSelection(
           selectedEnvironmentServerConfig,

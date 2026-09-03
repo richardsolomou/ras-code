@@ -54,6 +54,8 @@ import {
 import { DISCONNECTED_COMPOSER_PLACEHOLDER } from "../../composerPlaceholder";
 import {
   deriveComposerSendState,
+  getAntigravitySendBlockReason,
+  resolveComposerProviderSelection,
   isComposerModelSelectionIntentPending,
   readFileAsDataUrl,
   resolveComposerRequestedModelSelection,
@@ -745,13 +747,12 @@ import {
   XIcon,
 } from "lucide-react";
 import { proposedPlanTitle } from "../../proposedPlan";
+import { hasProviderSetup } from "./ProviderStatusBanner";
 import {
   applyProviderInstanceSettings,
   deriveProviderInstanceEntries,
   isProviderInstanceCompatibleWithLock,
   NO_PROVIDER_MODEL_SELECTION,
-  resolveProviderDriverKindForInstanceSelection,
-  resolveSelectableProviderInstanceEntry,
   sortProviderInstanceEntries,
   type ProviderInstanceEntry,
 } from "../../providerInstances";
@@ -1098,7 +1099,11 @@ export interface ChatComposerProps {
     isLastQuestion: boolean;
     canAdvance: boolean;
     customAnswer: string;
-    activeQuestion: { id: string; multiSelect?: boolean | undefined } | null;
+    activeQuestion: {
+      id: string;
+      multiSelect?: boolean | undefined;
+      allowCustomAnswer?: boolean | undefined;
+    } | null;
   } | null;
   activePendingResolvedAnswers: Record<string, unknown> | null;
   activePendingIsResponding: boolean;
@@ -1161,7 +1166,7 @@ export interface ChatComposerProps {
     requestId: ApprovalRequestId,
     decision: ProviderApprovalDecision,
   ) => Promise<unknown>;
-  onSelectActivePendingUserInputOption: (questionId: string, optionLabel: string) => void;
+  onSelectActivePendingUserInputOption: (questionId: string, optionValue: string) => void;
   onAdvanceActivePendingUserInput: () => void;
   onPreviousActivePendingUserInputQuestion: () => void;
   onChangeActivePendingUserInputCustomAnswer: (
@@ -1173,6 +1178,7 @@ export interface ChatComposerProps {
   ) => void;
 
   onProviderModelSelect: (instanceId: ProviderInstanceId, model: string) => void;
+  onOpenProviderSetup: (instanceId: ProviderInstanceId) => void;
   getModelDisabledReason: (instanceId: ProviderInstanceId, model: string) => string | null;
   handleRuntimeModeChange: (mode: RuntimeMode) => void;
 
@@ -1262,6 +1268,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     onPreviousActivePendingUserInputQuestion,
     onChangeActivePendingUserInputCustomAnswer,
     onProviderModelSelect,
+    onOpenProviderSetup,
     getModelDisabledReason,
     handleRuntimeModeChange,
     focusComposer,
@@ -1326,10 +1333,6 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
             environmentId,
           })
       : null);
-  const sendDisabledReason =
-    externalSendDisabledReason ?? (activePendingProgress ? null : attachmentBlockReason);
-  const isSendDisabled = sendDisabledReason !== null;
-
   const setComposerDraftPrompt = useComposerDraftStore((store) => store.setPrompt);
   const addComposerDraftImage = useComposerDraftStore((store) => store.addImage);
   const addComposerDraftImages = useComposerDraftStore((store) => store.addImages);
@@ -1469,81 +1472,44 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
   const selectedProviderByThreadId = hasPendingModelSelectionIntent
     ? (composerDraft.activeProvider ?? null)
     : null;
-  const threadProvider =
-    activeThreadProviderInstanceId ??
-    activeThreadModelSelection?.instanceId ??
-    activeDefaultModelSelection?.instanceId ??
-    null;
-  const explicitSelectedInstanceId = selectedProviderByThreadId ?? threadProvider;
-
-  const unlockedSelectedProvider =
-    resolveProviderDriverKindForInstanceSelection(
-      providerInstanceEntries,
-      providerStatuses,
-      explicitSelectedInstanceId,
-    ) ??
-    providerInstanceEntries[0]?.driverKind ??
-    ProviderDriverKind.make("unconfigured");
-  const requestedDriverKind: ProviderDriverKind = lockedProvider ?? unlockedSelectedProvider;
-  const lockedContinuationGroupKey = useMemo((): string | null => {
-    if (!lockedProvider || !activeThread) return null;
-    const lockedInstanceId = resolveActiveProviderInstanceId(activeThread);
-    if (!lockedInstanceId) return null;
-    return (
-      providerInstanceEntries.find((entry) => entry.instanceId === lockedInstanceId)
-        ?.continuationGroupKey ?? null
-    );
-  }, [activeThread, lockedProvider, providerInstanceEntries]);
-
-  // An explicit draft wins; otherwise use the provider serving the live session.
-  const selectedInstanceId = useMemo<ProviderInstanceId>(() => {
-    const candidates: Array<string | null | undefined> = [
-      selectedProviderByThreadId,
-      activeThreadProviderInstanceId,
-      activeDefaultModelSelection?.instanceId,
-    ];
-    for (const candidate of candidates) {
-      if (!candidate) continue;
-      const match = providerInstanceEntries.find(
-        (entry) => entry.instanceId === candidate && entry.enabled && entry.isAvailable,
-      );
-      if (match) {
-        if (
-          !isProviderInstanceCompatibleWithLock(match, lockedProvider, lockedContinuationGroupKey)
-        )
-          continue;
-        return match.instanceId;
-      }
-    }
-    const compatibleEntries = providerInstanceEntries.filter((entry) =>
-      isProviderInstanceCompatibleWithLock(entry, lockedProvider, lockedContinuationGroupKey),
-    );
-    const requestedDriverEntries = compatibleEntries.filter(
-      (entry) => entry.driverKind === requestedDriverKind,
-    );
-    return (
-      resolveSelectableProviderInstanceEntry(requestedDriverEntries, undefined)?.instanceId ??
-      resolveSelectableProviderInstanceEntry(compatibleEntries, undefined)?.instanceId ??
-      NO_PROVIDER_MODEL_SELECTION.instanceId
-    );
-  }, [
-    activeDefaultModelSelection?.instanceId,
-    activeThreadProviderInstanceId,
-    selectedProviderByThreadId,
-    lockedContinuationGroupKey,
-    lockedProvider,
-    providerInstanceEntries,
+  // An explicit draft pick wins; otherwise use the provider serving the live
+  // session. Resolving the snapshot by `instanceId` gives a custom instance
+  // its own slash commands, skills, and model list rather than the first
+  // snapshot for the same driver kind.
+  const {
+    selectedProviderEntry,
     requestedDriverKind,
-  ]);
-
-  // Resolve the active instance's snapshot by `instanceId` so a custom
-  // instance gets its own slash commands, skills, and model list — not
-  // the first snapshot for the same driver kind.
-  const selectedProviderEntry = useMemo(
-    () => providerInstanceEntries.find((entry) => entry.instanceId === selectedInstanceId),
-    [providerInstanceEntries, selectedInstanceId],
+    lockedContinuationGroupKey,
+    unavailableProviderInstanceId,
+  } = useMemo(
+    () =>
+      resolveComposerProviderSelection({
+        entries: providerInstanceEntries,
+        candidateInstanceIds: [
+          selectedProviderByThreadId,
+          activeThreadProviderInstanceId,
+          activeDefaultModelSelection?.instanceId,
+        ],
+        lockedProvider,
+        lockedInstanceId: activeThreadProviderInstanceId,
+      }),
+    [
+      activeDefaultModelSelection?.instanceId,
+      activeThreadProviderInstanceId,
+      lockedProvider,
+      providerInstanceEntries,
+      selectedProviderByThreadId,
+    ],
   );
+  const selectedInstanceId =
+    selectedProviderEntry?.instanceId ?? NO_PROVIDER_MODEL_SELECTION.instanceId;
   const noProviderAvailable = selectedProviderEntry === undefined;
+  const providerSetupInstanceId = noProviderAvailable
+    ? (unavailableProviderInstanceId ??
+      (lockedProvider === null
+        ? providerInstanceEntries.find((entry) => hasProviderSetup(entry.snapshot))?.instanceId
+        : undefined))
+    : undefined;
   const resolvedCompactDisabledReason =
     compactDisabledReason ?? (noProviderAvailable ? "Compacting is unavailable right now" : null);
   // The driver kind follows the instance that will actually run the turn,
@@ -1564,6 +1530,14 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     projectModelSelection: activeDefaultModelSelection,
     settings,
   });
+  const providerSendBlockReason = getAntigravitySendBlockReason(
+    selectedProviderEntry?.snapshot,
+    selectedModel,
+  );
+  const sendDisabledReason =
+    externalSendDisabledReason ??
+    (activePendingProgress ? null : (attachmentBlockReason ?? providerSendBlockReason));
+  const isSendDisabled = sendDisabledReason !== null;
   const selectedProviderStatus = useMemo(
     () => selectedProviderEntry?.snapshot ?? null,
     [selectedProviderEntry],
@@ -1939,6 +1913,8 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
   const isComposerApprovalState =
     activePendingApproval !== null || activePendingFallbackOffer !== null;
   const activePendingUserInput = pendingUserInputs[0] ?? null;
+  const isChoiceOnlyPendingQuestion =
+    activePendingProgress?.activeQuestion?.allowCustomAnswer === false;
   const showComposerTopDrawer =
     isComposerApprovalState ||
     pendingUserInputs.length > 0 ||
@@ -2429,6 +2405,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     ) => {
       expandComposerForEditorChange();
       if (activePendingProgress?.activeQuestion && pendingUserInputs.length > 0) {
+        if (activePendingProgress.activeQuestion.allowCustomAnswer === false) return;
         setComposerCursor(nextCursor);
         setComposerTrigger(
           cursorAdjacentToMention ? null : detectComposerTrigger(nextPrompt, expandedCursor),
@@ -2482,6 +2459,12 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
         citationComment?: { start: number; sourceAnchor: AssistantCitationSourceAnchor };
       },
     ): boolean => {
+      if (
+        activePendingUserInput &&
+        activePendingProgress?.activeQuestion?.allowCustomAnswer === false
+      ) {
+        return false;
+      }
       const currentText = promptRef.current;
       const safeStart = Math.max(0, Math.min(currentText.length, rangeStart));
       const safeEnd = Math.max(safeStart, Math.min(currentText.length, rangeEnd));
@@ -3676,12 +3659,17 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
       type="button"
       size="sm"
       variant="ghost"
-      disabled
+      disabled={!providerSetupInstanceId}
+      onClick={() => {
+        if (providerSetupInstanceId) {
+          onOpenProviderSetup(providerSetupInstanceId);
+        }
+      }}
       data-chat-provider-unavailable="true"
       className="shrink-0 gap-2 px-2 text-secondary-label sm:px-3"
     >
       <CircleAlertIcon className="size-4" />
-      No provider available
+      {providerSetupInstanceId ? "Open provider settings" : "No provider available"}
     </Button>
   ) : (
     <>
@@ -3728,6 +3716,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
         getModelDisabledReason={getModelDisabledReason}
         onInstanceModelChange={onProviderModelSelect}
         {...(activeUsageLimitPill ? { usageLimit: activeUsageLimitPill } : {})}
+        onOpenProviderSetup={onOpenProviderSetup}
       />
 
       {composerControlsCompact ? (
@@ -4338,7 +4327,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
         );
       },
       addTerminalContext: (selection: TerminalContextSelection) => {
-        if (!activeThread) return;
+        if (!activeThread || isChoiceOnlyPendingQuestion) return;
         const snapshot = composerEditorRef.current?.readSnapshot() ?? {
           value: promptRef.current,
           cursor: composerCursor,
@@ -4386,7 +4375,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
         modelSelectionIntentSnapshot: hasPendingModelSelectionIntent
           ? (draftModelSelection ?? null)
           : null,
-        providerAvailable: !noProviderAvailable,
+        providerAvailable: !noProviderAvailable && providerSendBlockReason === null,
         selectedProvider,
         selectedModel,
         selectedProviderModels,
@@ -4423,6 +4412,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
       hasPendingModelSelectionIntent,
       isConnecting,
       isComposerApprovalState,
+      isChoiceOnlyPendingQuestion,
       pendingUserInputs.length,
       projectSelectionRequired,
       applyPromptReplacement,
@@ -4432,6 +4422,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
       selectedModelOptionsForDispatch,
       requestedModelSelection,
       noProviderAvailable,
+      providerSendBlockReason,
       selectedPromptEffort,
       selectedProvider,
       selectedProviderModels,
@@ -4625,54 +4616,61 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
                       onToggleOption={onSelectActivePendingUserInputOption}
                       onAdvance={onAdvanceActivePendingUserInput}
                     />
-                    <ComposerBanner.Body>
-                      <div
-                        data-chat-composer-mobile-pending-compact="true"
-                        className={cn(
-                          "flex min-w-0 items-center gap-2 rounded-lg border border-border/55 bg-background/55 p-1.5 pl-3 transition-colors hover:bg-background/80",
-                          !activePendingProgress?.activeQuestion?.multiSelect && "p-0",
-                        )}
-                      >
-                        <button
-                          type="button"
+                    {!isChoiceOnlyPendingQuestion ||
+                    activePendingProgress?.activeQuestion?.multiSelect ? (
+                      <ComposerBanner.Body>
+                        <div
+                          data-chat-composer-mobile-pending-compact="true"
                           className={cn(
-                            "min-w-0 flex-1 truncate bg-transparent py-1.5 text-left text-sm",
-                            activePendingProgress?.customAnswer
-                              ? "text-foreground"
-                              : "text-placeholder",
-                            !activePendingProgress?.activeQuestion?.multiSelect && "px-3 py-2",
+                            "flex min-w-0 items-center gap-2 rounded-lg border border-border/55 bg-background/55 p-1.5 pl-3 transition-colors hover:bg-background/80",
+                            !activePendingProgress?.activeQuestion?.multiSelect && "p-0",
                           )}
-                          onPointerDown={(event) => event.preventDefault()}
-                          onClick={expandMobileComposer}
-                          aria-label="Write custom answer"
                         >
-                          {activePendingProgress?.customAnswer || "Write custom answer"}
-                        </button>
-                        {activePendingProgress?.activeQuestion?.multiSelect ? (
-                          <ComposerPrimaryActions
-                            compact
-                            pendingAction={pendingPrimaryAction}
-                            isRunning={false}
-                            showPlanFollowUpPrompt={false}
-                            promptHasText={false}
-                            isSendBusy={isSendBusy}
-                            sendDisabledReason={sendDisabledReason}
-                            isConnecting={isConnecting}
-                            isEnvironmentUnavailable={
-                              environmentUnavailable !== null ||
-                              noProviderAvailable ||
-                              projectSelectionRequired
-                            }
-                            isPreparingWorktree={false}
-                            hasSendableContent={false}
-                            preserveComposerFocusOnPointerDown
-                            onPreviousPendingQuestion={onPreviousActivePendingUserInputQuestion}
-                            onInterrupt={handleInterruptPrimaryAction}
-                            onImplementPlanInNewThread={handleImplementPlanInNewThreadPrimaryAction}
-                          />
-                        ) : null}
-                      </div>
-                    </ComposerBanner.Body>
+                          {!isChoiceOnlyPendingQuestion ? (
+                            <button
+                              type="button"
+                              className={cn(
+                                "min-w-0 flex-1 truncate bg-transparent py-1.5 text-left text-sm",
+                                activePendingProgress?.customAnswer
+                                  ? "text-foreground"
+                                  : "text-placeholder",
+                                !activePendingProgress?.activeQuestion?.multiSelect && "px-3 py-2",
+                              )}
+                              onPointerDown={(event) => event.preventDefault()}
+                              onClick={expandMobileComposer}
+                              aria-label="Write custom answer"
+                            >
+                              {activePendingProgress?.customAnswer || "Write custom answer"}
+                            </button>
+                          ) : null}
+                          {activePendingProgress?.activeQuestion?.multiSelect ? (
+                            <ComposerPrimaryActions
+                              compact
+                              pendingAction={pendingPrimaryAction}
+                              isRunning={false}
+                              showPlanFollowUpPrompt={false}
+                              promptHasText={false}
+                              isSendBusy={isSendBusy}
+                              sendDisabledReason={sendDisabledReason}
+                              isConnecting={isConnecting}
+                              isEnvironmentUnavailable={
+                                environmentUnavailable !== null ||
+                                noProviderAvailable ||
+                                projectSelectionRequired
+                              }
+                              isPreparingWorktree={false}
+                              hasSendableContent={false}
+                              preserveComposerFocusOnPointerDown
+                              onPreviousPendingQuestion={onPreviousActivePendingUserInputQuestion}
+                              onInterrupt={handleInterruptPrimaryAction}
+                              onImplementPlanInNewThread={
+                                handleImplementPlanInNewThreadPrimaryAction
+                              }
+                            />
+                          ) : null}
+                        </div>
+                      </ComposerBanner.Body>
+                    ) : null}
                   </div>
                 ) : null}
               </ComposerBanner.Root>
@@ -4738,12 +4736,15 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
                       : "text-placeholder",
                   )}
                   onPointerDown={(event) => event.preventDefault()}
-                  onClick={expandMobileComposer}
+                  onClick={isChoiceOnlyPendingQuestion ? undefined : expandMobileComposer}
+                  disabled={isChoiceOnlyPendingQuestion}
                   aria-label="Expand composer"
                 >
                   {activePendingProgress
-                    ? activePendingProgress.customAnswer ||
-                      "Type your own answer, or leave this blank to use the selected option"
+                    ? isChoiceOnlyPendingQuestion
+                      ? "Choose an option above"
+                      : activePendingProgress.customAnswer ||
+                        "Type your own answer, or leave this blank to use the selected option"
                     : prompt.trim() ||
                       (noProviderAvailable ? "Enable a provider in Settings" : "Ask anything...")}
                 </button>
@@ -5183,7 +5184,9 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
                       ? (activePendingApproval?.detail ??
                         "Resolve this approval request to continue")
                       : activePendingProgress
-                        ? "Type your own answer, or leave this blank to use the selected option"
+                        ? isChoiceOnlyPendingQuestion
+                          ? "Choose an option above"
+                          : "Type your own answer, or leave this blank to use the selected option"
                         : showPlanFollowUpPrompt && activeProposedPlan
                           ? "Add feedback to refine the plan, or leave this blank to implement it"
                           : projectSelectionRequired
@@ -5194,7 +5197,12 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
                                 ? DISCONNECTED_COMPOSER_PLACEHOLDER
                                 : "Ask anything, @tag files/folders, $use skills, or / for commands"
                   }
-                  disabled={isConnecting || isComposerApprovalState || projectSelectionRequired}
+                  disabled={
+                    isConnecting ||
+                    isComposerApprovalState ||
+                    projectSelectionRequired ||
+                    isChoiceOnlyPendingQuestion
+                  }
                 />
                 {isComposerResting ? collapsedComposerImagePreviews : null}
                 {showMobilePendingAnswerActions ? (
