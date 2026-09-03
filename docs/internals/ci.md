@@ -40,4 +40,9 @@ keyed on the lockfile alone and saved by whichever job finishes first, so a filt
 (`--filter=...`) would save a partial store that every later full install restores and then
 re-downloads around. Keep `cache: false` on filtered-install jobs.
 
+Preflight shares pnpm's lockfile verification results with the desktop build jobs through a small
+artifact. This avoids repeating dependency checks, especially on Windows, without transferring the
+large registry metadata cache. pnpm checks the current lockfile and policy before it reuses a result.
+If the artifact is unavailable, installation runs the checks again.
+
 See [Release Checklist](../operations/release.md) for the full release/signing setup checklist.
