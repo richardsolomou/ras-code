@@ -873,10 +873,10 @@ jobs:
       RAS_CODE_CLERK_CLI_OAUTH_CLIENT_ID: ${{ needs.relay_public_config.outputs.clerk_cli_oauth_client_id }}
       RAS_CODE_HOSTED_APP_URL: ${{ needs.relay_public_config.outputs.hosted_app_url }}
       RAS_CODE_RELAY_URL: ${{ needs.relay_public_config.outputs.relay_url }}
-      # Personal API key and environment id for the PostHog CLI. Absent by
+      # Credentials the PostHog CLI reads from the environment. Absent by
       # default, which skips source map upload and leaves the release unchanged.
-      POSTHOG_CLI_TOKEN: ${{ secrets.POSTHOG_CLI_TOKEN }}
-      POSTHOG_CLI_ENV_ID: ${{ secrets.POSTHOG_CLI_ENV_ID }}
+      POSTHOG_CLI_API_KEY: ${{ secrets.POSTHOG_CLI_API_KEY }}
+      POSTHOG_CLI_PROJECT_ID: ${{ secrets.POSTHOG_CLI_PROJECT_ID }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -930,12 +930,14 @@ jobs:
       # credentials and never fail the release: an unresolved frame is a lesser
       # problem than a blocked ship.
       - name: Inject PostHog source map chunk IDs
-        if: ${{ env.POSTHOG_CLI_TOKEN != '' }}
+        if: ${{ env.POSTHOG_CLI_API_KEY != '' && env.POSTHOG_CLI_PROJECT_ID != '' }}
         continue-on-error: true
         run: |
           npm install --global @posthog/cli@0.16.1
-          posthog-cli --host https://us.posthog.com --env-id "$POSTHOG_CLI_ENV_ID" \
-            sourcemap inject --directory apps/server/dist
+          posthog-cli --host https://us.posthog.com sourcemap inject \
+            --directory apps/server/dist \
+            --release-name ras-code \
+            --release-version "${{ needs.preflight.outputs.version }}"
 
       - name: Download resource monitors
         uses: actions/download-artifact@v8
@@ -982,11 +984,13 @@ jobs:
         run: node apps/server/scripts/cli.ts publish --tag "${{ needs.preflight.outputs.cli_dist_tag }}" --app-version "${{ needs.preflight.outputs.version }}" --verbose
 
       - name: Upload PostHog server source maps
-        if: ${{ env.POSTHOG_CLI_TOKEN != '' }}
+        if: ${{ env.POSTHOG_CLI_API_KEY != '' && env.POSTHOG_CLI_PROJECT_ID != '' }}
         continue-on-error: true
         run: |
-          posthog-cli --host https://us.posthog.com --env-id "$POSTHOG_CLI_ENV_ID" \
-            sourcemap upload --directory apps/server/dist
+          posthog-cli --host https://us.posthog.com sourcemap upload \
+            --directory apps/server/dist \
+            --release-name ras-code \
+            --release-version "${{ needs.preflight.outputs.version }}"
 
   release:
     name: Publish GitHub Release
