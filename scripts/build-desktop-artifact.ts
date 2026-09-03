@@ -1628,9 +1628,9 @@ const rustTargetIsInstalled = Effect.fn("rustTargetIsInstalled")(function* (targ
 export const preflightLinuxDesktopBuild = Effect.fn("preflightLinuxDesktopBuild")(function* (
   arch: typeof BuildArch.Type = "x64",
 ) {
-  const reuseResourceMonitor = yield* Config.boolean("T3CODE_DESKTOP_REUSE_RESOURCE_MONITOR").pipe(
-    Config.withDefault(false),
-  );
+  const reuseResourceMonitor = yield* Config.boolean(
+    "RAS_CODE_DESKTOP_REUSE_RESOURCE_MONITOR",
+  ).pipe(Config.withDefault(false));
   const rustTarget = resolveResourceMonitorRustTargets("linux", arch)[0]!;
 
   const checks = yield* Effect.all(
@@ -1663,9 +1663,9 @@ export const preflightMacDesktopBuild = Effect.fn("preflightMacDesktopBuild")(fu
   arch: typeof BuildArch.Type,
 ) {
   const rustTargets = resolveResourceMonitorRustTargets("mac", arch);
-  const reuseResourceMonitor = yield* Config.boolean("T3CODE_DESKTOP_REUSE_RESOURCE_MONITOR").pipe(
-    Config.withDefault(false),
-  );
+  const reuseResourceMonitor = yield* Config.boolean(
+    "RAS_CODE_DESKTOP_REUSE_RESOURCE_MONITOR",
+  ).pipe(Config.withDefault(false));
   const checks = yield* Effect.all(
     {
       rust: reuseResourceMonitor
@@ -1703,11 +1703,11 @@ function windowsVswherePrerequisiteScript(arch: typeof BuildArch.Type): string {
     arch === "arm64"
       ? [
           "Microsoft.VisualStudio.Component.VC.Tools.ARM64",
-          "Microsoft.VisualStudio.Component.VC.Tools.ARM64.Spectre",
+          "Microsoft.VisualStudio.Component.VC.Runtimes.ARM64.Spectre",
         ]
       : [
           "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
-          "Microsoft.VisualStudio.Component.VC.Tools.x86.x64.Spectre",
+          "Microsoft.VisualStudio.Component.VC.Runtimes.x86.x64.Spectre",
         ];
   return [
     "$vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\\Installer\\vswhere.exe'",
@@ -1723,7 +1723,7 @@ export const preflightWindowsDesktopBuild = Effect.fn("preflightWindowsDesktopBu
   function* (input: { readonly arch: typeof BuildArch.Type; readonly bundlesWslRuntime: boolean }) {
     const rustTarget = resolveResourceMonitorRustTargets("win", input.arch)[0]!;
     const reuseResourceMonitor = yield* Config.boolean(
-      "T3CODE_DESKTOP_REUSE_RESOURCE_MONITOR",
+      "RAS_CODE_DESKTOP_REUSE_RESOURCE_MONITOR",
     ).pipe(Config.withDefault(false));
     const python = yield* resolvePythonForNodeGyp();
     const checks = yield* Effect.all(
