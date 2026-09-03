@@ -29,6 +29,8 @@ const clientSettings: ClientSettings = {
   confirmQuit: "double-click",
   continueThreadsAfterServerUpdate: true,
   contextWindowMeterEnabled: false,
+  composerCollapseOnBlur: false,
+  composerCollapseOnScroll: true,
   diffIgnoreWhitespace: true,
   diffLayout: "stacked",
   environmentIdentificationMode: "artwork",

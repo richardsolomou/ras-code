@@ -300,6 +300,10 @@ export const ClientSettingsSchema = Schema.Struct({
   // Legacy context window meter. The composer hides it by default; users who
   // still want the old usage indicator can restore it from Settings.
   contextWindowMeterEnabled: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(false))),
+  // Desktop resting composer. Each trigger that settles an existing thread's
+  // composer into its single-line layout can be turned off on its own.
+  composerCollapseOnBlur: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(true))),
+  composerCollapseOnScroll: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(true))),
   proactivePanelsEnabled: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(false))),
   showSkillsInSlashMenu: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(true))),
   notifications: NotificationSettings.pipe(Schema.withDecodingDefault(Effect.succeed({}))),
@@ -1198,6 +1202,8 @@ export const ClientSettingsPatch = Schema.Struct({
   ),
   notifications: Schema.optionalKey(NotificationSettings),
   contextWindowMeterEnabled: Schema.optionalKey(Schema.Boolean),
+  composerCollapseOnBlur: Schema.optionalKey(Schema.Boolean),
+  composerCollapseOnScroll: Schema.optionalKey(Schema.Boolean),
   proactivePanelsEnabled: Schema.optionalKey(Schema.Boolean),
   showSkillsInSlashMenu: Schema.optionalKey(Schema.Boolean),
   sidebarProjectGroupingMode: Schema.optionalKey(SidebarProjectGroupingMode),
