@@ -117,6 +117,10 @@ RAS Code asks you to select an available model instead of silently changing it.
 Use Antigravity's native `/plan` command to request a plan. RAS Code's separate Plan mode control
 is not available for this provider.
 
+Project skills should use `.agents/skills`. RAS Code also discovers `.gemini/skills` and the legacy
+`.agent/skills` location. When multiple locations define the same skill name, `.gemini/skills`
+takes precedence, followed by `.agents/skills` and then `.agent/skills`.
+
 Antigravity reads and edits workspace files through RAS Code. Each write shows up as a file
 change approval with the content, so **Supervised** and **Auto-accept edits** behave the same way
 they do for other providers. Attach images, PDFs, text files, or audio clips to a message and
