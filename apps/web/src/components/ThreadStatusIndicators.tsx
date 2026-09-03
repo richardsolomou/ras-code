@@ -4,18 +4,20 @@ import {
   scopeThreadRef,
 } from "@ras-code/client-runtime/environment";
 import { pullRequestDetailToVcsStatus } from "@ras-code/client-runtime/state/pull-requests";
-import type {
-  EnvironmentId,
+import {
+  type EnvironmentId,
   OrchestrationThreadShell,
   PullRequestSummary,
-  ThreadLinkedPullRequest,
-  VcsStatusResult,
+  resolveEnvironmentMachineKind,
+  type ThreadLinkedPullRequest,
+  type VcsStatusResult,
 } from "@ras-code/contracts";
 import { Atom } from "effect/unstable/reactivity";
-import { CloudIcon, FolderGit2Icon, GitPullRequestIcon, TerminalIcon } from "lucide-react";
+import { FolderGit2Icon, GitPullRequestIcon, TerminalIcon } from "lucide-react";
 import { useMemo } from "react";
 import { appAtomRegistry } from "../rpc/atomRegistry";
 import { useEnvironment, usePrimaryEnvironmentId } from "../state/environments";
+import { EnvironmentMachineIcon } from "./EnvironmentMachineIcon";
 import { useProject } from "../state/entities";
 import { useEnvironmentQuery } from "../state/query";
 import { linkedPullRequestDetailAtom, useSharedPullRequestSummary } from "../state/pullRequests";
@@ -627,10 +629,12 @@ export function ThreadRowTrailingStatus({ thread }: { thread: SidebarThreadSumma
   });
   const environment = useEnvironment(thread.environmentId);
   const primaryEnvironmentId = usePrimaryEnvironmentId();
-  const isRemoteThread =
-    primaryEnvironmentId !== null && thread.environmentId !== primaryEnvironmentId;
+  // No primary (the hosted app) means every thread is remote, and the machine
+  // glyph is what tells the environments apart.
+  const isRemoteThread = thread.environmentId !== primaryEnvironmentId;
   const remoteEnvLabel = environment?.label ?? null;
   const threadEnvironmentLabel = isRemoteThread ? (remoteEnvLabel ?? "Remote") : null;
+  const remoteMachine = resolveEnvironmentMachineKind(environment?.serverConfig ?? null);
   const terminalStatus = terminalStatusFromRunningIds(runningTerminalIds);
 
   if (!terminalStatus && !isRemoteThread) {
@@ -667,7 +671,10 @@ export function ThreadRowTrailingStatus({ thread }: { thread: SidebarThreadSumma
               />
             }
           >
-            <CloudIcon className="size-3 text-muted-foreground/60" />
+            <EnvironmentMachineIcon
+              kind={remoteMachine}
+              className="size-3 text-muted-foreground/60"
+            />
           </TooltipTrigger>
           <TooltipPopup side="top">{threadEnvironmentLabel}</TooltipPopup>
         </Tooltip>
