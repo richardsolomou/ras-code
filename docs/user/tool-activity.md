@@ -8,7 +8,10 @@ indicate more calls above or below. Short groups use only the space they need.
 Collapsing and reopening a group preserves your reading position and any open call details.
 
 Recognized RAS Code tools use descriptive labels in both the running summary and individual rows.
-Labels follow the call's state, such as "Clicking" while running and "Clicked" after success.
+The latest live activity stays in the present tense while the turn continues, such as
+"Running vp" or "Clicking in the preview browser", even after that call has completed.
+Expanded rows follow the call's own state, such as "Clicked" after success.
+When a call has not reported a state yet, the label stays in the present tense.
 Failed, declined, and stopped calls say what happened without implying success.
 Preview browser actions use a globe icon. Other RAS Code tools keep the RAS Code mark.
 Group summaries count browser actions separately, such as "Used browser 18 times" or
