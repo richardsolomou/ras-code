@@ -214,6 +214,14 @@ function waitForNextFrame(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, 0));
 }
 
+/**
+ * Shiki abandons a line once tokenizing it passes `tokenizeTimeLimit`, keeping the rule stack from
+ * where it stopped: the rest of that line collapses into one token and every following line
+ * tokenizes from the wrong grammar state. A loaded machine crosses the 500ms default on ordinary
+ * code, so tokenizing runs unbounded to stay deterministic.
+ */
+const NATIVE_REVIEW_DIFF_TOKENIZE_TIME_LIMIT_MS = 0;
+
 function normalizeTokens(
   tokenLines: ReadonlyArray<ReadonlyArray<{ content: string; color?: string; fontStyle?: number }>>,
 ): ReadonlyArray<ReadonlyArray<NativeReviewDiffToken>> {
@@ -240,7 +248,13 @@ async function createNativeReviewDiffHighlighter(): Promise<NativeReviewDiffHigh
 
   return {
     engine: "native",
-    tokenize: (code, options) => normalizeTokens(highlighter.codeToTokensBase(code, options)),
+    tokenize: (code, options) =>
+      normalizeTokens(
+        highlighter.codeToTokensBase(code, {
+          ...options,
+          tokenizeTimeLimit: NATIVE_REVIEW_DIFF_TOKENIZE_TIME_LIMIT_MS,
+        }),
+      ),
   };
 }
 
@@ -253,7 +267,13 @@ async function createJavascriptReviewDiffHighlighter(): Promise<NativeReviewDiff
 
   return {
     engine: "javascript",
-    tokenize: (code, options) => normalizeTokens(highlighter.codeToTokensBase(code, options)),
+    tokenize: (code, options) =>
+      normalizeTokens(
+        highlighter.codeToTokensBase(code, {
+          ...options,
+          tokenizeTimeLimit: NATIVE_REVIEW_DIFF_TOKENIZE_TIME_LIMIT_MS,
+        }),
+      ),
   };
 }
 

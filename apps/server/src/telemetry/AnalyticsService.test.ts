@@ -291,7 +291,10 @@ it.layer(NodeServices.layer)("AnalyticsService test", (it) => {
           turnId: turnId("turn-5"),
           createdAt: "2026-01-01T00:00:01.000Z",
           type: "runtime.error",
-          payload: { message: "private prompt and token phx_secret", class: "provider_error" },
+          payload: {
+            message: "gateway 500 from model zai-org/glm-5.3-flash",
+            class: "provider_error",
+          },
         });
         yield* analytics.recordProviderRuntimeEvent({
           eventId: eventId("event-failed"),
@@ -311,8 +314,42 @@ it.layer(NodeServices.layer)("AnalyticsService test", (it) => {
       );
       assert.equal(exceptions[0]?.properties?.$issue_name, "Provider runtime error (codex)");
       assert.equal(exceptions[0]?.properties?.model, "gpt-5.6");
+      assert.equal(
+        exceptions[0]?.properties?.errorMessage,
+        "gateway 500 from model zai-org/glm-5.3-flash",
+      );
+      // The deduped failed turn sends no provider text of its own.
       assert.notInclude(NodeUtil.inspect(exceptions[0]), "private prompt");
       assert.notInclude(NodeUtil.inspect(exceptions[0]), "phx_secret");
+    }),
+  );
+
+  it.effect("forwards the provider runtime error message as a triage property", () =>
+    Effect.gen(function* () {
+      const exceptions: AnalyticsService.TelemetryException[] = [];
+      const client = makeTelemetryPostHogClientTest({ exceptions });
+
+      yield* Effect.gen(function* () {
+        const analytics = yield* AnalyticsService.AnalyticsService;
+        yield* analytics.recordProviderRuntimeEvent({
+          eventId: eventId("event-error"),
+          provider: provider("claude"),
+          threadId: threadId("thread-6"),
+          turnId: turnId("turn-6"),
+          createdAt: "2026-01-01T00:00:01.000Z",
+          type: "runtime.error",
+          payload: { message: "connection reset by gateway", class: "transport_error" },
+        });
+      }).pipe(Effect.provide(makeRuntimeLayer(client)));
+
+      assert.equal(exceptions.length, 1);
+      assert.equal(exceptions[0]?.error.message, "Provider runtime error");
+      assert.equal(exceptions[0]?.properties?.errorClass, "transport_error");
+      assert.equal(exceptions[0]?.properties?.errorMessage, "connection reset by gateway");
+      assert.equal(
+        exceptions[0]?.properties?.$exception_fingerprint,
+        "ras-code:provider.runtime:claude:transport_error",
+      );
     }),
   );
 

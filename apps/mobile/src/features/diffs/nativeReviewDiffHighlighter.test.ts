@@ -122,6 +122,46 @@ describe("highlightNativeReviewDiffVisibleRows", () => {
     expect(withComment.tokensByRowId).toEqual(contiguous.tokensByRowId);
   });
 
+  it("keeps grammar state when a line tokenizes slowly", async () => {
+    const rows = [
+      makeLine({
+        id: "template-open",
+        content: "const message = `open",
+        change: "add",
+        oldLineNumber: null,
+        newLineNumber: 1,
+      }),
+      makeLine({
+        id: "template-close",
+        content: "closed`;",
+        change: "add",
+        oldLineNumber: null,
+        newLineNumber: 2,
+      }),
+      makeLine({
+        id: "trailing-row",
+        content: "export const answer = 42;",
+        change: "add",
+        oldLineNumber: null,
+        newLineNumber: 3,
+      }),
+    ];
+    const baseline = await highlight(rows);
+
+    // Shiki times each line against a wall clock, so a busy machine can make it give up partway
+    // through. Charge 80ms to every scan to cross that budget on the first line.
+    const realDateNow = Date.now;
+    let scans = 0;
+    Date.now = () => realDateNow() + scans++ * 80;
+    try {
+      const slow = await highlight(rows);
+
+      expect(slow.tokensByRowId).toEqual(baseline.tokensByRowId);
+    } finally {
+      Date.now = realDateNow;
+    }
+  });
+
   it("does not join unhighlighted rows across cached gaps", async () => {
     const trailingRow = makeLine({
       id: "trailing-row",

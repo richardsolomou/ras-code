@@ -553,11 +553,12 @@ export const make = (options?: {
             }),
           );
 
-    // Capture a provider failure at most once per turn. The provider error text
-    // stays out of telemetry (see `redactExceptionEvent`); `$exception_fingerprint`
-    // keeps every occurrence in one issue across releases, where the bundled stack
-    // frame line would otherwise shift and split it, and `$issue_name` gives that
-    // issue a readable label the redacted message cannot.
+    // Capture a provider failure at most once per turn. `redactExceptionEvent`
+    // still scrubs the autocaptured `$exception_message` and stack, so callers
+    // attach only vetted properties. `$exception_fingerprint` keeps every
+    // occurrence in one issue across releases, where the bundled stack frame line
+    // would otherwise shift and split it, and `$issue_name` gives that issue a
+    // readable label the redacted message cannot.
     const captureProviderFailureOnce = (
       event: Extract<
         ProviderRuntimeEvent,
@@ -749,11 +750,15 @@ export const make = (options?: {
             const model = event.turnId
               ? (yield* Ref.get(activeTurns)).get(turnKey(event))?.model
               : undefined;
+            // The provider runtime diagnostic rides along as a vetted
+            // `errorMessage` property, not as `$exception_message`, so the
+            // redaction hook leaves it intact and the issue stays readable.
             yield* captureProviderFailureOnce(event, new Error("Provider runtime error"), {
               operation: "provider.runtime",
               provider,
               errorClass,
               model,
+              errorMessage: event.payload.message,
               $exception_fingerprint: `ras-code:provider.runtime:${provider}:${errorClass}`,
               $issue_name: `Provider runtime error (${provider})`,
             });
