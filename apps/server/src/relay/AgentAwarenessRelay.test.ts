@@ -358,58 +358,45 @@ describe.sequential("signRelayAgentActivityPublishProof", () => {
     ).toEqual([activeThreadId]);
   });
 
-  it("signs the activity publish JWT and rejects tampering", async () => {
-    const keyPair = NodeCrypto.generateKeyPairSync("ed25519", {
-      privateKeyEncoding: { format: "pem", type: "pkcs8" },
-      publicKeyEncoding: { format: "pem", type: "spki" },
-    });
-    const payload = {
-      iss: "ras-env:env",
-      aud: "https://relay.example.test",
-      sub: "env",
-      jti: "nonce-1",
-      iat: 100,
-      exp: 200,
-      environmentId: state.environmentId,
-      threadId: state.threadId,
-      state,
-    } satisfies RelayAgentActivityPublishProofPayload;
-    const proof = await Effect.runPromise(
-      AgentAwarenessRelay.signRelayAgentActivityPublishProof({
+  it.effect("signs the activity publish JWT and rejects tampering", () =>
+    Effect.gen(function* () {
+      const keyPair = NodeCrypto.generateKeyPairSync("ed25519", {
+        privateKeyEncoding: { format: "pem", type: "pkcs8" },
+        publicKeyEncoding: { format: "pem", type: "spki" },
+      });
+      const payload = {
+        iss: "ras-env:env",
+        aud: "https://relay.example.test",
+        sub: "env",
+        jti: "nonce-1",
+        iat: 100,
+        exp: 200,
+        environmentId: state.environmentId,
+        threadId: state.threadId,
+        state,
+      } satisfies RelayAgentActivityPublishProofPayload;
+      const proof = yield* AgentAwarenessRelay.signRelayAgentActivityPublishProof({
         privateKey: keyPair.privateKey,
         payload,
-      }),
-    );
+      });
+      const verify = (token: string) =>
+        verifyRelayJwt({
+          publicKey: keyPair.publicKey,
+          token,
+          typ: RELAY_ACTIVITY_PUBLISH_TYP,
+          issuer: "ras-env:env",
+          audience: "https://relay.example.test",
+          nowEpochSeconds: 150,
+        });
 
-    await expect(
-      Effect.runPromise(
-        verifyRelayJwt({
-          publicKey: keyPair.publicKey,
-          token: proof,
-          typ: RELAY_ACTIVITY_PUBLISH_TYP,
-          issuer: "ras-env:env",
-          audience: "https://relay.example.test",
-          nowEpochSeconds: 150,
-        }),
-      ),
-    ).resolves.toMatchObject({ jti: "nonce-1", state });
-    await expect(
-      Effect.runPromise(
-        verifyRelayJwt({
-          publicKey: keyPair.publicKey,
-          token: (() => {
-            const [header, body, signature = ""] = proof.split(".");
-            const corruptedSignature = `${signature.startsWith("a") ? "b" : "a"}${signature.slice(1)}`;
-            return `${header}.${body}.${corruptedSignature}`;
-          })(),
-          typ: RELAY_ACTIVITY_PUBLISH_TYP,
-          issuer: "ras-env:env",
-          audience: "https://relay.example.test",
-          nowEpochSeconds: 150,
-        }),
-      ),
-    ).rejects.toBeDefined();
-  });
+      expect(yield* verify(proof)).toMatchObject({ jti: "nonce-1", state });
+
+      const [header, body, signature = ""] = proof.split(".");
+      const corruptedSignature = `${signature.startsWith("a") ? "b" : "a"}${signature.slice(1)}`;
+      const rejection = yield* Effect.flip(verify(`${header}.${body}.${corruptedSignature}`));
+      expect(rejection).toBeDefined();
+    }),
+  );
 
   it.effect("keeps the orchestration listener armed until relay config is installed", () =>
     Effect.scoped(

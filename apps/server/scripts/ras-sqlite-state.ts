@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 
-// @effect-diagnostics nodeBuiltinImport:off - node:os resolves the shared RAS Code home guard.
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as NodeOS from "node:os";
@@ -246,7 +245,7 @@ export const runSqliteState = Effect.fn("runSqliteState")(function* (
   );
 });
 
-export const rasSqliteStateCommand = Command.make(
+export const rasCodeSqliteStateCommand = Command.make(
   "ras-sqlite-state",
   {
     operation: Argument.choice("operation", SqliteStateOperation.literals).pipe(
@@ -278,7 +277,7 @@ export const rasSqliteStateCommand = Command.make(
 );
 
 if (import.meta.main) {
-  Command.run(rasSqliteStateCommand, { version: "0.0.0" }).pipe(
+  Command.run(rasCodeSqliteStateCommand, { version: "0.0.0" }).pipe(
     Effect.provide(NodeServices.layer),
     NodeRuntime.runMain,
   );

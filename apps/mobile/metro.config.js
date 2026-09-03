@@ -35,8 +35,7 @@ config.resolver = {
     new RegExp(`${escapedWorkspaceRoot}[/\\\\]\\.ras-code[/\\\\].*`),
   ],
   extraNodeModules: {
-    // oxlint-disable-next-line unicorn/no-useless-fallback-in-spread
-    ...(config.resolver?.extraNodeModules ?? {}),
+    ...config.resolver?.extraNodeModules,
     shiki: mobileShikiRoot,
     "@shikijs/core": resolveShikiDependencyRoot("@shikijs/core"),
     "@shikijs/engine-javascript": resolveShikiDependencyRoot("@shikijs/engine-javascript"),
