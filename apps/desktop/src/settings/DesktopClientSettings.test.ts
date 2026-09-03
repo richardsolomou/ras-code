@@ -29,6 +29,7 @@ const clientSettings: ClientSettings = {
   continueThreadsAfterServerUpdate: true,
   contextWindowMeterEnabled: false,
   diffIgnoreWhitespace: true,
+  diffLayout: "stacked",
   environmentIdentificationMode: "artwork",
   favorites: [],
   hedgehogMode: true,
