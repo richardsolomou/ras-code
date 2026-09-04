@@ -143,6 +143,10 @@ vi.mock("../ui/menu", () => ({
   },
 }));
 
+vi.mock("../DiffWorkerPoolProvider", () => ({
+  DiffWorkerPoolProvider: ({ children }: { children?: ReactNode }) => children,
+}));
+
 function matchMedia() {
   return {
     matches: false,

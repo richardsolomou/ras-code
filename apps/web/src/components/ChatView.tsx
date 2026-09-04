@@ -355,7 +355,6 @@ import {
   MOBILE_DRAFT_HEADLINE_VIEW_TRANSITION_NAME,
   runMobileComposerTransition,
 } from "./chat/draftHeroTransition";
-import { DiffWorkerPoolProvider } from "./DiffWorkerPoolProvider";
 import { useIsFocusedPane, useIsRoutedPane } from "./chat/paneFocus";
 import {
   MAX_HIDDEN_MOUNTED_TERMINAL_THREADS,
@@ -8521,9 +8520,7 @@ export default function ChatView(props: ChatViewProps) {
   const composerRef = useRef<ChatComposerHandle | null>(null);
   return (
     <ComposerHandleContext value={composerRef}>
-      <DiffWorkerPoolProvider>
-        <ChatViewContent {...props} composerRef={composerRef} />
-      </DiffWorkerPoolProvider>
+      <ChatViewContent {...props} composerRef={composerRef} />
     </ComposerHandleContext>
   );
 }
