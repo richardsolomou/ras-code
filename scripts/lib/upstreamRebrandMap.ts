@@ -207,6 +207,22 @@ const textRules: ReadonlyArray<RebrandRule> = [
     description: "kebab-case product id",
   },
   {
+    // The executable is `ras`, so shell text that names it takes the binary
+    // name rather than the product stem. Restricted to these lead-ins: a bare
+    // `t3` elsewhere is the product, and `t3@latest` is the npm package.
+    pattern: /(?<=command -v |exec |produced no )t3(?=[ "'])/g,
+    replacement: "ras",
+    description: "the CLI binary name in shell text",
+  },
+  {
+    // Shell identifiers named after the `ras` CLI, not the product stem. An
+    // underscore is a word character, so a `require_installed_` prefix leaves
+    // no boundary before the name.
+    pattern: /t3_cli\b/g,
+    replacement: "ras_cli",
+    description: "shell helpers named after the CLI",
+  },
+  {
     // POSIX home directories in fixtures, named after the `ras` CLI.
     pattern: /(?<=\/(?:home|Users)\/)t3(?![\w-])/g,
     replacement: "ras",

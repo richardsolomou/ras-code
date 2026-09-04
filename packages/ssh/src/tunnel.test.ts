@@ -105,8 +105,7 @@ describe("ssh tunnel scripts", () => {
 
     assert.include(script, "RAS_NODE_SCRIPT_PATH=''");
     assert.include(script, 'exec ras "$@"');
-    assert.include(script, "exec npx --yes 'ras-code@latest' \"$@\"");
-    assert.include(script, "exec npm exec --yes 'ras-code@latest' -- \"$@\"");
+    assert.include(script, 'exec "$RAS_CLI_PATH" "$@"');
     assert.include(script, "could not install 'ras-code@latest'");
     assert.include(script, "require_installed_ras_cli npx --yes --package 'ras-code@latest'");
     assert.include(script, "require_installed_ras_cli npm exec --yes --package 'ras-code@latest'");
@@ -141,11 +140,6 @@ describe("ssh tunnel scripts", () => {
       packageSpec: "ras-code@canary; touch /tmp/ras-code-owned",
     });
 
-    assert.include(script, "exec npx --yes 'ras-code@canary; touch /tmp/ras-code-owned' \"$@\"");
-    assert.include(
-      script,
-      "exec npm exec --yes 'ras-code@canary; touch /tmp/ras-code-owned' -- \"$@\"",
-    );
     assert.include(
       script,
       "require_installed_ras_cli npx --yes --package 'ras-code@canary; touch /tmp/ras-code-owned'",

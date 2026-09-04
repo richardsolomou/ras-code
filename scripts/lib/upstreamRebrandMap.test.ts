@@ -111,6 +111,25 @@ describe("rebrandText", () => {
     assert.strictEqual(rebrandText('"t3env_first_credential"'), '"t3env_first_credential"');
   });
 
+  it("rewrites the CLI binary name in shell text", () => {
+    assert.strictEqual(rebrandText('"command -v t3"'), '"command -v ras"');
+    assert.strictEqual(rebrandText('exec t3 "$@"'), 'exec ras "$@"');
+    assert.strictEqual(
+      rebrandText("npm produced no t3 executable"),
+      "npm produced no ras executable",
+    );
+    // The npm package keeps the product stem.
+    assert.strictEqual(
+      rebrandText("exec npx --yes 't3@latest'"),
+      "exec npx --yes 'ras-code@latest'",
+    );
+  });
+
+  it("rewrites shell helpers named after the CLI", () => {
+    assert.strictEqual(rebrandText("require_installed_t3_cli"), "require_installed_ras_cli");
+    assert.strictEqual(rebrandText("t3_cli"), "ras_cli");
+  });
+
   it("rewrites fixture home directories to the CLI name", () => {
     assert.strictEqual(rebrandText('cwd: "/home/t3/workspace"'), 'cwd: "/home/ras/workspace"');
     assert.strictEqual(rebrandText('"/Users/t3/Documents"'), '"/Users/ras/Documents"');
