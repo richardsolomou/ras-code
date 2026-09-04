@@ -1005,7 +1005,7 @@ describe("remembered pull request list controls", () => {
 
   it("falls back to the default controls when storage is corrupt", () => {
     const storage = makeStorage();
-    storage.setItem("t3.pullRequests.preferences", "{not json");
+    storage.setItem("ras-code.pullRequests.preferences", "{not json");
     expect(readPullRequestListPreferences(storage)).toEqual({ involvement: "all", state: "open" });
   });
 
