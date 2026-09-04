@@ -5,7 +5,7 @@ import type {
 } from "@ras-code/contracts";
 import * as NetService from "@ras-code/shared/Net";
 import * as SshAuth from "@ras-code/ssh/auth";
-import { resolveSshTarget } from "@t3tools/ssh/command";
+import { resolveSshTarget } from "@ras-code/ssh/command";
 import { discoverSshHosts } from "@ras-code/ssh/config";
 import {
   SshCommandError,
