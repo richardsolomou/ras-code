@@ -1,6 +1,6 @@
 {
   "name": "ras-code",
-  "version": "0.0.47",
+  "version": "0.0.48",
   "description": "RAS Code CLI and headless server",
   "license": "MIT",
   "repository": {
