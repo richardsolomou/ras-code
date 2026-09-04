@@ -28,8 +28,8 @@ const NOOP_OPEN_AGENTS = () => {};
 const NOOP_USE_ARTIFACT_TEMPLATE = () => {};
 const NOOP_OPEN_ATTACHMENT = (_attachment: ChatFileAttachment) => {};
 import { resolveChatListAnchoredEndSpace } from "@ras-code/shared/chatList";
-import { toolActivityFaviconUrl } from "@t3tools/shared/favicon";
-import { getProjectFaviconCacheKey } from "@t3tools/shared/projectFavicon";
+import { toolActivityFaviconUrl } from "@ras-code/shared/favicon";
+import { getProjectFaviconCacheKey } from "@ras-code/shared/projectFavicon";
 import {
   createContext,
   Fragment,

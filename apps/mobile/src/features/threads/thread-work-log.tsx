@@ -27,8 +27,8 @@ import {
   View,
 } from "react-native";
 import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
-import type { EnvironmentId, ToolActivityIcon } from "@t3tools/contracts";
-import { toolActivityFaviconUrl } from "@t3tools/shared/favicon";
+import type { EnvironmentId, ToolActivityIcon } from "@ras-code/contracts";
+import { toolActivityFaviconUrl } from "@ras-code/shared/favicon";
 
 import { AppText as Text } from "../../components/AppText";
 import { RasCodeWordmark } from "../../components/RasCodeWordmark";
@@ -851,7 +851,7 @@ export function ThreadWorkGroupToggle(props: {
   readonly summaryKind: ToolGroupSummaryKind;
   readonly summaryToolIcon?: "browser" | "ras-code";
   readonly themeAppearance: "light" | "dark";
-  readonly toolSurface?: import("@t3tools/contracts").ToolActivitySurface;
+  readonly toolSurface?: import("@ras-code/contracts").ToolActivitySurface;
   readonly toolIcon?: ToolActivityIcon;
   readonly hasFailure: boolean;
   readonly shimmer: boolean;

@@ -34,7 +34,7 @@ import {
   toolGroupSummaryKind,
   type ToolGroupSummaryKind,
 } from "@ras-code/client-runtime/work-log/presentation";
-import { extractToolActivityPresentation } from "@t3tools/client-runtime/work-log/tool-presentation";
+import { extractToolActivityPresentation } from "@ras-code/client-runtime/work-log/tool-presentation";
 import { commandProgramName } from "@ras-code/client-runtime/work-log/command-label";
 
 import * as Arr from "effect/Array";
@@ -123,9 +123,9 @@ export interface WorkLogEntry {
   changedFiles?: ReadonlyArray<string>;
   tone: "thinking" | "tool" | "info" | "error";
   toolTitle?: string;
-  toolSurface?: import("@t3tools/contracts").ToolActivitySurface;
-  toolIcon?: import("@t3tools/contracts").ToolActivityIcon;
-  toolSource?: import("@t3tools/contracts").ToolActivitySource;
+  toolSurface?: import("@ras-code/contracts").ToolActivitySurface;
+  toolIcon?: import("@ras-code/contracts").ToolActivityIcon;
+  toolSource?: import("@ras-code/contracts").ToolActivitySource;
   itemType?: ToolLifecycleItemType;
   requestKind?: PendingApproval["requestKind"];
   toolLifecycleStatus?: WorkLogToolLifecycleStatus;

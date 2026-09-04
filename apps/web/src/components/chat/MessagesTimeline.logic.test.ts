@@ -1780,7 +1780,7 @@ describe("deriveMessagesTimelineRows", () => {
       isWorking: false,
       activeTurnStartedAt: null,
       turnDiffSummaryByAssistantMessageId: new Map(),
-      revertTurnCountByUserMessageId: new Map(),
+      checkpointTurnCountByAssistantMessageId: new Map(),
     });
 
     expect(row).toMatchObject({

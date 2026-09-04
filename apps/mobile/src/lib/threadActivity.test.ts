@@ -1696,7 +1696,7 @@ describe("buildThreadFeed", () => {
       createdAt: string,
       status: ThreadFeedActivity["status"] = "success",
       toolSurface?: "browser" | "computer",
-      toolIcon?: import("@t3tools/contracts").ToolActivityIcon,
+      toolIcon?: import("@ras-code/contracts").ToolActivityIcon,
     ): ThreadFeedActivity => ({
       id,
       createdAt,
