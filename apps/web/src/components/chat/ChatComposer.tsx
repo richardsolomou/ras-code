@@ -93,6 +93,7 @@ import {
 } from "../../promptStashStore";
 import { ComposerStashBadge } from "./ComposerStashBadge";
 import { ComposerStashMenu } from "./ComposerStashMenu";
+import { useComposerMenuState } from "./useComposerMenuState";
 import {
   ComposerTasksBadge,
   ComposerTasksContent,
@@ -885,9 +886,11 @@ function useRestingComposerControlsLayout(host: HTMLDivElement | null) {
 const ComposerFooterModeControls = memo(function ComposerFooterModeControls(props: {
   runtimeMode: RuntimeMode;
   size?: "sm" | "xs";
+  hidden?: boolean;
   onRuntimeModeChange: (mode: RuntimeMode) => void;
 }) {
   const size = props.size ?? "sm";
+  const [open, setOpen] = useComposerMenuState(props.hidden);
   const runtimeModeOption = runtimeModeConfig[props.runtimeMode];
   const RuntimeModeIcon = runtimeModeOption.icon;
   return (
@@ -896,6 +899,8 @@ const ComposerFooterModeControls = memo(function ComposerFooterModeControls(prop
 
       <Tooltip>
         <Select
+          open={open}
+          onOpenChange={setOpen}
           value={props.runtimeMode}
           onValueChange={(value) => props.onRuntimeModeChange(value!)}
         >
@@ -2026,10 +2031,6 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     isComposerOwned: true,
   } satisfies Parameters<typeof renderProviderTraitsPicker>[0];
   const providerTraitsPicker = renderProviderTraitsPicker(providerTraitsPickerInput);
-  const restingProviderTraitsPicker = renderProviderTraitsPicker({
-    ...providerTraitsPickerInput,
-    size: "xs",
-  });
   const {
     controlsRef: restingComposerControlsRef,
     hiddenBlockCount: restingControlsHiddenBlockCount,
@@ -3491,6 +3492,10 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
   // to see or change the model without expanding the composer.
   const composerControlsInStrip = isComposerResting || isComposerCollapsedMobile;
   const composerControlsVisibleInStrip = composerControlsInStrip && restingControlsVisible;
+  const composerControlsHidden = composerControlsInStrip && !restingControlsVisible;
+  if (composerControlsHidden && isComposerModelPickerOpen) {
+    setIsComposerModelPickerOpen(false);
+  }
   useLayoutEffect(() => {
     onRestingControlsVisibilityChange(composerControlsVisibleInStrip);
   }, [composerControlsVisibleInStrip, onRestingControlsVisibilityChange]);
@@ -3661,6 +3666,11 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
 
   const restingHiddenBlockCount = composerControlsInStrip ? restingControlsHiddenBlockCount : 0;
   const composerControlsCompact = !composerControlsInStrip && isComposerFooterCompact;
+  const restingProviderTraitsPicker = renderProviderTraitsPicker({
+    ...providerTraitsPickerInput,
+    size: "xs",
+    hidden: composerControlsHidden || restingHiddenBlockCount > 1,
+  });
   const restingBlockDefs = [
     ...(providerTraitsPicker
       ? [
@@ -3681,6 +3691,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
         <ComposerFooterModeControls
           runtimeMode={runtimeMode}
           size={composerControlsInStrip ? "xs" : "sm"}
+          hidden={composerControlsHidden || restingHiddenBlockCount > 0}
           onRuntimeModeChange={handleRuntimeModeChange}
         />
       ),
@@ -3795,7 +3806,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
               <CompactComposerControlsMenu
                 runtimeMode={runtimeMode}
                 size="xs"
-                hidden={hiddenRestingBlockIds.length === 0}
+                hidden={composerControlsHidden || hiddenRestingBlockIds.length === 0}
                 traitsMenuContent={
                   hiddenRestingBlockIds.includes("traits") ? providerTraitsMenuContent : undefined
                 }
@@ -4341,6 +4352,18 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
   // ------------------------------------------------------------------
   // Imperative handle
   // ------------------------------------------------------------------
+  const openModelPicker = useCallback(() => {
+    if (composerControlsHidden) {
+      if (composerBlurFrameRef.current !== null) {
+        window.cancelAnimationFrame(composerBlurFrameRef.current);
+        composerBlurFrameRef.current = null;
+      }
+      setIsComposerScrollCollapsed(false);
+      setIsComposerFocused(true);
+    }
+    setIsComposerModelPickerOpen(true);
+  }, [composerControlsHidden]);
+
   useImperativeHandle(
     composerRef,
     () => ({
@@ -4364,11 +4387,13 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
           "cursor",
           { ensureLeadingBoundary: true, citationCommentAnchor: sourceAnchor },
         ),
-      openModelPicker: () => {
-        setIsComposerModelPickerOpen(true);
-      },
+      openModelPicker,
       toggleModelPicker: () => {
-        setIsComposerModelPickerOpen((open) => !open);
+        if (isComposerModelPickerOpen) {
+          setIsComposerModelPickerOpen(false);
+        } else {
+          openModelPicker();
+        }
       },
       compactContext: compactThreadContext,
       isModelPickerOpen: () => isComposerModelPickerOpen,
@@ -4484,6 +4509,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
       projectSelectionRequired,
       applyPromptReplacement,
       isComposerModelPickerOpen,
+      openModelPicker,
       readComposerSnapshot,
       selectedModel,
       selectedModelOptionsForDispatch,
