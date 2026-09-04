@@ -97,7 +97,7 @@ describe("clientPersistenceStorage", () => {
       await import("./clientPersistenceStorage");
 
     expect(readBrowserClientSettings()).toBeNull();
-    testWindow.localStorage.setItem("t3code:client-settings:v1", JSON.stringify({}));
+    testWindow.localStorage.setItem("ras-code:client-settings:v1", JSON.stringify({}));
     expect(readBrowserClientSettings()?.diffLayout).toBe("stacked");
 
     writeBrowserClientSettings({ ...DEFAULT_CLIENT_SETTINGS, diffLayout: "split" });
