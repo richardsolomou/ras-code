@@ -80,6 +80,13 @@ describe("rebrandText", () => {
     );
   });
 
+  it("rewrites the product name after an escaped newline", () => {
+    assert.strictEqual(
+      rebrandText('"\\n\\nT3 Code will stay reachable."'),
+      '"\\n\\nRAS Code will stay reachable."',
+    );
+  });
+
   it("rewrites the remote access product name", () => {
     assert.strictEqual(rebrandText("Connect through T3 Connect."), "Connect through RAS Connect.");
   });

@@ -123,7 +123,9 @@ const textRules: ReadonlyArray<RebrandRule> = [
     description: "remote access product name in prose and search terms",
   },
   {
-    pattern: /\bT3 Code\b/g,
+    // No leading boundary: an escaped newline in a source string literal ends in
+    // `n`, so `\nT3 Code` has no word boundary before the name.
+    pattern: /T3 Code\b/g,
     replacement: "RAS Code",
     description: "product name",
   },

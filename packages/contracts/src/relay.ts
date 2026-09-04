@@ -462,6 +462,20 @@ export class RelayEnvironmentLinkUnavailableError extends Schema.TaggedErrorClas
   }
 }
 
+export class RelayEnvironmentLinkLimitExceededError extends Schema.TaggedErrorClass<RelayEnvironmentLinkLimitExceededError>()(
+  "RelayEnvironmentLinkLimitExceededError",
+  {
+    code: Schema.Literal("environment_link_limit_exceeded"),
+    maxTunnels: Schema.Number,
+    traceId: TrimmedNonEmptyString,
+  },
+  { httpApiStatus: 403 },
+) {
+  override get message(): string {
+    return `Relay managed tunnel limit reached: this account allows at most ${this.maxTunnels} tunnels`;
+  }
+}
+
 export class RelayAgentActivityPublishProofExpiredError extends Schema.TaggedErrorClass<RelayAgentActivityPublishProofExpiredError>()(
   "RelayAgentActivityPublishProofExpiredError",
   {
@@ -512,6 +526,7 @@ export const RelayProtectedError = Schema.Union([
   RelayEnvironmentEndpointTimedOutError,
   RelayEnvironmentLinkFailedError,
   RelayEnvironmentLinkUnavailableError,
+  RelayEnvironmentLinkLimitExceededError,
   RelayAgentActivityPublishProofExpiredError,
   RelayAgentActivityPublishProofInvalidError,
   RelayInternalError,
