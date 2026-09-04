@@ -206,6 +206,7 @@ interface TimelineRowSharedState {
   resolvedTheme: "light" | "dark";
   workspaceRoot: string | undefined;
   skills: ReadonlyArray<Pick<ServerProviderSkill, "name" | "displayName">>;
+  providers: ReadonlyArray<ServerProvider>;
   activeThreadEnvironmentId: EnvironmentId;
   onRevertAssistantMessage: (messageId: MessageId) => void;
   onForkFromAssistantMessage: (messageId: MessageId) => void;
@@ -231,7 +232,6 @@ interface TimelineRowActivityState {
 
 const TimelineRowCtx = createContext<TimelineRowSharedState>(null!);
 const TimelineRowActivityCtx = createContext<TimelineRowActivityState>(null!);
-const TimelineProvidersCtx = createContext<ReadonlyArray<ServerProvider>>([]);
 
 interface WorkGroupViewState {
   scrollPositions: Map<string, WorkGroupScrollAnchor>;
@@ -661,6 +661,7 @@ export const MessagesTimeline = memo(function MessagesTimeline({
       resolvedTheme,
       workspaceRoot,
       skills,
+      providers,
       activeThreadEnvironmentId,
       onRevertAssistantMessage,
       onForkFromAssistantMessage,
@@ -686,6 +687,7 @@ export const MessagesTimeline = memo(function MessagesTimeline({
       resolvedTheme,
       workspaceRoot,
       skills,
+      providers,
       activeThreadEnvironmentId,
       onRevertAssistantMessage,
       onForkFromAssistantMessage,
@@ -736,83 +738,81 @@ export const MessagesTimeline = memo(function MessagesTimeline({
 
   return (
     <TimelineRowCtx value={sharedState}>
-      <TimelineProvidersCtx value={providers}>
-        <TimelineRowActivityCtx value={activityState}>
-          <div
-            ref={setTimelineViewportElement}
-            className="relative h-full min-h-0"
-            data-assistant-citation-viewport="true"
-          >
-            {onCiteAssistantText && citationThreadRef ? (
-              <AssistantSelectionToolbar
-                viewport={timelineViewportElement}
-                threadRef={citationThreadRef}
-                onCite={onCiteAssistantText}
-              />
-            ) : null}
-            <LegendList<MessagesTimelineRow>
-              ref={listRef}
-              data={rows}
-              keyExtractor={keyExtractor}
-              getItemType={getItemType}
-              renderItem={renderItem}
-              estimatedItemSize={90}
-              initialScrollAtEnd={citationRequest === null}
-              // Legend needs a data refresh to mount new pins without a scroll event.
-              {...(readyCitationRequest ? { dataVersion: readyCitationRequest.key } : {})}
-              {...(citationAlwaysRender ? { alwaysRender: citationAlwaysRender } : {})}
-              onLoad={onCitationListLoad}
-              {...(anchoredEndSpace ? { anchoredEndSpace } : {})}
-              contentInsetEndAdjustment={anchoredEndSpace ? contentInsetEndAdjustment : 0}
-              maintainScrollAtEnd={
-                citationPositioning ||
-                anchoredEndSpace ||
-                !liveFollowEnabled ||
-                disclosureToggleSettling
-                  ? false
-                  : TIMELINE_MAINTAIN_SCROLL_AT_END
-              }
-              maintainVisibleContentPosition={
-                citationPositioning ? false : maintainVisibleContentPosition
-              }
-              maintainScrollAtEndThreshold={1}
-              onScroll={handleScroll}
-              className={cn(
-                "scrollbar-gutter-both h-full min-h-0 overflow-x-hidden overscroll-y-contain px-3 [overflow-anchor:none] sm:px-5",
-                topFadeEnabled && "topbar-scroll-fade",
-              )}
-              ListHeaderComponent={
-                loadEarlier !== null ? (
-                  <TimelineLoadEarlierHeader
-                    loading={loadEarlier.loading}
-                    onLoadEarlier={loadEarlier.onLoadEarlier}
-                    fade={topFadeEnabled}
-                  />
-                ) : topFadeEnabled ? (
-                  TIMELINE_LIST_FADE_HEADER
-                ) : (
-                  TIMELINE_LIST_HEADER
-                )
-              }
-              ListFooterComponent={timelineListFooter}
+      <TimelineRowActivityCtx value={activityState}>
+        <div
+          ref={setTimelineViewportElement}
+          className="relative h-full min-h-0"
+          data-assistant-citation-viewport="true"
+        >
+          {onCiteAssistantText && citationThreadRef ? (
+            <AssistantSelectionToolbar
+              viewport={timelineViewportElement}
+              threadRef={citationThreadRef}
+              onCite={onCiteAssistantText}
             />
-            <TimelineMinimap
-              items={minimapItems}
-              hasPersistentGutter={minimapHasPersistentGutter}
-              hitStripWidth={minimapHitStripWidth}
-              stripMap={minimapStripMap}
-              onSelect={(item) => {
-                onManualNavigation();
-                void listRef.current?.scrollToIndex({
-                  index: item.rowIndex,
-                  animated: true,
-                  viewOffset: 24,
-                });
-              }}
-            />
-          </div>
-        </TimelineRowActivityCtx>
-      </TimelineProvidersCtx>
+          ) : null}
+          <LegendList<MessagesTimelineRow>
+            ref={listRef}
+            data={rows}
+            keyExtractor={keyExtractor}
+            getItemType={getItemType}
+            renderItem={renderItem}
+            estimatedItemSize={90}
+            initialScrollAtEnd={citationRequest === null}
+            // Legend needs a data refresh to mount new pins without a scroll event.
+            {...(readyCitationRequest ? { dataVersion: readyCitationRequest.key } : {})}
+            {...(citationAlwaysRender ? { alwaysRender: citationAlwaysRender } : {})}
+            onLoad={onCitationListLoad}
+            {...(anchoredEndSpace ? { anchoredEndSpace } : {})}
+            contentInsetEndAdjustment={anchoredEndSpace ? contentInsetEndAdjustment : 0}
+            maintainScrollAtEnd={
+              citationPositioning ||
+              anchoredEndSpace ||
+              !liveFollowEnabled ||
+              disclosureToggleSettling
+                ? false
+                : TIMELINE_MAINTAIN_SCROLL_AT_END
+            }
+            maintainVisibleContentPosition={
+              citationPositioning ? false : maintainVisibleContentPosition
+            }
+            maintainScrollAtEndThreshold={1}
+            onScroll={handleScroll}
+            className={cn(
+              "scrollbar-gutter-both h-full min-h-0 overflow-x-hidden overscroll-y-contain px-3 [overflow-anchor:none] sm:px-5",
+              topFadeEnabled && "topbar-scroll-fade",
+            )}
+            ListHeaderComponent={
+              loadEarlier !== null ? (
+                <TimelineLoadEarlierHeader
+                  loading={loadEarlier.loading}
+                  onLoadEarlier={loadEarlier.onLoadEarlier}
+                  fade={topFadeEnabled}
+                />
+              ) : topFadeEnabled ? (
+                TIMELINE_LIST_FADE_HEADER
+              ) : (
+                TIMELINE_LIST_HEADER
+              )
+            }
+            ListFooterComponent={timelineListFooter}
+          />
+          <TimelineMinimap
+            items={minimapItems}
+            hasPersistentGutter={minimapHasPersistentGutter}
+            hitStripWidth={minimapHitStripWidth}
+            stripMap={minimapStripMap}
+            onSelect={(item) => {
+              onManualNavigation();
+              void listRef.current?.scrollToIndex({
+                index: item.rowIndex,
+                animated: true,
+                viewOffset: 24,
+              });
+            }}
+          />
+        </div>
+      </TimelineRowActivityCtx>
     </TimelineRowCtx>
   );
 });
@@ -2986,7 +2986,7 @@ const FallbackNoticeRow = memo(function FallbackNoticeRow(props: {
   notice: FallbackNoticePayload;
 }) {
   const timestampFormat = useClientSettings((settings) => settings.timestampFormat);
-  const providers = use(TimelineProvidersCtx);
+  const { providers } = use(TimelineRowCtx);
   const instanceName = (instanceId: string) => {
     const provider = providers.find((entry) => String(entry.instanceId) === instanceId);
     return (

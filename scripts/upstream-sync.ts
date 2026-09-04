@@ -13,6 +13,9 @@
  */
 
 import * as NodeChildProcess from "node:child_process";
+import * as NodeFS from "node:fs";
+import * as NodeOS from "node:os";
+import * as NodePath from "node:path";
 
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
@@ -26,6 +29,8 @@ import { Command, Flag } from "effect/unstable/cli";
 import {
   collectUnmappedBrandTokensFromDiff,
   mapUpstreamPath,
+  rebrandPatch,
+  rebrandText,
   type UnmappedBrandToken,
 } from "./lib/upstreamRebrandMap.ts";
 import {
@@ -67,17 +72,18 @@ export interface GitResult {
 }
 
 export interface GitRunner {
-  readonly run: (args: ReadonlyArray<string>) => GitResult;
+  readonly run: (args: ReadonlyArray<string>, input?: string) => GitResult;
   readonly repoRoot: string;
 }
 
 export function createGitRunner(repoRoot: string): GitRunner {
   return {
     repoRoot,
-    run: (args) => {
+    run: (args, input) => {
       const result = NodeChildProcess.spawnSync("git", args, {
         cwd: repoRoot,
         encoding: "utf8",
+        ...(input === undefined ? {} : { input }),
         maxBuffer: 256 * 1024 * 1024,
       });
       return {
@@ -92,6 +98,16 @@ export function createGitRunner(repoRoot: string): GitRunner {
 const gitOrFail = (git: GitRunner, args: ReadonlyArray<string>) =>
   Effect.suspend(() => {
     const result = git.run(args);
+    return result.status === 0
+      ? Effect.succeed(result.stdout)
+      : Effect.fail(
+          new UpstreamSyncGitError({ args, status: result.status, stderr: result.stderr }),
+        );
+  });
+
+const gitWithInputOrFail = (git: GitRunner, args: ReadonlyArray<string>, input: string) =>
+  Effect.suspend(() => {
+    const result = git.run(args, input);
     return result.status === 0
       ? Effect.succeed(result.stdout)
       : Effect.fail(
@@ -698,6 +714,379 @@ const gateCommand = Command.make(
   ),
 );
 
+export interface CommitAlignmentIssue {
+  readonly path: string;
+  readonly reason: string;
+}
+
+export interface CommitAlignment {
+  readonly aligned: boolean;
+  readonly paths: ReadonlyArray<string>;
+  readonly issues: ReadonlyArray<CommitAlignmentIssue>;
+}
+
+const parseChangedPaths = (output: string) =>
+  output
+    .split("\n")
+    .filter((line) => line.length > 0)
+    .map((line) => {
+      const [status = "", upstreamPath = ""] = line.split("\t");
+      return { status, upstreamPath, path: mapUpstreamPath(upstreamPath) };
+    });
+
+interface NormalizedMergeOutput {
+  readonly path: string;
+  readonly contents: string | null;
+}
+
+interface NormalizedMergePlan extends CommitAlignment {
+  readonly outputs: ReadonlyArray<NormalizedMergeOutput>;
+}
+
+const formatNormalizedFile = (git: GitRunner, path: string, contents: string) => {
+  const formatter = NodePath.join(git.repoRoot, "node_modules", ".bin", "vp");
+  if (!NodeFS.existsSync(formatter)) return contents;
+  const formatted = NodeChildProcess.spawnSync(
+    formatter,
+    ["fmt", `--stdin-filepath=${path}`, "--no-error-on-unmatched-pattern"],
+    {
+      cwd: git.repoRoot,
+      encoding: "utf8",
+      input: contents,
+      maxBuffer: 256 * 1024 * 1024,
+    },
+  );
+  return formatted.status === 0 ? (formatted.stdout ?? contents) : contents;
+};
+
+const formatChangedPaths = Effect.fn("formatChangedPaths")(function* (
+  git: GitRunner,
+  paths: ReadonlyArray<string>,
+) {
+  const formatter = NodePath.join(git.repoRoot, "node_modules", ".bin", "vp");
+  if (!NodeFS.existsSync(formatter)) return;
+  const formatted = NodeChildProcess.spawnSync(
+    formatter,
+    ["fmt", ...new Set(paths), "--no-error-on-unmatched-pattern"],
+    {
+      cwd: git.repoRoot,
+      encoding: "utf8",
+      maxBuffer: 256 * 1024 * 1024,
+    },
+  );
+  if (formatted.status !== 0) {
+    return yield* new UpstreamSyncGitError({
+      args: ["vp", "fmt"],
+      status: formatted.status ?? 1,
+      stderr: formatted.stderr ?? "",
+    });
+  }
+});
+
+const mergeNormalizedFile = (
+  current: string,
+  base: string,
+  incoming: string,
+): { readonly status: number; readonly contents: string } => {
+  const temp = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "ras-upstream-merge-"));
+  try {
+    const currentPath = NodePath.join(temp, "current");
+    const basePath = NodePath.join(temp, "base");
+    const incomingPath = NodePath.join(temp, "incoming");
+    NodeFS.writeFileSync(currentPath, current);
+    NodeFS.writeFileSync(basePath, base);
+    NodeFS.writeFileSync(incomingPath, incoming);
+    const merged = NodeChildProcess.spawnSync(
+      "git",
+      ["merge-file", "-p", currentPath, basePath, incomingPath],
+      { encoding: "utf8", maxBuffer: 256 * 1024 * 1024 },
+    );
+    return { status: merged.status ?? 1, contents: merged.stdout ?? "" };
+  } finally {
+    NodeFS.rmSync(temp, { recursive: true, force: true });
+  }
+};
+
+const buildNormalizedMergePlan = (git: GitRunner, sha: string): NormalizedMergePlan => {
+  const changed = git.run(["diff", "--no-renames", "--name-status", `${sha}^`, sha]);
+  if (changed.status !== 0) {
+    return {
+      aligned: false,
+      paths: [],
+      outputs: [],
+      issues: [{ path: sha, reason: changed.stderr.trim() || "could not read changed paths" }],
+    };
+  }
+
+  const binary = new Set(
+    git
+      .run(["diff", "--no-renames", "--numstat", `${sha}^`, sha])
+      .stdout.split("\n")
+      .filter((line) => line.startsWith("-\t-\t"))
+      .map((line) => line.split("\t")[2] ?? ""),
+  );
+  const files = parseChangedPaths(changed.stdout);
+  const issues: Array<CommitAlignmentIssue> = [];
+  const outputs: Array<NormalizedMergeOutput> = [];
+
+  for (const file of files) {
+    if (file.upstreamPath.length === 0 || !["A", "M", "D"].includes(file.status)) {
+      issues.push({
+        path: file.path,
+        reason: `unsupported git status ${file.status || "unknown"}`,
+      });
+      continue;
+    }
+    const policy = classifyPathPolicy(file.path);
+    if (policy.kind !== "normal" && policy.kind !== "wire") {
+      issues.push({ path: file.path, reason: policy.reason ?? `${policy.kind} path` });
+      continue;
+    }
+    if (binary.has(file.upstreamPath)) {
+      issues.push({ path: file.path, reason: "binary file" });
+      continue;
+    }
+
+    const local = git.run(["show", `HEAD:${file.path}`]);
+    if (file.status === "A") {
+      if (local.status === 0) {
+        issues.push({ path: file.path, reason: "upstream adds a path that already exists here" });
+        continue;
+      }
+      const incoming = git.run(["show", `${sha}:${file.upstreamPath}`]);
+      if (incoming.status !== 0) {
+        issues.push({ path: file.path, reason: "could not read the upstream addition" });
+        continue;
+      }
+      outputs.push({
+        path: file.path,
+        contents: formatNormalizedFile(git, file.path, rebrandText(incoming.stdout)),
+      });
+      continue;
+    }
+    if (local.status !== 0) {
+      issues.push({ path: file.path, reason: "mapped path does not exist here" });
+      continue;
+    }
+    const parent = git.run(["show", `${sha}^:${file.upstreamPath}`]);
+    if (parent.status !== 0) {
+      issues.push({ path: file.path, reason: "could not read the upstream parent" });
+      continue;
+    }
+    const incoming =
+      file.status === "D"
+        ? { status: 0, stdout: "" }
+        : git.run(["show", `${sha}:${file.upstreamPath}`]);
+    if (incoming.status !== 0) {
+      issues.push({ path: file.path, reason: "could not read the upstream result" });
+      continue;
+    }
+
+    const merged = mergeNormalizedFile(
+      local.stdout,
+      formatNormalizedFile(git, file.path, rebrandText(parent.stdout)),
+      formatNormalizedFile(git, file.path, rebrandText(incoming.stdout)),
+    );
+    if (merged.status !== 0) {
+      issues.push({ path: file.path, reason: "normalized three-way merge conflicts" });
+      continue;
+    }
+    outputs.push({
+      path: file.path,
+      contents: file.status === "D" && merged.contents.length === 0 ? null : merged.contents,
+    });
+  }
+
+  return {
+    aligned: issues.length === 0,
+    paths: files.map((file) => file.path),
+    outputs,
+    issues,
+  };
+};
+
+/**
+ * A commit is mechanically adoptable when its normalized three-way merge does not overlap a fork
+ * edit. This is the same boundary a human would use, without spending a review on unrelated lines.
+ */
+export function inspectCommitAlignment(git: GitRunner, sha: string): CommitAlignment {
+  const { outputs: _outputs, ...alignment } = buildNormalizedMergePlan(git, sha);
+  return alignment;
+}
+
+/** Applies one upstream commit after rewriting its paths and product vocabulary. */
+export const applyRebrandedCommit = Effect.fn("applyRebrandedCommit")(function* (
+  git: GitRunner,
+  sha: string,
+  paths: ReadonlyArray<string>,
+) {
+  const patch = yield* gitOrFail(git, [
+    "diff",
+    "--no-renames",
+    "--binary",
+    "--full-index",
+    `${sha}^`,
+    sha,
+  ]);
+  const rebrandedPatch = rebrandPatch(patch);
+  const appliesDirectly = git.run(["apply", "--check", "--whitespace=nowarn", "-"], rebrandedPatch);
+  if (appliesDirectly.status === 0) {
+    yield* gitWithInputOrFail(git, ["apply", "--whitespace=nowarn", "-"], rebrandedPatch);
+  } else {
+    const plan = buildNormalizedMergePlan(git, sha);
+    if (!plan.aligned) {
+      return yield* new UpstreamSyncGitError({
+        args: ["normalized-merge", sha],
+        status: 1,
+        stderr: plan.issues.map((issue) => `${issue.path}: ${issue.reason}`).join("\n"),
+      });
+    }
+    for (const output of plan.outputs) {
+      const absolutePath = NodePath.join(git.repoRoot, output.path);
+      if (output.contents === null) {
+        NodeFS.rmSync(absolutePath);
+      } else {
+        NodeFS.mkdirSync(NodePath.dirname(absolutePath), { recursive: true });
+        NodeFS.writeFileSync(absolutePath, output.contents);
+      }
+    }
+  }
+  yield* formatChangedPaths(git, paths);
+  yield* gitOrFail(git, ["add", "--all", "--", ...new Set(paths)]);
+
+  const originalMessage = yield* gitOrFail(git, ["show", "-s", "--format=%B", sha]);
+  const [authorName = "", authorEmail = "", authorDate = ""] = (yield* gitOrFail(git, [
+    "show",
+    "-s",
+    "--format=%an%x00%ae%x00%aI",
+    sha,
+  ]))
+    .trim()
+    .split("\0");
+  const message = `${originalMessage.trimEnd()}\n\n(cherry picked from commit ${sha})\n`;
+  yield* gitWithInputOrFail(
+    git,
+    ["commit", `--author=${authorName} <${authorEmail}>`, `--date=${authorDate}`, "-F", "-"],
+    message,
+  );
+  return (yield* gitOrFail(git, ["rev-parse", "HEAD"])).trim();
+});
+
+const ensureCleanWorktree = (git: GitRunner) => {
+  const status = git.run(["status", "--porcelain"]);
+  if (status.status !== 0 || status.stdout.length > 0) {
+    return Effect.fail(
+      new UpstreamSyncGitError({
+        args: ["status", "--porcelain"],
+        status: status.status === 0 ? 1 : status.status,
+        stderr: status.stdout || status.stderr,
+      }),
+    );
+  }
+  return Effect.void;
+};
+
+export const runAdoptAligned = Effect.fn("runAdoptAligned")(function* (options: {
+  readonly repoRoot: string;
+  readonly ledgerPath: string;
+  readonly fetch: boolean;
+  readonly dryRun: boolean;
+}) {
+  const fs = yield* FileSystem.FileSystem;
+  const git = createGitRunner(options.repoRoot);
+  yield* ensureCleanWorktree(git);
+  let ledger = yield* readLedger(options.ledgerPath);
+
+  if (options.fetch) {
+    yield* gitOrFail(git, ["fetch", ledger.upstreamRemote, ledger.upstreamBranch]);
+  }
+
+  const pending = yield* listUpstreamCommits(git, upstreamRange(ledger));
+  if (pending.length === 0) {
+    yield* Console.log("No pending upstream commits.");
+    return;
+  }
+
+  const adopted: Array<{ upstream: UpstreamCommit; ours: string }> = [];
+  for (const commit of pending) {
+    const alignment = inspectCommitAlignment(git, commit.sha);
+    if (!alignment.aligned) {
+      yield* Console.log(
+        [
+          `${commit.sha.slice(0, 9)} needs review: ${commit.subject}`,
+          ...alignment.issues.slice(0, 8).map((issue) => `- ${issue.path}: ${issue.reason}`),
+          alignment.issues.length > 8 ? `- and ${alignment.issues.length - 8} more` : "",
+        ]
+          .filter((line) => line.length > 0)
+          .join("\n"),
+      );
+      break;
+    }
+    if (options.dryRun) {
+      yield* Console.log(`${commit.sha.slice(0, 9)} can be adopted without review.`);
+      return;
+    }
+
+    yield* Console.log(`Adopting aligned commit ${commit.sha.slice(0, 9)}: ${commit.subject}`);
+    const ours = yield* applyRebrandedCommit(git, commit.sha, alignment.paths);
+    yield* runVerify({ repoRoot: options.repoRoot, ledgerPath: options.ledgerPath });
+    adopted.push({ upstream: commit, ours });
+  }
+
+  if (adopted.length === 0) return;
+  const pendingShas = pending.map((commit) => commit.sha);
+  for (const { upstream, ours } of adopted) {
+    const change = groupCommitsByPullRequest([upstream])[0]!;
+    ledger = recordDecision(
+      ledger,
+      {
+        upstream: upstream.sha,
+        pr: change.pr,
+        title: change.title,
+        decision: "adopted",
+        ours,
+        reason: "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+        reviewedAt: new Date().toISOString(),
+      },
+      pendingShas,
+    );
+  }
+  yield* fs.writeFileString(options.ledgerPath, encodeUpstreamSyncLedger(ledger));
+  yield* gitOrFail(git, ["add", "--", options.ledgerPath]);
+  yield* gitOrFail(git, [
+    "commit",
+    "-m",
+    `chore(upstream): record aligned changes through ${ledger.lastReviewed.slice(0, 9)}`,
+  ]);
+  yield* Console.log(
+    `Adopted ${adopted.length} aligned commit${adopted.length === 1 ? "" : "s"}; stopped before the first fork divergence.`,
+  );
+});
+
+const adoptAlignedCommand = Command.make(
+  "adopt-aligned",
+  {
+    ledger: ledgerFlag,
+    repo: repoFlag,
+    noFetch: noFetchFlag,
+    dryRun: Flag.boolean("dry-run").pipe(
+      Flag.withDescription("Check the next commit without changing the repository."),
+      Flag.withDefault(false),
+    ),
+  },
+  ({ ledger, repo, noFetch, dryRun }) =>
+    runAdoptAligned({
+      repoRoot: repo,
+      ledgerPath: ledger,
+      fetch: !noFetch,
+      dryRun,
+    }),
+).pipe(
+  Command.withDescription(
+    "Adopt the leading run of upstream commits whose normalized three-way merges do not overlap fork edits.",
+  ),
+);
+
 /**
  * Applies a run of already-judged changes, rebranding each and checking only what is cheap.
  *
@@ -717,12 +1106,14 @@ export const runBatch = Effect.fn("runBatch")(function* (options: {
 
   for (const sha of options.shas) {
     yield* Console.log(`\n--- ${sha.slice(0, 9)} ---`);
-    const picked = git.run(["cherry-pick", "-x", sha]);
-    if (picked.status !== 0) {
-      git.run(["cherry-pick", "--abort"]);
+    const paths = listCommitFiles(git, sha).pipe(
+      Effect.map((files) => files.map((file) => file.path)),
+    );
+    const picked = yield* applyRebrandedCommit(git, sha, yield* paths).pipe(Effect.result);
+    if (picked._tag === "Failure") {
       yield* Console.log(
         [
-          `${sha.slice(0, 9)} does not apply cleanly, so the batch stops here.`,
+          `${sha.slice(0, 9)} does not apply after mechanical rebranding, so the batch stops here.`,
           "Pick it by hand, decide it, then start another batch after it.",
           applied.length === 0 ? "" : `Applied before it: ${applied.length}.`,
         ]
@@ -787,6 +1178,7 @@ const upstreamSyncCommand = Command.make("upstream-sync", {}, () =>
     validateCommand,
     verifyCommand,
     gateCommand,
+    adoptAlignedCommand,
     batchCommand,
   ]),
 );
