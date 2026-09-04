@@ -10,6 +10,7 @@
 - [Forking threads](./user/forking-threads.md)
 - [Notifications](./user/notifications.md)
 - [Review usage](./user/usage.md)
+- [Anonymous usage data](./user/telemetry.md)
 - [Project settings](./user/project-settings.md)
 - [Mobile appearance](./user/mobile-appearance.md)
 - [Remote access](./user/remote-access.md)

@@ -1,3 +1,4 @@
+import * as NodeHttpServer from "@effect/platform-node/NodeHttpServer";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, it } from "@effect/vitest";
 import { EventId, ProviderDriverKind, ThreadId, TurnId } from "@t3tools/contracts";
@@ -6,6 +7,9 @@ import * as NodeUtil from "node:util";
 import * as ConfigProvider from "effect/ConfigProvider";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
+import * as HttpServer from "effect/unstable/http/HttpServer";
+import * as HttpServerRequest from "effect/unstable/http/HttpServerRequest";
+import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse";
 
 import * as ServerConfig from "../config.ts";
 import * as AnalyticsService from "./AnalyticsService.ts";
@@ -404,6 +408,49 @@ it.layer(NodeServices.layer)("AnalyticsService test", (it) => {
       });
       assert.notInclude(NodeUtil.inspect(aiCaptures[0]), "private prompt");
       assert.notInclude(NodeUtil.inspect(aiCaptures[0]), "phx_secret");
+    }),
+  );
+
+  it.effect("does not send batch requests when telemetry is disabled", () =>
+    Effect.gen(function* () {
+      const capturedPaths: Array<string> = [];
+      const serverConfigLayer = ServerConfig.ServerConfig.layerTest(process.cwd(), {
+        prefix: "ras-code-telemetry-disabled-",
+      });
+      const telemetryLayer = AnalyticsService.layer.pipe(Layer.provideMerge(serverConfigLayer));
+      const configLayer = ConfigProvider.layer(
+        ConfigProvider.fromUnknown({
+          RAS_CODE_TELEMETRY_ENABLED: false,
+          RAS_CODE_POSTHOG_KEY: "phc_test_key",
+          RAS_CODE_POSTHOG_HOST: "http://localhost",
+        }),
+      );
+      const batchServerLayer = HttpServer.serve(
+        Effect.gen(function* () {
+          const request = yield* HttpServerRequest.HttpServerRequest;
+          capturedPaths.push(request.url);
+          return HttpServerResponse.jsonUnsafe({});
+        }),
+      );
+      const runtimeLayer = telemetryLayer.pipe(
+        Layer.provide(configLayer),
+        Layer.provide(
+          Layer.mergeAll(
+            Layer.succeed(HostProcessPlatform, "linux"),
+            Layer.succeed(HostProcessArchitecture, "arm64"),
+          ),
+        ),
+        Layer.provideMerge(NodeHttpServer.layerTest),
+      );
+
+      yield* Effect.gen(function* () {
+        yield* Layer.launch(batchServerLayer).pipe(Effect.forkScoped);
+        const analytics = yield* AnalyticsService.AnalyticsService;
+        yield* analytics.record("test.disabled", { index: 1 });
+        yield* analytics.flush;
+      }).pipe(Effect.provide(runtimeLayer));
+
+      assert.deepEqual(capturedPaths, []);
     }),
   );
 });
