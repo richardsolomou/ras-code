@@ -2313,9 +2313,9 @@
       "pr": 9300,
       "title": "chore: audit lint directives and move plugin allowlists into config",
       "decision": "adapted",
-      "ours": "89dea6a80a69327750f7448eecadbe12ebe46f85",
+      "ours": "e9b30270fdc87692cf45297b415f3389331f2630",
       "intent": "Audit lint directives and centralize plugin allowlists.",
-      "reason": "Applied the policy with exact allowlists for the fork lint debt.",
+      "reason": "Applied the policy with exact allowlists for fork lint debt and corrected an event callback rejected by the new hook rule.",
       "reviewedAt": "2026-09-04T15:23:06.616Z"
     },
     {
