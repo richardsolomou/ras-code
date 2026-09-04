@@ -2326,9 +2326,13 @@ describe("quiet timeline: nested agents", () => {
     },
   );
 
-  it.each(["cancelled", "failed", "interrupted"] as const)(
-    "replaces Antigravity progress with %s without a timeline bypass flag",
+  it.each(["cancelled", "failed", "interrupted", "idle"] as const)(
+    "replaces Antigravity batch progress with %s",
     (status) => {
+      const detail =
+        status === "idle"
+          ? "Turn ended. Individual agent status is unavailable."
+          : "Antigravity process stopped.";
       const thread = makeThread({
         id: ThreadId.make("antigravity-agents"),
         projectId: ProjectId.make("project-1"),
@@ -2338,14 +2342,14 @@ describe("quiet timeline: nested agents", () => {
             makeActivity({
               id: EventId.make(`progress-${index}`),
               kind: "task.progress",
-              summary: "Antigravity subagent",
+              summary: "Antigravity subagent batch",
               createdAt: `2026-04-01T00:00:0${index + 1}.000Z`,
               payload: {
                 taskId,
-                taskType: "subagent",
+                taskType: "subagent_batch",
                 agentKind: "agent",
-                title: "Antigravity subagent",
-                detail: "Antigravity subagent",
+                title: "Antigravity subagent batch",
+                detail: "Antigravity subagent batch",
                 status: "running",
               },
             }),
@@ -2357,11 +2361,11 @@ describe("quiet timeline: nested agents", () => {
             createdAt: "2026-04-01T00:00:03.000Z",
             payload: {
               taskId: "trajectory:4",
-              taskType: "subagent",
+              taskType: "subagent_batch",
               agentKind: "agent",
-              title: "Antigravity subagent",
+              title: "Antigravity subagent batch",
               status,
-              error: "Antigravity process stopped.",
+              ...(status === "idle" ? { detail, timelineBypass: true } : { error: detail }),
             },
           }),
         ],
@@ -2372,8 +2376,8 @@ describe("quiet timeline: nested agents", () => {
       expect(rows).toHaveLength(2);
       expect(rows[0]).toMatchObject({
         lifecycleStatus: status === "failed" ? "failed" : "stopped",
-        detail: "Antigravity process stopped.",
-        workEntry: { taskId: "trajectory:4", toolTitle: "Antigravity subagent" },
+        detail,
+        workEntry: { taskId: "trajectory:4", toolTitle: "Antigravity subagent batch" },
       });
       expect(rows[1]).toMatchObject({
         lifecycleStatus: "inProgress",
