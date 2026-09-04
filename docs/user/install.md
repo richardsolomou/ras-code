@@ -1,22 +1,24 @@
 # Install RAS Code
 
-RAS Code is a web and desktop GUI for running coding agents on your machine.
+RAS Code runs coding agents on your computer and lets you control them from its
+desktop, web, or mobile app. Set up the machine where the agents will work first.
 
 ## Requirements
 
-Node.js `^22.16 || ^23.11 || >=24.10` on the machine that runs the RAS Code server.
+Command-line use, SSH hosts, and WSL backends need Node.js 22.16+ (22.x), 23.11+
+(23.x), or 24.10 and later. The native desktop app includes its server runtime.
 
-At least one provider runtime, installed and authenticated. You can install Antigravity from
-RAS Code settings. See [Providers](#providers) below.
+You need an installed, authenticated provider before starting a thread. You can
+launch RAS Code and configure providers afterwards.
 
-## Run Without Installing
+## Run without installing
 
 ```bash
 npx ras-code@latest
 ```
 
-This starts the RAS Code server on your machine and opens the local web app. Use
-`npx ras-code@latest --help` for the full CLI reference.
+This starts the server and opens the local web app. Run
+`npx ras-code@latest --help` for command-line options.
 
 ### Linux
 
@@ -34,25 +36,50 @@ cd ~/.ras-code/runtime/versions/<version>/node_modules/node-pty && node-gyp rebu
 If the web or desktop app shows "RAS Code could not load", check your connection and select
 **Reload** to try again.
 
-## Open a project in the desktop app
+Download a release from [GitHub Releases](https://github.com/pingdotgg/t3code/releases),
+or use a package manager:
 
-When the RAS Code desktop app is running on the same machine, open the current directory with:
+| Platform           | Install                               |
+| ------------------ | ------------------------------------- |
+| Windows            | `winget install RasCodeTools.RasCode` |
+| macOS              | `brew install --cask ras-code`        |
+| Arch Linux         | `yay -S ras-code-bin`                 |
+| Arch Linux nightly | `yay -S ras-code-nightly-bin`         |
+
+### Windows Subsystem for Linux
+
+Choose a WSL distro in **Settings → Connections** to run agents and projects
+there. Install Node.js and provider CLIs inside that distro. RAS Code installs its
+matching server runtime there automatically; the first launch after an app
+update can take longer.
+
+### Open a project from a terminal
+
+With the desktop app already running on the same machine:
 
 ```bash
 npx ras-code app
 ```
 
-Pass a path to open another directory:
-
-```bash
-npx ras-code app ../my-project
-```
+This opens a new thread for the current directory, adding the project if needed.
+Pass a path, such as `npx ras-code app ../my-project`, to open another directory. It requires
+the desktop app, so a standalone server or an SSH session is not enough. If the
+command cannot reach the app, start or update the desktop app and try again.
 
 The command adds the directory as a project when needed, focuses the desktop app, and opens a new
 thread. It does not launch the desktop app, open a browser, or start a RAS Code server. A background
 server does not count as the desktop app. The command also rejects SSH sessions because a remote
 shell cannot focus a local desktop window. The CLI package and the running desktop app must both
 include `ras-code app` support.
+
+## Mobile app
+
+Install RAS Code from the
+[App Store](https://apps.apple.com/us/app/ras-code-remote-claude-more/id6787819824) or
+[Google Play](https://play.google.com/store/apps/details?id=com.richardsolomou.ras-code).
+
+The phone connects to a server on another machine; it does not run agents itself. Follow
+[remote access](./remote-access.md) to link it through RAS Connect or a pairing URL.
 
 ## Desktop App
 
@@ -74,7 +101,7 @@ Canary:
 yay -S ras-code-canary-bin
 ```
 
-### Windows Subsystem for Linux
+### Windows Subsystem for Linux runtime
 
 When the desktop app runs a WSL backend, it installs the matching server runtime into
 `~/.ras-code/wsl-runtime` inside the selected distro. The first launch after installing or updating RAS Code
@@ -86,8 +113,10 @@ application files under `/mnt/c` instead and reinstalls the runtime on the next 
 
 ## Providers
 
-RAS Code uses provider runtimes but does not bundle them. Install and authenticate each
-provider's CLI, or use RAS Code's managed setup for Antigravity.
+Open **Settings → Providers** in the web or desktop app, select the environment,
+and enable the provider you want. Installation, login, and configuration belong
+to that environment's machine, even when you connect from a phone or another
+computer.
 
 | Provider    | CLI                                                                                                        | Default binary      | Log in with                         |
 | ----------- | ---------------------------------------------------------------------------------------------------------- | ------------------- | ----------------------------------- |
@@ -98,46 +127,24 @@ provider's CLI, or use RAS Code's managed setup for Antigravity.
 | OpenCode    | [OpenCode](https://opencode.ai)                                                                            | `opencode`          | `opencode auth login`               |
 | Antigravity | [Official ACP agent](https://github.com/agentclientprotocol/registry/blob/main/antigravity-acp/agent.json) | Managed by RAS Code | **Sign in with Google** in RAS Code |
 
-Codex and Claude are on by default. Cursor, Grok Build, OpenCode, and Antigravity are off by
-default. Turn them on in **Settings** > **Providers** when you want to use them.
+Provider CLIs must be on the server's `PATH`. If RAS Code cannot find one, set its
+**Binary path** in provider settings, especially when using a version manager.
+Cursor's executable is `cursor-agent`, although its login command is
+`agent login`. Antigravity can use its managed runtime without a `PATH` entry.
 
-For Antigravity, select the environment in provider settings, then install and sign in there.
-The runtime and credentials stay on that environment, even when you use a phone or remote
-browser. See [Antigravity setup](./providers-antigravity.md) for Google sign-in, remote callback
-steps, and supported hosts.
+Add another provider instance for a separate account or configuration. Each
+instance can have its own environment variables, such as API keys or a custom
+base URL. Mark secret values as sensitive; after saving, RAS Code does not display
+their original values.
 
-Cursor is the one to watch: install Cursor CLI, which provides the `cursor-agent` binary that
-RAS Code looks for, but authenticate with `agent login`, not `cursor-agent login`.
+For provider-specific setup and accounts, see [Codex](./providers-codex.md),
+[Claude](./providers-claude.md), [OpenCode](./providers-opencode.md), and
+[Antigravity](./providers-antigravity.md).
 
-Grok models that support adjustable reasoning show a **Reasoning** control beside the model picker.
-The available levels and default come from the installed Grok Build CLI, so they can vary by model
-and CLI version.
+## Next steps
 
-Run CLI login commands on the machine running the RAS Code server, not on the device you browse
-from. Antigravity uses its sign-in controls in RAS Code instead of a CLI login command.
-
-### Binary Discovery
-
-Each provider CLI must be on the server's `PATH`, or have an explicit binary path set in
-**Settings** → the provider instance → **Binary path**. Use the explicit path when a version
-manager or a non-standard install location keeps the CLI off the `PATH` of the shell that
-started RAS Code.
-
-Antigravity can use its managed runtime without a `PATH` entry. Its optional **Binary path**
-overrides the managed runtime and must point to the official ACP executable.
-
-### When Auth Is Needed
-
-Provider auth is required before you start a session with that provider, not before you start
-RAS Code. You can install RAS Code, open it, and add providers afterwards. A provider that is not
-authenticated shows its status and setup instructions in **Settings**.
-
-For multi-account setups, see [Codex](./providers-codex.md), [Claude](./providers-claude.md), and
-[Antigravity](./providers-antigravity.md#accounts-and-removal).
-
-## Next Steps
-
-- [Permission modes](./permission-modes.md): how much RAS Code asks before acting
-- [Remote access](./remote-access.md): connect from a phone, tablet, or another desktop
-- [Keeping RAS Code in sync](./updating.md): client and server version skew
-- [Running in the background](./background-service.md): Linux background service
+- [Working with threads](./thread-sidebar.md): start tasks and organize parallel work.
+- [Permission modes](./permission-modes.md): choose when agents ask before acting.
+- [Remote access](./remote-access.md): connect from another device.
+- [Running in the background](./background-service.md): keep a Linux or macOS host available.
+- [Updating RAS Code](./updating.md): update the app and connected servers.

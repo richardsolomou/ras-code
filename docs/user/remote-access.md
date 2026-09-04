@@ -1,19 +1,19 @@
-# Remote Access
+# Remote access
 
-Use this when you want to connect to a RAS Code server from another device such as a phone, tablet, or separate desktop app.
+Connect a phone, browser, or another desktop app to RAS Code running on a different
+machine. That machine must stay running and reachable while you work.
 
-## RAS Connect troubleshooting
+## RAS Connect
 
-Run `ras connect` on the server machine to authorize it and optionally install the background service.
-The authorization message means your sign-in was saved. The server must then start and establish its
-relay link before the machine is reachable.
+RAS Connect makes an environment available to your other devices without setting
+up router forwarding. In the desktop app on the host, open **Settings →
+Connections**, sign in, and enable **RAS Connect** for that environment.
 
-`ras connect status` reports saved authorization and link configuration, not a live reachability
-check. If the machine appears offline, run `ras service status` on it and read the displayed log.
-On Linux, a service that works while SSH is open but stops after logout usually has lingering
-disabled. See [background service troubleshooting](./background-service.md#troubleshooting).
+For a command-line host, run:
 
-Relay errors include the returned reason and trace ID when available:
+```bash
+npx ras-code@latest connect
+```
 
 | Error                                                            | Next step                                                                                                                                                                   |
 | ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -23,29 +23,46 @@ Relay errors include the returned reason and trace ID when available:
 | HTTP 403 without a recognized error response                     | Check relay access and any proxy or firewall restrictions. Include the Cloudflare Ray ID if one was returned; an HTTP status alone does not identify the cause.             |
 | HTTP 408, 429, or 5xx                                            | The server retries temporary failures during startup for up to ten minutes. Check network and relay availability; include the trace ID when reporting a persistent failure. |
 
-Authorization and other permanent 4xx rejections stop the startup link attempt immediately.
-After correcting them, restart the server. For the Linux background service, use
-`systemctl --user restart ras-code.service`; for a foreground server, stop it and run `ras serve` again.
-Keep the diagnostic message and trace ID when reporting a problem. Do not post authorization codes,
-pairing URLs, or the contents of the secrets directory.
+On your other device, sign in to the same RAS Connect account and choose the
+environment. Over SSH, the CLI prints a browser link and accepts the returned
+authorization code, so you do not need to forward an OAuth callback port.
 
-## Quick Pairing for a Running Server
+## Pair over a LAN or private network
 
-If a server is already running on this machine, mint a fresh pairing token and QR code without restarting anything:
+Use direct pairing when the other device can reach the host's network address.
+
+On a desktop host, open **Settings → Connections**, enable **Network access**,
+then create a pairing link using an address the other device can reach. Changing
+network access restarts the desktop app. You can turn it off in the same place.
+
+For a command-line host, replace `<private-ip>` with the host's LAN or tailnet
+address:
+
+```bash
+npx ras-code serve --host <private-ip>
+```
+
+If a server is already running, generate a fresh link without restarting it:
 
 ```bash
 npx ras-code pair
 ```
 
-`ras pair` finds the running server (the shared `~/.ras-code` install, or the current worktree's dev server when run inside one), issues a one-time pairing token, and prints the pairing URL as a QR code you can scan from your phone.
+Scan the QR code on your phone or paste the pairing URL into **Add environment**
+in the receiving app. Connection settings are under **Settings → Connections**
+on web and desktop and **Settings → Environments** on mobile. A loopback address
+such as `127.0.0.1` reaches only the device opening the link.
 
-If the server is only bound to loopback, the printed URL is not reachable from another device. Pair over your tailnet instead:
+Pairing authorizes that device for future connections. Use a fresh one-time link
+for each new device; you do not need the original token to reconnect. Links
+created in Settings can only be copied from the client that created them while
+its Connections page stays open. If you leave or reload that page, create
+another link to share.
 
-```bash
-npx ras-code pair --tailscale
-```
+### Tailscale HTTPS
 
-This publishes the server over Tailscale Serve HTTPS (configuring the mapping if needed — it persists until you run `tailscale serve --https=443 off`) and pairs through the `https://machine.tailnet.ts.net/` URL. Use `--tailscale-serve-port` for a different HTTPS port, `--ttl` to change the token lifetime, and `--base-dir` to target a specific data directory.
+Join both devices to the same tailnet. In the desktop app, enable **Tailscale
+HTTPS** in **Settings → Connections**. Turn it off there to remove that route.
 
 If no server is running, `ras pair` says so and points you at `npx ras-code serve` or `npx ras-code connect`.
 
@@ -116,7 +133,7 @@ The Tailscale support is an endpoint provider add-on. The core remote model stil
 
 For `https://code.ras.sh/app`, prefer an HTTPS Tailnet or other HTTPS endpoint. A plain `http://100.x.y.z:3773` endpoint can still work from a desktop client or another browser page served over HTTP, but it will not work from the hosted HTTPS app because of browser mixed-content rules.
 
-### RAS Connect
+### Option 1: RAS Connect
 
 RAS Connect gives a linked environment a public HTTPS/WSS endpoint without opening an inbound port
 or depending on the machine's LAN address. Sign in under **Settings** → **Connections**, then link
@@ -172,15 +189,15 @@ For hosted web pairing over Tailscale HTTPS, opt in to Tailscale Serve:
 npx ras-code serve --tailscale-serve
 ```
 
-By default this configures Tailscale Serve on HTTPS port 443 and advertises
-`https://machine.tailnet.ts.net/`. Advanced users can choose a different HTTPS port:
+For an already-running server:
 
 ```bash
-npx ras-code serve --tailscale-serve --tailscale-serve-port 8443
+npx ras-code pair --tailscale
 ```
 
-Once paired, add projects normally: open the Command Palette and choose **Add Project**, then pick
-the environment the project lives on. Every saved environment is offered, not only the local one.
+The pairing link uses an address such as `https://machine.tailnet.ts.net/`.
+The mapping created by `pair --tailscale` persists across restarts. Remove its
+default-port mapping with:
 
 ### Option 3: Desktop-Managed SSH Launch
 
@@ -206,49 +223,83 @@ The remote host must have a compatible Node.js runtime. RAS Code uses the server
 ^22.16 || ^23.11 || >=24.10
 ```
 
-During SSH launch, RAS Code first checks whether `node` is on `PATH`. If it is missing, the launcher
-looks in the usual install directories and tries to activate a version manager if it finds one
-(Volta, asdf, mise, fnm, nodenv, nvm). That covers most setups, but a version manager that only
-initializes from an interactive shell profile will not be picked up.
+If that port is already in use, choose another with
+`--tailscale-serve-port`. See `npx ras-code pair --help` for other pairing options.
 
-If launch fails with `node: command not found`, a port-scan failure, or a message that the remote Node version does not satisfy the required range, SSH into the host and check the same non-interactive shell path RAS Code uses:
+### Hosted web app
+
+[app.t3.codes](https://app.t3.codes) needs an HTTPS endpoint. It connects directly
+to your server; a hosted pairing link does not make an unreachable backend
+reachable or convert HTTP to HTTPS.
+
+For a plain HTTP LAN endpoint, use the direct pairing URL in a browser that can
+open it, or pair from the desktop app. On mobile, an IP address entered without a
+scheme uses HTTP, so include `https://` when your server uses HTTPS.
+
+## Desktop-managed SSH
+
+In the desktop app, open **Settings → Connections → Add environment**, choose
+**SSH**, and enter a host or SSH alias such as `user@example.com`. RAS Code starts
+or reuses a server there and opens the port forward for you. Projects, provider
+credentials, and agent work stay on the remote machine.
+
+The remote host needs a compatible [Node.js installation](./install.md#requirements)
+and [provider setup](./install.md#providers). If launch cannot find Node or reports
+an incompatible version, check it through a non-interactive SSH session:
 
 ```bash
 ssh user@example.com 'sh -lc "command -v node && node --version"'
 ```
 
-If that does not print a compatible Node version, configure your version manager for non-interactive shells or install a compatible Node binary in one of the searched locations. For example, with nvm you may need a default alias:
+Configure your version manager for non-interactive shells if this differs from
+your normal terminal. With nvm, setting a compatible default, such as
+`nvm alias default 24`, can resolve the problem.
 
-```bash
-nvm alias default 24
-```
+If SSH reconnecting fails after an app update, retry the launch once. Removing
+the connection stops a server that RAS Code launched; a server that was already
+running is left alone.
 
-With mise, asdf, fnm, or nodenv, make sure the tool's shim directory is installed and resolves to a Node version satisfying the range above without an interactive shell.
+For Antigravity's Google callback on a remote host, see
+[remote sign-in](./providers-antigravity.md#sign-in-from-a-remote-device).
 
-If reconnecting after an app update fails, retry the SSH launch once. The launcher now compares its generated runner script, stops stale launcher-managed remote servers, clears the SSH launch PID/port state, and starts a fresh remote server. You should not normally need to delete `~/.ras-code/ssh-launch` or kill `ras-code` processes manually.
+## Manage or revoke access
 
-## Antigravity Google sign-in
+On the host, **Settings → Connections** lets authorized administrators create
+pairing links and revoke client sessions. Revoking an unused link prevents new
+pairings; revoke a device's session to remove its existing access. Command-line
+management is available through `npx ras-code auth --help`.
 
-Antigravity runs and saves its Google credentials on the selected environment. You can install
-it and sign in from a remote web or desktop client without an SSH login.
+To remove an environment from RAS Connect, open your account menu's **RAS Connect**
+page, or **Settings → RAS Connect** on mobile, and choose **Deregister**. This
+revokes its cloud access and frees its host space even when the environment is
+offline or has been wiped.
 
-Start in **Settings** > **Providers**, select the environment, then choose **Antigravity**.
-Provider setup is not available in the mobile app.
+On a command-line host, `ras connect unlink` disables exposure while retaining
+your login; `ras connect logout` also clears that login. Background-service
+[removal](./background-service.md#manage-the-service) is separate.
 
-After Google sign-in, a remote browser usually reaches a `127.0.0.1` page that cannot load.
-Copy that full address into the return URL field in the same RAS Code client and choose
-**Continue**. Keep the address unchanged. Do not paste the return URL into a thread or bug report.
+Treat pairing URLs and authorization codes as passwords. Do not include them in
+screenshots, logs, or bug reports.
 
-See [Antigravity setup](./providers-antigravity.md) for installation, expiry, and account changes.
+## RAS Connect troubleshooting
 
-## Updating a Remote Server
+Run `ras connect status` on the host to inspect saved authorization and link
+configuration. It is not a live reachability check. If the environment appears
+offline, run `ras service status` and read the displayed log. If it disappears
+when SSH closes, see [background-service troubleshooting](./background-service.md#troubleshooting).
 
-When the RAS Code web or desktop app and a remote server use different versions, a warning appears in
-the conversation and in **Settings** → **Connections**. Follow the action shown there: RAS Code may
-be able to update and reconnect the server for you, or it may ask you to update the desktop app or
-run a copied command on the server machine.
+| Error                                                     | Recovery                                                                                                                                       |
+| --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `environment_link_limit_exceeded` or managed tunnel limit | Deregister an unused environment, then restart RAS Code on the host.                                                                           |
+| `auth_invalid` or `invalid_bearer`                        | Run `ras connect login`. If credentials were revoked, run `ras connect logout`, then `ras connect` again. Restart the server after signing in. |
+| Expired or invalid link proof                             | Check the host's date and time, update RAS Code, then restart it.                                                                              |
+| HTTP 403 without a recognized error                       | Check relay access, proxies, and firewall rules. Keep any Cloudflare Ray ID for a bug report.                                                  |
+| HTTP 408, 429, or 5xx                                     | Check network and relay availability. Startup retries temporary failures for up to ten minutes.                                                |
 
-If RAS Connect cannot connect, check the date and time on both devices, then try again.
+After fixing a permanent rejection, restart the host's server. On Linux, use
+`systemctl --user restart ras-code.service` for the background service. For a
+foreground server, stop it and run `ras serve` again with your usual options.
+Include the diagnostic message and trace ID when reporting a persistent failure.
 
 Finish active work before updating because the server restarts briefly. For step-by-step guidance,
 see [Keeping RAS Code in Sync](./updating.md).

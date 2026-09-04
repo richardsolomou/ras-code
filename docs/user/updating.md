@@ -1,19 +1,22 @@
-# Keeping RAS Code in Sync
+# Updating RAS Code
 
-The RAS Code web or desktop app and the server it connects to work best when they use the same
-version. If they do not match, RAS Code shows a warning with the right update option for that server.
+The app you use and the server running your agents can be on different machines.
+When a server is behind your web or desktop app, an update notice appears in the
+conversation and **Settings → Connections**. Update the machine named in that
+notice.
 
-## Where to Find the Update
+## Before you update
 
-You may see the warning in either of these places:
+Server updates restart the connection and can interrupt active agents and
+terminal commands. Saved threads, settings, and project files remain.
 
-- above the message box in the current conversation
-- **Settings** → **Connections**, beside the affected connection
+**Settings → General → Continue threads after server updates** is off by default.
+Enable it to resume supported active threads once the replacement server is
+ready. Terminal commands may still be interrupted.
 
-Dismissing the conversation warning only hides that reminder for those two versions. It does not
-update the server, and the version difference remains visible in Connections.
+## Update a connected server
 
-## Before You Update
+The offered action depends on how the server runs:
 
 Updating restarts the server, so the connection will disappear briefly. **Settings** → **General**
 has a **Continue threads after restarts** preference, set per environment. It is off by default.
@@ -55,12 +58,15 @@ pin the same version:
 npx ras-code@<client-version> service update
 ```
 
-`service update` installs the version of the CLI that invoked it, so `npx ras-code@latest service update`
-only resolves the skew when your client happens to be on the latest release. The exact version from
-the warning always works.
+Replace `<client-version>` with the version shown in the notice. Using
+`@latest` only resolves the mismatch if your client is on that release. An older
+service launcher may require this local update before it supports remote updates
+and rollback.
 
-See [Running RAS Code in the Background](./background-service.md) for install, status, and removal
-commands.
+For a foreground server, the copied command is `npx ras-code@<client-version>`. Add
+`serve` if you normally run without a browser, and preserve options such as
+`--host` or `--tailscale-serve`. See
+[background services](./background-service.md) for service management.
 
 ## Canary desktop release notes
 
@@ -81,11 +87,10 @@ commands. A rollback is reported immediately instead of waiting for a generic re
 If a step fails:
 
 1. Retry the offered action once.
-2. Make sure you updated the machine named in the warning, not only the device you are using.
-3. For a command-line server, relaunch it with `npx ras-code@<client-version>`, replacing
-   `<client-version>` with the client version shown in the warning.
+2. Check that you updated the server's machine, not only the device you are using.
+3. For a command-line server, stop it and relaunch the exact version shown in the notice.
 
-## The Mobile App
+## Mobile updates
 
 The mobile app keeps itself current on its own. When it finds a new version, it downloads it in the
 background and installs it automatically the next time you leave the app. Unsent drafts and queued
