@@ -131,6 +131,9 @@ const removedPrefixes: ReadonlyArray<readonly [string, string]> = [
   [".coderabbit.yaml", "CodeRabbit review configuration, which we do not carry"],
   [".github/VOUCHED.td", "upstream's contributor trust list, which we do not inherit"],
   // Legacy surfaces removed in #23: the per-project sidebar tree and plan mode.
+  // #54 replaced upstream's managed Cloudflare tunnel client with the RAS relay,
+  // whose protocol, auth, signing and URL modules live beside it in shared.
+  ["packages/shared/src/relayClient", "the managed tunnel client the RAS relay replaced"],
   ["apps/web/src/components/LegacySidebar", LEGACY_SURFACES],
   ["apps/mobile/src/features/threads/thread-list-items", LEGACY_SURFACES],
   ["apps/mobile/src/features/threads/threadPresentation", LEGACY_SURFACES],
