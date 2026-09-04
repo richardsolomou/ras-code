@@ -95,6 +95,14 @@ describe("rebrandText", () => {
     assert.strictEqual(rebrandText("T3CODE_HOME"), "RAS_CODE_HOME");
   });
 
+  it("rewrites reverse-DNS bundle ids without doubling the stem", () => {
+    assert.strictEqual(
+      rebrandText("com.t3tools.t3code.service.plist"),
+      "com.richardsolomou.ras-code.service.plist",
+    );
+    assert.strictEqual(rebrandText("com.t3tools.t3code.dev"), "com.richardsolomou.ras-code.dev");
+  });
+
   it("keeps the relay environment credential prefix", () => {
     assert.strictEqual(
       rebrandText("token: `t3env_${credentialId}_${secret}`"),

@@ -55,6 +55,13 @@ export const preservedPatterns: ReadonlyArray<RegExp> = [
 
 const textRules: ReadonlyArray<RebrandRule> = [
   {
+    // Reverse-DNS bundle ids: `t3tools` alone maps to a dotted org segment, so
+    // the pair has to be rewritten together or it comes out doubled.
+    pattern: /\bcom\.t3tools\.t3code\b/gi,
+    replacement: "com.richardsolomou.ras-code",
+    description: "reverse-DNS bundle and service ids",
+  },
+  {
     pattern: /\bt3tools\/t3code\b/gi,
     replacement: "richardsolomou/ras-code",
     description: "fork repository slug",
