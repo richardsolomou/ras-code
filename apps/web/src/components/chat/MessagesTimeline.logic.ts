@@ -305,7 +305,7 @@ export type MessagesTimelineRow =
       expanded: boolean;
       summary: string;
       summaryKind: ToolGroupSummaryKind;
-      summaryToolIcon?: "browser" | "t3-code";
+      summaryToolIcon?: "browser" | "ras-code";
       hasFailure: boolean;
     }
   | {

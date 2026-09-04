@@ -154,7 +154,7 @@ describe("work entry labels", () => {
 
   it.each([
     ["preview_click", "Clicked in the preview browser", "browser"],
-    ["task_status", "Got delegated task status", "t3-code"],
+    ["task_status", "Got delegated task status", "ras-code"],
   ] as const)(
     "uses the completed %s call presentation for a settled legacy tool",
     (tool, summary, summaryToolIcon) => {
