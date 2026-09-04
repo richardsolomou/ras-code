@@ -807,7 +807,50 @@ const mergeNormalizedFile = (
   }
 };
 
-const buildNormalizedMergePlan = (git: GitRunner, sha: string): NormalizedMergePlan => {
+const mergeStructuredFile = (
+  path: string,
+  current: string,
+  base: string,
+  incoming: string,
+): string | null => {
+  const temp = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "ras-upstream-merge-"));
+  try {
+    const currentPath = NodePath.join(temp, "current");
+    const basePath = NodePath.join(temp, "base");
+    const incomingPath = NodePath.join(temp, "incoming");
+    const outputPath = NodePath.join(temp, "output");
+    NodeFS.writeFileSync(currentPath, current);
+    NodeFS.writeFileSync(basePath, base);
+    NodeFS.writeFileSync(incomingPath, incoming);
+    const merged = NodeChildProcess.spawnSync(
+      "mergiraf",
+      [
+        "merge",
+        "--path-name",
+        path,
+        "--timeout",
+        "5000",
+        "--output",
+        outputPath,
+        basePath,
+        currentPath,
+        incomingPath,
+      ],
+      { encoding: "utf8", maxBuffer: 256 * 1024 * 1024 },
+    );
+    return merged.status === 0 && NodeFS.existsSync(outputPath)
+      ? NodeFS.readFileSync(outputPath, "utf8")
+      : null;
+  } finally {
+    NodeFS.rmSync(temp, { recursive: true, force: true });
+  }
+};
+
+const buildNormalizedMergePlan = (
+  git: GitRunner,
+  sha: string,
+  options: { readonly allowStructuredMerge?: boolean } = {},
+): NormalizedMergePlan => {
   const changed = git.run(["diff", "--no-renames", "--name-status", `${sha}^`, sha]);
   if (changed.status !== 0) {
     return {
@@ -882,11 +925,23 @@ const buildNormalizedMergePlan = (git: GitRunner, sha: string): NormalizedMergeP
       continue;
     }
 
-    const merged = mergeNormalizedFile(
-      local.stdout,
-      formatNormalizedFile(git, file.path, rebrandText(parent.stdout)),
-      formatNormalizedFile(git, file.path, rebrandText(incoming.stdout)),
-    );
+    const parentContents = rebrandText(parent.stdout);
+    const incomingContents = rebrandText(incoming.stdout);
+    let merged = mergeNormalizedFile(local.stdout, parentContents, incomingContents);
+    if (merged.status !== 0) {
+      const formattedParent = formatNormalizedFile(git, file.path, parentContents);
+      const formattedIncoming = formatNormalizedFile(git, file.path, incomingContents);
+      merged = mergeNormalizedFile(local.stdout, formattedParent, formattedIncoming);
+      if (merged.status !== 0 && options.allowStructuredMerge) {
+        const contents = mergeStructuredFile(
+          file.path,
+          local.stdout,
+          formattedParent,
+          formattedIncoming,
+        );
+        if (contents !== null) merged = { status: 0, contents };
+      }
+    }
     if (merged.status !== 0) {
       issues.push({ path: file.path, reason: "normalized three-way merge conflicts" });
       continue;
@@ -919,6 +974,7 @@ export const applyRebrandedCommit = Effect.fn("applyRebrandedCommit")(function* 
   git: GitRunner,
   sha: string,
   paths: ReadonlyArray<string>,
+  options: { readonly allowStructuredMerge?: boolean } = {},
 ) {
   const patch = yield* gitOrFail(git, [
     "diff",
@@ -933,7 +989,7 @@ export const applyRebrandedCommit = Effect.fn("applyRebrandedCommit")(function* 
   if (appliesDirectly.status === 0) {
     yield* gitWithInputOrFail(git, ["apply", "--whitespace=nowarn", "-"], rebrandedPatch);
   } else {
-    const plan = buildNormalizedMergePlan(git, sha);
+    const plan = buildNormalizedMergePlan(git, sha, options);
     if (!plan.aligned) {
       return yield* new UpstreamSyncGitError({
         args: ["normalized-merge", sha],
@@ -1109,7 +1165,9 @@ export const runBatch = Effect.fn("runBatch")(function* (options: {
     const paths = listCommitFiles(git, sha).pipe(
       Effect.map((files) => files.map((file) => file.path)),
     );
-    const picked = yield* applyRebrandedCommit(git, sha, yield* paths).pipe(Effect.result);
+    const picked = yield* applyRebrandedCommit(git, sha, yield* paths, {
+      allowStructuredMerge: true,
+    }).pipe(Effect.result);
     if (picked._tag === "Failure") {
       yield* Console.log(
         [

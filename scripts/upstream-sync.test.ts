@@ -19,6 +19,8 @@ import {
 const git = (cwd: string, ...args: ReadonlyArray<string>) =>
   NodeChildProcess.execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
 
+const hasMergiraf = NodeChildProcess.spawnSync("mergiraf", ["--version"]).status === 0;
+
 const makeRepository = () => {
   const root = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "ras-upstream-sync-"));
   git(root, "init", "--quiet");
@@ -54,6 +56,38 @@ const makeRepository = () => {
   git(root, "commit", "--quiet", "-m", "chore: rebrand");
 
   return { base, root, upstream };
+};
+
+const makeStructuralMergeRepository = () => {
+  const root = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "ras-upstream-structural-"));
+  git(root, "init", "--quiet");
+  git(root, "config", "user.name", "RAS Test");
+  git(root, "config", "user.email", "ras@example.com");
+  NodeFS.writeFileSync(
+    NodePath.join(root, "config.ts"),
+    "export const config = {\n  shared: true,\n};\n",
+  );
+  git(root, "add", ".");
+  git(root, "commit", "--quiet", "-m", "base");
+  const base = git(root, "rev-parse", "HEAD");
+
+  git(root, "switch", "--quiet", "-c", "upstream");
+  NodeFS.writeFileSync(
+    NodePath.join(root, "config.ts"),
+    "export const config = {\n  upstream: true,\n  shared: true,\n};\n",
+  );
+  git(root, "add", ".");
+  git(root, "commit", "--quiet", "-m", "feat: extend config");
+  const upstream = git(root, "rev-parse", "HEAD");
+
+  git(root, "switch", "--quiet", "-c", "fork", base);
+  NodeFS.writeFileSync(
+    NodePath.join(root, "config.ts"),
+    "export const config = {\n  fork: true,\n  shared: true,\n};\n",
+  );
+  git(root, "add", ".");
+  git(root, "commit", "--quiet", "-m", "feat: extend fork config");
+  return { root, upstream };
 };
 
 describe("aligned upstream adoption", () => {
@@ -99,6 +133,25 @@ describe("aligned upstream adoption", () => {
       NodeFS.rmSync(root, { recursive: true, force: true });
     }
   });
+
+  it.effect.skipIf(!hasMergiraf)("structurally merges an already-judged change", () =>
+    Effect.gen(function* () {
+      const { root, upstream } = yield* Effect.acquireRelease(
+        Effect.sync(makeStructuralMergeRepository),
+        ({ root }) => Effect.sync(() => NodeFS.rmSync(root, { recursive: true, force: true })),
+      );
+      const runner = createGitRunner(root);
+      assert.isFalse(inspectCommitAlignment(runner, upstream).aligned);
+
+      yield* applyRebrandedCommit(runner, upstream, ["config.ts"], {
+        allowStructuredMerge: true,
+      });
+
+      const contents = NodeFS.readFileSync(NodePath.join(root, "config.ts"), "utf8");
+      assert.include(contents, "fork: true");
+      assert.include(contents, "upstream: true");
+    }),
+  );
 
   it.effect("records and commits an aligned prefix without review", () =>
     Effect.gen(function* () {

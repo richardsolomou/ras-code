@@ -73,7 +73,7 @@ It exempts the rebrand map and its fixtures, which name upstream deliberately. A
 node scripts/upstream-sync.ts batch --sha <a> --sha <b>
 ```
 
-Rewrites paths and vocabulary before applying a run of already-judged changes. If a patch does not apply directly, the command merges our file against formatted, rebranded snapshots of the upstream parent and result. This removes conflicts caused only by branding, renamed paths, formatting, or a fork edit elsewhere in the file. It runs `verify` after every commit and stops when the same lines really differ.
+Rewrites paths and vocabulary before applying a run of already-judged changes. If a patch does not apply directly, the command merges our file against rebranded upstream snapshots, retrying with formatted snapshots only when needed. When `mergiraf` is installed, `batch` also resolves syntax-level overlaps such as independent imports or object fields. This removes mechanical conflicts without extending unattended `adopt-aligned` beyond textually non-overlapping changes. It runs `verify` after every commit and stops when behavior really overlaps.
 
 ## Adopting aligned changes
 

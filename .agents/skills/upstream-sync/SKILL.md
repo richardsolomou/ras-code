@@ -139,7 +139,7 @@ For a run of changes you have already read and judged as adopt:
 node scripts/upstream-sync.ts batch --sha <a> --sha <b> --sha <c>
 ```
 
-It rewrites paths and vocabulary before applying each change. When a patch does not apply directly, it performs a three-way merge against formatted, rebranded upstream snapshots, so unrelated fork edits do not become conflicts. It runs `verify` after each commit and stops when the same lines really differ. Judgement is still yours for commits that reached this path; batching removes the mechanical resolution work.
+It rewrites paths and vocabulary before applying each change. When a patch does not apply directly, it performs a three-way merge against rebranded upstream snapshots and retries with formatting only when necessary. If `mergiraf` is installed, `batch` also resolves independent syntax-level edits inside the same textual hunk. It runs `verify` after each commit and stops when behavior really overlaps. Judgement is still yours for commits that reached this path; batching removes the mechanical resolution work.
 
 ## Gate once, before you push
 

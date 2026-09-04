@@ -129,8 +129,10 @@ const removedPrefixes: ReadonlyArray<readonly [string, string]> = [
   [".github/VOUCHED.td", "upstream's contributor trust list, which we do not inherit"],
   // Legacy surfaces removed in #23: the per-project sidebar tree and plan mode.
   ["apps/web/src/components/LegacySidebar", LEGACY_SURFACES],
+  ["apps/mobile/src/features/threads/thread-list-items", LEGACY_SURFACES],
   ["apps/mobile/src/features/threads/legacy-plan-mode", LEGACY_SURFACES],
   ["apps/mobile/src/features/threads/use-legacy-plan-mode-enabled", LEGACY_SURFACES],
+  ["apps/mobile/generated-uniwind-themes.css", "the generated mobile theme artifact we removed"],
   // The custom theme editor and its VS Code / OpenVSX theme import, removed in
   // #51 in favour of the fixed theme set.
   ["apps/web/src/components/settings/ThemeColorPicker", THEME_EDITOR],
