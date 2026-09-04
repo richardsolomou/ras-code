@@ -34,3 +34,11 @@ Use **Past 24h** for an hourly chart covering the exact rolling 24-hour period. 
 headline and chart. Refreshing rescans every connected environment and refetches model pricing on
 each of them, so a newly released model that showed $0.00 gets a price without waiting for the daily
 pricing update.
+
+On web or desktop, **Usage → Model prices** overrides the automatic price for a model. Pick the
+environment whose history you want to price, then enter the exact model ID and the USD rates per
+million input and output tokens; any model ID works, including ones with no public pricing. Cache
+read and cache write rates are optional and fall back to the input rate, and `0` means free. A
+saved price replaces automatic pricing for that environment's whole history and reaches every
+client connected to it, so set prices on each environment that needs them. Removing a price
+restores automatic pricing.
