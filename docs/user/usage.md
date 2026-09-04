@@ -14,7 +14,8 @@ such as Fable when your plan has one. Each window is a bar from the moment it op
 filled by the share of quota spent; a thin line marks how far into the window you are, which is
 also where even spending would have put the fill, and the icon beside the label says whether you
 are ahead of, on, or under that pace. Hover a bar for the exact reset time. Limits refresh on the
-provider health-check interval and update live while a turn runs. API-key accounts have no
+provider health-check interval and update live while a turn runs; if a window looks stale, refresh
+Limits to re-check every provider and hub. API-key accounts have no
 subscription windows and say so; that includes a Claude Code that reaches Anthropic through a proxy
 via `ANTHROPIC_AUTH_TOKEN`, since the CLI then treats itself as an API-key client.
 
