@@ -6,7 +6,7 @@ import {
 } from "@ras-code/client-runtime/codex-artifact-templates";
 import type { EnvironmentThreadStatus } from "@ras-code/client-runtime/state/threads";
 import { useKeyboardChatComposerInset, useKeyboardScrollToEnd } from "@legendapp/list/keyboard";
-import { resolveProviderSkillsForCwd } from "@t3tools/client-runtime/providerSkills";
+import { resolveProviderSkillsForCwd } from "@ras-code/client-runtime/providerSkills";
 import type { LegendListRef } from "@legendapp/list/react-native";
 import { HeaderHeightContext } from "@react-navigation/elements";
 import type {
