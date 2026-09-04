@@ -1,5 +1,6 @@
-import type {
-  PullRequestAction,
+import {
+  PullRequestDetail,
+  type PullRequestAction,
   PullRequestActor,
   PullRequestBaseComparison,
   PullRequestCheck,
@@ -17,24 +18,6 @@ import type {
 } from "@ras-code/contracts";
 import { buildResolveConflictsPrompt } from "@ras-code/shared/sourceControl";
 import * as Schema from "effect/Schema";
-import {
-  PullRequestDetail,
-  type PullRequestAction,
-  type PullRequestActor,
-  type PullRequestBaseComparison,
-  type PullRequestCheck,
-  type PullRequestChecksState,
-  type PullRequestComment,
-  type PullRequestCommit,
-  type PullRequestDetailView,
-  type PullRequestMergeability,
-  type PullRequestReaction,
-  type PullRequestReviewThread,
-  type PullRequestState,
-  type PullRequestUpdateMethod,
-  type SourceControlProviderKind,
-  type VcsRef,
-} from "@ras-code/contracts";
 
 import { inferReviewCommentFenceLanguage, type ReviewCommentContext } from "~/reviewCommentContext";
 
@@ -1029,7 +1012,7 @@ const pullRequestDetailSnapshotKey = (
   environmentId: string,
   reference: PullRequestDetailSnapshotRef,
 ) =>
-  `t3.pullRequests.detail:${environmentId}:${reference.projectId}:${reference.repository}#${reference.number}`;
+  `ras-code.pullRequests.detail:${environmentId}:${reference.projectId}:${reference.repository}#${reference.number}`;
 
 const decodeDetailSnapshot = Schema.decodeUnknownOption(PullRequestDetail);
 
