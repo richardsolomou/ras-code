@@ -276,7 +276,6 @@ import { useKnownTerminalSessions, useThreadRunningTerminalIds } from "../state/
 import { projectEnvironment } from "../state/projects";
 import { useEnvironmentQuery } from "../state/query";
 import { pullRequestEnvironment } from "../state/pullRequests";
-import { linkedPullRequestDetailAtom } from "../state/pullRequests";
 import {
   environmentServerConfigsAtom,
   primaryServerAvailableEditorsAtom,
