@@ -25,6 +25,7 @@ import {
 
 import {
   buildServerProvider,
+  COMPACT_SLASH_COMMAND,
   DEFAULT_TIMEOUT_MS,
   isCommandMissingCause,
   parseGenericCliVersion,
@@ -591,13 +592,7 @@ export const checkClaudeProviderStatus = Effect.fn("checkClaudeProviderStatus")(
     DEFAULT_CLAUDE_MODEL_CAPABILITIES,
   );
   const skills = yield* discoverClaudeSkills(claudeSettings, cwd, resolvedEnvironment);
-  const slashCommands = [
-    {
-      name: "compact",
-      description: "Summarize the conversation and reduce context usage",
-    },
-    ...(capabilities?.slashCommands ?? []),
-  ];
+  const slashCommands = [COMPACT_SLASH_COMMAND, ...(capabilities?.slashCommands ?? [])];
   const dedupedSlashCommands = dedupeSlashCommands(slashCommands);
 
   if (!capabilities) {
