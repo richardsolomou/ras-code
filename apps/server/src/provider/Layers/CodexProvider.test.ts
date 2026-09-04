@@ -182,3 +182,12 @@ it("keeps the built-in options on a custom OpenAI-shaped model id", () => {
   const models = appendCustomCodexModels([gptModel], ["gpt-5.4-preview"]);
   assert.deepStrictEqual(models.at(-1)?.capabilities, gptModel.capabilities);
 });
+
+it("keeps an entry's own options on a namespaced custom model", () => {
+  const capabilities = { optionDescriptors: [] };
+  const models = appendCustomCodexModels(
+    [gptModel],
+    [{ slug: "zai-org/glm-5.2", name: "GLM 5.2", capabilities }],
+  );
+  assert.deepStrictEqual(models.at(-1)?.capabilities, capabilities);
+});
