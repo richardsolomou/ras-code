@@ -63,6 +63,37 @@ function makeActivity(overrides: {
 }
 
 describe("derivePendingApprovals", () => {
+  it.each([{}, { requestType: "unknown" }])(
+    "exposes legacy OpenCode approvals without a known request kind: %j",
+    (legacyPayload) => {
+      const requested = makeActivity({
+        kind: "approval.requested",
+        payload: { requestId: "per-legacy", detail: "*", ...legacyPayload },
+      });
+
+      expect(derivePendingApprovals([requested])).toEqual([
+        {
+          requestId: "per-legacy",
+          requestKind: "command",
+          createdAt: requested.createdAt,
+          detail: "*",
+        },
+      ]);
+    },
+  );
+
+  it.each(["tool_user_input", "auth_tokens_refresh"])(
+    "does not turn %s into an approval",
+    (requestType) => {
+      const activity = makeActivity({
+        kind: "approval.requested",
+        payload: { requestId: "not-an-approval", requestType },
+      });
+
+      expect(derivePendingApprovals([activity])).toEqual([]);
+    },
+  );
+
   it("tracks open approvals and removes resolved ones", () => {
     const activities: OrchestrationThreadActivity[] = [
       makeActivity({
@@ -91,7 +122,7 @@ describe("derivePendingApprovals", () => {
         kind: "approval.requested",
         summary: "File-change approval requested",
         tone: "approval",
-        payload: { requestId: "req-2", requestKind: "file-change" },
+        payload: { requestId: "req-2", requestType: "unknown" },
       }),
     ];
 
@@ -200,7 +231,7 @@ describe("derivePendingApprovals", () => {
         tone: "approval",
         payload: {
           requestId: "req-stale-1",
-          requestKind: "command",
+          requestType: "unknown",
         },
       }),
       makeActivity({
