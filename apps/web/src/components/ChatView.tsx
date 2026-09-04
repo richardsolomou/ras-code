@@ -2139,6 +2139,18 @@ function ChatViewContent(
   const handleNewThreadInActiveProject = useCallback(() => {
     startNewThreadForProject(activeProjectRef, handleNewThread);
   }, [activeProjectRef, handleNewThread]);
+  const projectGroupingSettings = useClientSettings(selectProjectGroupingSettings);
+  const activeDraftLogicalProjectKey =
+    !isServerThread && activeProject
+      ? deriveLogicalProjectKeyFromSettings(activeProject, projectGroupingSettings)
+      : undefined;
+  const handleOpenDraftProjectSettings = useCallback(() => {
+    if (!activeDraftLogicalProjectKey) return;
+    void navigate({
+      to: "/projects/$projectKey",
+      params: { projectKey: activeDraftLogicalProjectKey },
+    });
+  }, [activeDraftLogicalProjectKey, navigate]);
   const activeEnvironmentShell = useEnvironmentQuery(
     activeThread ? environmentShell.stateAtom(activeThread.environmentId) : null,
   );
@@ -2146,7 +2158,6 @@ function ChatViewContent(
   const activeProjectKey = activeProject
     ? `${activeProject.environmentId}:${activeProject.workspaceRoot}`
     : null;
-  const projectGroupingSettings = useClientSettings(selectProjectGroupingSettings);
   const clientSettingsHydrated = useClientSettingsHydrated();
   const [pendingFileSurfaceIdsByProject, setPendingFileSurfaceIdsByProject] = useState<
     ReadonlyMap<string, ReadonlySet<string>>
@@ -8018,6 +8029,9 @@ function ChatViewContent(
               : { onBabysitPullRequest: addPullRequestBabysitPrompt })}
             onRefreshChangeRequest={threadPullRequestQuery.refresh}
             onNewThreadInProject={handleNewThreadInActiveProject}
+            {...(activeDraftLogicalProjectKey
+              ? { onOpenProjectSettings: handleOpenDraftProjectSettings }
+              : {})}
             onRunProjectScript={runProjectScript}
             onAddProjectScript={saveProjectScript}
             onUpdateProjectScript={updateProjectScript}
