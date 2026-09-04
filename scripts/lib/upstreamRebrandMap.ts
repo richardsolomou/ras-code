@@ -43,6 +43,9 @@ export const preservedPatterns: ReadonlyArray<RegExp> = [
   /\burn:t3:[\w:-]+/g,
   // The fork notice names upstream on purpose.
   /\[T3 Code\]\(https:\/\/github\.com\/pingdotgg\/t3code\)/g,
+  // The relay stamps this prefix into every environment credential it issues,
+  // so renaming it would invalidate the ones already in the wild.
+  /\bt3env_[\w-]*/g,
   // The WSL runtime cache still lives under these names on users' disks, so
   // renaming them here would orphan every installed runtime.
   /\$HOME\/\.t3\/wsl-runtime/g,

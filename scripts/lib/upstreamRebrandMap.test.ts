@@ -87,6 +87,14 @@ describe("rebrandText", () => {
     );
   });
 
+  it("keeps the relay environment credential prefix", () => {
+    assert.strictEqual(
+      rebrandText("token: `t3env_${credentialId}_${secret}`"),
+      "token: `t3env_${credentialId}_${secret}`",
+    );
+    assert.strictEqual(rebrandText('"t3env_first_credential"'), '"t3env_first_credential"');
+  });
+
   it("rewrites fixture home directories to the CLI name", () => {
     assert.strictEqual(rebrandText('cwd: "/home/t3/workspace"'), 'cwd: "/home/ras/workspace"');
     assert.strictEqual(rebrandText('"/Users/t3/Documents"'), '"/Users/ras/Documents"');

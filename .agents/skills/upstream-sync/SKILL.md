@@ -233,6 +233,7 @@ These keep their upstream spelling wherever they appear:
 - `/.well-known/t3/environment`
 - `refs/t3/checkpoints`
 - Theme ids `t3-chat` and `t3-chat-dark`
+- The relay credential prefix `t3env_`, which is stamped into issued credentials
 - Links to `pingdotgg/t3code`
 
 ## Never
