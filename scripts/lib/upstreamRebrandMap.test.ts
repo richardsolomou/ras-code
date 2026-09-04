@@ -60,6 +60,11 @@ describe("rebrandText", () => {
     assert.strictEqual(rebrandText('instanceType: "t3.micro"'), 'instanceType: "t3.micro"');
   });
 
+  it("rewrites the remote access product name inside identifiers", () => {
+    assert.strictEqual(rebrandText("T3ConnectSidebarSignIn"), "RasConnectSidebarSignIn");
+    assert.strictEqual(rebrandText("useT3ConnectSession"), "useRasConnectSession");
+  });
+
   it("rewrites the product name", () => {
     assert.strictEqual(rebrandText("Welcome to T3 Code."), "Welcome to RAS Code.");
   });

@@ -1410,7 +1410,7 @@ describe("deriveMessagesTimelineRows", () => {
       isWorking: true,
       activeTurnStartedAt: "2026-01-01T00:01:00Z",
       turnDiffSummaryByAssistantMessageId: new Map(),
-      revertTurnCountByUserMessageId: new Map(),
+      checkpointTurnCountByAssistantMessageId: new Map(),
     });
 
     expect(rows.some((row) => row.kind === "turn-fold")).toBe(false);
