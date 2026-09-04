@@ -52,6 +52,18 @@ harness speaks both. `PostHogGatewayDriver.create` therefore calls `ClaudeDriver
 The children are internal. Their instance ids (`<id>_claude`, `<id>_codex`) never reach settings,
 the registry, or the wire.
 
+## Runtime context
+
+Every adapter uses `apps/server/src/provider/RuntimeInstructions.ts` to identify RAS Code and
+the harness, and describe Markdown image/video embeds. Codex includes it in developer
+instructions; Claude appends it to its system preset; OpenCode sends it in each prompt's
+`system` field. Cursor, Grok, and Antigravity append a separate text block to ACP prompts,
+which have no system-message field. This does not change the stored user message.
+
+Per-turn context includes the current model when known. Codex includes reasoning effort;
+Grok includes it when explicitly selected for the turn. Claude's session-level context omits model and effort because they can
+change during a session. OpenCode variants are not assumed to be reasoning-effort levels.
+
 ## Codex async questions
 
 Codex 0.153 exposes `request_user_input_async` through `item/started` and `item/completed`

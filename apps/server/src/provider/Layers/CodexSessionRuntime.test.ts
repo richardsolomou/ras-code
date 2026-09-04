@@ -472,6 +472,19 @@ describe("buildCodexDeveloperInstructions", () => {
     NodeAssert.match(instructions, /Do not say that the model identifier is unavailable/);
   });
 
+  it("describes Markdown media support in the runtime context in both modes", () => {
+    for (const mode of ["default", "plan"] as const) {
+      const instructions = buildCodexDeveloperInstructions(mode, {
+        model: "gpt-5.3-codex",
+        reasoningEffort: "high",
+      });
+      NodeAssert.match(
+        instructions,
+        /<runtime_info>.*embed images and videos.*Markdown.*<\/runtime_info>/,
+      );
+    }
+  });
+
   it("includes runtime info alongside plan mode instructions", () => {
     const instructions = buildCodexDeveloperInstructions("plan", {
       model: "gpt-5.3-codex",

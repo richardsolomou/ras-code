@@ -45,6 +45,7 @@ import {
 } from "../ClaudeModelCatalog.testFixtures.ts";
 import { ProviderAdapterProcessError, ProviderAdapterValidationError } from "../Errors.ts";
 import type { ClaudeAdapterShape } from "../Services/ClaudeAdapter.ts";
+import { buildRuntimeInstructions } from "../RuntimeInstructions.ts";
 import { IMAGE_SHARING_INSTRUCTIONS } from "../SharedProviderInstructions.ts";
 import type { ClaudeScopedLimitNames } from "./claudeUsageLimits.ts";
 import { makeClaudeAdapter, type ClaudeAdapterLiveOptions } from "./ClaudeAdapter.ts";
@@ -386,6 +387,11 @@ describe("ClaudeAdapterLive", () => {
 
       const createInput = harness.getLastCreateQueryInput();
       assert.deepEqual(createInput?.options.settingSources, ["user", "project", "local"]);
+      assert.deepEqual(createInput?.options.systemPrompt, {
+        type: "preset",
+        preset: "claude_code",
+        append: `${IMAGE_SHARING_INSTRUCTIONS}\n\n${buildRuntimeInstructions({ harness: "Claude Code" })}`,
+      });
       assert.equal(createInput?.options.permissionMode, "bypassPermissions");
       assert.equal(createInput?.options.allowDangerouslySkipPermissions, true);
     }).pipe(
@@ -408,7 +414,7 @@ describe("ClaudeAdapterLive", () => {
       assert.deepEqual(systemPrompt, {
         type: "preset",
         preset: "claude_code",
-        append: IMAGE_SHARING_INSTRUCTIONS,
+        append: `${IMAGE_SHARING_INSTRUCTIONS}\n\n${buildRuntimeInstructions({ harness: "Claude Code" })}`,
       });
     }).pipe(
       Effect.provideService(Random.Random, makeDeterministicRandomService()),
