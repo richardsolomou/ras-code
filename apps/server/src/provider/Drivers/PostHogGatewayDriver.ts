@@ -684,6 +684,10 @@ export const PostHogGatewayDriver: ProviderDriver<PostHogGatewaySettings, PostHo
             packageName: null,
           }),
           getSnapshot: Ref.get(snapshotRef),
+          // This snapshot is recomposed from the two child providers on every publish, and its
+          // usage limits are their merged ones, so a runtime update folded onto the composite
+          // would be discarded by the next publish. The children carry their own.
+          applyUsageLimits: () => Effect.void,
           refresh: Effect.all([claudeChild.snapshot.refresh, codexChild.snapshot.refresh], {
             concurrency: "unbounded",
           }).pipe(Effect.andThen(refreshCatalog), Effect.andThen(publish)),

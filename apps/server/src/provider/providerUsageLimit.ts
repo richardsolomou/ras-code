@@ -18,7 +18,11 @@
  *
  * @module providerUsageLimit
  */
-import { IsoDateTime, type ProviderUsageLimit } from "@t3tools/contracts";
+import {
+  IsoDateTime,
+  type ProviderUsageLimit,
+  type ProviderUsageLimitsUpdate,
+} from "@t3tools/contracts";
 import * as DateTime from "effect/DateTime";
 import * as Predicate from "effect/Predicate";
 
@@ -155,6 +159,43 @@ const normalizeCodex = (payload: Record<string, unknown>): ProviderUsageLimit | 
         ? candidate.window.usedPercent
         : null,
       resetsAt: isoFromUnixSeconds(candidate.window.resetsAt),
+    })),
+  };
+};
+
+/**
+ * Reduce the adapter-normalised windows to the single verdict our fallback routing needs.
+ *
+ * Upstream moved rate-limit normalisation to the adapter boundary, so this replaces the
+ * driver-shaped parsing for the event path. The verdict follows the same rule the Codex parsing
+ * used: any full window blocks a turn, and quota only returns once the last full one resets, so an
+ * exhausted account reports the furthest reset rather than the soonest.
+ */
+export const providerUsageLimitFromWindows = (
+  update: ProviderUsageLimitsUpdate,
+): ProviderUsageLimit | null => {
+  if (update.windows.length === 0) {
+    return null;
+  }
+  const exhausted = update.windows.filter(
+    (window) => window.usedPercent >= CODEX_EXHAUSTED_PERCENT,
+  );
+  const worst =
+    exhausted.toSorted((left, right) =>
+      (right.resetsAt ?? "").localeCompare(left.resetsAt ?? ""),
+    )[0] ??
+    update.windows.reduce((left, right) => (right.usedPercent > left.usedPercent ? right : left));
+  const status: ProviderUsageLimit["status"] =
+    exhausted.length > 0 ? "exhausted" : worst.usedPercent >= 90 ? "warning" : "ok";
+  return {
+    status,
+    resetsAt: worst.resetsAt ?? null,
+    kind: worst.id,
+    utilization: worst.usedPercent / 100,
+    windows: update.windows.map((window) => ({
+      name: window.id,
+      usedPercent: window.usedPercent,
+      resetsAt: window.resetsAt ?? null,
     })),
   };
 };
