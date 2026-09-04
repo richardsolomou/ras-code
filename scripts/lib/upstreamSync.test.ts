@@ -156,6 +156,17 @@ describe("classifyPathPolicy", () => {
     assert.strictEqual(classifyPathPolicy("apps/web/src/legal/terms.tsx").kind, "replaced");
   });
 
+  it("marks deleted mobile surfaces as removed", () => {
+    assert.strictEqual(
+      classifyPathPolicy("apps/mobile/src/features/threads/thread-list-items.tsx").kind,
+      "removed",
+    );
+    assert.strictEqual(
+      classifyPathPolicy("apps/mobile/generated-uniwind-themes.css").kind,
+      "removed",
+    );
+  });
+
   it("leaves ordinary source alone", () => {
     assert.strictEqual(classifyPathPolicy("apps/server/src/ws.ts").kind, "normal");
   });

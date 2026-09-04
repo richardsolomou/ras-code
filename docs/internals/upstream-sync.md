@@ -2,7 +2,7 @@
 
 > For maintainers. Using RAS Code? See [docs/user](../user/).
 
-RAS Code is a diverging fork of [`pingdotgg/t3code`](https://github.com/pingdotgg/t3code). We do not merge upstream. We review upstream changes one at a time, on the real code diff, and record what we did with each one.
+RAS Code is a diverging fork of [`pingdotgg/t3code`](https://github.com/pingdotgg/t3code). We do not merge upstream. Changes on upstream-owned paths are adopted automatically until they overlap a fork edit; every remaining change is reviewed on the real code diff. Both paths record one ledger decision per upstream commit.
 
 We want the improvements upstream makes. We do not want their repository structure, feature set, or release cadence. Those goals separate as the fork moves, so the unit of work is the change an upstream author made, not the patch they wrote. A cherry-pick is a shortcut that holds while a file still means the same thing in both trees; when it stops holding, we port the behavior instead. Neither forcing the patch nor dropping the improvement is acceptable.
 
@@ -73,7 +73,18 @@ It exempts the rebrand map and its fixtures, which name upstream deliberately. A
 node scripts/upstream-sync.ts batch --sha <a> --sha <b>
 ```
 
-Rebrands and cherry-picks a run of already-judged changes in order, running `verify` after each, and stops at the first conflict or residue with that change left in the working tree. It batches the waiting, not the reading: every change still gets its own decision from its own diff.
+Rewrites paths and vocabulary before applying a run of already-judged changes. If a patch does not apply directly, the command merges our file against rebranded upstream snapshots, retrying with formatted snapshots only when needed. When `mergiraf` is installed, `batch` also resolves syntax-level overlaps such as independent imports or object fields. This removes mechanical conflicts without extending unattended `adopt-aligned` beyond textually non-overlapping changes. It runs `verify` after every commit and stops when behavior really overlaps.
+
+## Adopting aligned changes
+
+```bash
+node scripts/upstream-sync.ts adopt-aligned
+node scripts/upstream-sync.ts adopt-aligned --dry-run
+```
+
+`adopt-aligned` processes the pending history prefix without an agent reading clean diffs. A change qualifies when every path is classified `normal` or `wire` and its normalized three-way merge has no conflicts. The command applies and formats each qualifying commit, runs `verify`, records it as adopted, and commits the ledger before stopping at the first real fork overlap.
+
+This is an ownership rule, not a heuristic. `normal` means we follow upstream on that source; paths we do not follow must be classified as `replaced`, `removed`, or `diverged`. New upstream files are therefore adopted automatically only on surfaces the map says upstream owns.
 
 ## The gate
 

@@ -8,7 +8,17 @@ Every change gets exactly one decision, written to `upstream/sync.json` before `
 
 Read [`docs/internals/upstream-sync.md`](../../../docs/internals/upstream-sync.md) for the ledger fields and the decision policy.
 
-## Start with the report
+## Auto-adopt the aligned prefix first
+
+```bash
+node scripts/upstream-sync.ts adopt-aligned
+```
+
+This fetches upstream and adopts the leading run of commits whose normalized three-way merges do not overlap a fork edit. It rewrites paths and product vocabulary before merging, formats the result, runs `verify` after every commit, records the ledger entries, and stops before the first real divergence. `normal` and `wire` paths are upstream-owned by policy, so these commits do not need an agent to reread their diffs. Use `--dry-run` to inspect the next commit without writing.
+
+Run it again after resolving each reviewed divergence. The goal is for the agent to spend tokens only on overlapping product decisions, not clean upstream work.
+
+## Report what still needs judgement
 
 ```bash
 node scripts/upstream-sync.ts report --out /tmp/upstream-report.md
@@ -29,7 +39,7 @@ In a fresh checkout, add it before running the report:
 git remote add t3code git@github.com:pingdotgg/t3code.git
 ```
 
-The report is an index, not a judgement. It tells you where to look. The decision comes from the diff.
+The report is an index for the first change `adopt-aligned` could not settle. It tells you where to look. The decision comes from the diff.
 
 It ends with the brand tokens the rebrand table cannot decide across the whole range, most frequent first. Extend `scripts/lib/upstreamRebrandMap.ts` for those **before picking anything**. Left alone they arrive one at a time, mid-pick, and each one costs a detour: the last round hand-renamed `t3-citation`, `t3-file-icon-video` and `t3-upload-uuid` separately, and spent seven commits teaching the map afterwards.
 
@@ -129,7 +139,7 @@ For a run of changes you have already read and judged as adopt:
 node scripts/upstream-sync.ts batch --sha <a> --sha <b> --sha <c>
 ```
 
-It rebrands and picks each in order, runs `verify` after each, and stops at the first conflict or residue, leaving that one in the working tree for you. Judgement is still yours per change — batching removes the waiting, not the reading.
+It rewrites paths and vocabulary before applying each change. When a patch does not apply directly, it performs a three-way merge against rebranded upstream snapshots and retries with formatting only when necessary. If `mergiraf` is installed, `batch` also resolves independent syntax-level edits inside the same textual hunk. It runs `verify` after each commit and stops when behavior really overlaps. Judgement is still yours for commits that reached this path; batching removes the mechanical resolution work.
 
 ## Gate once, before you push
 

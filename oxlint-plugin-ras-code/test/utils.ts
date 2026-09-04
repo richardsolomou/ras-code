@@ -116,6 +116,7 @@ export const createOxlintRuleHarness = (
         rules: { [ruleName]: ["error", ...(options.ruleOptions ?? [])] },
       }),
     );
+    yield* fs.makeDirectory(path.dirname(sourcePath), { recursive: true });
     yield* fs.writeFileString(sourcePath, source);
 
     // Run through the current Node binary: oxlint's bin is an extensionless
