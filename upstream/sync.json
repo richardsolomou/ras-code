@@ -2361,8 +2361,8 @@
       "pr": 9326,
       "title": "fix(web): make the diff layout toggle a persisted setting",
       "decision": "adopted",
-      "ours": "b25c705ac33017b6e125610229b6d1d55bba050d",
-      "reason": "Clean cherry-pick.",
+      "ours": "04137fda9ba723fefdda8bac033ad9a5b778fb61",
+      "reason": "Adopted with the persistence test corrected to use the fork's client settings key.",
       "reviewedAt": "2026-09-04T15:23:07.875Z"
     },
     {
