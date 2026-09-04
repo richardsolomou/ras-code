@@ -138,12 +138,6 @@ export function SettingsEnvironmentsRouteScreen() {
                   onReconnect={onReconnectEnvironment}
                   onRemove={onRemoveEnvironmentPress}
                   onUpdate={handleUpdateEnvironment}
-                  onSetupProvider={(params) =>
-                    navigation.navigate("SettingsSheet", {
-                      screen: "SettingsContent",
-                      params: { screen: "SettingsProviderSetup", params },
-                    })
-                  }
                 />
               </View>
             ))}
@@ -171,12 +165,6 @@ export function SettingsEnvironmentsRouteScreen() {
         <CloudEnvironmentRows
           connectedCloudEnvironments={connectedCloudEnvironments}
           onReconnectEnvironment={onReconnectEnvironment}
-          onSetupProvider={(params) =>
-            navigation.navigate("SettingsSheet", {
-              screen: "SettingsContent",
-              params: { screen: "SettingsProviderSetup", params },
-            })
-          }
           {...(SHOWCASE_ENABLED
             ? {
                 showcaseAvailableEnvironments: SHOWCASE_AVAILABLE_CLOUD_ENVIRONMENTS,
