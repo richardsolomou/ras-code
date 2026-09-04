@@ -315,6 +315,11 @@ export default defineConfig(() => {
           }
         : {}),
     },
+    // @tailwindcss/vite only emits a CSS sourcemap when devSourcemap is on; without it
+    // rolldown flags the transform as SOURCEMAP_BROKEN on every sourcemapped build.
+    css: {
+      devSourcemap: buildSourcemap !== false,
+    },
     build: {
       // Cloudflare addresses assets by path, so the build has to sit at the
       // prefix it is served under: `/app/assets/x` resolves only if the

@@ -144,6 +144,8 @@ final class RasCodeNativeFilePresentation: NSObject, QLPreviewControllerDataSour
         type = detectedType
       } else if CGPDFDocument(download as CFURL) != nil {
         type = .pdf
+      } else if URL(fileURLWithPath: title).pathExtension.lowercased() == "svg" {
+        type = .svg
       } else {
         throw URLError(.cannotDecodeContentData)
       }

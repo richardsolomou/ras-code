@@ -9,7 +9,7 @@ import {
 import { LegendList } from "@legendapp/list/react-native";
 import type { MenuAction } from "@react-native-menu/menu";
 import { useAtomValue } from "@effect/atom-react";
-import type { EnvironmentId } from "@ras-code/contracts";
+import { type EnvironmentId, resolveEnvironmentMachineKind } from "@ras-code/contracts";
 import { sortPinnedThreadsByOrderKey } from "@ras-code/client-runtime/state/thread-sort";
 import { resolveActiveProviderInstanceId } from "@ras-code/client-runtime/provider-fallback";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -310,6 +310,16 @@ function ThreadNavigationSidebarPane(
   // Threads on servers without the settlement capability never classify as
   // settled (the user could neither un-settle nor pin them).
   const serverConfigs = useAtomValue(environmentServerConfigsAtom);
+  const machineByEnvironmentId = useMemo(
+    () =>
+      new Map(
+        [...serverConfigs].map(
+          ([environmentId, config]) =>
+            [environmentId, resolveEnvironmentMachineKind(config)] as const,
+        ),
+      ),
+    [serverConfigs],
+  );
   const settlementEnvironmentIds = useMemo(() => {
     const supported = new Set<EnvironmentId>();
     for (const [environmentId, config] of serverConfigs) {
@@ -684,6 +694,9 @@ function ThreadNavigationSidebarPane(
                       ?.environmentLabel ?? null)
                   : null
               }
+              environmentMachine={machineByEnvironmentId.get(
+                item.pendingTask.message.environmentId,
+              )}
               pane="sidebar"
               showPendingDivider={item.showPendingDivider}
               onSelectPendingTask={openPendingTask}
@@ -716,6 +729,7 @@ function ThreadNavigationSidebarPane(
                   ? (savedConnectionsById[thread.environmentId]?.environmentLabel ?? null)
                   : null
               }
+              environmentMachine={machineByEnvironmentId.get(thread.environmentId)}
               searchMatch={threadSearchMatchByKey.get(
                 threadSearchMatchKey({
                   environmentId: thread.environmentId,
@@ -802,6 +816,7 @@ function ThreadNavigationSidebarPane(
       handleSelectThread,
       handleSwipeableClose,
       handleSwipeableWillOpen,
+      machineByEnvironmentId,
       movePinnedThread,
       openPendingTask,
       pinReorderEnvironmentIds,

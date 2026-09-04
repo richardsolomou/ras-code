@@ -16,6 +16,7 @@ import { getLocalStorageItem, removeLocalStorageItem } from "../hooks/useLocalSt
 import { resolveShortcutCommand, shortcutLabelForCommand } from "../keybindings";
 import { cn, isMacPlatform } from "../lib/utils";
 import { primaryServerKeybindingsAtom } from "../state/server";
+import { usePanelAnimationSettings } from "../panelAnimations";
 import ThreadSidebar from "./Sidebar";
 import { ThreadDragProvider } from "./chat/ThreadDragProvider";
 import { SidebarChromeHeader } from "./sidebar/SidebarChrome";
@@ -122,6 +123,8 @@ function ProjectProjectionRetention() {
 
 export function AppSidebarLayout({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
+  const { active: panelAnimationsActive, durationMs: panelAnimationDurationMs } =
+    usePanelAnimationSettings();
   // Settings routes show the settings nav in place of the thread sidebar.
   const pathname = useLocation({ select: (location) => location.pathname });
   const isOnSettings = pathname === "/settings" || pathname.startsWith("/settings/");
@@ -148,6 +151,7 @@ export function AppSidebarLayout({ children }: { children: ReactNode }) {
   });
   const sidebarProviderStyle = {
     "--sidebar-width": `${sidebarWidth}px`,
+    "--panel-animation-duration": `${panelAnimationDurationMs}ms`,
     ...(isMacosDesktop && !isWindowFullscreen
       ? { "--workspace-controls-left": MACOS_TRAFFIC_LIGHTS_LEFT_INSET }
       : {}),
@@ -192,7 +196,12 @@ export function AppSidebarLayout({ children }: { children: ReactNode }) {
 
   return (
     <ThreadDragProvider>
-      <SidebarProvider className="h-dvh! min-h-0!" defaultOpen style={sidebarProviderStyle}>
+      <SidebarProvider
+        className="h-dvh! min-h-0!"
+        data-panel-animations={panelAnimationsActive ? "true" : "false"}
+        defaultOpen
+        style={sidebarProviderStyle}
+      >
         <ProjectProjectionRetention />
         <Sidebar
           side="left"

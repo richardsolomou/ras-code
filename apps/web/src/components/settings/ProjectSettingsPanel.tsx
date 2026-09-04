@@ -99,6 +99,7 @@ import {
 } from "../ui/menu";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "../ui/select";
 import { SidebarInset } from "../ui/sidebar";
+import { Switch } from "../ui/switch";
 import { stackedThreadToast, toastManager } from "../ui/toast";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import {
@@ -108,6 +109,7 @@ import {
 } from "../WorkspaceBreadcrumb";
 import { WorkspacePageHeader } from "../WorkspacePageHeader";
 import {
+  SETTINGS_PICKER_TRIGGER_CLASSNAME,
   SettingResetButton,
   SettingsPageContainer,
   SettingsRow,
@@ -372,6 +374,7 @@ function ProjectDetail({ group }: { group: SidebarProjectSnapshot }) {
         title: string;
         defaultModelSelection: ModelSelection | null;
         defaultThreadEnvMode: ThreadEnvMode | null;
+        autoPull: boolean;
         faviconPath: string | null;
         iconEmoji: string | null;
       }>,
@@ -468,6 +471,13 @@ function ProjectDetail({ group }: { group: SidebarProjectSnapshot }) {
         { defaultThreadEnvMode: mode },
         "Failed to update new-thread workspace",
       ),
+    [updateAllMembers],
+  );
+
+  const autoPull = representative.autoPull ?? false;
+  const setAutoPull = useCallback(
+    (enabled: boolean) =>
+      void updateAllMembers({ autoPull: enabled }, "Failed to update automatic pull setting"),
     [updateAllMembers],
   );
 
@@ -822,6 +832,7 @@ function ProjectDetail({ group }: { group: SidebarProjectSnapshot }) {
             control={
               <Input
                 key={`${group.projectKey}:${group.displayName}`}
+                size="sm"
                 className="w-full sm:w-64"
                 aria-label="Project name"
                 defaultValue={group.displayName}
@@ -885,7 +896,7 @@ function ProjectDetail({ group }: { group: SidebarProjectSnapshot }) {
                   }}
                 />
                 <Button
-                  size="xs"
+                  size="sm"
                   variant="outline"
                   type="button"
                   aria-label="Choose a project icon file"
@@ -924,7 +935,7 @@ function ProjectDetail({ group }: { group: SidebarProjectSnapshot }) {
                     instanceEntries={instanceEntries}
                     modelOptionsByInstance={modelOptionsByInstance}
                     triggerVariant="outline"
-                    triggerClassName="min-w-0 max-w-none shrink-0 text-foreground/90 hover:text-foreground"
+                    triggerClassName={SETTINGS_PICKER_TRIGGER_CLASSNAME}
                     onInstanceModelChange={(instanceId, model) => {
                       setDefaultModel(createModelSelection(instanceId, model));
                     }}
@@ -938,7 +949,7 @@ function ProjectDetail({ group }: { group: SidebarProjectSnapshot }) {
                     modelOptions={resolvedSelection.options ?? []}
                     allowPromptInjectedEffort={false}
                     triggerVariant="outline"
-                    triggerClassName="min-w-0 max-w-none shrink-0 text-foreground/90 hover:text-foreground"
+                    triggerClassName={SETTINGS_PICKER_TRIGGER_CLASSNAME}
                     onModelOptionsChange={(nextOptions) => {
                       setDefaultModel(
                         createModelSelection(
@@ -977,7 +988,7 @@ function ProjectDetail({ group }: { group: SidebarProjectSnapshot }) {
                   }
                 }}
               >
-                <SelectTrigger aria-label="New-thread workspace">
+                <SelectTrigger size="sm" aria-label="New-thread workspace">
                   <SelectValue>
                     {storedEnvMode === null
                       ? group.memberProjects.length > 1
@@ -998,6 +1009,17 @@ function ProjectDetail({ group }: { group: SidebarProjectSnapshot }) {
               </Select>
             }
           />
+          <SettingsRow
+            title="Automatically pull"
+            description="Keeps the default branch current in the background when the checkout has no local changes or commits."
+            control={
+              <Switch
+                checked={autoPull}
+                aria-label="Automatically pull the default branch"
+                onCheckedChange={setAutoPull}
+              />
+            }
+          />
         </SettingsSection>
 
         <SettingsSection
@@ -1007,7 +1029,7 @@ function ProjectDetail({ group }: { group: SidebarProjectSnapshot }) {
               value={selectedCheckout.physicalProjectKey}
               onValueChange={(value) => setSelectedCheckoutKey(String(value))}
             >
-              <SelectTrigger className="max-w-64" aria-label="Selected checkout">
+              <SelectTrigger size="sm" className="max-w-64" aria-label="Selected checkout">
                 <SelectValue>{selectedCheckoutLabel}</SelectValue>
               </SelectTrigger>
               <SelectPopup align="end" alignItemWithTrigger={false}>
@@ -1072,7 +1094,7 @@ function ProjectDetail({ group }: { group: SidebarProjectSnapshot }) {
                   }
                 }}
               >
-                <SelectTrigger aria-label={`Grouping rule for ${selectedCheckoutLabel}`}>
+                <SelectTrigger size="sm" aria-label={`Grouping rule for ${selectedCheckoutLabel}`}>
                   <SelectValue>
                     {selectedCheckoutGrouping === "inherit"
                       ? `Default (${PROJECT_GROUPING_MODE_LABELS[projectGroupingSettings.sidebarProjectGroupingMode]})`
@@ -1102,7 +1124,7 @@ function ProjectDetail({ group }: { group: SidebarProjectSnapshot }) {
               description="Removes this checkout and its threads from the project group. Files on disk are not touched."
               control={
                 <Button
-                  size="xs"
+                  size="sm"
                   variant="destructive-outline"
                   onClick={() => void removeMembers([selectedCheckout])}
                 >
@@ -1248,6 +1270,7 @@ function ProjectDetail({ group }: { group: SidebarProjectSnapshot }) {
             }
             control={
               <Button
+                size="sm"
                 variant="destructive-outline"
                 onClick={() => void removeMembers(group.memberProjects)}
               >

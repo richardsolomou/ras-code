@@ -24,7 +24,6 @@
  * cursors never rewind.
  */
 
-// @effect-diagnostics nodeBuiltinImport:off - node:os resolves the shared RAS Code home guard.
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as NodeOS from "node:os";
@@ -39,7 +38,7 @@ import * as SqlClient from "effect/unstable/sql/SqlClient";
 import { Command, Flag } from "effect/unstable/cli";
 
 import { migrationManifest, runMigrations } from "../src/persistence/Migrations.ts";
-import * as NodeSqliteClient from "../src/persistence/NodeSqliteClient.ts";
+import * as NodeSqliteClient from "@ras-code/shared/nodeSqliteClient";
 
 export class MigrateDevDbNotInWorktreeError extends Schema.TaggedErrorClass<MigrateDevDbNotInWorktreeError>()(
   "MigrateDevDbNotInWorktreeError",
@@ -518,7 +517,7 @@ export const migrateDevDbCommand = Command.make(
     baseDir: Flag.string("base-dir").pipe(
       Flag.optional,
       Flag.withDescription(
-        "Isolated .ras-code directory. Defaults to the current worktree's .ras.",
+        "Isolated .ras-code directory. Defaults to the current worktree's .ras-code.",
       ),
     ),
     source: Flag.string("source").pipe(

@@ -21,6 +21,13 @@ describe("rebrandText", () => {
     assert.strictEqual(rebrandText("process.env.T3CODE_HOME"), "process.env.RAS_CODE_HOME");
   });
 
+  it("rewrites product identifiers nested inside delimiters", () => {
+    assert.strictEqual(
+      rebrandText('const marker = "__T3_ANTIGRAVITY_AUTH_URL__";'),
+      'const marker = "__RAS_CODE_ANTIGRAVITY_AUTH_URL__";',
+    );
+  });
+
   it("keeps the session cookie name off the ras_code_ prefix", () => {
     assert.strictEqual(rebrandText('cookie: "t3_session_5775"'), 'cookie: "ras_session_5775"');
   });
@@ -55,6 +62,17 @@ describe("rebrandText", () => {
 
   it("rewrites the product name", () => {
     assert.strictEqual(rebrandText("Welcome to T3 Code."), "Welcome to RAS Code.");
+  });
+
+  it("rewrites the standalone product shorthand", () => {
+    assert.strictEqual(
+      rebrandText("T3 keeps the session open."),
+      "RAS Code keeps the session open.",
+    );
+    assert.strictEqual(
+      rebrandText('"\\nT3 keeps the session open."'),
+      '"\\nRAS Code keeps the session open."',
+    );
   });
 
   it("rewrites the remote access product name", () => {
@@ -115,6 +133,29 @@ describe("rebrandText", () => {
   it("rewrites mobile native module directories", () => {
     assert.strictEqual(rebrandText("modules/t3-terminal"), "modules/ras-code-terminal");
   });
+
+  it("rewrites product-scoped kebab identifiers", () => {
+    assert.strictEqual(
+      rebrandText('prefix: "t3-browser-secret-"'),
+      'prefix: "ras-code-browser-secret-"',
+    );
+  });
+
+  it("rewrites the Android Maven group", () => {
+    assert.strictEqual(
+      rebrandText("group = 'com.t3tools.markdowntext'"),
+      "group = 'com.richardsolomou.ras_code.markdowntext'",
+    );
+  });
+
+  it("rewrites CLI commands and package selectors", () => {
+    assert.strictEqual(
+      rebrandText("npx t3@latest service update"),
+      "npx ras-code@latest service update",
+    );
+    assert.strictEqual(rebrandText("t3 service status"), "ras service status");
+    assert.strictEqual(rebrandText("--filter '!t3'"), "--filter '!ras-code'");
+  });
 });
 
 describe("rebrandText do-not-rename list", () => {
@@ -140,6 +181,16 @@ describe("rebrandText do-not-rename list", () => {
 
   it("keeps upstream repository references", () => {
     const source = "https://github.com/pingdotgg/t3code/pull/8235";
+    assert.strictEqual(rebrandText(source), source);
+  });
+
+  it("keeps upstream social handles", () => {
+    const source = "https://x.com/@t3dotcodes";
+    assert.strictEqual(rebrandText(source), source);
+  });
+
+  it("keeps lockfile integrity hashes", () => {
+    const source = "resolution: {integrity: sha512-oRHgaBmT3zZJnLAotCrVahw==}";
     assert.strictEqual(rebrandText(source), source);
   });
 

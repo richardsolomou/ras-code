@@ -141,6 +141,20 @@ function renderPanel(options?: {
   }) as ReactElement<Record<string, unknown>>;
 }
 
+function isRefreshButton(element: ReactElement<Record<string, unknown>>): boolean {
+  const children = element.props.children;
+  return (
+    Array.isArray(children) &&
+    children.some(
+      (child) =>
+        typeof child === "object" &&
+        child !== null &&
+        (child as ReactElement<Record<string, unknown>>).props?.className === "sr-only" &&
+        (child as ReactElement<Record<string, unknown>>).props?.children ===
+          "Refresh provider status",
+    )
+  );
+}
 function findAdvancedPanel(panel: ReactElement<Record<string, unknown>>) {
   return visitElements(
     panel,
@@ -181,10 +195,7 @@ describe("EnvironmentProviderSettings routing", () => {
   it("routes refresh and provider update commands to the selected environment", async () => {
     atoms.providers = [provider()];
     const panel = renderPanel();
-    const refreshButton = visitElements(
-      panel,
-      (element) => element.props["aria-label"] === "Refresh provider status",
-    );
+    const refreshButton = visitElements(panel, isRefreshButton);
     expect(refreshButton).not.toBeNull();
     (refreshButton?.props.onClick as (() => void) | undefined)?.();
     await flushPromises();
@@ -245,9 +256,7 @@ describe("EnvironmentProviderSettings routing", () => {
       (element) => element.props.title === "Providers" && "headerAction" in element.props,
     );
     expect(providersSection?.props.headerAction).toBeNull();
-    expect(
-      visitElements(panel, (element) => element.props["aria-label"] === "Refresh provider status"),
-    ).toBeNull();
+    expect(visitElements(panel, isRefreshButton)).toBeNull();
   });
 
   it("keeps the editable layout interactive when not read only", () => {
@@ -262,6 +271,7 @@ describe("EnvironmentProviderSettings routing", () => {
       (element) => element.props.title === "Providers" && "headerAction" in element.props,
     );
     expect(providersSection?.props.headerAction).not.toBeNull();
+    expect(visitElements(panel, isRefreshButton)).not.toBeNull();
   });
 
   it("opens Advanced when search targets the provider health interval", () => {

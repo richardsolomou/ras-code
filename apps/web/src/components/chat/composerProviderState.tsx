@@ -12,10 +12,13 @@ import {
   isClaudeUltrathinkPrompt,
   normalizeModelSlug,
 } from "@ras-code/shared/model";
+import type { VariantProps } from "class-variance-authority";
 import type { ReactNode } from "react";
 
+import type { buttonVariants } from "../ui/button";
 import type { DraftId } from "../../composerDraftStore";
 import { getProviderModelCapabilities } from "../../providerModels";
+import type { ComposerControlSize } from "./ComposerControl";
 import { shouldRenderTraitsControls, TraitsMenuContent, TraitsPicker } from "./TraitsPicker";
 
 export type ComposerProviderStateInput = {
@@ -47,6 +50,10 @@ type TraitsRenderInput = {
   modelOptions: ReadonlyArray<ProviderOptionSelection> | undefined;
   prompt: string;
   onPromptChange: (prompt: string) => void;
+  size?: ComposerControlSize;
+  triggerVariant?: VariantProps<typeof buttonVariants>["variant"];
+  triggerClassName?: string;
+  isComposerOwned?: boolean;
 };
 
 export function getComposerPromptInjectionState(prompt: string): ComposerPromptInjectionState {
@@ -113,6 +120,10 @@ function renderTraitsControl(
     modelOptions,
     prompt,
     onPromptChange,
+    size,
+    triggerVariant,
+    triggerClassName,
+    isComposerOwned,
   } = input;
   const hasTarget = threadRef !== undefined || draftId !== undefined;
   if (
@@ -138,6 +149,10 @@ function renderTraitsControl(
       modelOptions={modelOptions}
       prompt={prompt}
       onPromptChange={onPromptChange}
+      {...(size !== undefined ? { size } : {})}
+      {...(triggerVariant !== undefined ? { triggerVariant } : {})}
+      {...(triggerClassName !== undefined ? { triggerClassName } : {})}
+      {...(isComposerOwned ? { isComposerOwned } : {})}
     />
   );
 }

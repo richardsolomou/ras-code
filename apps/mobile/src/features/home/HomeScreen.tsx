@@ -8,8 +8,9 @@ import {
 } from "@ras-code/client-runtime/state/thread-search";
 import { sortPinnedThreadsByOrderKey } from "@ras-code/client-runtime/state/thread-sort";
 import { resolveActiveProviderInstanceId } from "@ras-code/client-runtime/provider-fallback";
-import type {
-  EnvironmentId,
+import {
+  type EnvironmentId,
+  resolveEnvironmentMachineKind,
   SidebarProjectGroupingMode,
   SidebarThreadSortOrder,
 } from "@ras-code/contracts";
@@ -494,6 +495,16 @@ export function HomeScreen(props: HomeScreenProps) {
   // Threads on servers without the settlement capability never classify as
   // settled (the user could neither un-settle nor pin them).
   const serverConfigs = useAtomValue(environmentServerConfigsAtom);
+  const machineByEnvironmentId = useMemo(
+    () =>
+      new Map(
+        [...serverConfigs].map(
+          ([environmentId, config]) =>
+            [environmentId, resolveEnvironmentMachineKind(config)] as const,
+        ),
+      ),
+    [serverConfigs],
+  );
   const settlementEnvironmentIds = useMemo(() => {
     const supported = new Set<EnvironmentId>();
     for (const [environmentId, config] of serverConfigs) {
@@ -656,6 +667,7 @@ export function HomeScreen(props: HomeScreenProps) {
                     ?.environmentLabel ?? null)
                 : null
             }
+            environmentMachine={machineByEnvironmentId.get(item.pendingTask.message.environmentId)}
             showPendingDivider={item.showPendingDivider}
             showTrailingDivider={showTrailingDivider}
             onSelectPendingTask={props.onSelectPendingTask}
@@ -711,6 +723,7 @@ export function HomeScreen(props: HomeScreenProps) {
               ? (props.savedConnectionsById[thread.environmentId]?.environmentLabel ?? null)
               : null
           }
+          environmentMachine={machineByEnvironmentId.get(thread.environmentId)}
           searchMatch={threadSearchMatchByKey.get(
             threadSearchMatchKey({
               environmentId: thread.environmentId,
@@ -760,6 +773,7 @@ export function HomeScreen(props: HomeScreenProps) {
       handleSwipeableClose,
       handleSwipeableWillOpen,
       handleUnsettleThread,
+      machineByEnvironmentId,
       pinningEnvironmentIds,
       pinReorderEnvironmentIds,
       projectByKey,

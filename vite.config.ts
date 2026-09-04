@@ -72,15 +72,6 @@ export default defineConfig({
       suspicious: "warn",
       perf: "warn",
     },
-    // Not on by default, and its absence let a hook sit after an early return in
-    // ChatView until a second mount of it crashed. Scoped to the React surfaces:
-    // the server has its own `use` identifiers that the rule cannot tell apart.
-    overrides: [
-      {
-        files: ["apps/web/src/**", "apps/mobile/src/**", "apps/desktop/src/**"],
-        rules: { "react/rules-of-hooks": "error" },
-      },
-    ],
     rules: {
       "unicorn/no-array-sort": "off",
       "unicorn/consistent-function-scoping": "off",
@@ -131,7 +122,40 @@ export default defineConfig({
       "ras-code/no-native-title-tooltip": "error",
       "ras-code/namespace-node-imports": "error",
     },
+    overrides: [
+      {
+        files: ["apps/web/src/**", "apps/mobile/src/**", "apps/desktop/src/**"],
+        rules: { "react/rules-of-hooks": "error" },
+      },
+      {
+        files: ["packages/shared/src/hostProcess.ts"],
+        rules: { "ras-code/no-global-process-runtime": "off" },
+      },
+      ...Object.entries({
+        "apps/server/src/orchestration/Layers/CheckpointReactor.test.ts": 42,
+        "apps/server/src/orchestration/Layers/OrchestrationEngine.test.ts": 5,
+        "apps/server/src/orchestration/Layers/OrchestrationReactor.test.ts": 4,
+        "apps/server/src/orchestration/Layers/ProviderCommandReactor.test.ts": 18,
+        "apps/server/src/orchestration/Layers/ProviderRuntimeIngestion.test.ts": 28,
+        "apps/server/src/orchestration/Layers/ThreadDeletionReactor.test.ts": 2,
+        "apps/server/src/orchestration/commandInvariants.test.ts": 5,
+        "apps/server/src/orchestration/projector.test.ts": 20,
+        "apps/server/src/provider/Layers/CodexAdapter.test.ts": 1,
+        "apps/server/src/provider/Layers/CodexSessionRuntime.test.ts": 5,
+        "apps/server/src/provider/Layers/CursorAdapter.test.ts": 1,
+        "apps/server/src/provider/Layers/CursorProvider.test.ts": 1,
+        "apps/server/src/provider/Layers/ProviderService.test.ts": 2,
+        "apps/server/src/provider/Layers/ProviderSessionReaper.test.ts": 12,
+        "apps/server/src/provider/acp/CursorAcpSupport.test.ts": 1,
+        "apps/server/src/relay/AgentAwarenessRelay.test.ts": 1,
+        "oxlint-plugin-ras-code/rules/no-manual-effect-runtime-in-tests.test.ts": 8,
+      }).map(([file, maxOccurrences]) => {
+        const rule: ["error", { maxOccurrences: number }] = ["error", { maxOccurrences }];
+        return { files: [file], rules: { "ras-code/no-manual-effect-runtime-in-tests": rule } };
+      }),
+    ],
     options: {
+      reportUnusedDisableDirectives: "error",
       // Revisit once Oxlint's tsgolint path can integrate with @effect/tsgo diagnostics.
       typeAware: false,
       typeCheck: false,

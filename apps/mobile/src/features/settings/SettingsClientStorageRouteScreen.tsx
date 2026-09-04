@@ -1,4 +1,5 @@
 import { useAtomSet, useAtomValue } from "@effect/atom-react";
+import { type EnvironmentMachineKind, resolveEnvironmentMachineKind } from "@ras-code/contracts";
 import { AsyncResult } from "effect/unstable/reactivity";
 import { SymbolView } from "expo-symbols";
 import { useMemo } from "react";
@@ -7,11 +8,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppText as Text } from "../../components/AppText";
 import { useThemeColor } from "../../lib/useThemeColor";
+import { EnvironmentMachineSymbol } from "../../components/EnvironmentMachineSymbol";
 import {
   clearClientCacheAtom,
   clientCacheSummaryAtom,
   type EnvironmentClientCacheSummary,
 } from "../../state/client-cache-state";
+import { useServerConfigs } from "../../state/entities";
 import { useSavedRemoteConnections } from "../../state/use-remote-environment-registry";
 import { SettingsSection } from "./components/SettingsSection";
 
@@ -23,6 +26,7 @@ export function SettingsClientStorageRouteScreen() {
   const clearResult = useAtomValue(clearClientCacheAtom);
   const clearCache = useAtomSet(clearClientCacheAtom);
   const { savedConnectionsById } = useSavedRemoteConnections();
+  const serverConfigs = useServerConfigs();
   const isClearing = clearResult.waiting;
   const summary = AsyncResult.isSuccess(summaryResult) ? summaryResult.value : null;
   const environmentSummaries = useMemo(
@@ -109,6 +113,9 @@ export function SettingsClientStorageRouteScreen() {
                   savedConnectionsById[environment.environmentId]?.environmentLabel ??
                   environment.environmentId
                 }
+                machine={resolveEnvironmentMachineKind(
+                  serverConfigs.get(environment.environmentId) ?? null,
+                )}
                 disabled={isClearing}
                 first={index === 0}
                 onClear={() => confirmClearEnvironment(environment)}
@@ -170,6 +177,7 @@ export function SettingsClientStorageRouteScreen() {
 function CacheEnvironmentRow(props: {
   readonly environment: EnvironmentClientCacheSummary;
   readonly environmentLabel: string;
+  readonly machine: EnvironmentMachineKind;
   readonly disabled: boolean;
   readonly first: boolean;
   readonly onClear: () => void;
@@ -183,13 +191,7 @@ function CacheEnvironmentRow(props: {
           : "border-t border-border flex-row items-center gap-3 p-4"
       }
     >
-      <SymbolView
-        name="desktopcomputer"
-        size={22}
-        tintColor={iconColor}
-        type="monochrome"
-        weight="regular"
-      />
+      <EnvironmentMachineSymbol kind={props.machine} size={22} tintColorClassName="accent-icon" />
       <Text className="min-w-0 flex-1 text-base text-foreground" numberOfLines={1}>
         {props.environmentLabel}
       </Text>

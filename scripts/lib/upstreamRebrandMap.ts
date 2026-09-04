@@ -30,6 +30,8 @@ export const preservedPatterns: ReadonlyArray<RegExp> = [
   /\bpingdotgg\/t3code\b/g,
   /\bPingDotGG\/T3Code\b/g,
   /\bbinbandit\/t3code\b/g,
+  /@t3dotcodes\b/g,
+  /\bsha512-[A-Za-z0-9+/=]+/g,
   /\bt3_relay\b/g,
   // The WSL runtime cache still lives under these names on users' disks, so
   // renaming them here would orphan every installed runtime.
@@ -86,6 +88,11 @@ const textRules: ReadonlyArray<RebrandRule> = [
     description: "remaining screaming-snake identifiers",
   },
   {
+    pattern: /T3_/g,
+    replacement: "RAS_CODE_",
+    description: "product identifiers nested inside delimiters",
+  },
+  {
     pattern: /\bT3 Connect\b/g,
     replacement: "RAS Connect",
     description: "remote access product name",
@@ -104,6 +111,16 @@ const textRules: ReadonlyArray<RebrandRule> = [
     pattern: /\bT3 Code\b/g,
     replacement: "RAS Code",
     description: "product name",
+  },
+  {
+    pattern: /\\nT3\b/g,
+    replacement: "\\nRAS Code",
+    description: "product shorthand after an escaped newline",
+  },
+  {
+    pattern: /\bT3\b/g,
+    replacement: "RAS Code",
+    description: "standalone product shorthand",
   },
   {
     pattern: /\bT3ProjectFile/g,
@@ -165,6 +182,32 @@ const textRules: ReadonlyArray<RebrandRule> = [
     pattern: /\bt3-code\b/g,
     replacement: "ras-code",
     description: "kebab-case product id",
+  },
+  {
+    pattern:
+      /\bt3-(browser-secret|markdown-run|file|skill|native-app-icon-test|async-questions|projection-cursor-batch|auth-session-(?:owner|other)|agy-(?:test|path-test|fs|outside)|antigravity-(?:validate|driver|setup|skills|adapter-test|transport|attachments|browser-preflight|text)|provider-(?:log|install-route)|test|opencode-output|env|static-(?:cache|hashes|mutable|replace|close)|vcs-auto-pull-(?:real|link)|bootstrap|tailwind)\b/g,
+    replacement: "ras-code-$1",
+    description: "known product-scoped kebab identifiers",
+  },
+  {
+    pattern: /\bcom\.t3tools\./g,
+    replacement: "com.richardsolomou.ras_code.",
+    description: "Android Maven groups",
+  },
+  {
+    pattern: /\bnpx t3(?=@|\b)/g,
+    replacement: "npx ras-code",
+    description: "package runner commands",
+  },
+  {
+    pattern: /\bt3(?= (?:app|connect|pair|serve|service)\b)/g,
+    replacement: "ras",
+    description: "installed CLI commands",
+  },
+  {
+    pattern: /\bt3\b(?!-)/g,
+    replacement: "ras-code",
+    description: "standalone package name",
   },
   {
     pattern: /\bt3_session/g,

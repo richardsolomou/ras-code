@@ -5,7 +5,12 @@ import {
   type EnvironmentConnectionPhase,
   type EnvironmentConnectionPresentation,
 } from "@ras-code/client-runtime/connection";
-import type { EnvironmentId } from "@ras-code/contracts";
+import {
+  type EnvironmentId,
+  type EnvironmentMachineKind,
+  resolveEnvironmentMachineKind,
+} from "@ras-code/contracts";
+import { useAtomValue } from "@effect/atom-react";
 import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
@@ -16,11 +21,13 @@ import {
 } from "react-native";
 
 import { AppText as Text } from "../../components/AppText";
+import { EnvironmentMachineSymbol } from "../../components/EnvironmentMachineSymbol";
 import { ThemedSwitch } from "../../components/ThemedSwitch";
 import { cn } from "../../lib/cn";
 import { copyTextWithHaptic } from "../../lib/copyTextWithHaptic";
 import { useThemeColor } from "../../lib/useThemeColor";
 import type { ConnectedEnvironmentSummary } from "../../state/remote-runtime-types";
+import { serverEnvironment } from "../../state/server";
 import { availableCloudEnvironmentPresentation } from "../cloud/cloudEnvironmentPresentation";
 import { hasCloudPublicConfig } from "../cloud/publicConfig";
 import { ConnectionStatusDot } from "./ConnectionStatusDot";
@@ -208,6 +215,9 @@ function ConnectedCloudEnvironmentRow(props: {
   readonly onDisconnect: () => void;
   readonly onToggleError: () => void;
 }) {
+  const serverConfig = useAtomValue(
+    serverEnvironment.configValueAtom(props.environment.environmentId),
+  );
   return (
     <CloudEnvironmentRowShell
       borderTop={props.borderTop}
@@ -217,6 +227,7 @@ function ConnectedCloudEnvironmentRow(props: {
       connectionStage={props.environment.connectionStage}
       errorExpanded={props.errorExpanded}
       label={props.environment.environmentLabel}
+      machine={resolveEnvironmentMachineKind(serverConfig)}
       onValueChange={(enabled) => {
         if (enabled) {
           props.onConnect();
@@ -274,6 +285,8 @@ function CloudEnvironmentRowShell(props: {
   readonly disabled?: boolean;
   readonly errorExpanded: boolean;
   readonly label: string;
+  /** Absent for environments the relay lists but this device has not connected to. */
+  readonly machine?: EnvironmentMachineKind;
   readonly onToggleError: () => void;
   readonly onValueChange: (enabled: boolean) => void;
   readonly statusText?: string;
@@ -331,6 +344,13 @@ function CloudEnvironmentRowShell(props: {
       <View className="min-w-0 flex-1 gap-0.5">
         <View className="min-w-0 flex-row items-center gap-2">
           <ConnectionStatusDot state={props.connectionState} pulse={shouldPulse} size={7} />
+          {props.machine ? (
+            <EnvironmentMachineSymbol
+              kind={props.machine}
+              size={14}
+              tintColorClassName="accent-foreground-muted"
+            />
+          ) : null}
           <Text
             className="min-w-0 flex-shrink text-base font-ras-code-bold leading-snug text-foreground"
             numberOfLines={1}

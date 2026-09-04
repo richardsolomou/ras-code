@@ -278,6 +278,7 @@ projectionSnapshotLayer("ProjectionSnapshotQuery", (it) => {
             instanceId: ProviderInstanceId.make("codex"),
             model: "gpt-5-codex",
           },
+          autoPull: false,
           faviconPath: null,
           iconEmoji: null,
           scripts: [
@@ -407,6 +408,7 @@ projectionSnapshotLayer("ProjectionSnapshotQuery", (it) => {
             instanceId: ProviderInstanceId.make("codex"),
             model: "gpt-5-codex",
           },
+          autoPull: false,
           faviconPath: null,
           iconEmoji: null,
           scripts: [

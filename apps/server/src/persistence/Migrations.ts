@@ -60,6 +60,8 @@ import Migration0045 from "./Migrations/045_ProjectionThreadNotificationSummary.
 import Migration0046 from "./Migrations/046_ThreadForking.ts";
 import Migration0047 from "./Migrations/047_ProjectionThreadsSettledReason.ts";
 import Migration0048 from "./Migrations/048_ClearAutomaticProjectModelDefaults.ts";
+import Migration0049 from "./Migrations/049_ProjectionProjectsAutoPull.ts";
+import Migration0050 from "./Migrations/050_RepairAutomaticSettlementTimestamps.ts";
 
 /**
  * Migration loader with all migrations defined inline.
@@ -120,6 +122,8 @@ export const migrationEntries = [
   [46, "ThreadForking", Migration0046],
   [47, "ProjectionThreadsSettledReason", Migration0047],
   [48, "ClearAutomaticProjectModelDefaults", Migration0048],
+  [49, "ProjectionProjectsAutoPull", Migration0049],
+  [50, "RepairAutomaticSettlementTimestamps", Migration0050],
 ] as const;
 
 export const migrationManifest = migrationEntries.map(([id, name]) => [id, name] as const);

@@ -22,6 +22,7 @@ import IconBox from "@tabler/icons-react-native/IconBox";
 import IconCamera from "@tabler/icons-react-native/IconCamera";
 import IconChartBar from "@tabler/icons-react-native/IconChartBar";
 import IconCheck from "@tabler/icons-react-native/IconCheck";
+import IconCloud from "@tabler/icons-react-native/IconCloud";
 import IconChevronDown from "@tabler/icons-react-native/IconChevronDown";
 import IconChevronLeft from "@tabler/icons-react-native/IconChevronLeft";
 import IconChevronRight from "@tabler/icons-react-native/IconChevronRight";
@@ -32,6 +33,7 @@ import IconClock from "@tabler/icons-react-native/IconClock";
 import IconCode from "@tabler/icons-react-native/IconCode";
 import IconCopy from "@tabler/icons-react-native/IconCopy";
 import IconDeviceDesktop from "@tabler/icons-react-native/IconDeviceDesktop";
+import IconDeviceLaptop from "@tabler/icons-react-native/IconDeviceLaptop";
 import IconDots from "@tabler/icons-react-native/IconDots";
 import IconDotsCircleHorizontal from "@tabler/icons-react-native/IconDotsCircleHorizontal";
 import IconEdit from "@tabler/icons-react-native/IconEdit";
@@ -39,6 +41,7 @@ import IconExternalLink from "@tabler/icons-react-native/IconExternalLink";
 import IconEye from "@tabler/icons-react-native/IconEye";
 import IconFileText from "@tabler/icons-react-native/IconFileText";
 import IconFilter from "@tabler/icons-react-native/IconFilter";
+import IconFilterFilled from "@tabler/icons-react-native/IconFilterFilled";
 import IconFolder from "@tabler/icons-react-native/IconFolder";
 import IconFolderOpen from "@tabler/icons-react-native/IconFolderOpen";
 import IconFolderPlus from "@tabler/icons-react-native/IconFolderPlus";
@@ -83,6 +86,7 @@ import IconWifiOff from "@tabler/icons-react-native/IconWifiOff";
 import IconWorld from "@tabler/icons-react-native/IconWorld";
 import IconX from "@tabler/icons-react-native/IconX";
 import type { SFSymbol, SymbolViewProps } from "expo-symbols";
+import { withUniwind } from "uniwind";
 
 const ANDROID_ICON_BY_SF_SYMBOL: Partial<Record<SFSymbol, Icon>> = {
   "arrow.branch": IconGitBranch,
@@ -108,6 +112,7 @@ const ANDROID_ICON_BY_SF_SYMBOL: Partial<Record<SFSymbol, Icon>> = {
   checkmark: IconCheck,
   "checkmark.circle": IconCircleCheck,
   clock: IconClock,
+  cloud: IconCloud,
   cube: IconBox,
   "chevron.down": IconChevronDown,
   "chevron.left": IconChevronLeft,
@@ -127,9 +132,13 @@ const ANDROID_ICON_BY_SF_SYMBOL: Partial<Record<SFSymbol, Icon>> = {
   "folder.fill": IconFolder,
   gearshape: IconSettings,
   "info.circle": IconInfoCircle,
+  laptopcomputer: IconDeviceLaptop,
   link: IconLink,
   "line.3.horizontal.decrease.circle": IconFilter,
-  "line.3.horizontal.decrease.circle.fill": IconFilter,
+  "line.3.horizontal.decrease.circle.fill": IconFilterFilled,
+  // Tabler has no Apple desktops; the closest silhouettes stand in on Android.
+  macmini: IconServer,
+  macstudio: IconDeviceDesktop,
   magnifyingglass: IconSearch,
   paintbrush: IconPalette,
   "person.crop.circle": IconUserCircle,
@@ -176,6 +185,7 @@ const ANDROID_ICON_BY_MATERIAL_NAME: Record<string, Icon> = {
   close: IconX,
   construction: IconHammer,
   content_copy: IconCopy,
+  desktop_windows: IconDeviceDesktop,
   edit: IconEdit,
   error: IconAlertCircle,
   folder: IconFolder,
@@ -193,7 +203,7 @@ const ANDROID_ICON_BY_MATERIAL_NAME: Record<string, Icon> = {
 export type { SFSymbol } from "expo-symbols";
 export type AppSymbolName = SymbolViewProps["name"];
 
-export function SymbolView(props: SymbolViewProps) {
+function AppSymbolView(props: SymbolViewProps) {
   const materialName = typeof props.name === "string" ? undefined : props.name.android;
   const sfSymbol = typeof props.name === "string" ? props.name : props.name.ios;
   const AndroidIcon =
@@ -215,3 +225,5 @@ export function SymbolView(props: SymbolViewProps) {
     />
   );
 }
+
+export const SymbolView = withUniwind(AppSymbolView);

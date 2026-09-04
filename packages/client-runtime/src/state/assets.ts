@@ -1,7 +1,12 @@
-import { AssetResource, EnvironmentId, WS_METHODS } from "@ras-code/contracts";
+import {
+  type AssetCreateUrlResult,
+  AssetResource,
+  EnvironmentId,
+  WS_METHODS,
+} from "@ras-code/contracts";
 import * as Cause from "effect/Cause";
 import * as Schema from "effect/Schema";
-import { Atom } from "effect/unstable/reactivity";
+import { AsyncResult, Atom } from "effect/unstable/reactivity";
 
 import type { EnvironmentRegistry } from "../connection/registry.ts";
 import { environmentEndpointUrl } from "../environment/endpoint.ts";
@@ -92,6 +97,39 @@ export function resolveAssetUrl(httpBaseUrl: string, relativeUrl: string): strin
       return null;
     }
   }
+}
+
+export const EMPTY_ASSET_URL_ATOM = Atom.make(AsyncResult.initial<never, never>(false)).pipe(
+  Atom.withLabel("asset-url:empty"),
+);
+
+export type AssetUrlState =
+  | { readonly _tag: "Loading" }
+  | { readonly _tag: "Failure"; readonly reason: AssetUrlFailureReason }
+  | {
+      readonly _tag: "Success";
+      readonly url: string;
+      /** The host path the server chose to serve, when it differs from what was asked for. */
+      readonly sourcePath?: string;
+      readonly iconEmoji?: string;
+    };
+
+export function assetUrlStateFromResult(
+  result: AsyncResult.AsyncResult<AssetCreateUrlResult, unknown>,
+  httpBaseUrl: string | null,
+): AssetUrlState {
+  if (result._tag === "Failure") {
+    return { _tag: "Failure", reason: assetUrlFailureReason(result.cause) };
+  }
+  if (httpBaseUrl === null || result._tag !== "Success") return { _tag: "Loading" };
+  const url = resolveAssetUrl(httpBaseUrl, result.value.relativeUrl);
+  if (url === null) return { _tag: "Failure", reason: "unavailable" };
+  return {
+    _tag: "Success",
+    url,
+    ...(result.value.sourcePath !== undefined ? { sourcePath: result.value.sourcePath } : {}),
+    ...(result.value.iconEmoji !== undefined ? { iconEmoji: result.value.iconEmoji } : {}),
+  };
 }
 
 export function createAssetEnvironmentAtoms<R, E>(
