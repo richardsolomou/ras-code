@@ -2541,7 +2541,7 @@
       "pr": 9365,
       "title": "fix(environments): draw the machine icon everywhere an environment is named",
       "decision": "adapted",
-      "ours": "45ce2fb6df2b8cf49305b91d6631236e6e7dc357",
+      "ours": "7f9d63931927c6eb3b7e5ee885038ca815f59b06",
       "intent": "Use machine icons wherever an environment is named.",
       "reason": "Ported the icons through fork settings abstractions and active mobile views.",
       "reviewedAt": "2026-09-04T15:23:30.374Z"
