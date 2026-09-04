@@ -149,6 +149,7 @@ const removedPrefixes: ReadonlyArray<readonly [string, string]> = [
   // The custom theme editor and its VS Code / OpenVSX theme import, removed in
   // #51 in favour of the fixed theme set.
   ["apps/web/src/components/settings/ThemeColorPicker", THEME_EDITOR],
+  ["apps/web/src/components/settings/ThemeEditorPanel", THEME_EDITOR],
   ["apps/web/src/components/settings/ThemeEditor", THEME_EDITOR],
   ["apps/web/src/components/settings/ThemeImportDialog", THEME_EDITOR],
   ["apps/web/src/components/settings/ThemePreviewCircles", THEME_EDITOR],

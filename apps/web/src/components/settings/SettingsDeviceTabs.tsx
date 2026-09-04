@@ -12,7 +12,16 @@ import {
 import { EnvironmentMachineIcon } from "../EnvironmentMachineIcon";
 import { ScrollArea } from "../ui/scroll-area";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
-import { providerSettingsTabClassName } from "./providerSettingsTabs";
+
+/** Underlined tab, for a device switcher rather than a mode switch. */
+function deviceTabClassName(selected: boolean): string {
+  return cn(
+    "relative flex h-full shrink-0 cursor-pointer items-center rounded-sm px-3 text-xs font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
+    selected
+      ? "text-foreground after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-primary"
+      : "text-muted-foreground hover:text-foreground",
+  );
+}
 
 export function settingsDeviceDetail(environment: EnvironmentPresentation): string {
   if (environment.entry.target._tag === "PrimaryConnectionTarget") return "Primary device";
@@ -62,7 +71,7 @@ export function SettingsDeviceTabs({
                   <button
                     type="button"
                     aria-pressed={selected}
-                    className={cn(providerSettingsTabClassName(selected), "gap-2 text-left")}
+                    className={cn(deviceTabClassName(selected), "gap-2 text-left")}
                     onClick={() => onSelect(environment.environmentId)}
                   >
                     <EnvironmentMachineIcon

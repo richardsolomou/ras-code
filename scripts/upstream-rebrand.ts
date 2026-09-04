@@ -62,6 +62,11 @@ export const runRebrandFiles = Effect.fn("runRebrandFiles")(function* (
       yield* Console.log(`${path}: skipped, the rebrand tooling names upstream on purpose`);
       continue;
     }
+    if (!(yield* fs.exists(path))) {
+      // File lists come from commit diffs, which name paths the pick deleted.
+      yield* Console.log(`${path}: skipped, no longer present`);
+      continue;
+    }
     const original = yield* fs.readFileString(path);
     const rebranded = rebrandText(original);
     yield* reportResiduals(path, rebranded);
