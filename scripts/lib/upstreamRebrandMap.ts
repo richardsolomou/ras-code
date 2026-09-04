@@ -65,9 +65,11 @@ const textRules: ReadonlyArray<RebrandRule> = [
     description: "local oxlint plugin",
   },
   {
-    pattern: /\bT3CODE_/g,
+    // No leading boundary: an underscore is a word character, so a leading `__`
+    // on a heredoc marker leaves no boundary before the name.
+    pattern: /T3CODE_/g,
     replacement: "RAS_CODE_",
-    description: "product-scoped environment variables",
+    description: "product-scoped environment variables and shell markers",
   },
   {
     pattern: /\bLEGACY_T3_CHAT_DARK_THEME_ID\b/g,

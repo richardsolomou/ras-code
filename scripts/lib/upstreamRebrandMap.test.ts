@@ -87,6 +87,14 @@ describe("rebrandText", () => {
     );
   });
 
+  it("rewrites a product-scoped name behind leading underscores", () => {
+    assert.strictEqual(
+      rebrandText("__T3CODE_FAKE_CODEX_OUTPUT__"),
+      "__RAS_CODE_FAKE_CODEX_OUTPUT__",
+    );
+    assert.strictEqual(rebrandText("T3CODE_HOME"), "RAS_CODE_HOME");
+  });
+
   it("keeps the relay environment credential prefix", () => {
     assert.strictEqual(
       rebrandText("token: `t3env_${credentialId}_${secret}`"),
