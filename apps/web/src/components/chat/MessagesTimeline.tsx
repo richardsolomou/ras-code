@@ -127,7 +127,8 @@ import {
 import { useAssistantCitationTarget, type CitationHistoryPage } from "./useAssistantCitationTarget";
 import {
   computeStableMessagesTimelineRows,
-  deriveMessagesTimelineRows,
+  deriveMessagesTimelineRowsWithState,
+  type MessagesTimelineRowsProjection,
   liveWorkEntryLabel,
   resolveAssistantMessageCopyState,
   resolveTimelineIsAtEnd,
@@ -523,9 +524,15 @@ export const MessagesTimeline = memo(function MessagesTimeline({
     });
   }, [latestTurn]);
 
-  const rawRows = useMemo(
-    () =>
-      deriveMessagesTimelineRows({
+  const rowsProjectionRef = useRef<{
+    threadKey: string;
+    workspaceRoot: string | undefined;
+    projection: MessagesTimelineRowsProjection;
+  } | null>(null);
+  const rawRows = useMemo(() => {
+    const previous = rowsProjectionRef.current;
+    const projection = deriveMessagesTimelineRowsWithState(
+      {
         timelineEntries,
         latestTurn,
         runningTurnId,
@@ -535,19 +542,27 @@ export const MessagesTimeline = memo(function MessagesTimeline({
         activeTurnStartedAt,
         turnDiffSummaryByAssistantMessageId,
         checkpointTurnCountByAssistantMessageId,
-      }),
-    [
-      timelineEntries,
-      latestTurn,
-      runningTurnId,
-      expandedTurnIds,
-      expandedWorkGroupIds,
-      isWorking,
-      activeTurnStartedAt,
-      turnDiffSummaryByAssistantMessageId,
-      checkpointTurnCountByAssistantMessageId,
-    ],
-  );
+      },
+      previous?.threadKey === routeThreadKey && previous.workspaceRoot === workspaceRoot
+        ? previous.projection
+        : null,
+    );
+    rowsProjectionRef.current = { threadKey: routeThreadKey, workspaceRoot, projection };
+    return projection.rows;
+  }, [
+    rowsProjectionRef,
+    routeThreadKey,
+    workspaceRoot,
+    timelineEntries,
+    latestTurn,
+    runningTurnId,
+    expandedTurnIds,
+    expandedWorkGroupIds,
+    isWorking,
+    activeTurnStartedAt,
+    turnDiffSummaryByAssistantMessageId,
+    checkpointTurnCountByAssistantMessageId,
+  ]);
   const rows = useStableRows(rawRows);
   const minimapItems = useMemo(() => deriveTimelineMinimapItems(rows), [rows]);
   const [timelineViewportElement, setTimelineViewportElement] = useState<HTMLDivElement | null>(
