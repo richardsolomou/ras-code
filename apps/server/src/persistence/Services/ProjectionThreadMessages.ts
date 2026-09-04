@@ -92,6 +92,16 @@ export interface ProjectionThreadMessageRepositoryShape {
     input: ListProjectionThreadMessagesInput,
   ) => Effect.Effect<ReadonlyArray<ProjectionThreadMessage>, ProjectionRepositoryError>;
 
+  /** Read the latest user-message timestamp without loading message bodies. */
+  readonly getLatestUserMessageAt: (
+    input: ListProjectionThreadMessagesInput,
+  ) => Effect.Effect<ProjectionThreadMessage["createdAt"] | null, ProjectionRepositoryError>;
+
+  /** Read the newest settled assistant message's text without loading the rest. */
+  readonly getLatestSettledAssistantText: (
+    input: ListProjectionThreadMessagesInput,
+  ) => Effect.Effect<ProjectionThreadMessage["text"] | null, ProjectionRepositoryError>;
+
   /**
    * Delete projected thread messages by thread.
    */

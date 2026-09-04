@@ -182,22 +182,9 @@ function deriveLastFallbackEngagedAt(
  * One-line preview of the newest settled assistant message, for clients that
  * notify about threads whose detail they never loaded.
  */
-function deriveLatestAssistantSummary(
-  messages: ReadonlyArray<ProjectionThreadMessage>,
-): string | null {
-  let latest: ProjectionThreadMessage | null = null;
-  for (const message of messages) {
-    if (message.role !== "assistant" || message.isStreaming) continue;
-    if (
-      latest === null ||
-      message.createdAt > latest.createdAt ||
-      (message.createdAt === latest.createdAt && message.messageId > latest.messageId)
-    ) {
-      latest = message;
-    }
-  }
-  if (latest === null) return null;
-  const summary = latest.text
+function summarizeAssistantText(text: string | null): string | null {
+  if (text === null) return null;
+  const summary = text
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, LATEST_ASSISTANT_SUMMARY_MAX_LENGTH)
@@ -674,26 +661,22 @@ const makeOrchestrationProjectionPipeline = Effect.fn("makeOrchestrationProjecti
         return;
       }
 
-      const [messages, proposedPlans, activities, pendingApprovals] = yield* Effect.all([
-        projectionThreadMessageRepository.listByThreadId({ threadId }),
+      const [
+        latestUserMessageAt,
+        latestAssistantText,
+        proposedPlans,
+        activities,
+        pendingApprovalRowCount,
+      ] = yield* Effect.all([
+        projectionThreadMessageRepository.getLatestUserMessageAt({ threadId }),
+        projectionThreadMessageRepository.getLatestSettledAssistantText({ threadId }),
         projectionThreadProposedPlanRepository.listByThreadId({ threadId }),
         projectionThreadActivityRepository.listUserInputLifecycleByThreadId({ threadId }),
-        projectionPendingApprovalRepository.listByThreadId({ threadId }),
+        projectionPendingApprovalRepository.countPendingByThreadId({ threadId }),
       ]);
 
-      let latestUserMessageAt: string | null = null;
-      for (const message of messages) {
-        if (
-          message.role === "user" &&
-          (latestUserMessageAt === null || message.createdAt > latestUserMessageAt)
-        ) {
-          latestUserMessageAt = message.createdAt;
-        }
-      }
-
       const pendingApprovalCount =
-        pendingApprovals.filter((approval) => approval.status === "pending").length +
-        derivePendingFallbackOfferCountFromActivities(activities);
+        pendingApprovalRowCount + derivePendingFallbackOfferCountFromActivities(activities);
       const pendingUserInputCount = derivePendingUserInputCountFromActivities(activities);
       const hasActionableProposedPlan = deriveHasActionableProposedPlan({
         latestTurnId: existingRow.value.latestTurnId,
@@ -707,7 +690,7 @@ const makeOrchestrationProjectionPipeline = Effect.fn("makeOrchestrationProjecti
         pendingUserInputCount,
         hasActionableProposedPlan: hasActionableProposedPlan ? 1 : 0,
         lastFallbackEngagedAt: deriveLastFallbackEngagedAt(activities),
-        latestAssistantSummary: deriveLatestAssistantSummary(messages),
+        latestAssistantSummary: summarizeAssistantText(latestAssistantText),
         ...(updatedAt !== undefined ? { updatedAt } : {}),
       });
     });

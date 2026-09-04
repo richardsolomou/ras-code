@@ -12,6 +12,91 @@ const layer = it.layer(
 );
 
 layer("ProjectionThreadMessageRepository", (it) => {
+  it.effect("finds the latest user-message time within one thread", () =>
+    Effect.gen(function* () {
+      const repository = yield* ProjectionThreadMessageRepository;
+      const threadId = ThreadId.make("thread-latest-user-message");
+      assert.isNull(yield* repository.getLatestUserMessageAt({ threadId }));
+
+      const messages = [
+        { role: "user", createdAt: "2026-02-28T19:05:02.000Z" },
+        { role: "user", createdAt: "2026-02-28T19:05:01.000Z" },
+        { role: "assistant", createdAt: "2026-02-28T19:05:03.000Z" },
+        { role: "system", createdAt: "2026-02-28T19:05:04.000Z" },
+      ] as const;
+      for (const [index, message] of messages.entries()) {
+        yield* repository.upsert({
+          messageId: MessageId.make(`latest-user-message-${index}`),
+          threadId,
+          turnId: null,
+          ...message,
+          text: "Message body",
+          isStreaming: false,
+          updatedAt: "2026-02-28T19:06:00.000Z",
+        });
+      }
+      yield* repository.upsert({
+        messageId: MessageId.make("latest-user-message-other-thread"),
+        threadId: ThreadId.make("thread-latest-user-message-other"),
+        turnId: null,
+        role: "user",
+        text: "Other thread",
+        isStreaming: false,
+        createdAt: "2026-02-28T19:05:05.000Z",
+        updatedAt: "2026-02-28T19:05:05.000Z",
+      });
+
+      assert.strictEqual(
+        yield* repository.getLatestUserMessageAt({ threadId }),
+        "2026-02-28T19:05:02.000Z",
+      );
+      yield* repository.deleteByThreadId({ threadId });
+      assert.isNull(yield* repository.getLatestUserMessageAt({ threadId }));
+    }),
+  );
+
+  it.effect("reads the newest settled assistant text within one thread", () =>
+    Effect.gen(function* () {
+      const repository = yield* ProjectionThreadMessageRepository;
+      const threadId = ThreadId.make("thread-latest-assistant-text");
+      assert.isNull(yield* repository.getLatestSettledAssistantText({ threadId }));
+
+      const messages = [
+        { role: "assistant", text: "Older answer", isStreaming: false, at: "19:05:01" },
+        { role: "assistant", text: "Newest answer", isStreaming: false, at: "19:05:02" },
+        { role: "assistant", text: "Still typing", isStreaming: true, at: "19:05:03" },
+        { role: "user", text: "A question", isStreaming: false, at: "19:05:04" },
+      ] as const;
+      for (const [index, message] of messages.entries()) {
+        yield* repository.upsert({
+          messageId: MessageId.make(`latest-assistant-text-${index}`),
+          threadId,
+          turnId: null,
+          role: message.role,
+          text: message.text,
+          isStreaming: message.isStreaming,
+          createdAt: `2026-02-28T${message.at}.000Z`,
+          updatedAt: `2026-02-28T${message.at}.000Z`,
+        });
+      }
+      yield* repository.upsert({
+        messageId: MessageId.make("latest-assistant-text-other-thread"),
+        threadId: ThreadId.make("thread-latest-assistant-text-other"),
+        turnId: null,
+        role: "assistant",
+        text: "Other thread",
+        isStreaming: false,
+        createdAt: "2026-02-28T19:05:05.000Z",
+        updatedAt: "2026-02-28T19:05:05.000Z",
+      });
+
+      assert.strictEqual(
+        yield* repository.getLatestSettledAssistantText({ threadId }),
+        "Newest answer",
+      );
+    }),
+  );
+
   it.effect("appends streaming text and applies attachment updates", () =>
     Effect.gen(function* () {
       const repository = yield* ProjectionThreadMessageRepository;
