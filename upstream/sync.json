@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "560afffdea82000d757c98ea79678aee75f8648c",
+  "lastReviewed": "8ac5462920c45cdee63af15b2598909736f2ec84",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3689,6 +3689,15 @@
       "ours": "46e627c714e837b7d0aa813a35b8b63a02fc4e4f",
       "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
       "reviewedAt": "2026-09-05T21:08:13.294Z"
+    },
+    {
+      "upstream": "8ac5462920c45cdee63af15b2598909736f2ec84",
+      "pr": 9662,
+      "title": "perf(server): stop loading message bodies for thread summaries",
+      "decision": "adapted",
+      "ours": "16470c5e20f5ec0036c6e2d2df0d15e3289f25e2",
+      "reason": "Thread summaries stop loading message bodies. Our fallback-offer count joins upstream's approval count query, and our latestAssistantSummary moved to a getLatestSettledAssistantText query rather than keeping the full message list load that this change exists to remove.",
+      "reviewedAt": "2026-09-05T21:11:57.307Z"
     }
   ]
 }
