@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "03728361aa7beb9c13da320097450e6fe65aac3e",
+  "lastReviewed": "ff5843410d44796676b06627788d94354849c4d7",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -2870,6 +2870,132 @@
       "ours": "580c0c22bda99b311922555a890857086dcef867",
       "reason": "Adopted the two new composer-collapse settings; the settings-summary dependency list keeps our removal of the thread confirmation preferences, which #23 cut.",
       "reviewedAt": "2026-09-05T11:12:57.404Z"
+    },
+    {
+      "upstream": "373be93e68bf3d32207471b27e976ac84bff806a",
+      "pr": 9465,
+      "title": "fix(web): move workflow approval beside checks",
+      "decision": "adopted",
+      "ours": "81e5206ae85c70252f6832026c8fce35deead5e9",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:13:40.809Z"
+    },
+    {
+      "upstream": "4b8b5d9e0177002c84a6f55837670aa0ef816915",
+      "pr": 9488,
+      "title": "fix(desktop): refresh generated annotation styles",
+      "decision": "adopted",
+      "ours": "9b0150bb579905cb028562aa45e7e97c60976395",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:13:40.810Z"
+    },
+    {
+      "upstream": "0869ad648b67a286d7a47af878f1d256d0ff689f",
+      "pr": 9479,
+      "title": "fix(web): let the PR reviewer and label search boxes take keystrokes",
+      "decision": "adopted",
+      "ours": "fe07c30efcbcc78042d1b52d7a957ea949a929cf",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:13:40.810Z"
+    },
+    {
+      "upstream": "77138cf33194a303adfbbd69cc93efa69f84245d",
+      "pr": 9490,
+      "title": "fix(web): dont collapse composer when interacting with bottom row",
+      "decision": "adopted",
+      "ours": "3b6ae8f861870c3b9f8b4376612d424159067b90",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:13:40.810Z"
+    },
+    {
+      "upstream": "678f23a69943e3eef7171f452b44f2931d2ef21f",
+      "pr": 9485,
+      "title": "fix(desktop): restore second-press quit fallback",
+      "decision": "adopted",
+      "ours": "c13ddd044b584fe79e8107650363be29923ed25d",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:13:40.810Z"
+    },
+    {
+      "upstream": "c726c30a148c2add6a3ec7f31f54ae48dc5d2f0c",
+      "pr": 9492,
+      "title": "fix(web): keep opencode icon hollow in collapsed composer",
+      "decision": "adopted",
+      "ours": "040d0ec2607d78377ff62826fdd9d52472ba4b2e",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:13:40.810Z"
+    },
+    {
+      "upstream": "12e8997e58dbca8f1bd8c63b67d662eb69cf0e0d",
+      "pr": 9484,
+      "title": "fix(web): keep agent browser preview visible",
+      "decision": "adopted",
+      "ours": "6549bee8a1b61a6c211bb85a2f7807c1bd43f452",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:13:40.810Z"
+    },
+    {
+      "upstream": "409bc4fa6f3bb9869052bdba4244b30606457f20",
+      "pr": 9486,
+      "title": "fix(mobile): keep the machine glyph next to the environment label",
+      "decision": "adopted",
+      "ours": "e3930a78a879e0d809deeab7a978b681aa1022be",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:13:40.810Z"
+    },
+    {
+      "upstream": "80b53730d1e821563e5c348fdf4f5fc7616a49f7",
+      "pr": 9493,
+      "title": "fix(mobile): let back swipe pop from horizontal scroll edges",
+      "decision": "adopted",
+      "ours": "9156575b7efc2c9fabf241b925bf7184396010fd",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:13:40.810Z"
+    },
+    {
+      "upstream": "0aae1e2ad7ab174004f39746eb4c72b905de932d",
+      "pr": 9410,
+      "title": "fix(antigravity): discover legacy workspace skills",
+      "decision": "adopted",
+      "ours": "56781f1ed0dc5188f4678b02f4b825b902bd36db",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:13:40.810Z"
+    },
+    {
+      "upstream": "ef4cc6085e24d6309252412c6dab5482ac11a09f",
+      "pr": 9495,
+      "title": "fix(mobile): resolve Antigravity provider icon and normalize driver matching",
+      "decision": "adopted",
+      "ours": "1ae7bafe51c1dd74c7db739c29e3206a801d5fa1",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:13:40.810Z"
+    },
+    {
+      "upstream": "e01c153c18a94a2aa33df7115c6cfee1eb09880f",
+      "pr": 9425,
+      "title": "fix(antigravity): forward Google sign-in URLs from browser helper",
+      "decision": "adopted",
+      "ours": "c8aae449fa91807cdf29210b4c56275b63f09d40",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:13:40.811Z"
+    },
+    {
+      "upstream": "39449e53e31a56103192aa7905e89fc92c977a4a",
+      "pr": 7255,
+      "title": "feat(desktop): import browser cookies into a profile",
+      "decision": "adopted",
+      "ours": "09a7b4550c3a22d683a8605504f034529075d6ea",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:13:40.811Z"
+    },
+    {
+      "upstream": "ff5843410d44796676b06627788d94354849c4d7",
+      "pr": 7260,
+      "title": "feat(desktop): import from Chrome, Edge, Brave, Vivaldi, Opera, Arc and Firefox",
+      "decision": "adopted",
+      "ours": "63b3b20378950f8b97bf44fe414f0fbe98201609",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:13:40.811Z"
     }
   ]
 }
