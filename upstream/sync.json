@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "617edab6539ee6573055dc9fc45fdeacdb12f673",
+  "lastReviewed": "232de5e8aac61e6f3de4bc61d10746167db9e905",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3302,6 +3302,15 @@
       "ours": "fef47f76c4f14cc246bfafd8f87007e348ed95b4",
       "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
       "reviewedAt": "2026-09-05T20:20:31.464Z"
+    },
+    {
+      "upstream": "232de5e8aac61e6f3de4bc61d10746167db9e905",
+      "pr": 9547,
+      "title": "feat(marketing): fresh screenshot and floating marks on the homepage",
+      "decision": "skipped",
+      "ours": null,
+      "reason": "Touches apps/marketing, which we replaced.",
+      "reviewedAt": "2026-09-05T20:20:39.845Z"
     }
   ]
 }
