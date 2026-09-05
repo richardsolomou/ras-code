@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "18573d60aab1344bf124a044b01445086e910c4c",
+  "lastReviewed": "044ea8e347d980a215057c325de8335d38f0f9aa",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -2618,6 +2618,15 @@
       "ours": "704da3d98e58c986bd66eb9969373968d1a3b381",
       "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
       "reviewedAt": "2026-09-05T08:12:00.582Z"
+    },
+    {
+      "upstream": "044ea8e347d980a215057c325de8335d38f0f9aa",
+      "pr": 9393,
+      "title": "fix(web): stop the resting composer layout loop",
+      "decision": "adapted",
+      "ours": "80c2d1951c84743cbd6f0bc653151bebcfab2c5b",
+      "reason": "Clean apart from our trimmed comments and the interaction-mode toggle we removed; kept both and took upstream's shared measurement plus the hidden-menu prop.",
+      "reviewedAt": "2026-09-05T08:13:02.919Z"
     }
   ]
 }
