@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "087cfb8ae262f344f7e409f5a8c0eda6f0ef12f9",
+  "lastReviewed": "f33fdc992488e36ccb70cbb71d55e630b5184cbd",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -4530,6 +4530,15 @@
       "ours": "e63427bab544d45449f7121e606ac5e8d0cc41a3",
       "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
       "reviewedAt": "2026-09-05T23:20:33.319Z"
+    },
+    {
+      "upstream": "f33fdc992488e36ccb70cbb71d55e630b5184cbd",
+      "pr": 9843,
+      "title": "fix(ssh): exec managed servers without npm wrappers",
+      "decision": "adapted",
+      "ours": "e142c8a626b48c27046a46460647943a60a41466",
+      "reason": "Managed SSH servers exec the CLI directly so the launcher owns the PID. Landed under our binary name and canary track, and the rebrand map learned three CLI-name spellings it had been turning into the product stem: the shell helper, the binary in shell text, and the fixture home directory.",
+      "reviewedAt": "2026-09-05T23:25:50.497Z"
     }
   ]
 }
