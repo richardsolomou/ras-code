@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "de025aa69ffb0ce1a45d30aed25c60454660b62d",
+  "lastReviewed": "493fbb58870c912b9cb2ba6c2f1dae938877a59a",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -2834,6 +2834,33 @@
       "ours": "dc80729950cbd87ad009702db475be9e6b9b1a75",
       "reason": "Clean cherry-pick.",
       "reviewedAt": "2026-09-05T11:11:54.378Z"
+    },
+    {
+      "upstream": "36c4e9cf5c0123e33d65f2af9497ee090404b532",
+      "pr": 9438,
+      "title": "fix(server): keep a/ and b/ prefixes in rendered git patches",
+      "decision": "adopted",
+      "ours": "1283e0526cbf80846b55cb386f6122e3ec8405fc",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:12:02.153Z"
+    },
+    {
+      "upstream": "d2b6f3b9296f682c6158b894ab33d98d0c4bfb2b",
+      "pr": 9282,
+      "title": "fix(server): full-access OpenCode threads no longer ask for approvals",
+      "decision": "adopted",
+      "ours": "b7e583a1a8d2d0c450b47dede75242b4dd7971e0",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:12:02.154Z"
+    },
+    {
+      "upstream": "493fbb58870c912b9cb2ba6c2f1dae938877a59a",
+      "pr": 9467,
+      "title": "fix(web): reuse pull request list data while loading",
+      "decision": "adopted",
+      "ours": "ea5fa26e41663d1a695a3408d6eb1b92374db948",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:12:02.154Z"
     }
   ]
 }
