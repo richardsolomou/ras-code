@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "8357eef14cbd5ed063e4a64404c33d1bfbc78446",
+  "lastReviewed": "120fab18d84f1eb993ecc7fa858a8dd212747079",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3977,6 +3977,15 @@
       "ours": "9cb90ed1d255af2e3093eaa5133d693e8a9c9d7a",
       "reason": "Placeholder states now share the provider editor's card chrome. Our SettingsDeviceTabs keeps rendering the device row, so upstream's re-added providerEnvironmentDetail went: SettingsDeviceTabs already owns that label as settingsDeviceDetail.",
       "reviewedAt": "2026-09-05T21:50:49.242Z"
+    },
+    {
+      "upstream": "120fab18d84f1eb993ecc7fa858a8dd212747079",
+      "pr": 9625,
+      "title": "fix(web): keep the slash menu above the composer when vertical space is short",
+      "decision": "adopted",
+      "ours": "8558f663fa57fa439b2e3262f2a7f6b540e4bbd9",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:50:55.231Z"
     }
   ]
 }
