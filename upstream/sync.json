@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "498ab9c399d5e8c3097a286be14d03238e071ac1",
+  "lastReviewed": "522ebe65a542ace6f22d9ad95f95ef9ade7e87f1",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3005,6 +3005,78 @@
       "ours": "215ef5ca0b1e61c9b8a4cdeb8aa27ce40bd1b4f9",
       "reason": "Took the Linux key resolution and the browser-secret helper build. Our release workflow shards quality across a matrix rather than three named steps, so the libsecret build dependency goes in before the shared Run step; every matrix entry is ubuntu-latest. Kept our RAS_CODE_DESKTOP_DEV env name in the dev command upstream extended.",
       "reviewedAt": "2026-09-05T11:15:00.869Z"
+    },
+    {
+      "upstream": "f25e4428961982e3935300cfd3c78f7d0fac4ee9",
+      "pr": 9510,
+      "title": "fix(antigravity): allow slow runtime startup during setup",
+      "decision": "adopted",
+      "ours": "6b7f3c6832ab460589d24734742aab4fb92112b6",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:15:17.541Z"
+    },
+    {
+      "upstream": "baf67b6e3accd48d510fd0d39a4e6b978a1eea80",
+      "pr": 9511,
+      "title": "fix(antigravity): keep model choices up to date",
+      "decision": "adopted",
+      "ours": "50bcca092a5ecdbc43d4754986f50c41ffe6021c",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:15:17.542Z"
+    },
+    {
+      "upstream": "eb334ca57448742139fb8ec38fb397c1e51c45c5",
+      "pr": 9514,
+      "title": "fix(antigravity): handle native sign-in URLs on stderr",
+      "decision": "adopted",
+      "ours": "05c5e93f77646755d8f8eba138bf77410139350b",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:15:17.542Z"
+    },
+    {
+      "upstream": "8ea52c8f2f4361e875d72ab30d72d37cfae4d87f",
+      "pr": 9509,
+      "title": "fix(antigravity): update managed runtime to 1.1.1",
+      "decision": "adopted",
+      "ours": "3894a465a71df8207ae648a8e492ec6accb29408",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:15:17.542Z"
+    },
+    {
+      "upstream": "3653cb22ffb30bf133fecc30c955941fe267cf1c",
+      "pr": 9516,
+      "title": "fix(desktop): address the browser import review left over from the stack",
+      "decision": "adopted",
+      "ours": "25308f4c34182436c5d7e9e292583de26c76dbae",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:15:17.542Z"
+    },
+    {
+      "upstream": "f8a14b28ff80a92d8f4df9a9aa53bfacb8195199",
+      "pr": 9515,
+      "title": "feat(antigravity): show subagent calls and results",
+      "decision": "adopted",
+      "ours": "1042eccf5258fc290b002ad2a635066e6090e12d",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:15:17.542Z"
+    },
+    {
+      "upstream": "6382268323f86e01b2d40206bcf33beccb3fb64a",
+      "pr": 9498,
+      "title": "fix(web): let paste expand a resting composer",
+      "decision": "adopted",
+      "ours": "5b6cd9bfc568c7d8eb3eeac40d07313c59265cd8",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:15:17.542Z"
+    },
+    {
+      "upstream": "522ebe65a542ace6f22d9ad95f95ef9ade7e87f1",
+      "pr": 9499,
+      "title": "fix(web): keep the composer open while selecting timeline text",
+      "decision": "adopted",
+      "ours": "2443d68336a26357620334d8e678e3796cc965cf",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:15:17.542Z"
     }
   ]
 }
