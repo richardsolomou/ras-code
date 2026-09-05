@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "493fbb58870c912b9cb2ba6c2f1dae938877a59a",
+  "lastReviewed": "03728361aa7beb9c13da320097450e6fe65aac3e",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -2861,6 +2861,15 @@
       "ours": "ea5fa26e41663d1a695a3408d6eb1b92374db948",
       "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
       "reviewedAt": "2026-09-05T11:12:02.154Z"
+    },
+    {
+      "upstream": "03728361aa7beb9c13da320097450e6fe65aac3e",
+      "pr": 9469,
+      "title": "feat(web): let users turn off composer collapse on blur and scroll",
+      "decision": "adapted",
+      "ours": "580c0c22bda99b311922555a890857086dcef867",
+      "reason": "Adopted the two new composer-collapse settings; the settings-summary dependency list keeps our removal of the thread confirmation preferences, which #23 cut.",
+      "reviewedAt": "2026-09-05T11:12:57.404Z"
     }
   ]
 }
