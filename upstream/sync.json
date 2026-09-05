@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "c0ebc882b88dbcffd5a712e403b3c3c517ba4ea6",
+  "lastReviewed": "e3723e06b5b154a3e0ede55c02e2cabc5301d3bf",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3086,6 +3086,42 @@
       "ours": "a58797626fe98c17fff87aad6fbac2f1f1540ee1",
       "reason": "Clean cherry-pick.",
       "reviewedAt": "2026-09-05T11:15:33.539Z"
+    },
+    {
+      "upstream": "9c9ae3dc0e94a957d9c4a61bb211caf914828054",
+      "pr": 9521,
+      "title": "fix(server): keep events during thread subscription startup",
+      "decision": "adopted",
+      "ours": "6324a030e14e982227aaefab1eb60ab7347e9c31",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:48:30.602Z"
+    },
+    {
+      "upstream": "44701efd6790c39dc82cb08104f7295e1780210f",
+      "pr": 9518,
+      "title": "chore: forward issue/PR/discussion events to Cursor hygiene",
+      "decision": "adopted",
+      "ours": "05b688d10946921f1d49960abcd8a63eae0ebcca",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:48:30.603Z"
+    },
+    {
+      "upstream": "9d28c21a26aeef198cb064fe466e49cbeabfe09c",
+      "pr": 9523,
+      "title": "fix(auth): keep pairing credentials out of access read models",
+      "decision": "adopted",
+      "ours": "7467a8f7e408286d5b165dd2f89d6222a6453f08",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:48:30.603Z"
+    },
+    {
+      "upstream": "e3723e06b5b154a3e0ede55c02e2cabc5301d3bf",
+      "pr": 9527,
+      "title": "chore: drop comment events from Cursor hygiene forwarder",
+      "decision": "adopted",
+      "ours": "23a9aaf5c7467192dca1f85f23ec34d3802f50cd",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:48:30.603Z"
     }
   ]
 }
