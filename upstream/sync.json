@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "706231535ceac8618712913dfdc4a058c2ffb0d8",
+  "lastReviewed": "f0347322441f3b8e473a8d13ea7006cbcb4fb761",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3581,6 +3581,87 @@
       "ours": "99480b3ed51b05c717df57248efc5022f3132c30",
       "reason": "Composer and branch toolbar pull request icons follow the request's own state. Upstream also edited LegacySidebar.tsx, which #23 removed; ThreadStatusIndicators is the live surface and takes the fix. Also handles the relay link-limit tag the previous pick added to the contracts, matching upstream's own classification.",
       "reviewedAt": "2026-09-05T21:04:15.729Z"
+    },
+    {
+      "upstream": "2152d44de2db30a6bae965b0afd30be080e5c872",
+      "pr": 9585,
+      "title": "fix(server): load OpenCode workspace skills via SDK to avoid 64KB CLI pipe truncation",
+      "decision": "adopted",
+      "ours": "580f43fd69030bb95c0608d2b4c92e02611f5ccc",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:04:38.475Z"
+    },
+    {
+      "upstream": "ec3ec6f0b4e005c47aff07d4d9e31506241bce3a",
+      "pr": 9622,
+      "title": "fix(web): mute sidebar branch name to match worktree icon",
+      "decision": "adopted",
+      "ours": "13c9d182c8cf339504ecaf75370d6bd90369220c",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:04:38.476Z"
+    },
+    {
+      "upstream": "5f878d2a85807618a4c8571cdef5daa3124672d6",
+      "pr": 9623,
+      "title": "fix(web,mobile): fold context compaction under settled turn folds",
+      "decision": "adopted",
+      "ours": "d3541ec45805aed5510af16c13ac2e00b7041276",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:04:38.476Z"
+    },
+    {
+      "upstream": "09d13de4381925fa2a6dea74eff8185fa301e905",
+      "pr": 8779,
+      "title": "feat(mobile): make chat text selectable on Android",
+      "decision": "adopted",
+      "ours": "1b7f1a21ba6c2e3f9f3ebbb71b4177f83a7db988",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:04:38.476Z"
+    },
+    {
+      "upstream": "14bf3f6d1644a37029be58429e8f0138e1ceb743",
+      "pr": 9644,
+      "title": "fix(web): toggle a single stashed prompt with Cmd+S",
+      "decision": "adopted",
+      "ours": "4a577bbe5da5b3d9e8c58456664dcc2222e4230d",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:04:38.476Z"
+    },
+    {
+      "upstream": "eb77683e5544e071db74831bae052bbd8a7d5f88",
+      "pr": null,
+      "title": "fix(server): prevent duplicate desktop clients after restart",
+      "decision": "adopted",
+      "ours": "ae7954efede5eceef23cfc1a19204ebc79a386ae",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:04:38.476Z"
+    },
+    {
+      "upstream": "d487dfbf46be344e818725be70ee04be2436bfb4",
+      "pr": 9647,
+      "title": "fix(web): resume Antigravity threads without repeated sign-in",
+      "decision": "adopted",
+      "ours": "b1c0084954861cd15b85af0f38024b0a5d67a613",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:04:38.477Z"
+    },
+    {
+      "upstream": "d5b94100863057fb4629f9ad4a35753d16917924",
+      "pr": 9199,
+      "title": "feat(mobile): paste the phone clipboard into the terminal",
+      "decision": "adopted",
+      "ours": "70e8c85a07be68c8604998a372783f454f00c850",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:04:38.477Z"
+    },
+    {
+      "upstream": "f0347322441f3b8e473a8d13ea7006cbcb4fb761",
+      "pr": 9658,
+      "title": "feat(web): show which sidebar threads hold an unsent draft",
+      "decision": "adopted",
+      "ours": "9719a0ecfd898848d029f0a65b25ee553ae98f6d",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:04:38.477Z"
     }
   ]
 }
