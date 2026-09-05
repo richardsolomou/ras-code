@@ -57,6 +57,8 @@ Standing precedent:
 - Skip marketing, legal, and branding changes. We replaced those surfaces.
 - Keep the wire protocol compatible. Adopt contract changes, and never rename the identifiers on the do-not-rename list below.
 - Converge by default. Take upstream's structure and re-express what is ours on top, and say why in the ledger when you do not. This is the precedent the round through `06336460c` broke 42 times against 9; see [Two costs, measured differently](#two-costs-measured-differently).
+- When upstream ships their own version of something we built, delete ours and take theirs whole, unless ours does something theirs does not. Two implementations of one feature is the worst case: we carry the maintenance and still conflict on every future upstream edit, and "ours is slightly nicer" is never worth that. Record it as `adapted` and name in the `reason` what ours did that theirs now does. If ours genuinely covers a case theirs misses, take their structure and re-add only that case on top; do not keep our whole implementation to save one behaviour.
+- Check provenance before defending a difference. Some of what looks fork-only is upstream's own older code that they have since changed, so keeping it defends nothing and costs the same. `git log -S '<the line>'` on the file names the commit and its author.
 - Defer, do not skip, a change we want but cannot land now. `deferred` keeps it visible; `skipped` closes it.
 
 ## Merge main first, and keep the round small
