@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "522ebe65a542ace6f22d9ad95f95ef9ade7e87f1",
+  "lastReviewed": "c0ebc882b88dbcffd5a712e403b3c3c517ba4ea6",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3077,6 +3077,15 @@
       "ours": "2443d68336a26357620334d8e678e3796cc965cf",
       "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
       "reviewedAt": "2026-09-05T11:15:17.542Z"
+    },
+    {
+      "upstream": "c0ebc882b88dbcffd5a712e403b3c3c517ba4ea6",
+      "pr": 9513,
+      "title": "fix(web): return focus to the composer after closing a media preview",
+      "decision": "adopted",
+      "ours": "a58797626fe98c17fff87aad6fbac2f1f1540ee1",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-05T11:15:33.539Z"
     }
   ]
 }
