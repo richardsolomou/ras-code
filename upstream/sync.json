@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "99e3b721c5255ded20b00ba1798f848bfc0f1f65",
+  "lastReviewed": "93c3ab4ffe408a3e06228a33efc8a0745da91178",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3554,6 +3554,24 @@
       "ours": "f317045ba0b793d69350238382283c4d82270cbe",
       "reason": "Relay failures now carry the relay's own diagnostic and a recovery hint. Added RelayEnvironmentLinkLimitExceededError to the contracts: the relay can return it and we could not decode it. Two hunks touch surfaces we do not carry, both from upstream changes that predate the ledger: releaseManagedTunnelOnShutdown (#4531) and formatRelayClientStatus.",
       "reviewedAt": "2026-09-05T21:02:47.718Z"
+    },
+    {
+      "upstream": "4cc800c7593db13726171918572afe3502c43ba6",
+      "pr": 9613,
+      "title": "fix(web): keep command palette above composer menus",
+      "decision": "adopted",
+      "ours": "4c4efe202f86086a19078b610943701c4293bcd7",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:03:03.009Z"
+    },
+    {
+      "upstream": "93c3ab4ffe408a3e06228a33efc8a0745da91178",
+      "pr": 9601,
+      "title": "fix(web): snooze menu no longer overlaps thread details",
+      "decision": "adopted",
+      "ours": "7a11777d2a233a03ced70489b5b06d37637a7800",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:03:03.010Z"
     }
   ]
 }
