@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "394e8470c89927a06575e08c434006b2320f1781",
+  "lastReviewed": "91c66ac43ddad4f8697887009746f4de11736cb9",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -4458,6 +4458,15 @@
       "ours": "093e255201895fb16ee81d87991d3047b36a1ca3",
       "reason": "Custom model prices per environment. Our usage doc is one flowing page rather than upstream's sections, so their new guidance became a paragraph in that voice.",
       "reviewedAt": "2026-09-05T23:09:57.049Z"
+    },
+    {
+      "upstream": "91c66ac43ddad4f8697887009746f4de11736cb9",
+      "pr": 9794,
+      "title": "fix(web): center pull request link previews",
+      "decision": "adopted",
+      "ours": "81e0bbbc3d185595517b46105a40c6bce78f0821",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T23:10:03.049Z"
     }
   ]
 }
