@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "07891e9569c88457516b44c08c820471762969e8",
+  "lastReviewed": "57832803eed4c87c462de92892777a0934019721",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3464,6 +3464,15 @@
       "ours": "8f70a98c3e2365ce8ce9ff9c35e499738fdc2f07",
       "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
       "reviewedAt": "2026-09-05T20:40:40.195Z"
+    },
+    {
+      "upstream": "57832803eed4c87c462de92892777a0934019721",
+      "pr": 9591,
+      "title": "fix(desktop): restore panel titlebar interactions",
+      "decision": "adapted",
+      "ours": "1e11e08aae1470bb0dfaa490b09d3080a1641281",
+      "reason": "Took the tab-level no-drag narrowing, the window-control spacer, and the in-header layout controls. Our paneControls stay beside them; panelLayoutControls is fixed-positioned, so header order does not move anything.",
+      "reviewedAt": "2026-09-05T20:41:35.717Z"
     }
   ]
 }
