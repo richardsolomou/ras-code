@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "c75299ee2085a121bceb6df76796e971fe92b5b6",
+  "lastReviewed": "c7c1dfe4df99edf65a49d8a31b39ef1361f37f44",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3896,6 +3896,15 @@
       "ours": "ba793f66d1d0b24b642b9ae746761d3a892a672c",
       "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
       "reviewedAt": "2026-09-05T21:48:55.535Z"
+    },
+    {
+      "upstream": "c7c1dfe4df99edf65a49d8a31b39ef1361f37f44",
+      "pr": 9709,
+      "title": "perf(web): stop continuous chat status animations",
+      "decision": "adopted",
+      "ours": "4c636a7bd3d7f4f0559499f20a093544dd1795aa",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-05T21:49:14.226Z"
     }
   ]
 }
