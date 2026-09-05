@@ -56,7 +56,7 @@ Standing precedent:
 
 - Skip marketing, legal, and branding changes. We replaced those surfaces.
 - Keep the wire protocol compatible. Adopt contract changes, and never rename the identifiers on the do-not-rename list below.
-- Adopt a better structure rather than defending ours. When upstream's design is the better one, converge on it and re-express what is ours on top; do not preserve our version merely because it is ours.
+- Converge by default. Take upstream's structure and re-express what is ours on top, and say why in the ledger when you do not. This is the precedent the round through `06336460c` broke 42 times against 9; see [Two costs, measured differently](#two-costs-measured-differently).
 - Defer, do not skip, a change we want but cannot land now. `deferred` keeps it visible; `skipped` closes it.
 
 ## Merge main first, and keep the round small
@@ -167,6 +167,33 @@ node scripts/upstream-sync.ts mark --upstream <sha> --decision skipped \
 `scripts/lib/upstreamSync.ts` declares which upstream paths land on surfaces we replaced, removed, or redesigned, so the report can say "there is nothing to land here" instead of producing a conflict. As we move and delete code, add entries.
 
 One rule: **a surface we are migrating toward is not a divergence.** `divergedPrefixes` is for designs we have decided to keep different, permanently. Somewhere we are merely behind upstream, or mid-migration onto their design, is a deferred change with an intent. Listing it as diverged turns off cherry-picking for that whole subtree and quietly commits us to maintaining a fork of it forever.
+
+## Two costs, measured differently
+
+A divergence costs us twice, and the two are measured differently. **Conflicts** announce themselves and get decided. **Drift** is silent: upstream moves on, the merge succeeds, and we keep an approach upstream abandoned. Counting conflicts finds the cheap failures and misses the expensive ones — every defect these syncs have documented arrived through a clean merge, not a conflict. #8584 silently reinstated a prop we had removed, with its only conflict 330 lines away. A handler extraction turned an upstream move into resurrected code that did not parse, with no conflict marker at all.
+
+### Measuring conflicts
+
+Two proxies look reasonable and are not:
+
+- **Upstream touches per file.** Upstream edits `ChatView.tsx` more than any other file in a pending range and never conflicts there, because our divergence in it is additive. Touches are not conflicts.
+- **Fork delta since the fork point.** That number includes every upstream change we already picked, and counts branding as fork work. Diff against upstream at `lastReviewed`, rebranded first.
+
+What holds is a replay: cherry-pick each pending change onto `main` with `--no-commit`, count the conflict hunks, attribute them, abort. Use changes near the reviewed boundary; one 300 ahead conflicts on the upstream drift in between. Run this in a separate worktree — a replay loop and ordinary work in the same worktree will corrupt each other, and a stray `reset --hard` in the loop can move the branch you are standing on.
+
+### Measuring drift
+
+Drift accumulates one pick at a time, and the ledger records it. Through `06336460c`: of 121 `adapted` entries, **42 gave a reason that explicitly preserved a fork design and 9 converged onto upstream**. Each of those 42 was defensible alone. Together they are the fork drifting onto designs upstream has left behind, and they run against the standing precedent above.
+
+So the default at pick time is **converge**: take upstream's structure and re-express what is ours on top, and record a reason in the ledger when you do not. Preserving our version because it is ours is the thing that compounds.
+
+### Do not switch to upstream's head instead
+
+Replacing the fork with upstream's current tree and re-applying our features looks like it would clear the backlog and the drift together. Measured through `06336460c`, with both the merge base and upstream's head rebranded so branding cancels out, that merge conflicts in **478 files, 1,549 hunks, 154,720 lines**. The same range picked incrementally is about **22,500** conflict lines.
+
+The 7x gap is upstream's own churn. Commit by commit their refactors apply cleanly in sequence; collapsed into one diff, `A -> C` collides with everything we changed in `A`. The one-shot also throws away the per-change diff and message that make each conflict decidable, and strands every `ours` sha in the ledger.
+
+The decisions are the same either way. Picking incrementally just costs less and gives better information per decision.
 
 ## Batching
 

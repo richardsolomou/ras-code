@@ -651,6 +651,14 @@ const gateSteps: ReadonlyArray<GateStep> = [
   { name: "test", command: "vp", args: ["run", "test"] },
 ];
 
+/**
+ * `vp` is a workspace binary, not something on `PATH`. Left unresolved, a non-interactive shell
+ * fails `install` instantly and reports "Gate stopped at install", which reads like a checked tree
+ * rather than a gate that never ran.
+ */
+const resolveGateCommand = (repoRoot: string, command: string) =>
+  command === "vp" ? NodePath.join(repoRoot, "node_modules", ".bin", "vp") : command;
+
 export const runGate = Effect.fn("runGate")(function* (options: {
   readonly repoRoot: string;
   readonly ledgerPath: string;
@@ -665,10 +673,14 @@ export const runGate = Effect.fn("runGate")(function* (options: {
   if (install !== undefined && install.name === "install") {
     yield* Console.log(`\n--- ${install.name} ---`);
     const started = Date.now();
-    const result = NodeChildProcess.spawnSync(install.command, [...install.args], {
-      cwd: options.repoRoot,
-      stdio: "inherit",
-    });
+    const result = NodeChildProcess.spawnSync(
+      resolveGateCommand(options.repoRoot, install.command),
+      [...install.args],
+      {
+        cwd: options.repoRoot,
+        stdio: "inherit",
+      },
+    );
     yield* Console.log(`${install.name}: ${((Date.now() - started) / 1000).toFixed(1)}s`);
     if ((result.status ?? 1) !== 0) {
       yield* Console.log(`\nGate stopped at ${install.name}.`);
@@ -683,10 +695,14 @@ export const runGate = Effect.fn("runGate")(function* (options: {
   for (const step of steps.slice(1)) {
     yield* Console.log(`\n--- ${step.name} ---`);
     const started = Date.now();
-    const result = NodeChildProcess.spawnSync(step.command, [...step.args], {
-      cwd: options.repoRoot,
-      stdio: "inherit",
-    });
+    const result = NodeChildProcess.spawnSync(
+      resolveGateCommand(options.repoRoot, step.command),
+      [...step.args],
+      {
+        cwd: options.repoRoot,
+        stdio: "inherit",
+      },
+    );
     yield* Console.log(`${step.name}: ${((Date.now() - started) / 1000).toFixed(1)}s`);
     if ((result.status ?? 1) !== 0) {
       yield* Console.log(`\nGate stopped at ${step.name}.`);
