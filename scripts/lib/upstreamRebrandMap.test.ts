@@ -87,6 +87,49 @@ describe("rebrandText", () => {
     );
   });
 
+  it("rewrites a product-scoped name behind leading underscores", () => {
+    assert.strictEqual(
+      rebrandText("__T3CODE_FAKE_CODEX_OUTPUT__"),
+      "__RAS_CODE_FAKE_CODEX_OUTPUT__",
+    );
+    assert.strictEqual(rebrandText("T3CODE_HOME"), "RAS_CODE_HOME");
+  });
+
+  it("rewrites reverse-DNS bundle ids without doubling the stem", () => {
+    assert.strictEqual(
+      rebrandText("com.t3tools.t3code.service.plist"),
+      "com.richardsolomou.ras-code.service.plist",
+    );
+    assert.strictEqual(rebrandText("com.t3tools.t3code.dev"), "com.richardsolomou.ras-code.dev");
+  });
+
+  it("keeps the relay environment credential prefix", () => {
+    assert.strictEqual(
+      rebrandText("token: `t3env_${credentialId}_${secret}`"),
+      "token: `t3env_${credentialId}_${secret}`",
+    );
+    assert.strictEqual(rebrandText('"t3env_first_credential"'), '"t3env_first_credential"');
+  });
+
+  it("rewrites the CLI binary name in shell text", () => {
+    assert.strictEqual(rebrandText('"command -v t3"'), '"command -v ras"');
+    assert.strictEqual(rebrandText('exec t3 "$@"'), 'exec ras "$@"');
+    assert.strictEqual(
+      rebrandText("npm produced no t3 executable"),
+      "npm produced no ras executable",
+    );
+    // The npm package keeps the product stem.
+    assert.strictEqual(
+      rebrandText("exec npx --yes 't3@latest'"),
+      "exec npx --yes 'ras-code@latest'",
+    );
+  });
+
+  it("rewrites shell helpers named after the CLI", () => {
+    assert.strictEqual(rebrandText("require_installed_t3_cli"), "require_installed_ras_cli");
+    assert.strictEqual(rebrandText("t3_cli"), "ras_cli");
+  });
+
   it("rewrites fixture home directories to the CLI name", () => {
     assert.strictEqual(rebrandText('cwd: "/home/t3/workspace"'), 'cwd: "/home/ras/workspace"');
     assert.strictEqual(rebrandText('"/Users/t3/Documents"'), '"/Users/ras/Documents"');

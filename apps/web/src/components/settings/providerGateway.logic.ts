@@ -13,6 +13,7 @@ import {
   RAS_GATEWAY_KEY_VARIABLE,
   type GatewayModelShape,
 } from "@t3tools/shared/posthogGateway";
+import type { CustomModelDefinition } from "@t3tools/shared/model";
 
 export { RAS_GATEWAY_KEY_VARIABLE } from "@t3tools/shared/posthogGateway";
 
@@ -89,19 +90,20 @@ export function driverGatewayShape(
  * Codex speaks Responses, on which the gateway refuses those same ids.
  */
 export function mergeRemoteModelsIntoCustomModels(
-  customModels: ReadonlyArray<string>,
-  remoteModels: ReadonlyArray<{ readonly id: string }>,
+  customModels: ReadonlyArray<CustomModelDefinition>,
+  remoteModels: ReadonlyArray<{ readonly id: string; readonly name?: string | null }>,
   driver: ProviderInstanceConfig["driver"],
-): ReadonlyArray<string> {
+): ReadonlyArray<CustomModelDefinition> {
   const shape = driverGatewayShape(driver);
   const merged = [...customModels];
-  const seen = new Set(merged);
+  const seen = new Set(merged.map((entry) => entry.slug));
   for (const model of remoteModels) {
-    const id = model.id.trim();
-    if (id.length === 0 || seen.has(id)) continue;
-    if (shape !== undefined && gatewayModelShape(id) !== shape) continue;
-    seen.add(id);
-    merged.push(id);
+    const slug = model.id.trim();
+    if (slug.length === 0 || seen.has(slug)) continue;
+    if (shape !== undefined && gatewayModelShape(slug) !== shape) continue;
+    seen.add(slug);
+    // The gateway names the model but says nothing about its options.
+    merged.push({ slug, name: model.name?.trim() || slug, capabilities: null });
   }
   return merged;
 }

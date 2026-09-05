@@ -14,7 +14,8 @@ such as Fable when your plan has one. Each window is a bar from the moment it op
 filled by the share of quota spent; a thin line marks how far into the window you are, which is
 also where even spending would have put the fill, and the icon beside the label says whether you
 are ahead of, on, or under that pace. Hover a bar for the exact reset time. Limits refresh on the
-provider health-check interval and update live while a turn runs. API-key accounts have no
+provider health-check interval and update live while a turn runs; if a window looks stale, refresh
+Limits to re-check every provider and hub. API-key accounts have no
 subscription windows and say so; that includes a Claude Code that reaches Anthropic through a proxy
 via `ANTHROPIC_AUTH_TOKEN`, since the CLI then treats itself as an API-key client.
 
@@ -33,3 +34,11 @@ Use **Past 24h** for an hourly chart covering the exact rolling 24-hour period. 
 headline and chart. Refreshing rescans every connected environment and refetches model pricing on
 each of them, so a newly released model that showed $0.00 gets a price without waiting for the daily
 pricing update.
+
+On web or desktop, **Usage → Model prices** overrides the automatic price for a model. Pick the
+environment whose history you want to price, then enter the exact model ID and the USD rates per
+million input and output tokens; any model ID works, including ones with no public pricing. Cache
+read and cache write rates are optional and fall back to the input rate, and `0` means free. A
+saved price replaces automatic pricing for that environment's whole history and reaches every
+client connected to it, so set prices on each environment that needs them. Removing a price
+restores automatic pricing.

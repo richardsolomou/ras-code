@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "4701041eef6339bbda0d9d9b00a929c4e9e18662",
+  "lastReviewed": "f33fdc992488e36ccb70cbb71d55e630b5184cbd",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -4285,6 +4285,260 @@
       "ours": "e1e589c8c2a89d8bb4d6abc50cf8e1ce4858602d",
       "reason": "POSIX executable fixtures skip on a Windows host. The rebrand map now maps upstream's /home/t3 to our /home/ras, which the fork already used but the map spelled ras-code.",
       "reviewedAt": "2026-09-05T22:10:06.327Z"
+    },
+    {
+      "upstream": "30f128fababb1fea46041d228b6ea52733d2ee09",
+      "pr": 9566,
+      "title": "test: skip symlink fixtures where the host cannot create symlinks",
+      "decision": "adapted",
+      "ours": "31b1b3a524f682d7efed7edc2a60410ec7fa6f81",
+      "reason": "Symlink fixtures skip where the host cannot create symlinks. The rebrand map now preserves the relay's t3env_ credential prefix, which those server fixtures carry and which the relay stamps into every credential it issues.",
+      "reviewedAt": "2026-09-05T22:47:50.488Z"
+    },
+    {
+      "upstream": "5c6c1d67d82bb81bddaee6d83e54e8aecd96ec7d",
+      "pr": 9567,
+      "title": "test(server): run fake provider CLIs through a Node stub on every host",
+      "decision": "adapted",
+      "ours": "a2759fc17cdfc5ed940d1bacafbd4a3fcd869aca",
+      "reason": "Fake provider CLIs run through a Node stub. The posix launcher and the Windows shim run this process's own node by absolute path: a test that replaces the environment drops PATH, and the shell's fallback PATH finds node on Linux but not on macOS. The rebrand map also learned that T3CODE_ has no word boundary behind a leading underscore.",
+      "reviewedAt": "2026-09-05T22:54:11.396Z"
+    },
+    {
+      "upstream": "c251e41b5e5287b786cda44ddc263b8e6a74859c",
+      "pr": 9568,
+      "title": "test(desktop): make path fixtures and timeouts host-portable",
+      "decision": "adopted",
+      "ours": "94bf83c0dd26e1ae9a688b0cfde8567f924d5ba3",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T22:59:13.305Z"
+    },
+    {
+      "upstream": "f083f520fbde1e1bf4332399df47b45c2bd99722",
+      "pr": 9569,
+      "title": "fix(server): tolerate the missing directory fsync on Windows",
+      "decision": "adopted",
+      "ours": "4de1c1526c51193d5874e2db854d29375829fc41",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T22:59:13.306Z"
+    },
+    {
+      "upstream": "12b6d026bdfba0cc8438fa5e323a8587d65bd2af",
+      "pr": 9570,
+      "title": "test(server): pin git config for fixtures and compare native realpaths",
+      "decision": "adopted",
+      "ours": "dd953eb3b1e8e5850ccfc9acdcd8108271cf32d1",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T22:59:13.306Z"
+    },
+    {
+      "upstream": "1108be0fc862d5a95374bf0b96518a20e6351025",
+      "pr": 9571,
+      "title": "test: skip POSIX mode-bit assertions on a Windows host",
+      "decision": "adapted",
+      "ours": "0e2459ed43cbf383236e450a26f91f7df0020e24",
+      "reason": "POSIX mode-bit assertions skip on a Windows host. Upstream also edited packages/shared/src/relayClient.test.ts, the managed tunnel client #54 replaced with the RAS relay; the path is now registered as removed.",
+      "reviewedAt": "2026-09-05T23:00:34.865Z"
+    },
+    {
+      "upstream": "9af5139f5974281a59f5cd62c11d918d62126313",
+      "pr": 9572,
+      "title": "test(server): keep provider fixture directories host-portable",
+      "decision": "adopted",
+      "ours": "6b90901710fe3eeb3bf2d8600fee71c9a1c8f8d8",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T23:00:47.388Z"
+    },
+    {
+      "upstream": "9fa54eeb4c481b444c68e38d00066d707af5f677",
+      "pr": 9573,
+      "title": "test: resolve the Windows temp directory to its long name",
+      "decision": "adopted",
+      "ours": "36e61f323c7c1e19363b0bd3ce125541dff91cb4",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T23:00:47.389Z"
+    },
+    {
+      "upstream": "912276bcd9ca258ad9309727df8e279e5ab698f8",
+      "pr": 9574,
+      "title": "test(server): run the Antigravity install harness for the host platform",
+      "decision": "adopted",
+      "ours": "aae9f33b2689df1ceee9dd70956c21128bb25597",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T23:00:47.389Z"
+    },
+    {
+      "upstream": "5f4c7161fa7782ea93b63fe934d43229742e7ec8",
+      "pr": 9575,
+      "title": "fix(server): canonicalise media paths the same way their callers do",
+      "decision": "adopted",
+      "ours": "8887271ca5e644e31d54cc373f61a65feeb25b17",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T23:00:47.389Z"
+    },
+    {
+      "upstream": "b123cbb317ca47ff080a15b44c4bc0c99126f729",
+      "pr": 9576,
+      "title": "test(server): make Windows path and async fixtures deterministic",
+      "decision": "adapted",
+      "ours": "c4f885bbc04522a9ef8e8627f45523237ca6fadc",
+      "reason": "Windows path and async fixtures become deterministic. The rebrand map now rewrites com.t3tools.t3code as one reverse-DNS unit; mapping the segments separately produced com.richardsolomou.ras_code.ras-code, and our launchd label is com.richardsolomou.ras-code.",
+      "reviewedAt": "2026-09-05T23:02:26.418Z"
+    },
+    {
+      "upstream": "781f41ef1f6b5054e75f77237df9eba3b7f61cc9",
+      "pr": 9580,
+      "title": "fix(server): refuse symlinked theme files on Windows too",
+      "decision": "adopted",
+      "ours": "bbde0e1dbd31a3ee02ce1a6a05157022b141b924",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T23:02:36.560Z"
+    },
+    {
+      "upstream": "0a590fa01af66ec135d2ebf2d5542b08a37dc275",
+      "pr": 9589,
+      "title": "test(scripts): keep Windows packaging checks host-portable",
+      "decision": "adopted",
+      "ours": "a9b48fee9c7b6150ba8a01fb20cebf01285fdb57",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T23:02:36.561Z"
+    },
+    {
+      "upstream": "b7d6e65021b021207424c56cb32d6d711fd875fb",
+      "pr": 9770,
+      "title": "fix(contracts): include tool.denied in runtime event types",
+      "decision": "adopted",
+      "ours": "ab72e02b67d9245faaf0e768bc8ab63319f06f97",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T23:02:36.561Z"
+    },
+    {
+      "upstream": "24aef0e6c1bd5373a82eeed8054b50fc6e041b76",
+      "pr": 9775,
+      "title": "feat(mobile): split the usage page into Usage and Limits tabs",
+      "decision": "adapted",
+      "ours": "be805dfc55a9d3354ccf7fc50b9f8dc551fa5329",
+      "reason": "Mobile usage splits into Usage and Limits tabs. Our usage doc is one flowing page rather than upstream's sections, so their new refresh guidance joins the Limits paragraph there.",
+      "reviewedAt": "2026-09-05T23:05:11.200Z"
+    },
+    {
+      "upstream": "935917f50a2d9ccdd772464de140c187ca80bb0b",
+      "pr": 9777,
+      "title": "fix(web): restore the running tool label shine",
+      "decision": "adapted",
+      "ours": "fdbdbffff03dcb51f07e6e7d3ec73c43c36c1e87",
+      "reason": "The running tool label shines again, on the active row only and behind prefers-reduced-motion. Upstream appended it after the sidebar stage backdrop, which this fork removed, so only the addition landed.",
+      "reviewedAt": "2026-09-05T23:06:44.018Z"
+    },
+    {
+      "upstream": "764946502390845919d974490bc85e87b788c996",
+      "pr": 9769,
+      "title": "fix(web): align provider controls with machine tabs",
+      "decision": "deferred",
+      "ours": null,
+      "intent": "Provider controls sit on the machine-tab row rather than in the section header, with the row's padding on a wrapper instead of inside the tabs.",
+      "reason": "Upstream moves the tabs out of headerAction and takes the padding off the tab strip. Our SettingsDeviceTabs owns that padding for five settings panels, so converging changes all of them and wants a browser pass; #112 put these controls in the section header, which this walks back.",
+      "reviewedAt": "2026-09-05T23:07:47.129Z"
+    },
+    {
+      "upstream": "5e1c23d769b182018f5bd6d3623a7edec13d26bc",
+      "pr": 9778,
+      "title": "docs(web): document panel motion during navigation",
+      "decision": "deferred",
+      "ours": null,
+      "intent": "The appearance guide says panel transitions pause while a route change is in flight.",
+      "reason": "Edits docs/user/appearance.md, which 9e1fb459a creates and which is deferred. Lands with that restructure.",
+      "reviewedAt": "2026-09-05T23:08:20.165Z"
+    },
+    {
+      "upstream": "394e8470c89927a06575e08c434006b2320f1781",
+      "pr": 9774,
+      "title": "feat(usage): support custom model prices",
+      "decision": "adapted",
+      "ours": "093e255201895fb16ee81d87991d3047b36a1ca3",
+      "reason": "Custom model prices per environment. Our usage doc is one flowing page rather than upstream's sections, so their new guidance became a paragraph in that voice.",
+      "reviewedAt": "2026-09-05T23:09:57.049Z"
+    },
+    {
+      "upstream": "91c66ac43ddad4f8697887009746f4de11736cb9",
+      "pr": 9794,
+      "title": "fix(web): center pull request link previews",
+      "decision": "adopted",
+      "ours": "81e0bbbc3d185595517b46105a40c6bce78f0821",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T23:10:03.049Z"
+    },
+    {
+      "upstream": "98a29cbaa1ccf8d8afb6d35e3e1d925ff9b5fa90",
+      "pr": 9784,
+      "title": "fix: address usage limits and merge settlement regressions",
+      "decision": "adopted",
+      "ours": "febd332e21ed18fdce609c0e57cbf00c336b46af",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-05T23:10:58.809Z"
+    },
+    {
+      "upstream": "389bbcc8d9dd5c463668944f7093052301c8a850",
+      "pr": 9805,
+      "title": "fix(web): give toggle thumbs consistent inset spacing",
+      "decision": "adapted",
+      "ours": "2cb552c04d3774aea7a67b96a28f470a45499e6d",
+      "reason": "Toggle thumbs get consistent inset spacing. The checked track keeps our success colour.",
+      "reviewedAt": "2026-09-05T23:11:34.812Z"
+    },
+    {
+      "upstream": "5a2f3ebf6ee6eab6124ad68272c2fb5d74bc0f5d",
+      "pr": 9781,
+      "title": "fix(web): use segmented controls for mode switches",
+      "decision": "adapted",
+      "ours": "cc6280d6931bcf22117086f3ab6d946e80e70389",
+      "reason": "Mode switches become segmented controls, which retires providerSettingsTabs.ts. Our SettingsDeviceTabs was its last consumer and now carries the underlined tab style itself: a device switcher is not a mode switch. ThemeEditorPanel.tsx, which #51 removed, is registered with the rest of the theme editor.",
+      "reviewedAt": "2026-09-05T23:13:22.690Z"
+    },
+    {
+      "upstream": "b906ce2d73d025e801877f42a35b7a2f5629806f",
+      "pr": 9803,
+      "title": "fix(server): recover opted-in threads after machine restarts",
+      "decision": "adapted",
+      "ours": "436944eee94252560c03ae601059b3de83e7f28e",
+      "reason": "Opted-in threads recover after a restart, with the opt-in moving from client settings to an environment-owned one. The merge left the client copy and two stray commas where #23's removed confirmation settings had shifted the anchor. Our updating guide names the renamed preference where it already covered it.",
+      "reviewedAt": "2026-09-05T23:16:56.545Z"
+    },
+    {
+      "upstream": "dd7bc147f799f290eb58578a7f81643ecf9ad52e",
+      "pr": 9821,
+      "title": "fix(web): simplify changed files into a persistent folder tree",
+      "decision": "adopted",
+      "ours": "911f93ab2de0f136e224fefaa9261a3366f5c409",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T23:17:31.017Z"
+    },
+    {
+      "upstream": "5a433244d0b827176df8b76a05959cd1a7a98ce2",
+      "pr": 9807,
+      "title": "feat: add custom model names and option descriptors",
+      "decision": "adapted",
+      "ours": "663666e56b3056e719adf472c6dad7b0e1d011ed",
+      "reason": "Custom models gain names and option descriptors. An entry's own capabilities win, then our rule decides: a namespaced slug is served by a custom model_provider, so it does not borrow a GPT model's descriptors. Both sides' new test blocks are kept.",
+      "reviewedAt": "2026-09-05T23:20:26.920Z"
+    },
+    {
+      "upstream": "087cfb8ae262f344f7e409f5a8c0eda6f0ef12f9",
+      "pr": 9420,
+      "title": "fix(cursor): discover symlinked skills as package boundaries",
+      "decision": "adopted",
+      "ours": "e63427bab544d45449f7121e606ac5e8d0cc41a3",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T23:20:33.319Z"
+    },
+    {
+      "upstream": "f33fdc992488e36ccb70cbb71d55e630b5184cbd",
+      "pr": 9843,
+      "title": "fix(ssh): exec managed servers without npm wrappers",
+      "decision": "adapted",
+      "ours": "e142c8a626b48c27046a46460647943a60a41466",
+      "reason": "Managed SSH servers exec the CLI directly so the launcher owns the PID. Landed under our binary name and canary track, and the rebrand map learned three CLI-name spellings it had been turning into the product stem: the shell helper, the binary in shell text, and the fixture home directory.",
+      "reviewedAt": "2026-09-05T23:25:50.497Z"
     }
   ]
 }

@@ -43,6 +43,9 @@ export const preservedPatterns: ReadonlyArray<RegExp> = [
   /\burn:t3:[\w:-]+/g,
   // The fork notice names upstream on purpose.
   /\[T3 Code\]\(https:\/\/github\.com\/pingdotgg\/t3code\)/g,
+  // The relay stamps this prefix into every environment credential it issues,
+  // so renaming it would invalidate the ones already in the wild.
+  /\bt3env_[\w-]*/g,
   // The WSL runtime cache still lives under these names on users' disks, so
   // renaming them here would orphan every installed runtime.
   /\$HOME\/\.t3\/wsl-runtime/g,
@@ -51,6 +54,13 @@ export const preservedPatterns: ReadonlyArray<RegExp> = [
 ];
 
 const textRules: ReadonlyArray<RebrandRule> = [
+  {
+    // Reverse-DNS bundle ids: `t3tools` alone maps to a dotted org segment, so
+    // the pair has to be rewritten together or it comes out doubled.
+    pattern: /\bcom\.t3tools\.t3code\b/gi,
+    replacement: "com.richardsolomou.ras-code",
+    description: "reverse-DNS bundle and service ids",
+  },
   {
     pattern: /\bt3tools\/t3code\b/gi,
     replacement: "richardsolomou/ras-code",
@@ -62,9 +72,11 @@ const textRules: ReadonlyArray<RebrandRule> = [
     description: "local oxlint plugin",
   },
   {
-    pattern: /\bT3CODE_/g,
+    // No leading boundary: an underscore is a word character, so a leading `__`
+    // on a heredoc marker leaves no boundary before the name.
+    pattern: /T3CODE_/g,
     replacement: "RAS_CODE_",
-    description: "product-scoped environment variables",
+    description: "product-scoped environment variables and shell markers",
   },
   {
     pattern: /\bLEGACY_T3_CHAT_DARK_THEME_ID\b/g,
@@ -193,6 +205,22 @@ const textRules: ReadonlyArray<RebrandRule> = [
     pattern: /\bt3-code\b/g,
     replacement: "ras-code",
     description: "kebab-case product id",
+  },
+  {
+    // The executable is `ras`, so shell text that names it takes the binary
+    // name rather than the product stem. Restricted to these lead-ins: a bare
+    // `t3` elsewhere is the product, and `t3@latest` is the npm package.
+    pattern: /(?<=command -v |exec |produced no )t3(?=[ "'])/g,
+    replacement: "ras",
+    description: "the CLI binary name in shell text",
+  },
+  {
+    // Shell identifiers named after the `ras` CLI, not the product stem. An
+    // underscore is a word character, so a `require_installed_` prefix leaves
+    // no boundary before the name.
+    pattern: /t3_cli\b/g,
+    replacement: "ras_cli",
+    description: "shell helpers named after the CLI",
   },
   {
     // POSIX home directories in fixtures, named after the `ras` CLI.

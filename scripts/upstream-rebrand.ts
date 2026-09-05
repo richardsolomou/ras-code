@@ -44,12 +44,29 @@ export const runRebrandPatch = Effect.fn("runRebrandPatch")(function* () {
   process.stdout.write(rebranded);
 });
 
+/**
+ * The rebrand tooling names upstream on purpose: every rule's pattern, every
+ * fixture, and this file's own description are upstream spellings, so rewriting
+ * them silently breaks the map.
+ */
+const isRebrandToolingPath = (path: string) =>
+  /(?:^|\/)scripts\/(?:upstream-rebrand\.ts|lib\/upstreamRebrandMap(?:\.test)?\.ts)$/.test(path);
+
 export const runRebrandFiles = Effect.fn("runRebrandFiles")(function* (
   paths: ReadonlyArray<string>,
   dryRun: boolean,
 ) {
   const fs = yield* FileSystem.FileSystem;
   for (const path of paths) {
+    if (isRebrandToolingPath(path)) {
+      yield* Console.log(`${path}: skipped, the rebrand tooling names upstream on purpose`);
+      continue;
+    }
+    if (!(yield* fs.exists(path))) {
+      // File lists come from commit diffs, which name paths the pick deleted.
+      yield* Console.log(`${path}: skipped, no longer present`);
+      continue;
+    }
     const original = yield* fs.readFileString(path);
     const rebranded = rebrandText(original);
     yield* reportResiduals(path, rebranded);
