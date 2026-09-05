@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "652515a349741d234111b85f27597be3265d1ffc",
+  "lastReviewed": "06336460c9988f29c71e839c4c9c840c4552e077",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -2636,6 +2636,15 @@
       "ours": "a9809882f455290f9d5571fd0b357094246d81ac",
       "reason": "Clean apart from the new tests passing revertTurnCountByUserMessageId, which our message-actions redesign replaced with checkpointTurnCountByAssistantMessageId.",
       "reviewedAt": "2026-09-05T08:13:40.884Z"
+    },
+    {
+      "upstream": "06336460c9988f29c71e839c4c9c840c4552e077",
+      "pr": 9348,
+      "title": "feat(providers): add Google Antigravity via the official ACP agent",
+      "decision": "adapted",
+      "ours": "95475a2d62e9547e8a749c9b0dcd9a123a72088f",
+      "reason": "Adopted the Antigravity driver, ACP support, provider auth commands and provider-setup deep links. Converged on upstream's resolveComposerProviderSelection (it carries the Antigravity continuation rule) while keeping our candidate ordering; kept our checkpoint-based message actions, our settings environment scope, and our removal of plan mode, so upstream's interaction-mode plumbing was dropped rather than reintroduced.",
+      "reviewedAt": "2026-09-05T08:30:22.116Z"
     }
   ]
 }
