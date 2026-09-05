@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "30f128fababb1fea46041d228b6ea52733d2ee09",
+  "lastReviewed": "5c6c1d67d82bb81bddaee6d83e54e8aecd96ec7d",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -4294,6 +4294,15 @@
       "ours": "31b1b3a524f682d7efed7edc2a60410ec7fa6f81",
       "reason": "Symlink fixtures skip where the host cannot create symlinks. The rebrand map now preserves the relay's t3env_ credential prefix, which those server fixtures carry and which the relay stamps into every credential it issues.",
       "reviewedAt": "2026-09-05T22:47:50.488Z"
+    },
+    {
+      "upstream": "5c6c1d67d82bb81bddaee6d83e54e8aecd96ec7d",
+      "pr": 9567,
+      "title": "test(server): run fake provider CLIs through a Node stub on every host",
+      "decision": "adapted",
+      "ours": "a2759fc17cdfc5ed940d1bacafbd4a3fcd869aca",
+      "reason": "Fake provider CLIs run through a Node stub. The posix launcher and the Windows shim run this process's own node by absolute path: a test that replaces the environment drops PATH, and the shell's fallback PATH finds node on Linux but not on macOS. The rebrand map also learned that T3CODE_ has no word boundary behind a leading underscore.",
+      "reviewedAt": "2026-09-05T22:54:11.396Z"
     }
   ]
 }
