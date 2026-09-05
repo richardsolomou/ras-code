@@ -11,7 +11,7 @@ import type {
   ProviderTurnStartResult,
   ProviderUploadFeedbackInput,
   ProviderUploadFeedbackResult,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import {
   ASSISTANT_CITATION_MAX_TEXT_LENGTH,
   AssistantCitation,
@@ -25,12 +25,12 @@ import {
   ProviderSessionStartInput,
   ThreadId,
   TurnId,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import {
   expandAssistantCitationsForProvider,
   serializeAssistantCitation,
-} from "@ras-code/shared/assistantCitations";
-import { createModelSelection } from "@ras-code/shared/model";
+} from "@t3tools/shared/assistantCitations";
+import { createModelSelection } from "@t3tools/shared/model";
 import { it, assert, describe, vi } from "@effect/vitest";
 
 import * as Cause from "effect/Cause";

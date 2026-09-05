@@ -1,10 +1,10 @@
-import { scopeProjectRef } from "@ras-code/client-runtime/environment";
+import { scopeProjectRef } from "@t3tools/client-runtime/environment";
 import {
   EnvironmentId,
   ProjectId,
   ProviderInstanceId,
   type ModelSelection,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import { describe, expect, it, vi } from "vite-plus/test";
 import {
   resolveThreadActionProjectRef,

@@ -2,8 +2,8 @@ import type {
   OrchestrationEvent,
   OrchestrationThreadActivity,
   OrchestrationThreadDetailSnapshot,
-} from "@ras-code/contracts";
-import { isWorkspaceImagePreviewPath } from "@ras-code/shared/filePreview";
+} from "@t3tools/contracts";
+import { isWorkspaceImagePreviewPath } from "@t3tools/shared/filePreview";
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value !== null && typeof value === "object" && !Array.isArray(value)

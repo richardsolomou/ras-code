@@ -77,7 +77,7 @@ export class DesktopIpc extends Context.Service<
       input: DesktopSyncIpcMethod<E, R>,
     ) => Effect.Effect<void, DesktopIpcRegistrationError, R | Scope.Scope>;
   }
->()("@ras-code/desktop/ipc/DesktopIpc") {}
+>()("@t3tools/desktop/ipc/DesktopIpc") {}
 
 export const make = (ipcMain: DesktopIpcMain): DesktopIpc["Service"] =>
   DesktopIpc.of({

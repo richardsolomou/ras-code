@@ -1,4 +1,4 @@
-import { ThreadId } from "@ras-code/contracts";
+import { ThreadId } from "@t3tools/contracts";
 import { beforeEach, describe, expect, it } from "vite-plus/test";
 
 import { useThreadSelectionStore } from "./threadSelectionStore";

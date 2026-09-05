@@ -1,11 +1,11 @@
 import type {
   EnvironmentProject,
   EnvironmentThreadShell,
-} from "@ras-code/client-runtime/state/shell";
-import type { EnvironmentThreadSearchMatch } from "@ras-code/client-runtime/state/thread-search";
-import type { EnvironmentMachineKind } from "@ras-code/contracts";
-import { canSnooze, resolveSnoozePresets } from "@ras-code/client-runtime/state/thread-settled";
-import { resolveSettledThreadTimestamp } from "@ras-code/client-runtime/state/thread-sort";
+} from "@t3tools/client-runtime/state/shell";
+import type { EnvironmentThreadSearchMatch } from "@t3tools/client-runtime/state/thread-search";
+import type { EnvironmentMachineKind } from "@t3tools/contracts";
+import { canSnooze, resolveSnoozePresets } from "@t3tools/client-runtime/state/thread-settled";
+import { resolveSettledThreadTimestamp } from "@t3tools/client-runtime/state/thread-sort";
 import type { MenuAction } from "@react-native-menu/menu";
 import { memo, useCallback, useEffect, useMemo, useState, type ComponentProps } from "react";
 import { Alert, Platform, Pressable, useWindowDimensions, View } from "react-native";

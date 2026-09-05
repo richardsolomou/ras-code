@@ -4,14 +4,14 @@ import {
   type ProviderOptionSelection,
   type ScopedThreadRef,
   type ServerProviderModel,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import {
   buildExplicitProviderOptionSelectionsFromDescriptors,
   getProviderOptionCurrentValue,
   getProviderOptionDescriptors,
   isClaudeUltrathinkPrompt,
   normalizeModelSlug,
-} from "@ras-code/shared/model";
+} from "@t3tools/shared/model";
 import type { VariantProps } from "class-variance-authority";
 import type { ReactNode } from "react";
 

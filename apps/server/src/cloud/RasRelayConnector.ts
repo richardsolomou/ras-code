@@ -1,5 +1,5 @@
 import * as NodeSocket from "@effect/platform-node-shared/NodeSocket";
-import type { RelayManagedEndpointRuntimeConfig } from "@ras-code/contracts/relay";
+import type { RelayManagedEndpointRuntimeConfig } from "@t3tools/contracts/relay";
 import {
   decodeRasRelayBatch,
   encodeRasRelayBatch,
@@ -18,7 +18,7 @@ import {
   rasRelayPayloadFrames,
   type RasRelayFrame,
   type RasRelayMessage,
-} from "@ras-code/shared/rasRelayProtocol";
+} from "@t3tools/shared/rasRelayProtocol";
 import * as Deferred from "effect/Deferred";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";

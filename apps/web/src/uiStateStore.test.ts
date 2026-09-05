@@ -1,4 +1,4 @@
-import { ProjectId, ThreadId } from "@ras-code/contracts";
+import { ProjectId, ThreadId } from "@t3tools/contracts";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 import {

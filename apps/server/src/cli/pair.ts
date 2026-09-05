@@ -13,14 +13,14 @@ import {
   AuthStandardClientScopes,
   ExecutionEnvironmentDescriptor,
   PortSchema,
-} from "@ras-code/contracts";
-import { resolveWorktreeRasCodeHome } from "@ras-code/shared/devHome";
+} from "@t3tools/contracts";
+import { resolveWorktreeRasCodeHome } from "@t3tools/shared/devHome";
 import {
   buildTailscaleHttpsBaseUrl,
   DEFAULT_TAILSCALE_SERVE_PORT,
   ensureTailscaleServe,
   readTailscaleStatus,
-} from "@ras-code/tailscale";
+} from "@t3tools/tailscale";
 import * as Config from "effect/Config";
 import * as Console from "effect/Console";
 import * as DateTime from "effect/DateTime";

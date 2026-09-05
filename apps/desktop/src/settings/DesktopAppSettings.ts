@@ -2,8 +2,8 @@ import {
   DesktopServerExposureModeSchema,
   type DesktopServerExposureMode,
   type DesktopUpdateChannel,
-} from "@ras-code/contracts";
-import { fromLenientJson } from "@ras-code/shared/schemaJson";
+} from "@t3tools/contracts";
+import { fromLenientJson } from "@t3tools/shared/schemaJson";
 import * as Context from "effect/Context";
 import * as Crypto from "effect/Crypto";
 import * as Effect from "effect/Effect";
@@ -195,7 +195,7 @@ export class DesktopAppSettings extends Context.Service<
     >;
     readonly applyWslWindowsFallbackInMemory: Effect.Effect<DesktopSettingsChange>;
   }
->()("@ras-code/desktop/settings/DesktopAppSettings") {}
+>()("@t3tools/desktop/settings/DesktopAppSettings") {}
 
 export function resolveDefaultDesktopSettings(appVersion: string): DesktopSettings {
   return {

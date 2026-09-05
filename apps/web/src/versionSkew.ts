@@ -1,6 +1,6 @@
-import type { EnvironmentId, ServerConfig, ServerSelfUpdateCapability } from "@ras-code/contracts";
-import type { ServerUpdateState } from "@ras-code/client-runtime/state/server";
-import { compareSemverVersions, parseSemver } from "@ras-code/shared/semver";
+import type { EnvironmentId, ServerConfig, ServerSelfUpdateCapability } from "@t3tools/contracts";
+import type { ServerUpdateState } from "@t3tools/client-runtime/state/server";
+import { compareSemverVersions, parseSemver } from "@t3tools/shared/semver";
 import * as Schema from "effect/Schema";
 
 import { APP_VERSION } from "./branding";

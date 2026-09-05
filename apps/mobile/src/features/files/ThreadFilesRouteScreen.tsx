@@ -10,14 +10,14 @@ import {
   type ProjectListEntriesResult,
   type ProjectReadFileResult,
   ThreadId,
-} from "@ras-code/contracts";
-import { videoMimeType } from "@ras-code/shared/video";
+} from "@t3tools/contracts";
+import { videoMimeType } from "@t3tools/shared/video";
 import {
   isWorkspaceBrowserPreviewPath,
   isWorkspaceImagePreviewPath,
   mediaMimeTypeFromExtension,
-} from "@ras-code/shared/filePreview";
-import { mediaFileReference } from "@ras-code/client-runtime/media-reference";
+} from "@t3tools/shared/filePreview";
+import { mediaFileReference } from "@t3tools/client-runtime/media-reference";
 
 import { AndroidHeaderIconButton, AndroidScreenHeader } from "../../components/AndroidScreenHeader";
 import { SymbolView } from "../../components/AppSymbol";

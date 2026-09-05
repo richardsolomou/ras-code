@@ -1,4 +1,4 @@
-import type { DesktopBridge, DesktopUpdateState } from "@ras-code/contracts";
+import type { DesktopBridge, DesktopUpdateState } from "@t3tools/contracts";
 import { ExternalLinkIcon } from "lucide-react";
 
 import {

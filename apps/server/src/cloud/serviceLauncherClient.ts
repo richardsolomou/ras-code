@@ -1,5 +1,5 @@
-import type { ServerSelfUpdateOutcome } from "@ras-code/contracts";
-import { HostProcessEnvironment } from "@ras-code/shared/hostProcess";
+import type { ServerSelfUpdateOutcome } from "@t3tools/contracts";
+import { HostProcessEnvironment } from "@t3tools/shared/hostProcess";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";

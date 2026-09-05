@@ -45,7 +45,7 @@ import {
   ProjectId,
   ProviderInstanceId,
   ThreadId,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 
 import {
   DEFAULT_INTERACTION_MODE,

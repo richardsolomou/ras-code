@@ -1,4 +1,4 @@
-import type { RelayManagedEndpointRuntimeConfig } from "@ras-code/contracts/relay";
+import type { RelayManagedEndpointRuntimeConfig } from "@t3tools/contracts/relay";
 import { describe, expect, it } from "@effect/vitest";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";

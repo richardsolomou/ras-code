@@ -5,14 +5,14 @@ import {
   settlePromise,
   squashAtomCommandFailure,
   type AtomCommandResult,
-} from "@ras-code/client-runtime/state/runtime";
-import { scopeProjectRef, scopeThreadRef } from "@ras-code/client-runtime/environment";
+} from "@t3tools/client-runtime/state/runtime";
+import { scopeProjectRef, scopeThreadRef } from "@t3tools/client-runtime/environment";
 import { AsyncResult } from "effect/unstable/reactivity";
 import {
   deriveProjectGroupingOverrideKey,
   selectProjectGroupingSettings,
 } from "../../logicalProject";
-import { isProjectIconEmoji } from "@ras-code/contracts";
+import { isProjectIconEmoji } from "@t3tools/contracts";
 import type {
   ContextMenuItem,
   ModelSelection,
@@ -20,13 +20,10 @@ import type {
   SidebarProjectGroupingMode,
   RasProjectFileScript,
   ThreadEnvMode,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import { resolveEnvModeLabel } from "../BranchToolbar.logic";
-import {
-  createModelSelection,
-  resolveEffectiveDefaultModelSelection,
-} from "@ras-code/shared/model";
-import { DEFAULT_RESOLVED_KEYBINDINGS } from "@ras-code/shared/keybindings";
+import { createModelSelection, resolveEffectiveDefaultModelSelection } from "@t3tools/shared/model";
+import { DEFAULT_RESOLVED_KEYBINDINGS } from "@t3tools/shared/keybindings";
 import { useCanGoBack, useNavigate } from "@tanstack/react-router";
 import * as Cause from "effect/Cause";
 import { ChevronDownIcon, CopyIcon, PlusIcon, SettingsIcon, Trash2Icon } from "lucide-react";

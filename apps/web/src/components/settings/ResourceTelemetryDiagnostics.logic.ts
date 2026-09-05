@@ -1,4 +1,4 @@
-import type { ResourceTelemetryProcess, ResourceTelemetrySourceStatus } from "@ras-code/contracts";
+import type { ResourceTelemetryProcess, ResourceTelemetrySourceStatus } from "@t3tools/contracts";
 
 function processIdentityKey(process: ResourceTelemetryProcess): string {
   return `${process.identity.pid}:${process.identity.startTimeMs}`;

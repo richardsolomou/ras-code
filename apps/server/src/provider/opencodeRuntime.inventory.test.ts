@@ -11,7 +11,7 @@ import {
   HostProcessEnvironment,
   HostProcessExecutablePath,
   HostProcessPlatform,
-} from "@ras-code/shared/hostProcess";
+} from "@t3tools/shared/hostProcess";
 
 import { OpenCodeRuntime, OpenCodeRuntimeLive } from "./opencodeRuntime.ts";
 

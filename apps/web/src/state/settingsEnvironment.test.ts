@@ -4,7 +4,7 @@ import {
   ProviderInstanceId,
   type ServerConfig,
   type ServerProvider,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 import { reactHookHarness as hooks } from "../test/reactHookHarness";

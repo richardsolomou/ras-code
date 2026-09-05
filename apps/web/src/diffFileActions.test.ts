@@ -1,5 +1,5 @@
-import { scopeThreadRef } from "@ras-code/client-runtime/environment";
-import { EnvironmentId, ThreadId } from "@ras-code/contracts";
+import { scopeThreadRef } from "@t3tools/client-runtime/environment";
+import { EnvironmentId, ThreadId } from "@t3tools/contracts";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 import { openDiffFilePrimaryAction, resolveDiffPathForWorkspace } from "./diffFileActions";

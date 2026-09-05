@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { EventId, type OrchestrationThreadActivity, TurnId } from "@ras-code/contracts";
+import { EventId, type OrchestrationThreadActivity, TurnId } from "@t3tools/contracts";
 
 import { deriveLatestContextWindowSnapshot, formatContextWindowTokens } from "./contextWindow";
 

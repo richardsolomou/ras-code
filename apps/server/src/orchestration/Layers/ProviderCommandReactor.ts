@@ -19,14 +19,14 @@ import {
   type ServerProvider,
   PROVIDER_DISPLAY_NAMES,
   type TurnId,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import {
   isTemporaryWorktreeBranch,
   WORKTREE_BRANCH_PREFIX,
   WORKTREE_BRANCH_PREFIXES,
-} from "@ras-code/shared/git";
-import { isPostHogGatewayCrossShapeModelChange } from "@ras-code/shared/posthogGateway";
-import { assistantCitationsToPlainText } from "@ras-code/shared/assistantCitations";
+} from "@t3tools/shared/git";
+import { isPostHogGatewayCrossShapeModelChange } from "@t3tools/shared/posthogGateway";
+import { assistantCitationsToPlainText } from "@t3tools/shared/assistantCitations";
 import * as Cache from "effect/Cache";
 import * as Cause from "effect/Cause";
 import * as Clock from "effect/Clock";
@@ -40,7 +40,7 @@ import * as Option from "effect/Option";
 import * as Schedule from "effect/Schedule";
 import * as Schema from "effect/Schema";
 import * as Stream from "effect/Stream";
-import { makeDrainableWorker } from "@ras-code/shared/DrainableWorker";
+import { makeDrainableWorker } from "@t3tools/shared/DrainableWorker";
 
 import { resolveThreadWorkspaceCwd } from "../../checkpointing/Utils.ts";
 import { ProjectionTurnRepository } from "../../persistence/Services/ProjectionTurns.ts";

@@ -2,11 +2,11 @@ import type {
   RelayAgentActivityAggregateState,
   RelayDeliveryKind,
   RelayLiveActivityRegistrationRequest,
-} from "@ras-code/contracts/relay";
+} from "@t3tools/contracts/relay";
 import {
   RelayAgentActivityAggregateState as RelayAgentActivityAggregateStateSchema,
   RelayDeliveryKind as RelayDeliveryKindSchema,
-} from "@ras-code/contracts/relay";
+} from "@t3tools/contracts/relay";
 import * as Context from "effect/Context";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";

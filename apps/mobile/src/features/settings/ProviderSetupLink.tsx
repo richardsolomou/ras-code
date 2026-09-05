@@ -1,4 +1,4 @@
-import type { ServerProvider } from "@ras-code/contracts";
+import type { ServerProvider } from "@t3tools/contracts";
 import { Pressable } from "react-native";
 
 import { AppText as Text } from "../../components/AppText";

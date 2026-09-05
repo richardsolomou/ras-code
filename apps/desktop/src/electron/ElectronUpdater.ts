@@ -79,7 +79,7 @@ export class ElectronUpdater extends Context.Service<
       listener: (...args: Args) => void,
     ) => Effect.Effect<void, never, Scope.Scope>;
   }
->()("@ras-code/desktop/electron/ElectronUpdater") {}
+>()("@t3tools/desktop/electron/ElectronUpdater") {}
 
 export const make = ElectronUpdater.of({
   setFeedURL: (options) =>

@@ -6,7 +6,7 @@
  * it uses the `Notification` API, whose permission is requested the first time
  * the user turns notifications on — never on load.
  */
-import type { DerivedNotification } from "@ras-code/client-runtime/notifications";
+import type { DerivedNotification } from "@t3tools/client-runtime/notifications";
 
 export type NotificationPermissionState = "unsupported" | "default" | "granted" | "denied";
 

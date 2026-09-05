@@ -1,5 +1,5 @@
-import type { EnvironmentId, ProviderInstanceId, ProviderRemoteModel } from "@ras-code/contracts";
-import { runAtomCommand } from "@ras-code/client-runtime/state/runtime";
+import type { EnvironmentId, ProviderInstanceId, ProviderRemoteModel } from "@t3tools/contracts";
+import { runAtomCommand } from "@t3tools/client-runtime/state/runtime";
 import * as Cause from "effect/Cause";
 
 import { describeRemoteModelsError } from "../components/settings/providerGateway.logic";

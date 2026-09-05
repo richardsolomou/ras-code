@@ -8,7 +8,7 @@ import type {
   PullRequestReviewThread,
   PullRequestThreadCommentsResult,
   PullRequestThreadComment,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import {
   CheckCircle2Icon,
   CircleIcon,

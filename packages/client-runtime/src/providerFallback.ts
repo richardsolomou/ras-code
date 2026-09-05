@@ -4,7 +4,7 @@ import {
   type ProviderInstanceId,
   type ServerProvider,
   type ServerProviderModel,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 
 /**
  * The `provider.fallback.engaged` thread activity: the marker a thread gets

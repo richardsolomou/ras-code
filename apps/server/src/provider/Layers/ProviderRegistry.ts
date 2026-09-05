@@ -29,7 +29,7 @@ import {
   type ProviderUsageLimit,
   type ServerProvider,
   type ServerProviderUpdateState,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import * as Cause from "effect/Cause";
 import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";

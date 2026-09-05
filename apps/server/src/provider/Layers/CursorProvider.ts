@@ -7,9 +7,9 @@ import type {
   ServerProviderAuth,
   ServerProviderModel,
   ServerProviderState,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import type * as EffectAcpSchema from "effect-acp/schema";
-import { causeErrorTag } from "@ras-code/shared/observability";
+import { causeErrorTag } from "@t3tools/shared/observability";
 import * as Crypto from "effect/Crypto";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
@@ -27,8 +27,8 @@ import {
   createModelCapabilities,
   getProviderOptionBooleanSelectionValue,
   getProviderOptionStringSelectionValue,
-} from "@ras-code/shared/model";
-import { resolveSpawnCommand } from "@ras-code/shared/shell";
+} from "@t3tools/shared/model";
+import { resolveSpawnCommand } from "@t3tools/shared/shell";
 
 import {
   buildBooleanOptionDescriptor,

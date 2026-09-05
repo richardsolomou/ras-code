@@ -15,30 +15,30 @@ import {
   resolveAddProjectPath,
   sortAddProjectProviderSources,
   type AddProjectRemoteSource,
-} from "@ras-code/client-runtime/operations/projects";
+} from "@t3tools/client-runtime/operations/projects";
 import {
   connectionStatusText,
   type ConnectionAttemptStage,
   type EnvironmentConnectionPhase,
-} from "@ras-code/client-runtime/connection";
+} from "@t3tools/client-runtime/connection";
 import {
   canPreloadBrowsePath,
   createBrowseNavigationCoordinator,
   filterFilesystemBrowseEntries,
   getFilesystemBrowsePath,
-} from "@ras-code/client-runtime/state/filesystem";
+} from "@t3tools/client-runtime/state/filesystem";
 import {
   appendBrowsePathSegment,
   inferProjectTitleFromPath,
   isWindowsPlatform,
-} from "@ras-code/client-runtime/state/projects";
+} from "@t3tools/client-runtime/state/projects";
 import {
   CommandId,
   type EnvironmentId,
   type EnvironmentMachineKind,
   ProjectId,
   resolveEnvironmentMachineKind,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import { CommonActions, StackActions, useNavigation } from "@react-navigation/native";
 import { SymbolView } from "../../components/AppSymbol";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";

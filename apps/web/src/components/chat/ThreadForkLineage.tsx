@@ -1,5 +1,5 @@
-import { scopeThreadRef } from "@ras-code/client-runtime/environment";
-import type { EnvironmentId, ThreadForkPoint, ThreadId } from "@ras-code/contracts";
+import { scopeThreadRef } from "@t3tools/client-runtime/environment";
+import type { EnvironmentId, ThreadForkPoint, ThreadId } from "@t3tools/contracts";
 import { GitForkIcon } from "lucide-react";
 import { memo } from "react";
 

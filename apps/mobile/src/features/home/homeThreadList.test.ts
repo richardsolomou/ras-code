@@ -1,9 +1,9 @@
 import type {
   EnvironmentProject,
   EnvironmentThreadShell,
-} from "@ras-code/client-runtime/state/shell";
-import { threadSearchMatchKey } from "@ras-code/client-runtime/state/thread-search";
-import { EnvironmentId, ProjectId, ProviderInstanceId, ThreadId } from "@ras-code/contracts";
+} from "@t3tools/client-runtime/state/shell";
+import { threadSearchMatchKey } from "@t3tools/client-runtime/state/thread-search";
+import { EnvironmentId, ProjectId, ProviderInstanceId, ThreadId } from "@t3tools/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import {

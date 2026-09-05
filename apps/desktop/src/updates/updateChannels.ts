@@ -1,4 +1,4 @@
-import type { DesktopUpdateChannel } from "@ras-code/contracts";
+import type { DesktopUpdateChannel } from "@t3tools/contracts";
 
 const CANARY_VERSION_PATTERN = /-canary\.\d{8}\.\d+$/;
 

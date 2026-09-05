@@ -1,4 +1,4 @@
-import { ManagedRelay } from "@ras-code/client-runtime/relay";
+import { ManagedRelay } from "@t3tools/client-runtime/relay";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
 

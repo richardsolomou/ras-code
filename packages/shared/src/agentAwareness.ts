@@ -3,7 +3,7 @@ import type {
   OrchestrationProjectShell,
   OrchestrationThreadShell,
   ThreadId,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 
 export type AgentAwarenessPhase =
   | "starting"

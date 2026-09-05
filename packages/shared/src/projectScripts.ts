@@ -1,4 +1,4 @@
-import type { ProjectScript } from "@ras-code/contracts";
+import type { ProjectScript } from "@t3tools/contracts";
 
 interface ProjectScriptRuntimeEnvInput {
   project: {

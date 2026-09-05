@@ -5,11 +5,11 @@ import {
   type KeybindingWhenNode,
   type ResolvedKeybindingRule,
   type ResolvedKeybindingsConfig,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import {
   DEFAULT_RESOLVED_KEYBINDINGS,
   parseKeybindingWhenExpression,
-} from "@ras-code/shared/keybindings";
+} from "@t3tools/shared/keybindings";
 
 import { isMacPlatform } from "../../lib/utils";
 

@@ -1,4 +1,4 @@
-import type { RelayManagedEndpointRuntimeConfig } from "@ras-code/contracts/relay";
+import type { RelayManagedEndpointRuntimeConfig } from "@t3tools/contracts/relay";
 import * as Context from "effect/Context";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";

@@ -34,7 +34,7 @@ export class ConnectionDriver extends Context.Service<
       reportProgress: (progress: ConnectionDriverProgress) => Effect.Effect<void>,
     ) => Effect.Effect<EnvironmentConnectionLease, ConnectionAttemptError, Scope.Scope>;
   }
->()("@ras-code/client-runtime/connection/driver/ConnectionDriver") {}
+>()("@t3tools/client-runtime/connection/driver/ConnectionDriver") {}
 
 export const make = Effect.gen(function* () {
   const resolver = yield* ConnectionResolver.ConnectionResolver;

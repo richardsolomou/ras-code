@@ -5,7 +5,7 @@ import type {
   PullRequestChecksState,
   PullRequestMergeability,
   PullRequestState,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import {
   CircleCheckIcon,
   CircleDashedIcon,

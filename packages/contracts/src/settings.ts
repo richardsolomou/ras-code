@@ -511,8 +511,8 @@ export const ClaudeSettings = makeProviderSettingsSchema(
 export type ClaudeSettings = typeof ClaudeSettings.Type;
 
 /**
- * Default gateway origin. Duplicated from `@ras-code/shared/posthogGateway`
- * because `@ras-code/shared` depends on this package; the shared module stays
+ * Default gateway origin. Duplicated from `@t3tools/shared/posthogGateway`
+ * because `@t3tools/shared` depends on this package; the shared module stays
  * the single source of truth for everything that runs outside contracts.
  */
 const POSTHOG_GATEWAY_DEFAULT_BASE_URL = "https://ai-gateway.us.posthog.com";

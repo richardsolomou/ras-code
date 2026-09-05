@@ -1,6 +1,6 @@
 import { useDndContext, useDroppable } from "@dnd-kit/core";
-import { scopedThreadKey } from "@ras-code/client-runtime/environment";
-import type { ScopedThreadRef } from "@ras-code/contracts";
+import { scopedThreadKey } from "@t3tools/client-runtime/environment";
+import type { ScopedThreadRef } from "@t3tools/contracts";
 import { XIcon } from "lucide-react";
 import {
   useCallback,

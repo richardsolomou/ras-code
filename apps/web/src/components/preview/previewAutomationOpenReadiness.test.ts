@@ -1,4 +1,4 @@
-import type { PreviewAutomationOpenInput, PreviewSessionSnapshot } from "@ras-code/contracts";
+import type { PreviewAutomationOpenInput, PreviewSessionSnapshot } from "@t3tools/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import {

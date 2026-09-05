@@ -5,8 +5,8 @@ import {
   type ServerSelfUpdateProgressStage,
   type ServerSelfUpdateResult,
   type ThreadId,
-} from "@ras-code/contracts";
-import { HostProcessExecutablePath } from "@ras-code/shared/hostProcess";
+} from "@t3tools/contracts";
+import { HostProcessExecutablePath } from "@t3tools/shared/hostProcess";
 import * as Cause from "effect/Cause";
 import * as Context from "effect/Context";
 import * as Duration from "effect/Duration";

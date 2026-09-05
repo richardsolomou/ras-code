@@ -4,7 +4,7 @@ import {
   type ProviderInstanceConfig,
   type ProviderInstanceEnvironmentVariable,
   type ProviderListRemoteModelsErrorReason,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import {
   gatewayBaseUrl,
   gatewayModelShape,
@@ -12,9 +12,9 @@ import {
   GATEWAY_KEY_VARIABLES,
   RAS_GATEWAY_KEY_VARIABLE,
   type GatewayModelShape,
-} from "@ras-code/shared/posthogGateway";
+} from "@t3tools/shared/posthogGateway";
 
-export { RAS_GATEWAY_KEY_VARIABLE } from "@ras-code/shared/posthogGateway";
+export { RAS_GATEWAY_KEY_VARIABLE } from "@t3tools/shared/posthogGateway";
 
 const CLAUDE_DRIVER = ProviderDriverKind.make("claudeAgent");
 const CODEX_DRIVER = ProviderDriverKind.make("codex");

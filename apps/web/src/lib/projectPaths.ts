@@ -14,4 +14,4 @@ export {
   normalizeProjectPathForComparison,
   normalizeProjectPathForDispatch,
   resolveProjectPathForDispatch,
-} from "@ras-code/client-runtime/state/projects";
+} from "@t3tools/client-runtime/state/projects";

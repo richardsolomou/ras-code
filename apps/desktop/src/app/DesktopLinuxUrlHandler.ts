@@ -90,7 +90,7 @@ export class DesktopLinuxUrlHandler extends Context.Service<
   {
     readonly register: Effect.Effect<void>;
   }
->()("@ras-code/desktop/app/DesktopLinuxUrlHandler") {}
+>()("@t3tools/desktop/app/DesktopLinuxUrlHandler") {}
 
 export const make = Effect.gen(function* () {
   const environment = yield* DesktopEnvironment.DesktopEnvironment;

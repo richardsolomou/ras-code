@@ -1,4 +1,4 @@
-import type { ThreadForkMessageBoundary } from "@ras-code/contracts";
+import type { ThreadForkMessageBoundary } from "@t3tools/contracts";
 
 export function selectForkInheritedPrefix<
   Message extends { readonly id: string; readonly createdAt: string; readonly streaming: boolean },

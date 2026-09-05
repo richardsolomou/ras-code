@@ -7,7 +7,7 @@ import type {
   OrchestrationThread,
   OrchestrationThreadActivity,
   ScopedThreadRef,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import * as Option from "effect/Option";
 import { AsyncResult, Atom } from "effect/unstable/reactivity";
 

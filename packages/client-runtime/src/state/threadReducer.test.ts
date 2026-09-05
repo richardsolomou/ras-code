@@ -9,8 +9,8 @@ import {
   ProviderInstanceId,
   ThreadId,
   TurnId,
-} from "@ras-code/contracts";
-import type { OrchestrationThread } from "@ras-code/contracts";
+} from "@t3tools/contracts";
+import type { OrchestrationThread } from "@t3tools/contracts";
 
 import { applyThreadDetailEvent } from "./threadReducer.ts";
 

@@ -5,7 +5,7 @@ import type {
   TerminalSessionSnapshot,
   TerminalSummary,
   ThreadId,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 
 export interface TerminalSessionState {
   readonly summary: TerminalSummary | null;

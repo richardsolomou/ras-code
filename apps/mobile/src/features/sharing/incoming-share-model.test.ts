@@ -3,7 +3,7 @@ import {
   PROVIDER_SEND_TURN_MAX_ATTACHMENTS,
   PROVIDER_SEND_TURN_MAX_FILE_BYTES,
   PROVIDER_SEND_TURN_MAX_IMAGE_BYTES,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import type { ResolvedSharePayload, SharePayload } from "expo-sharing";
 
 import {

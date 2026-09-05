@@ -1,6 +1,6 @@
-import { RAS_PROJECT_FILE_NAME, type EnvironmentId, type ThreadEnvMode } from "@ras-code/contracts";
-import { parseRasProjectFile } from "@ras-code/shared/rasProjectFile";
-import { executeAtomQuery } from "@ras-code/client-runtime/state/runtime";
+import { RAS_PROJECT_FILE_NAME, type EnvironmentId, type ThreadEnvMode } from "@t3tools/contracts";
+import { parseRasProjectFile } from "@t3tools/shared/rasProjectFile";
+import { executeAtomQuery } from "@t3tools/client-runtime/state/runtime";
 
 import {
   getProjectFileQueryAtom,

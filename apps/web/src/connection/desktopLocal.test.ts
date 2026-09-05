@@ -1,8 +1,8 @@
 import {
   BearerConnectionTarget,
   PrimaryConnectionTarget,
-} from "@ras-code/client-runtime/connection";
-import { EnvironmentId, PRIMARY_LOCAL_ENVIRONMENT_ID } from "@ras-code/contracts";
+} from "@t3tools/client-runtime/connection";
+import { EnvironmentId, PRIMARY_LOCAL_ENVIRONMENT_ID } from "@t3tools/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import {

@@ -20,7 +20,7 @@ export default Alchemy.Stack(
     const site = yield* Cloudflare.Website.StaticSite("ras-code-marketing", {
       name: `ras-code-marketing-${stage}`,
       cwd: "../..",
-      command: "vp run --filter @ras-code/marketing build",
+      command: "vp run --filter @t3tools/marketing build",
       outdir: "apps/marketing/dist",
       ...(Option.isSome(domain) ? { domain: domain.value } : {}),
       // Without a custom domain the generated URL is the only way in.

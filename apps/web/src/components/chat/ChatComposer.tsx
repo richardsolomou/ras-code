@@ -12,21 +12,21 @@ import type {
   ScopedThreadRef,
   ServerProvider,
   ThreadId,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import {
   ProviderDriverKind,
   ProviderInstanceId,
   PROVIDER_SEND_TURN_MAX_ATTACHMENTS,
   PROVIDER_SEND_TURN_MAX_IMAGE_BYTES,
-} from "@ras-code/contracts";
-import type { EnvironmentConnectionPresentation } from "@ras-code/client-runtime/connection";
+} from "@t3tools/contracts";
+import type { EnvironmentConnectionPresentation } from "@t3tools/client-runtime/connection";
 import {
   fallbackInstanceLabel,
   resolveActiveProviderInstanceId,
   resolveActiveProviderModelSelection,
-} from "@ras-code/client-runtime/provider-fallback";
-import { serializeComposerFileLink } from "@ras-code/shared/composerTrigger";
-import { createModelSelection, normalizeModelSlug } from "@ras-code/shared/model";
+} from "@t3tools/client-runtime/provider-fallback";
+import { serializeComposerFileLink } from "@t3tools/shared/composerTrigger";
+import { createModelSelection, normalizeModelSlug } from "@t3tools/shared/model";
 import {
   Fragment,
   memo,
@@ -112,7 +112,7 @@ import { compressImageForStash, prepareImageForAttachment } from "../../lib/imag
 import {
   fileAttachmentTooLargeMessage,
   formatAttachmentSize,
-} from "@ras-code/client-runtime/state/attachments";
+} from "@t3tools/client-runtime/state/attachments";
 import {
   attachmentsToReleaseOnUploadCapabilityLoss,
   classifyComposerAttachmentFile,
@@ -757,7 +757,7 @@ import {
   type ProviderInstanceEntry,
 } from "../../providerInstances";
 import { type AppModelOption, getAppModelOptionsForInstance } from "../../modelSelection";
-import type { UnifiedSettings } from "@ras-code/contracts/settings";
+import type { UnifiedSettings } from "@t3tools/contracts/settings";
 import { usageLimitPill } from "../settings/providerUsageLimit.logic";
 import { formatShortTimestamp } from "../../timestampFormat";
 import { type SessionPhase, type Thread, videoMimeType } from "../../types";
@@ -770,7 +770,7 @@ import {
   getProviderSkillsForSlashMenu,
   resolveProviderSkillsForCwd,
   resolveProviderSlashCommandsForCwd,
-} from "@ras-code/client-runtime/providerSkills";
+} from "@t3tools/client-runtime/providerSkills";
 import { searchProviderSkills } from "../../providerSkillSearch";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { useAtomCommand } from "../../state/use-atom-command";

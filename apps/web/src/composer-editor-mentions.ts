@@ -1,5 +1,5 @@
-import type { AssistantCitation } from "@ras-code/contracts";
-import { collectAssistantCitations } from "@ras-code/shared/assistantCitations";
+import type { AssistantCitation } from "@t3tools/contracts";
+import { collectAssistantCitations } from "@t3tools/shared/assistantCitations";
 import {
   INLINE_TERMINAL_CONTEXT_PLACEHOLDER,
   type TerminalContextDraft,
@@ -7,7 +7,7 @@ import {
 import {
   collectComposerInlineTokens,
   type ComposerInlineToken,
-} from "@ras-code/shared/composerInlineTokens";
+} from "@t3tools/shared/composerInlineTokens";
 
 export type ComposerPromptSegment =
   | {

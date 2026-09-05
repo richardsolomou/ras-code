@@ -1,4 +1,4 @@
-import type { AssetResource } from "@ras-code/contracts";
+import type { AssetResource } from "@t3tools/contracts";
 import {
   AssetAttachmentNotFoundError,
   AssetPreviewTypeValidationError,
@@ -14,15 +14,15 @@ import {
   AssetWorkspaceResolutionError,
   AssetWorkspaceRootNormalizationError,
   ToolActivityNativeAppReference,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import {
   hostPreviewMimeTypeFromExtension,
   isWorkspaceImagePreviewPath,
   isWorkspacePreviewEntryPath,
   WORKSPACE_BROWSER_PREVIEW_EXTENSIONS,
   WORKSPACE_IMAGE_PREVIEW_EXTENSIONS,
-} from "@ras-code/shared/filePreview";
-import { PROJECT_FAVICON_FALLBACK_MARKER } from "@ras-code/shared/projectFavicon";
+} from "@t3tools/shared/filePreview";
+import { PROJECT_FAVICON_FALLBACK_MARKER } from "@t3tools/shared/projectFavicon";
 import * as Clock from "effect/Clock";
 import * as Crypto from "effect/Crypto";
 import * as Effect from "effect/Effect";

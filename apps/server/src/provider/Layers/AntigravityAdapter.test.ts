@@ -6,7 +6,7 @@ import {
   ProviderInstanceId,
   ThreadId,
   type ProviderRuntimeEvent,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import * as Deferred from "effect/Deferred";
 import * as Crypto from "effect/Crypto";
 import * as Effect from "effect/Effect";

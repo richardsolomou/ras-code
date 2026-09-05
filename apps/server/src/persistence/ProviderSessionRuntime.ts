@@ -15,7 +15,7 @@ import {
   ProviderSessionRuntimeStatus,
   RuntimeMode,
   ThreadId,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 
 import {
   PersistenceDecodeError,

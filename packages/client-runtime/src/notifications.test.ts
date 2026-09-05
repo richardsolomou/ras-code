@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { DEFAULT_NOTIFICATION_SETTINGS, type NotificationSettings } from "@ras-code/contracts";
+import { DEFAULT_NOTIFICATION_SETTINGS, type NotificationSettings } from "@t3tools/contracts";
 
 import {
   countThreadsAwaitingUser,

@@ -10,11 +10,11 @@ import {
 } from "./upstreamRebrandMap.ts";
 
 describe("rebrandText", () => {
-  it("rewrites the workspace package scope", () => {
-    assert.strictEqual(
-      rebrandText('import { Foo } from "@t3tools/contracts";'),
-      'import { Foo } from "@ras-code/contracts";',
-    );
+  it("leaves the workspace package scope alone", () => {
+    // Every package under @t3tools/ is private, so the scope never reaches a user and keeping
+    // upstream's spelling keeps their import lines identical to ours.
+    const source = 'import { Foo } from "@t3tools/contracts";';
+    assert.strictEqual(rebrandText(source), source);
   });
 
   it("rewrites product-scoped environment variables", () => {
@@ -348,7 +348,7 @@ describe("rebrandPatch", () => {
     const lines = rebrandPatch(patch).split("\n");
     assert.strictEqual(lines[1], "index abct3111..def22222 100644");
     assert.strictEqual(lines[4], "@@ -1,3 +1,3 @@ export const T3Thing = 1");
-    assert.strictEqual(lines[5], ' import "@ras-code/shared";');
+    assert.strictEqual(lines[5], ' import "@t3tools/shared";');
     assert.strictEqual(lines[6], "-const home = RAS_CODE_HOME;");
     assert.strictEqual(lines[7], "+const home = RAS_CODE_HOME ?? fallback;");
   });
@@ -390,7 +390,7 @@ describe("collectUnmappedBrandTokensFromDiff", () => {
 
   it("stays quiet about a token the table already rewrites", () => {
     assert.deepStrictEqual(
-      collectUnmappedBrandTokensFromDiff('+import x from "@t3tools/contracts";'),
+      collectUnmappedBrandTokensFromDiff("+const home = process.env.T3CODE_HOME;"),
       [],
     );
   });

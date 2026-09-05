@@ -7,9 +7,9 @@ import {
   type EnvironmentRequestInvalidError,
   type EnvironmentResourceNotFoundError,
   type EnvironmentScopeRequiredError,
-} from "@ras-code/contracts";
-import { httpHeaderRedactionLayer } from "@ras-code/shared/httpObservability";
-import { normalizeHttpBaseUrl } from "@ras-code/shared/advertisedEndpoint";
+} from "@t3tools/contracts";
+import { httpHeaderRedactionLayer } from "@t3tools/shared/httpObservability";
+import { normalizeHttpBaseUrl } from "@t3tools/shared/advertisedEndpoint";
 import * as Data from "effect/Data";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";

@@ -25,7 +25,7 @@ export class ConnectionWakeups extends Context.Service<
   {
     readonly changes: Stream.Stream<ConnectionWakeup>;
   }
->()("@ras-code/client-runtime/connection/wakeups/ConnectionWakeups") {}
+>()("@t3tools/client-runtime/connection/wakeups/ConnectionWakeups") {}
 
 export const make = (service: ConnectionWakeups["Service"]) => ConnectionWakeups.of(service);
 

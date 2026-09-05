@@ -1,5 +1,5 @@
-import { connectionStatusText } from "@ras-code/client-runtime/connection";
-import { type EnvironmentId, resolveEnvironmentMachineKind } from "@ras-code/contracts";
+import { connectionStatusText } from "@t3tools/client-runtime/connection";
+import { type EnvironmentId, resolveEnvironmentMachineKind } from "@t3tools/contracts";
 
 import { isDesktopLocalConnectionTarget } from "../../connection/desktopLocal";
 import { cn } from "../../lib/utils";

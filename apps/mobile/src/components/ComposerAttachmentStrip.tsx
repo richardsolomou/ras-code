@@ -1,5 +1,5 @@
 import { SymbolView } from "../components/AppSymbol";
-import { videoMimeType } from "@ras-code/shared/video";
+import { videoMimeType } from "@t3tools/shared/video";
 import { useMemo } from "react";
 import { Image, Pressable, ScrollView, View } from "react-native";
 
@@ -11,7 +11,7 @@ import { PresentationSource } from "./NativePresentation";
 import type { FilePreviewSource } from "./FilePreviewModal";
 import { isPdfFile } from "../lib/filePreview";
 import { useThemeColor } from "../lib/useThemeColor";
-import type { EnvironmentId } from "@ras-code/contracts";
+import type { EnvironmentId } from "@t3tools/contracts";
 import {
   retryComposerAttachmentUpload,
   useComposerAttachmentUploadState,

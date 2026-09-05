@@ -1,5 +1,5 @@
-import { CommandId } from "@ras-code/contracts";
-import { makeDrainableWorker } from "@ras-code/shared/DrainableWorker";
+import { CommandId } from "@t3tools/contracts";
+import { makeDrainableWorker } from "@t3tools/shared/DrainableWorker";
 import * as Cause from "effect/Cause";
 import * as Context from "effect/Context";
 import * as Crypto from "effect/Crypto";

@@ -7,8 +7,8 @@ import {
   ProjectId,
   ProviderInstanceId,
   type ClientOrchestrationCommand,
-} from "@ras-code/contracts";
-import { createModelSelection } from "@ras-code/shared/model";
+} from "@t3tools/contracts";
+import { createModelSelection } from "@t3tools/shared/model";
 import * as Console from "effect/Console";
 import * as Crypto from "effect/Crypto";
 import * as DateTime from "effect/DateTime";

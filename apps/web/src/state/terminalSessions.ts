@@ -5,8 +5,8 @@ import {
   selectRunningSubprocessTerminalIds,
   type KnownTerminalSession,
   type TerminalSessionState,
-} from "@ras-code/client-runtime/state/terminal";
-import { ThreadId, type EnvironmentId, type TerminalAttachInput } from "@ras-code/contracts";
+} from "@t3tools/client-runtime/state/terminal";
+import { ThreadId, type EnvironmentId, type TerminalAttachInput } from "@t3tools/contracts";
 import { useMemo } from "react";
 
 import { useEnvironmentQuery } from "./query";

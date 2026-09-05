@@ -15,8 +15,8 @@ import {
   rasRelayPayloadFrames,
   type RasRelayFrame,
   type RasRelayMessage,
-} from "@ras-code/shared/rasRelayProtocol";
-import { stripManagedEndpointGatewayPrefix } from "@ras-code/shared/advertisedEndpoint";
+} from "@t3tools/shared/rasRelayProtocol";
+import { stripManagedEndpointGatewayPrefix } from "@t3tools/shared/advertisedEndpoint";
 import * as Crypto from "effect/Crypto";
 import * as Context from "effect/Context";
 import * as Deferred from "effect/Deferred";

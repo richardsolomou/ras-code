@@ -1,13 +1,13 @@
-import { type DesktopBridge } from "@ras-code/contracts";
-import { RelayWebClientId } from "@ras-code/contracts/relay";
+import { type DesktopBridge } from "@t3tools/contracts";
+import { RelayWebClientId } from "@t3tools/contracts/relay";
 import { describe, expect, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import { HttpClient } from "effect/unstable/http";
 import { afterEach, beforeEach, vi } from "vite-plus/test";
-import { ManagedRelay } from "@ras-code/client-runtime/relay";
-import { remoteHttpClientLayer } from "@ras-code/client-runtime/rpc";
+import { ManagedRelay } from "@t3tools/client-runtime/relay";
+import { remoteHttpClientLayer } from "@t3tools/client-runtime/rpc";
 import { __resetDesktopPrimaryAuthForTests } from "../environments/primary/desktopAuth";
 
 import {

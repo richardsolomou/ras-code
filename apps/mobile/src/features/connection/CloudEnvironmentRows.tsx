@@ -4,12 +4,12 @@ import {
   connectionStatusText,
   type EnvironmentConnectionPhase,
   type EnvironmentConnectionPresentation,
-} from "@ras-code/client-runtime/connection";
+} from "@t3tools/client-runtime/connection";
 import {
   type EnvironmentId,
   type EnvironmentMachineKind,
   resolveEnvironmentMachineKind,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import { useAtomValue } from "@effect/atom-react";
 import { useCallback, useState } from "react";
 import {

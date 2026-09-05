@@ -17,21 +17,21 @@ import {
   canSnooze,
   effectiveSnoozed,
   threadWokeAt,
-} from "@ras-code/client-runtime/state/thread-settled";
-import type { EnvironmentThreadShell } from "@ras-code/client-runtime/state/models";
-import { resolveSettledThreadTimestamp } from "@ras-code/client-runtime/state/thread-sort";
+} from "@t3tools/client-runtime/state/thread-settled";
+import type { EnvironmentThreadShell } from "@t3tools/client-runtime/state/models";
+import { resolveSettledThreadTimestamp } from "@t3tools/client-runtime/state/thread-sort";
 import {
   scopeProjectRef,
   scopeThreadRef,
   scopedThreadKey,
-} from "@ras-code/client-runtime/environment";
-import type { TimestampFormat } from "@ras-code/contracts/settings";
+} from "@t3tools/client-runtime/environment";
+import type { TimestampFormat } from "@t3tools/contracts/settings";
 import {
   resolveEnvironmentMachineKind,
   type EnvironmentMachineKind,
   type ScopedThreadRef,
   type ThreadId,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import {
   AlarmClockIcon,
   AlarmClockOffIcon,
@@ -69,7 +69,7 @@ import {
   isAtomCommandInterrupted,
   settlePromise,
   squashAtomCommandFailure,
-} from "@ras-code/client-runtime/state/runtime";
+} from "@t3tools/client-runtime/state/runtime";
 import { isElectron } from "../env";
 import {
   resolveShortcutCommand,
@@ -92,7 +92,7 @@ import { getProjectOrderKey, selectProjectGroupingSettings } from "../logicalPro
 import {
   resolveActiveProviderInstanceId,
   resolveActiveProviderModelSelection,
-} from "@ras-code/client-runtime/provider-fallback";
+} from "@t3tools/client-runtime/provider-fallback";
 import {
   buildSidebarProjectSnapshots,
   type SidebarProjectSnapshot,

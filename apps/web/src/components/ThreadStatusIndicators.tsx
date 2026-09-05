@@ -2,8 +2,8 @@ import {
   scopeProjectRef,
   scopedThreadKey,
   scopeThreadRef,
-} from "@ras-code/client-runtime/environment";
-import { pullRequestDetailToVcsStatus } from "@ras-code/client-runtime/state/pull-requests";
+} from "@t3tools/client-runtime/environment";
+import { pullRequestDetailToVcsStatus } from "@t3tools/client-runtime/state/pull-requests";
 import {
   type EnvironmentId,
   OrchestrationThreadShell,
@@ -11,7 +11,7 @@ import {
   resolveEnvironmentMachineKind,
   type ThreadLinkedPullRequest,
   type VcsStatusResult,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import { Atom } from "effect/unstable/reactivity";
 import { FolderGit2Icon, GitPullRequestIcon, TerminalIcon } from "lucide-react";
 import { useMemo } from "react";

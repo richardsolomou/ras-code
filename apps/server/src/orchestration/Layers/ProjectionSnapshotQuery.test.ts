@@ -6,7 +6,7 @@ import {
   ThreadId,
   TurnId,
   ProviderInstanceId,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import { assert, it } from "@effect/vitest";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as Effect from "effect/Effect";

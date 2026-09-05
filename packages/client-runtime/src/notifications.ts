@@ -7,7 +7,7 @@
  * desktop, and mobile if it ever stops relying on push) shares one set of
  * rules, and so the suppression cases are testable without a browser.
  */
-import type { NotificationEventKind, NotificationSettings } from "@ras-code/contracts/settings";
+import type { NotificationEventKind, NotificationSettings } from "@t3tools/contracts/settings";
 
 export type { NotificationEventKind };
 

@@ -11,15 +11,15 @@ import type {
   ProjectScript as ContractProjectScript,
   ProviderInteractionMode,
   RuntimeMode,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import type {
   EnvironmentProject,
   EnvironmentThread,
   EnvironmentThreadShell,
-} from "@ras-code/client-runtime/state/shell";
-import { videoMimeType } from "@ras-code/shared/video";
+} from "@t3tools/client-runtime/state/shell";
+import { videoMimeType } from "@t3tools/shared/video";
 
-export { videoMimeType } from "@ras-code/shared/video";
+export { videoMimeType } from "@t3tools/shared/video";
 
 export type SessionPhase = "disconnected" | "connecting" | "ready" | "running";
 export const DEFAULT_RUNTIME_MODE: RuntimeMode = "full-access";

@@ -8,7 +8,7 @@ import type {
   SourceControlProviderKind,
   SourceControlRepositoryCloneUrls,
   SourceControlRepositoryVisibility,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 
 export interface SourceControlProviderContext {
   readonly provider: SourceControlProviderInfo;

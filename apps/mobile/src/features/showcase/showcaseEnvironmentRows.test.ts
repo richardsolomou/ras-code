@@ -1,4 +1,4 @@
-import { EnvironmentId } from "@ras-code/contracts";
+import { EnvironmentId } from "@t3tools/contracts";
 import { assert, it } from "@effect/vitest";
 
 import type { ConnectedEnvironmentSummary } from "../../state/remote-runtime-types";

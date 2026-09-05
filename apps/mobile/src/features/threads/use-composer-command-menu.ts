@@ -1,21 +1,21 @@
-import type { EnvironmentId, ProviderInteractionMode, ServerProvider } from "@ras-code/contracts";
+import type { EnvironmentId, ProviderInteractionMode, ServerProvider } from "@t3tools/contracts";
 import {
   detectComposerTrigger,
   replaceTextRange,
   serializeComposerFileLink,
   type ComposerTrigger,
-} from "@ras-code/shared/composerTrigger";
+} from "@t3tools/shared/composerTrigger";
 import {
   insertRankedSearchResult,
   normalizeSearchQuery,
   scoreQueryMatch,
-} from "@ras-code/shared/searchRanking";
+} from "@t3tools/shared/searchRanking";
 import {
   dedupeProviderSkillsByName,
   getProviderSkillsForSlashMenu,
   isProviderSkillUserInvocable,
   resolveProviderSkillsForCwd,
-} from "@ras-code/client-runtime/providerSkills";
+} from "@t3tools/client-runtime/providerSkills";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { ComposerEditorSelection } from "../../components/ComposerEditor";

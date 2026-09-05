@@ -5,7 +5,7 @@ import {
   ThreadId,
   type OrchestrationEvent,
   type OrchestrationReadModel,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as Effect from "effect/Effect";
 import { assert, expect, it } from "@effect/vitest";

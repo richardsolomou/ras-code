@@ -4,9 +4,9 @@ import {
   type ServerProvider,
   type ServerProviderAuth,
   type ServerProviderModel,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import type * as EffectAcpSchema from "effect-acp/schema";
-import { causeErrorTag } from "@ras-code/shared/observability";
+import { causeErrorTag } from "@t3tools/shared/observability";
 import * as Crypto from "effect/Crypto";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
@@ -15,8 +15,8 @@ import * as Option from "effect/Option";
 import * as Result from "effect/Result";
 import { HttpClient } from "effect/unstable/http";
 import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process";
-import { createModelCapabilities } from "@ras-code/shared/model";
-import { resolveSpawnCommand } from "@ras-code/shared/shell";
+import { createModelCapabilities } from "@t3tools/shared/model";
+import { resolveSpawnCommand } from "@t3tools/shared/shell";
 
 import {
   AUTH_PROBE_TIMEOUT_MS,

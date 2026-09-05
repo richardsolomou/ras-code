@@ -1,4 +1,4 @@
-import { videoMimeType } from "@ras-code/shared/video";
+import { videoMimeType } from "@t3tools/shared/video";
 
 import type { DraftComposerFileAttachment } from "./composerImages";
 import { resolveOwnedComposerAttachmentFileUri } from "./composerAttachmentFiles";

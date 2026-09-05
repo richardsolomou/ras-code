@@ -1,6 +1,6 @@
-import * as NetService from "@ras-code/shared/Net";
-import { parsePersistedServerObservabilitySettings } from "@ras-code/shared/serverSettings";
-import { DesktopBackendBootstrap, PortSchema } from "@ras-code/contracts";
+import * as NetService from "@t3tools/shared/Net";
+import { parsePersistedServerObservabilitySettings } from "@t3tools/shared/serverSettings";
+import { DesktopBackendBootstrap, PortSchema } from "@t3tools/contracts";
 import * as Config from "effect/Config";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";

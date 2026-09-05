@@ -1,5 +1,5 @@
-import type { EnvironmentRpcSubscriptionObservation } from "@ras-code/client-runtime/rpc";
-import { type BackgroundScope, type EnvironmentId, WS_METHODS } from "@ras-code/contracts";
+import type { EnvironmentRpcSubscriptionObservation } from "@t3tools/client-runtime/rpc";
+import { type BackgroundScope, type EnvironmentId, WS_METHODS } from "@t3tools/contracts";
 import * as Effect from "effect/Effect";
 
 interface RetainedScope {

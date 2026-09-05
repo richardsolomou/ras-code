@@ -1,5 +1,5 @@
-import type { EnvironmentThreadShell } from "@ras-code/client-runtime/state/shell";
-import { canSnooze } from "@ras-code/client-runtime/state/thread-settled";
+import type { EnvironmentThreadShell } from "@t3tools/client-runtime/state/shell";
+import { canSnooze } from "@t3tools/client-runtime/state/thread-settled";
 import * as Cause from "effect/Cause";
 import * as Haptics from "expo-haptics";
 import { useCallback, useRef } from "react";
@@ -12,7 +12,7 @@ import {
   pinOrderKeyBetween,
   planPinnedMove,
   sortPinnedThreadsByOrderKey,
-} from "@ras-code/client-runtime/state/thread-sort";
+} from "@t3tools/client-runtime/state/thread-sort";
 import { appAtomRegistry } from "../../state/atom-registry";
 import { environmentServerConfigsAtom } from "../../state/server";
 import { environmentThreadShells, threadEnvironment } from "../../state/threads";

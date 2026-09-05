@@ -7,7 +7,7 @@ import type {
   ProjectId,
   ScopedProjectRef,
   ThreadId,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 
 export interface DesktopAppActivationProject {
   readonly id: ProjectId;

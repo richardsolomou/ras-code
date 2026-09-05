@@ -1,19 +1,19 @@
 import {
   type EnvironmentProject,
   type EnvironmentThreadShell,
-} from "@ras-code/client-runtime/state/shell";
+} from "@t3tools/client-runtime/state/shell";
 import {
   threadSearchMatchKey,
   type EnvironmentThreadSearchMatch,
-} from "@ras-code/client-runtime/state/thread-search";
-import { sortPinnedThreadsByOrderKey } from "@ras-code/client-runtime/state/thread-sort";
-import { resolveActiveProviderInstanceId } from "@ras-code/client-runtime/provider-fallback";
+} from "@t3tools/client-runtime/state/thread-search";
+import { sortPinnedThreadsByOrderKey } from "@t3tools/client-runtime/state/thread-sort";
+import { resolveActiveProviderInstanceId } from "@t3tools/client-runtime/provider-fallback";
 import {
   type EnvironmentId,
   resolveEnvironmentMachineKind,
   SidebarProjectGroupingMode,
   SidebarThreadSortOrder,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import { useAtomValue } from "@effect/atom-react";
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";

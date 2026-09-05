@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@effect/vitest";
-import { EnvironmentId, ThreadId } from "@ras-code/contracts";
-import type { RelayAgentActivityAggregateState } from "@ras-code/contracts/relay";
+import { EnvironmentId, ThreadId } from "@t3tools/contracts";
+import type { RelayAgentActivityAggregateState } from "@t3tools/contracts/relay";
 import * as Redacted from "effect/Redacted";
 
 import {

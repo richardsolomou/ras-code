@@ -14,7 +14,7 @@ import {
   ProjectionThreadRepository,
   type ProjectionThreadRepositoryShape,
 } from "../Services/ProjectionThreads.ts";
-import { ModelSelection, ThreadForkPoint, ThreadLinkedPullRequest } from "@ras-code/contracts";
+import { ModelSelection, ThreadForkPoint, ThreadLinkedPullRequest } from "@t3tools/contracts";
 
 const ProjectionThreadDbRow = ProjectionThread.mapFields(
   Struct.assign({

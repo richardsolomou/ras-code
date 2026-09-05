@@ -1,5 +1,5 @@
-import { scopeProjectRef } from "@ras-code/client-runtime/environment";
-import type { MessageId, ThreadId } from "@ras-code/contracts";
+import { scopeProjectRef } from "@t3tools/client-runtime/environment";
+import type { MessageId, ThreadId } from "@t3tools/contracts";
 import { useCallback } from "react";
 
 import { stackedThreadToast, toastManager } from "../components/ui/toast";

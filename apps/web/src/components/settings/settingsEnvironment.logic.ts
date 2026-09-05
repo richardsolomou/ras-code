@@ -1,4 +1,4 @@
-import type { EnvironmentId } from "@ras-code/contracts";
+import type { EnvironmentId } from "@t3tools/contracts";
 
 export interface SettingsEnvironmentOptionLike {
   readonly environmentId: EnvironmentId;

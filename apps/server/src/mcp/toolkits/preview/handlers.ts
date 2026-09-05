@@ -9,7 +9,7 @@ import type {
   PreviewAutomationSnapshot,
   PreviewAutomationStatus,
   PreviewTabId,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 
 import * as McpInvocationContext from "../../McpInvocationContext.ts";
 import * as PreviewAutomationBroker from "../../PreviewAutomationBroker.ts";
@@ -41,7 +41,7 @@ const invoke = Effect.fn("PreviewToolkit.invoke")(function* <A>(
   tabId?: PreviewTabId,
 ): Effect.fn.Return<
   A,
-  import("@ras-code/contracts").PreviewAutomationError,
+  import("@t3tools/contracts").PreviewAutomationError,
   McpInvocationContext.McpInvocationContext | PreviewAutomationBroker.PreviewAutomationBroker
 > {
   const scope = yield* McpInvocationContext.requireMcpCapability("preview");

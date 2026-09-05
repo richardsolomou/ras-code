@@ -2,11 +2,11 @@ import type {
   DesktopDiscoveredSshHost,
   DesktopSshEnvironmentBootstrap,
   DesktopSshEnvironmentTarget,
-} from "@ras-code/contracts";
-import * as NetService from "@ras-code/shared/Net";
-import * as SshAuth from "@ras-code/ssh/auth";
-import { resolveSshTarget } from "@ras-code/ssh/command";
-import { discoverSshHosts } from "@ras-code/ssh/config";
+} from "@t3tools/contracts";
+import * as NetService from "@t3tools/shared/Net";
+import * as SshAuth from "@t3tools/ssh/auth";
+import { resolveSshTarget } from "@t3tools/ssh/command";
+import { discoverSshHosts } from "@t3tools/ssh/config";
 import {
   SshCommandError,
   SshHostDiscoveryError,
@@ -15,8 +15,8 @@ import {
   SshPairingError,
   SshPasswordPromptError,
   SshReadinessError,
-} from "@ras-code/ssh/errors";
-import * as SshTunnel from "@ras-code/ssh/tunnel";
+} from "@t3tools/ssh/errors";
+import * as SshTunnel from "@t3tools/ssh/tunnel";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -66,7 +66,7 @@ export class DesktopSshEnvironment extends Context.Service<
       target: DesktopSshEnvironmentTarget,
     ) => Effect.Effect<void, DesktopSshEnvironmentOperationError>;
   }
->()("@ras-code/desktop/ssh/DesktopSshEnvironment") {}
+>()("@t3tools/desktop/ssh/DesktopSshEnvironment") {}
 
 export interface DesktopSshEnvironmentLayerOptions {
   readonly resolveCliPackageSpec?: () => string;

@@ -3,7 +3,7 @@ import type {
   SourceControlProviderDiscoveryItem,
   SourceControlProviderInfo,
   SourceControlProviderKind,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 

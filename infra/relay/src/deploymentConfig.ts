@@ -1,5 +1,5 @@
-import type { RelayManagedEndpoint } from "@ras-code/contracts/relay";
-import { deriveWsBaseUrl } from "@ras-code/shared/advertisedEndpoint";
+import type { RelayManagedEndpoint } from "@t3tools/contracts/relay";
+import { deriveWsBaseUrl } from "@t3tools/shared/advertisedEndpoint";
 import * as Schema from "effect/Schema";
 
 const DNS_LABEL_MAX_LENGTH = 63;

@@ -2,7 +2,7 @@ import {
   type ClaudeSettings,
   type ModelCapabilities,
   type ServerProviderSlashCommand,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -10,8 +10,8 @@ import * as Option from "effect/Option";
 import * as Path from "effect/Path";
 import * as Result from "effect/Result";
 import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process";
-import { createModelCapabilities } from "@ras-code/shared/model";
-import { resolveSpawnCommand } from "@ras-code/shared/shell";
+import { createModelCapabilities } from "@t3tools/shared/model";
+import { resolveSpawnCommand } from "@t3tools/shared/shell";
 import {
   query as claudeQuery,
   type ModelInfo as ClaudeSdkModelInfo,

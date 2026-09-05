@@ -1,5 +1,5 @@
 import { useAtomSet, useAtomValue } from "@effect/atom-react";
-import { type EnvironmentMachineKind, resolveEnvironmentMachineKind } from "@ras-code/contracts";
+import { type EnvironmentMachineKind, resolveEnvironmentMachineKind } from "@t3tools/contracts";
 import { AsyncResult } from "effect/unstable/reactivity";
 import { SymbolView } from "expo-symbols";
 import { useMemo } from "react";

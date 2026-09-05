@@ -13,10 +13,10 @@ import {
   type DirectoryRecord,
 } from "@electron/asar";
 
-import { fromYaml } from "@ras-code/shared/schemaYaml";
-import { HostProcessArchitecture, HostProcessPlatform } from "@ras-code/shared/hostProcess";
-import { clerkFrontendApiHostnameFromPublishableKey } from "@ras-code/shared/relayAuth";
-import { resolveSpawnCommand } from "@ras-code/shared/shell";
+import { fromYaml } from "@t3tools/shared/schemaYaml";
+import { HostProcessArchitecture, HostProcessPlatform } from "@t3tools/shared/hostProcess";
+import { clerkFrontendApiHostnameFromPublishableKey } from "@t3tools/shared/relayAuth";
+import { resolveSpawnCommand } from "@t3tools/shared/shell";
 import rootPackageJson from "../package.json" with { type: "json" };
 import desktopPackageJson from "../apps/desktop/package.json" with { type: "json" };
 import serverPackageJson from "../apps/server/package.json" with { type: "json" };
@@ -3635,7 +3635,7 @@ const buildDesktopArtifact = Effect.fn("buildDesktopArtifact")(function* (
   const builderArgs = [
     "exec",
     "--filter",
-    "@ras-code/desktop",
+    "@t3tools/desktop",
     "--",
     "electron-builder",
     "--projectDir",
@@ -3653,7 +3653,7 @@ const buildDesktopArtifact = Effect.fn("buildDesktopArtifact")(function* (
       shell: builderCommand.shell,
     }),
     {
-      label: `vp exec --filter @ras-code/desktop -- electron-builder --projectDir ${stageAppDir} ${platformConfig.cliFlag} --${options.arch} --publish never`,
+      label: `vp exec --filter @t3tools/desktop -- electron-builder --projectDir ${stageAppDir} ${platformConfig.cliFlag} --${options.arch} --publish never`,
       verbose: options.verbose,
     },
   );

@@ -1,7 +1,7 @@
 import {
   connectionStatusText,
   type EnvironmentConnectionPresentation,
-} from "@ras-code/client-runtime/connection";
+} from "@t3tools/client-runtime/connection";
 
 export interface SavedCloudEnvironmentConnectionPresentation {
   readonly buttonLabel: string;

@@ -28,7 +28,7 @@ import {
   buildConnectAuthorizeRequestUrl,
   checkConnectAuthCode,
   connectCallbackUrl,
-} from "@ras-code/shared/connectAuth";
+} from "@t3tools/shared/connectAuth";
 
 import * as ServerSecretStore from "../auth/ServerSecretStore.ts";
 import * as ExternalLauncher from "../process/externalLauncher.ts";

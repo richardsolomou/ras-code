@@ -1,5 +1,5 @@
-import type { AssistantCitation } from "@ras-code/contracts";
-import { serializeAssistantCitation } from "@ras-code/shared/assistantCitations";
+import type { AssistantCitation } from "@t3tools/contracts";
+import { serializeAssistantCitation } from "@t3tools/shared/assistantCitations";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { PencilIcon, QuoteIcon, XIcon } from "lucide-react";
 import { useEffect, useEffectEvent, useRef, type MouseEvent as ReactMouseEvent } from "react";

@@ -5,7 +5,7 @@ import * as NodeOS from "node:os";
  *
  * The PostHog AI Gateway serves its whole catalog from one origin, but on two
  * request shapes: `claude-*` ids exist only on Anthropic Messages, everything
- * else only on Responses (see `@ras-code/shared/posthogGateway`). Neither
+ * else only on Responses (see `@t3tools/shared/posthogGateway`). Neither
  * shipped harness speaks both, so this driver creates a Claude child and a
  * Codex child in its own scope, points both at the gateway, and routes every
  * call by `gatewayModelShape(model)`. The user picks a model; the driver picks
@@ -41,7 +41,7 @@ import {
   type ServerProvider,
   type ServerProviderModel,
   type ThreadId,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import {
   ANTHROPIC_API_KEY_VARIABLE,
   ANTHROPIC_AUTH_TOKEN_VARIABLE,
@@ -53,7 +53,7 @@ import {
   POSTHOG_GATEWAY_BASE_URL,
   RAS_GATEWAY_KEY_VARIABLE,
   type GatewayModelShape,
-} from "@ras-code/shared/posthogGateway";
+} from "@t3tools/shared/posthogGateway";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";

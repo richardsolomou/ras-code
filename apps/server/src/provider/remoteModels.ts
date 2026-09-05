@@ -18,7 +18,7 @@ import {
   type ProviderInstanceId,
   type ProviderListRemoteModelsResult,
   type ProviderRemoteModel,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import {
   ANTHROPIC_API_KEY_VARIABLE,
   gatewayBaseUrl,
@@ -26,7 +26,7 @@ import {
   type GatewayEnvironmentVariable,
   GATEWAY_BASE_URL_VARIABLES,
   GATEWAY_KEY_VARIABLES,
-} from "@ras-code/shared/posthogGateway";
+} from "@t3tools/shared/posthogGateway";
 import * as Effect from "effect/Effect";
 import * as Predicate from "effect/Predicate";
 import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/unstable/http";

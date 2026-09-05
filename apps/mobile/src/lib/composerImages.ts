@@ -1,7 +1,7 @@
 import {
   clampFileAttachmentUploadBytes,
   fileAttachmentTooLargeMessage,
-} from "@ras-code/client-runtime/state/attachments";
+} from "@t3tools/client-runtime/state/attachments";
 import {
   isProviderSendTurnSupportedImageMimeType,
   PROVIDER_SEND_TURN_MAX_ATTACHMENTS,
@@ -9,7 +9,7 @@ import {
   PROVIDER_SEND_TURN_MAX_IMAGE_BYTES,
   type EnvironmentId,
   type UploadChatImageAttachment,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import type { DocumentPickerResult } from "expo-document-picker";
 import { estimateBase64ByteSize } from "./base64";
 import {

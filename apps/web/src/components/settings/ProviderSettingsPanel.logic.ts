@@ -1,5 +1,5 @@
-import type { EnvironmentConnectionPhase } from "@ras-code/client-runtime/connection";
-import { AuthOrchestrationOperateScope, type AuthSessionState } from "@ras-code/contracts";
+import type { EnvironmentConnectionPhase } from "@t3tools/client-runtime/connection";
+import { AuthOrchestrationOperateScope, type AuthSessionState } from "@t3tools/contracts";
 
 export function isProviderSettingsEnvironmentAvailable(input: {
   readonly connectionPhase: EnvironmentConnectionPhase;

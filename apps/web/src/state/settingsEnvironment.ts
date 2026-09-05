@@ -9,7 +9,7 @@
  * backend of its own) reaches any server settings at all.
  */
 import { useAtomSet, useAtomValue } from "@effect/atom-react";
-import type { EnvironmentId, ServerConfig, ServerProvider } from "@ras-code/contracts";
+import type { EnvironmentId, ServerConfig, ServerProvider } from "@t3tools/contracts";
 import { Atom } from "effect/unstable/reactivity";
 import { useMemo } from "react";
 

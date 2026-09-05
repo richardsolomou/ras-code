@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import type { ModelCapabilities } from "@ras-code/contracts";
+import type { ModelCapabilities } from "@t3tools/contracts";
 
 import {
   applyProviderOptionSelection,

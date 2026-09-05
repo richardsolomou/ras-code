@@ -1,4 +1,4 @@
-import type { ProviderInteractionMode } from "@ras-code/contracts";
+import type { ProviderInteractionMode } from "@t3tools/contracts";
 
 import { IMAGE_SHARING_INSTRUCTIONS } from "./SharedProviderInstructions.ts";
 

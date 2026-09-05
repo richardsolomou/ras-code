@@ -9,9 +9,9 @@ import { it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Schema from "effect/Schema";
-import { createModelSelection } from "@ras-code/shared/model";
+import { createModelSelection } from "@t3tools/shared/model";
 import { expect } from "vite-plus/test";
-import { GrokSettings, ProviderInstanceId } from "@ras-code/contracts";
+import { GrokSettings, ProviderInstanceId } from "@t3tools/contracts";
 
 import * as ServerConfig from "../config.ts";
 import * as TextGeneration from "./TextGeneration.ts";

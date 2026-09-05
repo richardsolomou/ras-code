@@ -2,11 +2,11 @@ import {
   type ApprovalRequestId,
   type ProviderFallbackOfferDecision,
   type ServerProvider,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import {
   fallbackInstanceIsMetered,
   fallbackInstanceLabel,
-} from "@ras-code/client-runtime/provider-fallback";
+} from "@t3tools/client-runtime/provider-fallback";
 import { Pressable, View } from "react-native";
 
 import { AppText as Text } from "../../components/AppText";

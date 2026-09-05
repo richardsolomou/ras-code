@@ -4,8 +4,8 @@ import {
   inlineCodeFilePathCandidate,
   normalizeMarkdownLinkDestination,
   parseMarkdownFileLink,
-} from "@ras-code/client-runtime/markdown-links";
-import { videoMimeType } from "@ras-code/shared/video";
+} from "@t3tools/client-runtime/markdown-links";
+import { videoMimeType } from "@t3tools/shared/video";
 
 import type { MARKDOWN_FILE_ICON_SOURCES } from "./markdownFileIcons.generated";
 

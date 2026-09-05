@@ -2,8 +2,8 @@
 import * as NodeChildProcess from "node:child_process";
 
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { ProviderInstanceId } from "@ras-code/contracts";
-import { HostProcessPlatform } from "@ras-code/shared/hostProcess";
+import { ProviderInstanceId } from "@t3tools/contracts";
+import { HostProcessPlatform } from "@t3tools/shared/hostProcess";
 import { describe, expect, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";

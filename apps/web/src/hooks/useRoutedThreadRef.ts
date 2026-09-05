@@ -1,5 +1,5 @@
-import { scopedThreadKey } from "@ras-code/client-runtime/environment";
-import type { ScopedThreadRef } from "@ras-code/contracts";
+import { scopedThreadKey } from "@t3tools/client-runtime/environment";
+import type { ScopedThreadRef } from "@t3tools/contracts";
 import { useParams } from "@tanstack/react-router";
 import { useMemo } from "react";
 

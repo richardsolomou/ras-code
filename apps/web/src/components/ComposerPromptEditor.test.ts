@@ -1,5 +1,5 @@
-import { EnvironmentId, MessageId, ThreadId, type AssistantCitation } from "@ras-code/contracts";
-import { serializeAssistantCitation } from "@ras-code/shared/assistantCitations";
+import { EnvironmentId, MessageId, ThreadId, type AssistantCitation } from "@t3tools/contracts";
+import { serializeAssistantCitation } from "@t3tools/shared/assistantCitations";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import {
   $createParagraphNode,

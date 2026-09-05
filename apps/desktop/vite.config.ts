@@ -45,7 +45,7 @@ export default defineConfig({
       entry: ["src/main.ts"],
       clean: true,
       deps: {
-        alwaysBundle: (id) => id.startsWith("@ras-code/"),
+        alwaysBundle: (id) => id.startsWith("@t3tools/"),
       },
       ...(shouldLaunchElectronAfterPack ? { onSuccess: "node scripts/dev-electron.mjs" } : {}),
     },

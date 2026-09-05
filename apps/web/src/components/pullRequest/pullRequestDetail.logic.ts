@@ -15,8 +15,8 @@ import {
   PullRequestUpdateMethod,
   SourceControlProviderKind,
   VcsRef,
-} from "@ras-code/contracts";
-import { buildResolveConflictsPrompt } from "@ras-code/shared/sourceControl";
+} from "@t3tools/contracts";
+import { buildResolveConflictsPrompt } from "@t3tools/shared/sourceControl";
 import * as Schema from "effect/Schema";
 
 import { inferReviewCommentFenceLanguage, type ReviewCommentContext } from "~/reviewCommentContext";

@@ -3,7 +3,7 @@ import {
   DEFAULT_NOTIFICATION_SETTINGS,
   type NotificationEventKind,
   type NotificationSettings,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 
 import { usePrimarySettings, useUpdatePrimarySettings } from "~/hooks/useSettings";
 import {

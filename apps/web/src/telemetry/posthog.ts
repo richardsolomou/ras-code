@@ -2,7 +2,7 @@ import {
   POSTHOG_DEV_PROXY_PATH,
   POSTHOG_MANAGED_PROXY_HOST,
   POSTHOG_PROJECT_TOKEN,
-} from "@ras-code/shared/posthog";
+} from "@t3tools/shared/posthog";
 import type { CaptureResult, PostHog } from "posthog-js";
 
 import { LRUCache } from "../lib/lruCache";

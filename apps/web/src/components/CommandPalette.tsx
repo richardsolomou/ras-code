@@ -4,7 +4,7 @@ import {
   scopedThreadKey,
   scopeProjectRef,
   scopeThreadRef,
-} from "@ras-code/client-runtime/environment";
+} from "@t3tools/client-runtime/environment";
 import {
   canCreateProjectInEnvironment,
   getCloneDestinationBrowsePath,
@@ -12,21 +12,21 @@ import {
   getCloneDirectoryName,
   getDefaultCloneUrl,
   normalizePastedCloneUrl,
-} from "@ras-code/client-runtime/operations/projects";
-import { connectionStatusText } from "@ras-code/client-runtime/connection";
-import { threadSearchMatchKey } from "@ras-code/client-runtime/state/thread-search";
-import { resolveThreadReferenceCopyTarget } from "@ras-code/shared/threadReference";
+} from "@t3tools/client-runtime/operations/projects";
+import { connectionStatusText } from "@t3tools/client-runtime/connection";
+import { threadSearchMatchKey } from "@t3tools/client-runtime/state/thread-search";
+import { resolveThreadReferenceCopyTarget } from "@t3tools/shared/threadReference";
 import {
   canPreloadBrowsePath,
   createBrowseNavigationCoordinator,
   filterFilesystemBrowseEntries,
   getFilesystemBrowsePath,
-} from "@ras-code/client-runtime/state/filesystem";
+} from "@t3tools/client-runtime/state/filesystem";
 import {
   isAtomCommandInterrupted,
   settlePromise,
   squashAtomCommandFailure,
-} from "@ras-code/client-runtime/state/runtime";
+} from "@t3tools/client-runtime/state/runtime";
 import {
   type DesktopWslState,
   type EnvironmentId,
@@ -37,7 +37,7 @@ import {
   type SourceControlRepositoryInfo,
   PRIMARY_LOCAL_ENVIRONMENT_ID,
   resolveEnvironmentMachineKind,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import { useLocation, useNavigate, useParams } from "@tanstack/react-router";
 import * as Option from "effect/Option";
 import {

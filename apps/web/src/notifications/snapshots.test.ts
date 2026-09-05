@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vite-plus/test";
-import type { EnvironmentId, ProjectId, ThreadId } from "@ras-code/contracts";
+import type { EnvironmentId, ProjectId, ThreadId } from "@t3tools/contracts";
 import type {
   EnvironmentProject,
   EnvironmentThread,
   EnvironmentThreadShell,
-} from "@ras-code/client-runtime/state/models";
+} from "@t3tools/client-runtime/state/models";
 
 import { FALLBACK_ENGAGED_ACTIVITY_KIND } from "~/components/settings/providerUsageLimit.logic";
 import { buildNotificationSnapshots } from "./snapshots";

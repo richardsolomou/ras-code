@@ -1,5 +1,5 @@
-import type { EnvironmentId } from "@ras-code/contracts";
-import type { RelayProtectedError } from "@ras-code/contracts/relay";
+import type { EnvironmentId } from "@t3tools/contracts";
+import type { RelayProtectedError } from "@t3tools/contracts/relay";
 import type { ManagedRelayClientError } from "../relay/managedRelay.ts";
 import { dpopFailureMessage, relayProtectedErrorMessage } from "../relay/errorPresentation.ts";
 import type { RemoteEnvironmentAuthError } from "../authorization/remote.ts";

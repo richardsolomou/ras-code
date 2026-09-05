@@ -9,7 +9,7 @@ import * as Schema from "effect/Schema";
 import * as TestClock from "effect/testing/TestClock";
 import { beforeEach } from "vite-plus/test";
 
-import { OpenCodeSettings } from "@ras-code/contracts";
+import { OpenCodeSettings } from "@t3tools/contracts";
 import { ServerConfig } from "../../config.ts";
 import {
   OpenCodeRuntime,

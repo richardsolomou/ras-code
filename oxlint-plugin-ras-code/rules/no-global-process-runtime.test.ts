@@ -8,7 +8,7 @@ describe("ras-code/no-global-process-runtime", () => {
   rule.valid(
     "allows injected host process references",
     `
-      import { HostProcessPlatform } from "@ras-code/shared/hostProcess";
+      import { HostProcessPlatform } from "@t3tools/shared/hostProcess";
       import * as Effect from "effect/Effect";
 
       export const isWindows = Effect.map(HostProcessPlatform, (platform) => platform === "win32");
