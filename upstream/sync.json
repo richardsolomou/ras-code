@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "044ea8e347d980a215057c325de8335d38f0f9aa",
+  "lastReviewed": "652515a349741d234111b85f27597be3265d1ffc",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -2627,6 +2627,15 @@
       "ours": "80c2d1951c84743cbd6f0bc653151bebcfab2c5b",
       "reason": "Clean apart from our trimmed comments and the interaction-mode toggle we removed; kept both and took upstream's shared measurement plus the hidden-menu prop.",
       "reviewedAt": "2026-09-05T08:13:02.919Z"
+    },
+    {
+      "upstream": "652515a349741d234111b85f27597be3265d1ffc",
+      "pr": 9126,
+      "title": "fix(web): render assistant images inline in chat",
+      "decision": "adapted",
+      "ours": "a9809882f455290f9d5571fd0b357094246d81ac",
+      "reason": "Clean apart from the new tests passing revertTurnCountByUserMessageId, which our message-actions redesign replaced with checkpointTurnCountByAssistantMessageId.",
+      "reviewedAt": "2026-09-05T08:13:40.884Z"
     }
   ]
 }
