@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "19c1710a88a2c87c159d76269dacdf0b17ddd9f4",
+  "lastReviewed": "c8f77e0d441264efb0acfac312e852c81ae3da83",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -4049,6 +4049,24 @@
       "ours": "c879234792bc9dfa9c55995ba87466f97ac92712",
       "reason": "Timeline rows are reused across streaming renders through a kept projection. Landed under our checkpointTurnCountByAssistantMessageId, which #52 keys by assistant message rather than upstream's revert count keyed by user message.",
       "reviewedAt": "2026-09-05T21:55:21.187Z"
+    },
+    {
+      "upstream": "088cc3f95599b7b933289d719fa1e9b0608cb4cd",
+      "pr": 9734,
+      "title": "fix(relay): bound stalled push requests",
+      "decision": "adopted",
+      "ours": "2a4d24dc31e4123e6fa7cc001d6892707fdc7a82",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:55:28.010Z"
+    },
+    {
+      "upstream": "c8f77e0d441264efb0acfac312e852c81ae3da83",
+      "pr": 9738,
+      "title": "perf(server): stop caching unused OpenCode tool parts",
+      "decision": "adopted",
+      "ours": "869479ac5c729535379e22fa44c39e8f3044b469",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:55:28.011Z"
     }
   ]
 }
