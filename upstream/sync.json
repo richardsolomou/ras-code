@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "935917f50a2d9ccdd772464de140c187ca80bb0b",
+  "lastReviewed": "764946502390845919d974490bc85e87b788c996",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -4429,6 +4429,16 @@
       "ours": "fdbdbffff03dcb51f07e6e7d3ec73c43c36c1e87",
       "reason": "The running tool label shines again, on the active row only and behind prefers-reduced-motion. Upstream appended it after the sidebar stage backdrop, which this fork removed, so only the addition landed.",
       "reviewedAt": "2026-09-05T23:06:44.018Z"
+    },
+    {
+      "upstream": "764946502390845919d974490bc85e87b788c996",
+      "pr": 9769,
+      "title": "fix(web): align provider controls with machine tabs",
+      "decision": "deferred",
+      "ours": null,
+      "intent": "Provider controls sit on the machine-tab row rather than in the section header, with the row's padding on a wrapper instead of inside the tabs.",
+      "reason": "Upstream moves the tabs out of headerAction and takes the padding off the tab strip. Our SettingsDeviceTabs owns that padding for five settings panels, so converging changes all of them and wants a browser pass; #112 put these controls in the section header, which this walks back.",
+      "reviewedAt": "2026-09-05T23:07:47.129Z"
     }
   ]
 }
