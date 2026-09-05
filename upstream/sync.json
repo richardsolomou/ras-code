@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "c7bf3115f2223ede5cb2316613dc7369155dbeb1",
+  "lastReviewed": "19c1710a88a2c87c159d76269dacdf0b17ddd9f4",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -4040,6 +4040,15 @@
       "ours": "1ae6ea7bfd45604cc001ab60c722f7d0d4f994a1",
       "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
       "reviewedAt": "2026-09-05T21:54:02.997Z"
+    },
+    {
+      "upstream": "19c1710a88a2c87c159d76269dacdf0b17ddd9f4",
+      "pr": 9725,
+      "title": "perf(web): reuse timeline rows while text streams",
+      "decision": "adapted",
+      "ours": "c879234792bc9dfa9c55995ba87466f97ac92712",
+      "reason": "Timeline rows are reused across streaming renders through a kept projection. Landed under our checkpointTurnCountByAssistantMessageId, which #52 keys by assistant message rather than upstream's revert count keyed by user message.",
+      "reviewedAt": "2026-09-05T21:55:21.187Z"
     }
   ]
 }
