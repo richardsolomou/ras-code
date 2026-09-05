@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "d7884ce90b9845e6e8aa737dfe02062b91b11c91",
+  "lastReviewed": "2b10398cca3fa74a7c2187c8d9c23ba789333f5b",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3383,6 +3383,15 @@
       "ours": "7c6656c47bffa0ca4c2b41f6d28b57cb1c53b551",
       "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
       "reviewedAt": "2026-09-05T20:23:40.996Z"
+    },
+    {
+      "upstream": "2b10398cca3fa74a7c2187c8d9c23ba789333f5b",
+      "pr": 9563,
+      "title": "fix(web): render settings sidebar immediately",
+      "decision": "adapted",
+      "ours": "cd8db993d3650171c8581f124fe479f36c55eafd",
+      "reason": "Took upstream's lazy import and Suspense boundaries so the settings sidebar paints before Clerk loads, under our RasConnect component names. The rebrand map gained a T3Connect rule: the generic PascalCase rule was turning it into RasCodeConnect, which is not the product name.",
+      "reviewedAt": "2026-09-05T20:25:13.698Z"
     }
   ]
 }
