@@ -4213,16 +4213,6 @@
       "reviewedAt": "2026-09-05T22:04:06.307Z"
     },
     {
-      "upstream": "2e688a53cf8fc7a9caa9fd5070148bfcd3d5a741",
-      "pr": 9755,
-      "title": "docs: keep internal guides focused on architecture",
-      "decision": "deferred",
-      "ours": null,
-      "intent": "docs/internals holds architecture only; runbooks and setup guides move to docs/operations, which is the split AGENTS.md already describes.",
-      "reason": "Thirty-one files. Upstream deletes ci.md, scripts.md, work-artifacts.md, workspace-layout.md and the connect auth-flow diagram, all of which carry fork-only content from #32, #38, #54 and #103, and relocates the rest. Converging means moving our content rather than dropping it, which is its own pass.",
-      "reviewedAt": "2026-09-05T22:05:07.735Z"
-    },
-    {
       "upstream": "9e1fb459a985d13c1d4e57080f49d70dabf3b681",
       "pr": 9756,
       "title": "docs: focus user guides on features and workflows",
@@ -4539,6 +4529,15 @@
       "ours": "e142c8a626b48c27046a46460647943a60a41466",
       "reason": "Managed SSH servers exec the CLI directly so the launcher owns the PID. Landed under our binary name and canary track, and the rebrand map learned three CLI-name spellings it had been turning into the product stem: the shell helper, the binary in shell text, and the fixture home directory.",
       "reviewedAt": "2026-09-05T23:25:50.497Z"
+    },
+    {
+      "upstream": "2e688a53cf8fc7a9caa9fd5070148bfcd3d5a741",
+      "pr": 9755,
+      "title": "docs: keep internal guides focused on architecture",
+      "decision": "adapted",
+      "ours": "733a91150d942b2edcc220b70cc21af233682f1d",
+      "reason": "Internal guides keep architecture; runbooks move to docs/operations. Our fork content moved rather than went: the CI runbook to operations/ci.md, the DMG channel artwork into operations/development.md, the RAS relay architecture and sign-in surfaces into internals/ras-connect.md, and the fork's split-pane, forking, fallback and upstream-sync vocabulary into the rewritten glossary's tables. workspace-layout.md stays: it documents infra and channels that only exist here.",
+      "reviewedAt": "2026-09-05T23:41:00.064Z"
     }
   ]
 }
