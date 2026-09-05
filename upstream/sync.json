@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "91c66ac43ddad4f8697887009746f4de11736cb9",
+  "lastReviewed": "98a29cbaa1ccf8d8afb6d35e3e1d925ff9b5fa90",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -4467,6 +4467,15 @@
       "ours": "81e0bbbc3d185595517b46105a40c6bce78f0821",
       "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
       "reviewedAt": "2026-09-05T23:10:03.049Z"
+    },
+    {
+      "upstream": "98a29cbaa1ccf8d8afb6d35e3e1d925ff9b5fa90",
+      "pr": 9784,
+      "title": "fix: address usage limits and merge settlement regressions",
+      "decision": "adopted",
+      "ours": "febd332e21ed18fdce609c0e57cbf00c336b46af",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-05T23:10:58.809Z"
     }
   ]
 }
