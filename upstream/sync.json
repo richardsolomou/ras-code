@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "12b6d026bdfba0cc8438fa5e323a8587d65bd2af",
+  "lastReviewed": "1108be0fc862d5a95374bf0b96518a20e6351025",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -4330,6 +4330,15 @@
       "ours": "dd953eb3b1e8e5850ccfc9acdcd8108271cf32d1",
       "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
       "reviewedAt": "2026-09-05T22:59:13.306Z"
+    },
+    {
+      "upstream": "1108be0fc862d5a95374bf0b96518a20e6351025",
+      "pr": 9571,
+      "title": "test: skip POSIX mode-bit assertions on a Windows host",
+      "decision": "adapted",
+      "ours": "0e2459ed43cbf383236e450a26f91f7df0020e24",
+      "reason": "POSIX mode-bit assertions skip on a Windows host. Upstream also edited packages/shared/src/relayClient.test.ts, the managed tunnel client #54 replaced with the RAS relay; the path is now registered as removed.",
+      "reviewedAt": "2026-09-05T23:00:34.865Z"
     }
   ]
 }
