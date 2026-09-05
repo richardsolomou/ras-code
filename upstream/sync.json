@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "4b26132d2c740ff344ef3fae7ae62e9765759e29",
+  "lastReviewed": "5d1b02cdeebff4b0b4f15a1e8425b06ae3cfe8d1",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -2600,6 +2600,15 @@
       "ours": "90a0ec8be7f8b7ffada5e05664b4d94ec5190b79",
       "reason": "Ported into our message-actions design: the extracted AssistantMessageMeta carries checkpointTurnCount so the actions menu follows the meta row when it moves below trailing tool groups. Dropped upstream's revertTurnCountByUserMessageId test input, which we replaced in #60.",
       "reviewedAt": "2026-09-05T08:11:39.313Z"
+    },
+    {
+      "upstream": "5d1b02cdeebff4b0b4f15a1e8425b06ae3cfe8d1",
+      "pr": 9385,
+      "title": "feat(marketing): put named-developer quotes on the landing page",
+      "decision": "skipped",
+      "ours": null,
+      "reason": "Touches apps/marketing, which we replaced.",
+      "reviewedAt": "2026-09-05T08:11:50.944Z"
     }
   ]
 }
