@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "bfef973d9ec64e580fff4197ac53085207471ffd",
+  "lastReviewed": "cc60753aa2279722149e182fb942ca87f70ff804",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -4267,6 +4267,15 @@
       "ours": "e39808b2fd4a0b8c3f783889fd5c545861c326be",
       "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
       "reviewedAt": "2026-09-05T22:07:03.311Z"
+    },
+    {
+      "upstream": "cc60753aa2279722149e182fb942ca87f70ff804",
+      "pr": 9564,
+      "title": "test: stop path and platform tests depending on the host OS",
+      "decision": "adapted",
+      "ours": "2f0658e53840e4112e53d78abbbeaae96041e51a",
+      "reason": "Path and platform tests stop assuming a POSIX host. The showcase capture paths keep our mobile theme id in their last segment.",
+      "reviewedAt": "2026-09-05T22:08:10.236Z"
     }
   ]
 }
