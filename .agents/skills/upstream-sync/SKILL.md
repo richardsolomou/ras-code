@@ -168,6 +168,21 @@ node scripts/upstream-sync.ts mark --upstream <sha> --decision skipped \
 
 One rule: **a surface we are migrating toward is not a divergence.** `divergedPrefixes` is for designs we have decided to keep different, permanently. Somewhere we are merely behind upstream, or mid-migration onto their design, is a deferred change with an intent. Listing it as diverged turns off cherry-picking for that whole subtree and quietly commits us to maintaining a fork of it forever.
 
+## Measure before re-aligning the fork
+
+It is tempting to reduce future conflicts by reverting a fork divergence back toward upstream. Measure first: the intuitive predictors are wrong, and the work is not free.
+
+Two proxies that look reasonable and are not:
+
+- **Upstream touches per file.** Upstream edits `ChatView.tsx` 20 times in a range and never conflicts there, because our divergence in that file is additive. Touches are not conflicts.
+- **Fork delta since the fork point.** That number includes every upstream change we already picked. Diff against upstream at `lastReviewed` instead, and rebrand it first, or the branding shows up as fork work.
+
+The measurement that does hold is a replay. Cherry-pick each pending change onto `main` with `--no-commit`, count the conflict hunks, attribute them to the commit, and abort. Use commits near the reviewed boundary: a change 300 commits ahead conflicts on the upstream drift in between, which drowns out the fork signal.
+
+Run against the round through `06336460c`, that replay found 13 of the next 60 changes conflicting, and **74% of the whole conflict surface in two upstream commits** — one reorganising the settings pages, one reworking relay client restarts. Neither is chronic drift. Both are single reconciliations best decided when that change is picked, not pre-empted by re-aligning the files first.
+
+It also found the opposite of the guess it was testing: restoring the plan mode we removed would have cost ~120 lines of code no UI reaches, and across all 342 pending changes upstream touches `ComposerFooterModeControls`, `parseStandaloneComposerSlashCommand`, `planModeEnabled` and `resolveComposerInteractionMode` a combined **zero** times.
+
 ## Batching
 
 Sequential batching on one branch is `batch`, above. Fan-out is for when the round is genuinely large and the changes are independent: one worktree each. Follow the repository's worktree rules: worktree state lives in that worktree's gitignored `.ras-code`, `vp i` runs there, and subagents do not start dev servers. Merge the results back onto the branch in upstream history order so the ledger stays ordered, and let one agent run `mark` per change.
