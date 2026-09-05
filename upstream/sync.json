@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "bf40fa786c521b552eb554bbd4f2c75c4123cd03",
+  "lastReviewed": "2675e3c70327719a99af4ae6e53e7b74fb8a9be0",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3428,6 +3428,15 @@
       "ours": null,
       "reason": "Baseline-aligns upstream's sidebar wordmark. Ours is a different composition: the RAS mark beside a 'Code' text span inside a drag region, so there is no shared alignment to fix.",
       "reviewedAt": "2026-09-05T20:26:43.157Z"
+    },
+    {
+      "upstream": "2675e3c70327719a99af4ae6e53e7b74fb8a9be0",
+      "pr": 9579,
+      "title": "fix(antigravity): keep subagent batches active after launch",
+      "decision": "adopted",
+      "ours": "7d2924f50a0064d3135d1a40c7273163231622be",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T20:35:21.149Z"
     }
   ]
 }
