@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "24aef0e6c1bd5373a82eeed8054b50fc6e041b76",
+  "lastReviewed": "935917f50a2d9ccdd772464de140c187ca80bb0b",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -4420,6 +4420,15 @@
       "ours": "be805dfc55a9d3354ccf7fc50b9f8dc551fa5329",
       "reason": "Mobile usage splits into Usage and Limits tabs. Our usage doc is one flowing page rather than upstream's sections, so their new refresh guidance joins the Limits paragraph there.",
       "reviewedAt": "2026-09-05T23:05:11.200Z"
+    },
+    {
+      "upstream": "935917f50a2d9ccdd772464de140c187ca80bb0b",
+      "pr": 9777,
+      "title": "fix(web): restore the running tool label shine",
+      "decision": "adapted",
+      "ours": "fdbdbffff03dcb51f07e6e7d3ec73c43c36c1e87",
+      "reason": "The running tool label shines again, on the active row only and behind prefers-reduced-motion. Upstream appended it after the sidebar stage backdrop, which this fork removed, so only the addition landed.",
+      "reviewedAt": "2026-09-05T23:06:44.018Z"
     }
   ]
 }
