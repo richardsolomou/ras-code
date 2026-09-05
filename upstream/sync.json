@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "f2e3764c257a7e27c8171d7dd1e38d4383074206",
+  "lastReviewed": "44dc8ae259f5c3349f7ab8045e39bd62408b52a9",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3779,6 +3779,15 @@
       "ours": "653519ede73eb2408f98697d19203bea6d0ac1b0",
       "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
       "reviewedAt": "2026-09-05T21:15:59.877Z"
+    },
+    {
+      "upstream": "44dc8ae259f5c3349f7ab8045e39bd62408b52a9",
+      "pr": 9688,
+      "title": "perf(mobile): reuse chat feed rows during streaming",
+      "decision": "adapted",
+      "ours": "22ad5829e30113f190fad621d69b52d9b457f9d4",
+      "reason": "Feed rows are reused across streaming renders. Our resolveInstanceName follows buildThreadFeed to its new call site, and upstream's new activity-entry cache is keyed by resolver as well as activities so a provider rename is not served a stale instance name.",
+      "reviewedAt": "2026-09-05T21:18:26.447Z"
     }
   ]
 }
