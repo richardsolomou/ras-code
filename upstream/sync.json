@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "4ee2a9d046a0986451c703c9221bb32ba53540bb",
+  "lastReviewed": "c163d502dd32b993c03d8c20a5fae55b159bd8dc",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3842,6 +3842,15 @@
       "ours": null,
       "reason": "Touches apps/marketing, which we replaced.",
       "reviewedAt": "2026-09-05T21:45:07.678Z"
+    },
+    {
+      "upstream": "c163d502dd32b993c03d8c20a5fae55b159bd8dc",
+      "pr": 9694,
+      "title": "perf(server): avoid full patches for checkpoint summaries",
+      "decision": "adopted",
+      "ours": "cc76d6264062e325a2bab4b9b055dfda5b7e1528",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-05T21:46:23.408Z"
     }
   ]
 }
