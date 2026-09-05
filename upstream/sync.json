@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "cfddb4201df8941bbfde008919da70fe5ec7552b",
+  "lastReviewed": "645d58547d282eb2aaf6c48e5907625fc112386a",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -2726,6 +2726,42 @@
       "ours": "5bcdec9bb99e13b9d8a8ba80ad321ff5b72ca056",
       "reason": "Clean cherry-pick.",
       "reviewedAt": "2026-09-05T09:35:35.316Z"
+    },
+    {
+      "upstream": "2120fbc185737b71f09de020b95224f9e636d1e5",
+      "pr": 9419,
+      "title": "fix(web): avoid duplicate Antigravity install status",
+      "decision": "adopted",
+      "ours": "0c93e72d92b0133579b2261e2e60e8fc6e724d65",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T09:35:44.524Z"
+    },
+    {
+      "upstream": "d4ba2a1f11498eae9683f6dc95a08b1c17c29765",
+      "pr": 9451,
+      "title": "fix(composer): mute fast icon when collapsed",
+      "decision": "adopted",
+      "ours": "338eb3ca756e293c0b80f67e672f4e2c8c940e1f",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T09:35:44.525Z"
+    },
+    {
+      "upstream": "21b9dda5afb00a33e228a68d2ccc885bba7285dc",
+      "pr": 9448,
+      "title": "fix(web): unify skeleton loading animations on one pulse",
+      "decision": "adopted",
+      "ours": "9aaa713ca1017bd3f2a02833f1e990987b3a26cc",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T09:35:44.526Z"
+    },
+    {
+      "upstream": "645d58547d282eb2aaf6c48e5907625fc112386a",
+      "pr": 9453,
+      "title": "fix(web): prioritize authored pull requests",
+      "decision": "adopted",
+      "ours": "55373616f7826e1c2f71ab80fdfffa59b3162883",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T09:35:44.526Z"
     }
   ]
 }
