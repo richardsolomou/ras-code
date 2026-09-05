@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "61a91b6ef1bd45424169c6650362b358d49bbe34",
+  "lastReviewed": "c3b8825bf476cbce5e061c0f99570cf1f6723b89",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3536,6 +3536,15 @@
       "ours": "e8d0ca6957ddd836f54a71c4785d3e014ebaf4b8",
       "reason": "Converged on buildRuntimeInstructions, which now carries what our bespoke Codex string carried: the exact-identifier wording a gateway-routed model needs, and images that resolve inside the project directory rather than upstream's absolute paths, which this server does not serve. The long-form image rules stay appended for Codex and Claude. Upstream's deletion of the two image-row timeline tests is taken; image views group like every other tool call now.",
       "reviewedAt": "2026-09-05T20:56:14.370Z"
+    },
+    {
+      "upstream": "c3b8825bf476cbce5e061c0f99570cf1f6723b89",
+      "pr": 9606,
+      "title": "fix: preserve tool icons on failed calls",
+      "decision": "adapted",
+      "ours": "f3877603c23c306e865316076b63ec0d736b66fc",
+      "reason": "Failed calls keep their tool icon under a muted red tint. Took upstream's colorClassName mechanism throughout: the useThemeColor tint it replaces was upstream's own code from #8614, not ours. Our fixed dark-theme error hexes stay; the new --tool-error-icon token joins them.",
+      "reviewedAt": "2026-09-05T20:57:49.189Z"
     }
   ]
 }
