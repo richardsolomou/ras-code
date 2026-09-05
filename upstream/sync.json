@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "777f5bb2e11fe30e7fdcb5741b0b1d9bb20924d6",
+  "lastReviewed": "dab5f6e6e02e78675655e69503aa89654e5b8050",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3815,6 +3815,15 @@
       "ours": "6622b5e7ca967aaff5f1c4e5f21f631308bed81a",
       "reason": "Diff rows survive comment edits. Dropped the theme-variable helpers upstream's test carries: #51 removed the theme editor and mobileTheme.test-support with it.",
       "reviewedAt": "2026-09-05T21:19:29.704Z"
+    },
+    {
+      "upstream": "dab5f6e6e02e78675655e69503aa89654e5b8050",
+      "pr": 9695,
+      "title": "perf(web): defer composer draft serialization",
+      "decision": "adopted",
+      "ours": "4fcde9e4f224d36c9855e7665f66cb35c5d480e1",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:19:37.510Z"
     }
   ]
 }
