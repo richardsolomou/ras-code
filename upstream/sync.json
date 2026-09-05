@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "dab5f6e6e02e78675655e69503aa89654e5b8050",
+  "lastReviewed": "1587f248dd81ed45e214d476451ebf16dbfadb1a",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3824,6 +3824,15 @@
       "ours": "4fcde9e4f224d36c9855e7665f66cb35c5d480e1",
       "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
       "reviewedAt": "2026-09-05T21:19:37.510Z"
+    },
+    {
+      "upstream": "1587f248dd81ed45e214d476451ebf16dbfadb1a",
+      "pr": 9132,
+      "title": "feat(server): measure provider turn token usage",
+      "decision": "adapted",
+      "ours": "b69413a2cac6191bb9dde9d92447de9514785b2a",
+      "reason": "Per-turn token measurement across the Codex and OpenCode adapters, emitting provider.turn.completed. Our recordProviderRuntimeEvent stays beside it: #69 feeds PostHog LLM analytics with $ai_generation captures, which upstream's product event does not produce, and neither dispatch shares state with the other. Upstream's privacy paragraph is scoped to their event; $ai_generation does carry the turn and thread ids as its trace and session.",
+      "reviewedAt": "2026-09-05T21:44:17.506Z"
     }
   ]
 }
