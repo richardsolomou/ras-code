@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "f1e90e388b86fe4b007a55c0e685a1fa878115e6",
+  "lastReviewed": "00f8b7c28056188e3c5630160806a0afe51c9010",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3518,6 +3518,15 @@
       "ours": "bb8deaf96b8f7dfc00db2c5a43ccfcb31483547a",
       "reason": "Hub management moves into provider settings, which drops the environment picker our Usage page carried. Upstream also extends an effect that switches devices when search deep-links a setting the selected device cannot render; #112 replaced that local state with the shared settings scope, so there is nothing here to extend.",
       "reviewedAt": "2026-09-05T20:50:01.788Z"
+    },
+    {
+      "upstream": "00f8b7c28056188e3c5630160806a0afe51c9010",
+      "pr": 9616,
+      "title": "fix: show idle subagent batches without completion marks",
+      "decision": "adopted",
+      "ours": "8f90df275ecec256e1b2f0d21e40bf80e8f43f33",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T20:50:52.032Z"
     }
   ]
 }
