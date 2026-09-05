@@ -4213,16 +4213,6 @@
       "reviewedAt": "2026-09-05T22:04:06.307Z"
     },
     {
-      "upstream": "9e1fb459a985d13c1d4e57080f49d70dabf3b681",
-      "pr": 9756,
-      "title": "docs: focus user guides on features and workflows",
-      "decision": "deferred",
-      "ours": null,
-      "intent": "docs/user reads as shipped-product guidance: features and workflows, no repo tooling or source paths.",
-      "reason": "The user-facing half of the same editorial pass as 2e688a53c, and our user docs carry fork content (the telemetry page is ours). Both convergences land together.",
-      "reviewedAt": "2026-09-05T22:05:51.810Z"
-    },
-    {
       "upstream": "cd713679bbe06c435823bafc48e5bcfa3266a9aa",
       "pr": 9766,
       "title": "fix(web): stop panel motion during navigation",
@@ -4538,6 +4528,15 @@
       "ours": "733a91150d942b2edcc220b70cc21af233682f1d",
       "reason": "Internal guides keep architecture; runbooks move to docs/operations. Our fork content moved rather than went: the CI runbook to operations/ci.md, the DMG channel artwork into operations/development.md, the RAS relay architecture and sign-in surfaces into internals/ras-connect.md, and the fork's split-pane, forking, fallback and upstream-sync vocabulary into the rewritten glossary's tables. workspace-layout.md stays: it documents infra and channels that only exist here.",
       "reviewedAt": "2026-09-05T23:41:00.064Z"
+    },
+    {
+      "upstream": "9e1fb459a985d13c1d4e57080f49d70dabf3b681",
+      "pr": 9756,
+      "title": "docs: focus user guides on features and workflows",
+      "decision": "adapted",
+      "ours": "5289f101845797800a831302aa3123e63a1d338d",
+      "reason": "User guides move to upstream's shorter, feature-led shape. Our pages stay where they document features the fork ships and upstream trimmed; source-control was rebuilt on upstream's structure with our GitHub labels and agent-linked pull requests folded in. Picked up upstream's mobile store links, the Codex /feedback command, and the tool-icon guidance, and repaired a mislabelled Mobile app section that held the ras-code app text.",
+      "reviewedAt": "2026-09-05T23:48:36.070Z"
     }
   ]
 }
