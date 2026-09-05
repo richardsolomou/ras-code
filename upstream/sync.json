@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "5e1c23d769b182018f5bd6d3623a7edec13d26bc",
+  "lastReviewed": "394e8470c89927a06575e08c434006b2320f1781",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -4449,6 +4449,15 @@
       "intent": "The appearance guide says panel transitions pause while a route change is in flight.",
       "reason": "Edits docs/user/appearance.md, which 9e1fb459a creates and which is deferred. Lands with that restructure.",
       "reviewedAt": "2026-09-05T23:08:20.165Z"
+    },
+    {
+      "upstream": "394e8470c89927a06575e08c434006b2320f1781",
+      "pr": 9774,
+      "title": "feat(usage): support custom model prices",
+      "decision": "adapted",
+      "ours": "093e255201895fb16ee81d87991d3047b36a1ca3",
+      "reason": "Custom model prices per environment. Our usage doc is one flowing page rather than upstream's sections, so their new guidance became a paragraph in that voice.",
+      "reviewedAt": "2026-09-05T23:09:57.049Z"
     }
   ]
 }
