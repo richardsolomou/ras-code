@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "5eab021a5185e492b6b021f83564143d5263e8a6",
+  "lastReviewed": "c4353bc6b972fa527579b530f01cc8744b2407d2",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -4004,6 +4004,15 @@
       "ours": "b2a39dc3bbec90404b1bd56e4c4f3531ecdeba7d",
       "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
       "reviewedAt": "2026-09-05T21:51:47.326Z"
+    },
+    {
+      "upstream": "c4353bc6b972fa527579b530f01cc8744b2407d2",
+      "pr": 9713,
+      "title": "fix(mobile): read file-backed image drafts before enabling them",
+      "decision": "adopted",
+      "ours": "940d7419c2ff6ee08e3733c9e3c599e828972bda",
+      "reason": "File-backed image drafts rebase into the current iOS container before they render. The inline subtle background that survived the extraction was upstream's own older shape, dropped with their new component.",
+      "reviewedAt": "2026-09-05T21:53:48.958Z"
     }
   ]
 }
