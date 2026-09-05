@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "b90898077e60290a1eb7bea4224f325fd3bb1595",
+  "lastReviewed": "0ba06a122bc73f705bfc18875366b4eeb1160992",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3176,6 +3176,42 @@
       "ours": null,
       "reason": "We already have the fix. Upstream stops a crash-looping relay client respawning ~100 times per second by backing off after fast exits; our supervisor routes every restart through retryConnector, which sleeps 2**attempt seconds plus jitter before the first attempt and caps at 30, so there is no immediate-respawn path to guard. Upstream's implementation also reads connector.child.exitCode and spawns cloudflared with TUNNEL_TOKEN directly, which the RasRelayConnector abstraction replaced, so the code cannot land as written.",
       "reviewedAt": "2026-09-05T19:00:24.181Z"
+    },
+    {
+      "upstream": "75ab5ab3fb6ad35117da754644c404a31b2fed84",
+      "pr": 8897,
+      "title": "fix(codex): accept rate limit errors on thread resume",
+      "decision": "adopted",
+      "ours": "e2cc23188ec64ac9a21900d9140cda219ad08e3d",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T19:00:38.851Z"
+    },
+    {
+      "upstream": "6319a9714881a1d25549f797c468fabebae92813",
+      "pr": 9068,
+      "title": "fix(desktop): preview CDP sessions no longer hard-crash the app",
+      "decision": "adopted",
+      "ours": "17c2397b63ed651690bec38fd86824d268a4cf85",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T19:00:38.852Z"
+    },
+    {
+      "upstream": "f54ab901fa77f76eeb1e1cdfa103b9ed6f5ee4ca",
+      "pr": 3902,
+      "title": "Fix worktree removal timing out on large install trees",
+      "decision": "adopted",
+      "ours": "de425d6be637689f6bc10aa288e65249226bf52b",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T19:00:38.852Z"
+    },
+    {
+      "upstream": "0ba06a122bc73f705bfc18875366b4eeb1160992",
+      "pr": 9482,
+      "title": "fix(web): settle the resting composer layout with a pixel of slack",
+      "decision": "adopted",
+      "ours": "453deed4084c0e474f820ddf49eb83ed736c5c47",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T19:00:38.852Z"
     }
   ]
 }
