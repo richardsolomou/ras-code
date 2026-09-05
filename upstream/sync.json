@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "887ece307131bdc853cc10f3b82067dee77c4ecf",
+  "lastReviewed": "7cf5b284e6e37895f535433c77f728b3e4292c9b",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3734,6 +3734,15 @@
       "ours": "f1dba75a1af10dc1364bee67f93592ee95a9a9b4",
       "reason": "Clean cherry-pick.",
       "reviewedAt": "2026-09-05T21:14:41.460Z"
+    },
+    {
+      "upstream": "7cf5b284e6e37895f535433c77f728b3e4292c9b",
+      "pr": 9679,
+      "title": "perf(mobile): skip unused legacy list work",
+      "decision": "obsolete",
+      "ours": null,
+      "reason": "Skips the legacy home list build when thread list v2 is on. #23 deleted homeListItems.ts and the legacy path outright here, so there is no work to skip.",
+      "reviewedAt": "2026-09-05T21:15:13.732Z"
     }
   ]
 }

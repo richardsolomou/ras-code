@@ -133,6 +133,9 @@ const removedPrefixes: ReadonlyArray<readonly [string, string]> = [
   // Legacy surfaces removed in #23: the per-project sidebar tree and plan mode.
   ["apps/web/src/components/LegacySidebar", LEGACY_SURFACES],
   ["apps/mobile/src/features/threads/thread-list-items", LEGACY_SURFACES],
+  ["apps/mobile/src/features/threads/threadPresentation", LEGACY_SURFACES],
+  ["apps/mobile/src/features/threads/use-thread-list-v2-enabled", LEGACY_SURFACES],
+  ["apps/mobile/src/features/home/homeListItems", LEGACY_SURFACES],
   ["apps/mobile/src/features/threads/legacy-plan-mode", LEGACY_SURFACES],
   ["apps/mobile/src/features/threads/use-legacy-plan-mode-enabled", LEGACY_SURFACES],
   ["apps/mobile/generated-uniwind-themes.css", "the generated mobile theme artifact we removed"],
