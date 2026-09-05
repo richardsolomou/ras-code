@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "93c3ab4ffe408a3e06228a33efc8a0745da91178",
+  "lastReviewed": "706231535ceac8618712913dfdc4a058c2ffb0d8",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3572,6 +3572,15 @@
       "ours": "7a11777d2a233a03ced70489b5b06d37637a7800",
       "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
       "reviewedAt": "2026-09-05T21:03:03.010Z"
+    },
+    {
+      "upstream": "706231535ceac8618712913dfdc4a058c2ffb0d8",
+      "pr": 9375,
+      "title": "fix(web): match composer pull request state icons",
+      "decision": "adapted",
+      "ours": "99480b3ed51b05c717df57248efc5022f3132c30",
+      "reason": "Composer and branch toolbar pull request icons follow the request's own state. Upstream also edited LegacySidebar.tsx, which #23 removed; ThreadStatusIndicators is the live surface and takes the fix. Also handles the relay link-limit tag the previous pick added to the contracts, matching upstream's own classification.",
+      "reviewedAt": "2026-09-05T21:04:15.729Z"
     }
   ]
 }
