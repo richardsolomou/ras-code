@@ -1,4 +1,4 @@
-import type { AuthEnvironmentScope } from "@ras-code/contracts";
+import type { AuthEnvironmentScope } from "@t3tools/contracts";
 import {
   RelayAccessTokenType,
   RelayApi,
@@ -30,11 +30,11 @@ import {
   RelayProtectedError,
   type RelayProtectedError as RelayProtectedErrorType,
   RelayUnregisterDeviceEndpoint,
-} from "@ras-code/contracts/relay";
-import { encodeOAuthScope, oauthScopeSetEquals } from "@ras-code/shared/oauthScope";
-import { decodeRelayJwt } from "@ras-code/shared/relayJwt";
-import { withRelayClientTracing } from "@ras-code/shared/relayTracing";
-import { normalizeSecureRelayUrl } from "@ras-code/shared/relayUrl";
+} from "@t3tools/contracts/relay";
+import { encodeOAuthScope, oauthScopeSetEquals } from "@t3tools/shared/oauthScope";
+import { decodeRelayJwt } from "@t3tools/shared/relayJwt";
+import { withRelayClientTracing } from "@t3tools/shared/relayTracing";
+import { normalizeSecureRelayUrl } from "@t3tools/shared/relayUrl";
 import * as Clock from "effect/Clock";
 import * as Context from "effect/Context";
 import * as Duration from "effect/Duration";
@@ -219,7 +219,7 @@ export class ManagedRelayDpopSigner extends Context.Service<
       input: ManagedRelayDpopProofInput,
     ) => Effect.Effect<string, ManagedRelayDpopProofCreationError>;
   }
->()("@ras-code/client-runtime/relay/managedRelay/ManagedRelayDpopSigner") {}
+>()("@t3tools/client-runtime/relay/managedRelay/ManagedRelayDpopSigner") {}
 
 export const MANAGED_RELAY_REQUEST_TIMEOUT_MS = 10_000;
 
@@ -303,7 +303,7 @@ export class ManagedRelayClient extends Context.Service<
     }) => Effect.Effect<RelayAgentActivitySnapshotResponse, ManagedRelayClientError>;
     readonly resetTokenCache: Effect.Effect<void>;
   }
->()("@ras-code/client-runtime/relay/managedRelay/ManagedRelayClient") {}
+>()("@t3tools/client-runtime/relay/managedRelay/ManagedRelayClient") {}
 
 const isRelayProtectedError = Schema.is(RelayProtectedError);
 

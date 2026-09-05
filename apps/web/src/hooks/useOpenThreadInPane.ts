@@ -1,4 +1,4 @@
-import type { ScopedThreadRef } from "@ras-code/contracts";
+import type { ScopedThreadRef } from "@t3tools/contracts";
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useRef } from "react";
 

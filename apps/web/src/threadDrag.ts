@@ -5,7 +5,7 @@
  * it, dropping on a pane zone splits the inset. `onDragEnd` picks by what the
  * pointer is over, so a pinned card can do either without a second affordance.
  */
-import type { ScopedThreadRef } from "@ras-code/contracts";
+import type { ScopedThreadRef } from "@t3tools/contracts";
 import type { Active, DragEndEvent, Over } from "@dnd-kit/core";
 
 import type { ChatPaneSide } from "./chatPaneStore";

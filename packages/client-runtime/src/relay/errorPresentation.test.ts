@@ -1,7 +1,7 @@
 import {
   RelayAuthInvalidError,
   RelayEnvironmentEndpointUnavailableError,
-} from "@ras-code/contracts/relay";
+} from "@t3tools/contracts/relay";
 import { describe, expect, it } from "@effect/vitest";
 
 import {

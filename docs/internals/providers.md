@@ -29,7 +29,7 @@ transport, config, and event shapes are mapped.
 
 `posthogGateway` is the one driver that is not a harness of its own. The PostHog AI Gateway serves
 its whole catalog from one origin but on two request shapes — `claude-*` ids only on Anthropic
-Messages, everything else only on Responses (`@ras-code/shared/posthogGateway`) — and no shipped
+Messages, everything else only on Responses (`@t3tools/shared/posthogGateway`) — and no shipped
 harness speaks both. `PostHogGatewayDriver.create` therefore calls `ClaudeDriver.create` and
 `CodexDriver.create` in its own scope and composes the two children:
 

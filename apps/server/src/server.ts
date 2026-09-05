@@ -1,5 +1,5 @@
-import { EnvironmentHttpApi, ProviderDriverKind } from "@ras-code/contracts";
-import { stripManagedEndpointGatewayPrefix } from "@ras-code/shared/advertisedEndpoint";
+import { EnvironmentHttpApi, ProviderDriverKind } from "@t3tools/contracts";
+import { stripManagedEndpointGatewayPrefix } from "@t3tools/shared/advertisedEndpoint";
 import * as Duration from "effect/Duration";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
@@ -128,8 +128,8 @@ import {
   persistServerRuntimeState,
 } from "./serverRuntimeState.ts";
 import { orchestrationHttpApiLayer } from "./orchestration/http.ts";
-import * as NetService from "@ras-code/shared/Net";
-import { disableTailscaleServe, ensureTailscaleServe } from "@ras-code/tailscale";
+import * as NetService from "@t3tools/shared/Net";
+import { disableTailscaleServe, ensureTailscaleServe } from "@t3tools/tailscale";
 import { forkParked, ServerActivation } from "./serverActivation.ts";
 
 // MCP handoff thread IDs include escaped provenance and can exceed find-my-way's

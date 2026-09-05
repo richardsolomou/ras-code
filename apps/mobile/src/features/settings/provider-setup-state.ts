@@ -6,7 +6,7 @@ import {
   type ServerProvider,
   type ServerSettings,
   type ServerSettingsPatch,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 
 /** Read the configured method from an instance config. Unknown values fall back to personal. */
 export function readAntigravityAuthMethod(config: unknown): AntigravityAuthMethod {

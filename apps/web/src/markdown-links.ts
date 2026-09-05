@@ -9,7 +9,7 @@ import {
   safeDecodeURIComponent,
   splitFilePathPosition,
   workspaceRelativeFilePath,
-} from "@ras-code/client-runtime/markdown-links";
+} from "@t3tools/client-runtime/markdown-links";
 
 import { formatWorkspaceRelativePath } from "./filePathDisplay";
 import { isTerminalLinkActivation, resolvePathLinkTarget } from "./terminal-links";

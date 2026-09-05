@@ -11,8 +11,8 @@ import type {
   EnvironmentProject,
   EnvironmentThread,
   EnvironmentThreadShell,
-} from "@ras-code/client-runtime/state/models";
-import type { ThreadNotificationSnapshot } from "@ras-code/client-runtime/notifications";
+} from "@t3tools/client-runtime/state/models";
+import type { ThreadNotificationSnapshot } from "@t3tools/client-runtime/notifications";
 
 import { FALLBACK_ENGAGED_ACTIVITY_KIND } from "~/components/settings/providerUsageLimit.logic";
 

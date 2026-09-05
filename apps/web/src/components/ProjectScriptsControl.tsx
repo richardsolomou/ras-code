@@ -2,11 +2,11 @@ import type {
   ProjectScript,
   ResolvedKeybindingsConfig,
   RasProjectFileScript,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
-} from "@ras-code/client-runtime/state/runtime";
+} from "@t3tools/client-runtime/state/runtime";
 import { ChevronDownIcon, DownloadIcon, PlusIcon, SettingsIcon } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 

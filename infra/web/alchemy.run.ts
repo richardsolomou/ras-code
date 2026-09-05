@@ -4,7 +4,7 @@ import * as Cloudflare from "alchemy/Cloudflare";
 import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
 
-import { HOSTED_APP_BASE_PATH } from "@ras-code/shared/connectAuth";
+import { HOSTED_APP_BASE_PATH } from "@t3tools/shared/connectAuth";
 import {
   deploymentForStage,
   hostedAppRoutePatterns,
@@ -44,7 +44,7 @@ export default Alchemy.Stack(
       // chaining here would send the second command's flags to the first.
       // `build:hosted` brands the output from VITE_HOSTED_APP_CHANNEL, which
       // defaults to latest for previews.
-      command: "vp run --filter @ras-code/web build:hosted",
+      command: "vp run --filter @t3tools/web build:hosted",
       outdir: "apps/web/dist",
       main: "../../apps/web/worker.ts",
       ...(domain ? { domain } : {}),

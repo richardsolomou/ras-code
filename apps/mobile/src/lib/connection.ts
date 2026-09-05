@@ -1,6 +1,6 @@
-import { EnvironmentId } from "@ras-code/contracts";
-import { stripPairingTokenFromUrl } from "@ras-code/shared/remote";
-import { type EnvironmentConnectionPhase } from "@ras-code/client-runtime/connection";
+import { EnvironmentId } from "@t3tools/contracts";
+import { stripPairingTokenFromUrl } from "@t3tools/shared/remote";
+import { type EnvironmentConnectionPhase } from "@t3tools/client-runtime/connection";
 
 export interface SavedRemoteConnection {
   readonly environmentId: EnvironmentId;

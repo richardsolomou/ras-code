@@ -12,7 +12,7 @@ import {
   AuthSessionId,
   ClientSurface,
   ServerAuthSessionMethod,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 
 import {
   type AuthSessionRepositoryError,

@@ -2,8 +2,8 @@ import {
   attachEnvironmentDescriptor,
   createKnownEnvironment,
   type KnownEnvironment,
-} from "@ras-code/client-runtime/environment";
-import type { ExecutionEnvironmentDescriptor } from "@ras-code/contracts";
+} from "@t3tools/client-runtime/environment";
+import type { ExecutionEnvironmentDescriptor } from "@t3tools/contracts";
 import * as Effect from "effect/Effect";
 
 import { PrimaryEnvironmentRequestError, retryTransientBootstrap } from "./auth";

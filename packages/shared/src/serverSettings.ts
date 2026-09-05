@@ -7,7 +7,7 @@ import {
   type ServerProvider,
   ServerSettings,
   type ServerSettingsPatch,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 import { deepMerge } from "./Struct.ts";

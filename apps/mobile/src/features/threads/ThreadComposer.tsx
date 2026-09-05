@@ -7,8 +7,8 @@ import type {
   ProviderInteractionMode,
   RuntimeMode,
   ServerConfig as RasCodeServerConfig,
-} from "@ras-code/contracts";
-import { resolveActiveProviderModelSelection } from "@ras-code/client-runtime/provider-fallback";
+} from "@t3tools/contracts";
+import { resolveActiveProviderModelSelection } from "@t3tools/client-runtime/provider-fallback";
 import { StackActions, useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { ReactNode } from "react";
 import {

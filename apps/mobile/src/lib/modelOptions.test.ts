@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { ProviderInstanceId, type ModelSelection, type ServerConfig } from "@ras-code/contracts";
+import { ProviderInstanceId, type ModelSelection, type ServerConfig } from "@t3tools/contracts";
 
 import {
   buildModelOptions,

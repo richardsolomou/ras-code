@@ -2,11 +2,11 @@ import type {
   EnvironmentId,
   SidebarProjectGroupingMode,
   SidebarThreadSortOrder,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import {
   DEFAULT_SIDEBAR_PROJECT_SORT_ORDER,
   DEFAULT_SIDEBAR_THREAD_SORT_ORDER,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import {
   createContext,
   createElement,

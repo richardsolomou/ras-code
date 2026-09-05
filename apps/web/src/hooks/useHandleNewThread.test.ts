@@ -51,13 +51,13 @@ const testState = vi.hoisted(() => {
 vi.mock("@effect/atom-react", () => ({
   useAtomValue: () => ({ defaultThreadEnvMode: "local", newWorktreesStartFromOrigin: false }),
 }));
-vi.mock("@ras-code/client-runtime/environment", () => ({
+vi.mock("@t3tools/client-runtime/environment", () => ({
   scopedProjectKey: () => "remote-project",
   scopeProjectRef: (environmentId: string, projectId: string) => ({ environmentId, projectId }),
   scopeThreadRef: (environmentId: string, threadId: string) => ({ environmentId, threadId }),
 }));
-vi.mock("@ras-code/contracts", () => ({ DEFAULT_RUNTIME_MODE: "default" }));
-vi.mock("@ras-code/shared/threadEnvMode", () => ({
+vi.mock("@t3tools/contracts", () => ({ DEFAULT_RUNTIME_MODE: "default" }));
+vi.mock("@t3tools/shared/threadEnvMode", () => ({
   resolveDefaultThreadEnvMode: (input: {
     readonly projectFile: "local" | "worktree" | null;
     readonly globalDefault: "local" | "worktree";

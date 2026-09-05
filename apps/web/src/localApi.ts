@@ -1,4 +1,4 @@
-import type { ConfirmDialogOptions, ContextMenuItem, LocalApi } from "@ras-code/contracts";
+import type { ConfirmDialogOptions, ContextMenuItem, LocalApi } from "@t3tools/contracts";
 
 import { requestConfirmDialog } from "./confirmDialog";
 import { dismissContextMenu, showContextMenu } from "./contextMenu";

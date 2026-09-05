@@ -1,5 +1,5 @@
 import { ProviderRegistry, type ProviderRegistryShape } from "../Services/ProviderRegistry.ts";
-import type { ProviderInstanceId, ProviderUsageLimit, ServerProvider } from "@ras-code/contracts";
+import type { ProviderInstanceId, ProviderUsageLimit, ServerProvider } from "@t3tools/contracts";
 import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";

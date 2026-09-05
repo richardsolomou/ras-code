@@ -9,7 +9,7 @@ import type {
   RelayManagedEndpoint,
   RelayManagedEndpointOrigin,
   RelayManagedEndpointRuntimeConfig,
-} from "@ras-code/contracts/relay";
+} from "@t3tools/contracts/relay";
 
 import * as RelayConfiguration from "../Config.ts";
 import {

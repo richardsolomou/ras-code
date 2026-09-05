@@ -115,7 +115,7 @@ The report is an index, not a judgement. It says where a change lands, never whe
 
 ## The rebrand helper
 
-[`scripts/lib/upstreamRebrandMap.ts`](../../scripts/lib/upstreamRebrandMap.ts) is the single source of truth for the fork's vocabulary: `@t3tools/*` to `@ras-code/*`, `T3CODE_*` to `RAS_CODE_*`, `T3 Code` to `RAS Code`, the mobile native module directories, and the rest. It also holds the do-not-rename list, which is matched first and copied through untouched.
+[`scripts/lib/upstreamRebrandMap.ts`](../../scripts/lib/upstreamRebrandMap.ts) is the single source of truth for the fork's vocabulary: `@t3tools/*` to `@t3tools/*`, `T3CODE_*` to `RAS_CODE_*`, `T3 Code` to `RAS Code`, the mobile native module directories, and the rest. It also holds the do-not-rename list, which is matched first and copied through untouched.
 
 ```bash
 node scripts/upstream-rebrand.ts <files>      # rewrite files in place

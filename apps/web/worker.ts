@@ -7,7 +7,7 @@
  * per request whether to serve its own assets or hand off to canary.
  */
 
-import { HOSTED_APP_BASE_PATH } from "@ras-code/shared/connectAuth";
+import { HOSTED_APP_BASE_PATH } from "@t3tools/shared/connectAuth";
 
 const CHANNEL_COOKIE = "ras_code_web_channel";
 const CHANNEL_PATH = `${HOSTED_APP_BASE_PATH}__ras-code/channel`;

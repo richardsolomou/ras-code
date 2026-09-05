@@ -1,13 +1,13 @@
 import {
   type DpopVerificationFailureCode as DpopVerificationFailureCodeType,
   verifyDpopProof,
-} from "@ras-code/shared/dpop";
-import { stripManagedEndpointGatewayPrefix } from "@ras-code/shared/advertisedEndpoint";
+} from "@t3tools/shared/dpop";
+import { stripManagedEndpointGatewayPrefix } from "@t3tools/shared/advertisedEndpoint";
 import {
   parseRasRelayPublicOrigin,
   RAS_RELAY_PUBLIC_ORIGIN_HEADER,
-} from "@ras-code/shared/rasRelayProtocol";
-import type { DpopFailureReason } from "@ras-code/contracts";
+} from "@t3tools/shared/rasRelayProtocol";
+import type { DpopFailureReason } from "@t3tools/contracts";
 import * as Crypto from "effect/Crypto";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";

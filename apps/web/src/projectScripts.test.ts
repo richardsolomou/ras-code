@@ -3,7 +3,7 @@ import {
   projectScriptCwd,
   projectScriptRuntimeEnv,
   setupProjectScript,
-} from "@ras-code/shared/projectScripts";
+} from "@t3tools/shared/projectScripts";
 
 import {
   buildProjectScript,

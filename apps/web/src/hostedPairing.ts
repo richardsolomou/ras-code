@@ -1,4 +1,4 @@
-import { DEFAULT_HOSTED_APP_URL, hostedAppUrlFor } from "@ras-code/shared/connectAuth";
+import { DEFAULT_HOSTED_APP_URL, hostedAppUrlFor } from "@t3tools/shared/connectAuth";
 
 import { getPairingTokenFromUrl, setPairingTokenOnUrl } from "./pairingUrl";
 

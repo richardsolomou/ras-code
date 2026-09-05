@@ -9,7 +9,7 @@ import type {
   PullRequestReviewPosition,
   PullRequestReviewThread,
   PullRequestThreadCommentsResult,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import {
   ChevronDownIcon,
   ChevronRightIcon,

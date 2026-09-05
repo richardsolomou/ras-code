@@ -1,10 +1,10 @@
-import type { AtomCommandResult } from "@ras-code/client-runtime/state/runtime";
+import type { AtomCommandResult } from "@t3tools/client-runtime/state/runtime";
 import type {
   EnvironmentId,
   PreviewCloseInput,
   PreviewSessionSnapshot,
   ScopedThreadRef,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 
 import { beginPreviewSessionClose, cancelPreviewSessionClose } from "~/previewStateStore";
 

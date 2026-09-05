@@ -26,43 +26,43 @@ import {
   resolveEnvironmentMachineKind,
   RuntimeMode,
   TerminalOpenInput,
-} from "@ras-code/contracts";
-import { type EnvironmentConnectionPresentation } from "@ras-code/client-runtime/connection";
-import { wasBootstrapThreadDeleted } from "@ras-code/client-runtime/errors";
-import { resolveActiveProviderInstanceId } from "@ras-code/client-runtime/provider-fallback";
-import { resolveThreadPullRequestRef } from "@ras-code/client-runtime/state/pull-requests";
-import { type CodexArtifactTemplate } from "@ras-code/client-runtime/codex-artifact-templates";
-import { effectiveSnoozed, threadWokeAt } from "@ras-code/client-runtime/state/thread-settled";
+} from "@t3tools/contracts";
+import { type EnvironmentConnectionPresentation } from "@t3tools/client-runtime/connection";
+import { wasBootstrapThreadDeleted } from "@t3tools/client-runtime/errors";
+import { resolveActiveProviderInstanceId } from "@t3tools/client-runtime/provider-fallback";
+import { resolveThreadPullRequestRef } from "@t3tools/client-runtime/state/pull-requests";
+import { type CodexArtifactTemplate } from "@t3tools/client-runtime/codex-artifact-templates";
+import { effectiveSnoozed, threadWokeAt } from "@t3tools/client-runtime/state/thread-settled";
 import {
   codexFeedbackMessage,
   parseCodexFeedbackCommand,
   submitCodexFeedback,
   type CodexFeedbackSubmission,
-} from "@ras-code/client-runtime/state/threads";
+} from "@t3tools/client-runtime/state/threads";
 import {
   parseScopedThreadKey,
   scopedThreadKey,
   scopeProjectRef,
   scopeThreadRef,
-} from "@ras-code/client-runtime/environment";
+} from "@t3tools/client-runtime/environment";
 import {
   applyClaudePromptEffortPrefix,
   createModelSelection,
   resolveEffectiveDefaultModelSelection,
   resolvePromptInjectedEffort,
-} from "@ras-code/shared/model";
-import { projectScriptCwd, projectScriptRuntimeEnv } from "@ras-code/shared/projectScripts";
-import { truncate } from "@ras-code/shared/String";
+} from "@t3tools/shared/model";
+import { projectScriptCwd, projectScriptRuntimeEnv } from "@t3tools/shared/projectScripts";
+import { truncate } from "@t3tools/shared/String";
 import {
   buildBabysitPullRequestPrompt,
   buildResolveConflictsPrompt,
-} from "@ras-code/shared/sourceControl";
-import { resolveThreadReferenceCopyTarget } from "@ras-code/shared/threadReference";
+} from "@t3tools/shared/sourceControl";
+import { resolveThreadReferenceCopyTarget } from "@t3tools/shared/threadReference";
 import {
   getTerminalLabel,
   nextTerminalId,
   resolveTerminalSessionLabel,
-} from "@ras-code/shared/terminalLabels";
+} from "@t3tools/shared/terminalLabels";
 import { Debouncer } from "@tanstack/react-pacer";
 import { useAtomValue } from "@effect/atom-react";
 import {
@@ -81,7 +81,7 @@ import {
 } from "react";
 import { flushSync } from "react-dom";
 import { useLocation, useNavigate } from "@tanstack/react-router";
-import { assistantCitationsToPlainText } from "@ras-code/shared/assistantCitations";
+import { assistantCitationsToPlainText } from "@t3tools/shared/assistantCitations";
 import { assistantCitationFromLocation } from "../lib/assistantCitationNavigation";
 import type { AssistantCitationSourceAnchor } from "~/lib/assistantTextSelection";
 import { useShallow } from "zustand/react/shallow";
@@ -91,7 +91,7 @@ import {
   settlePromise,
   squashAtomCommandFailure,
   type AtomCommandResult,
-} from "@ras-code/client-runtime/state/runtime";
+} from "@t3tools/client-runtime/state/runtime";
 import * as Cause from "effect/Cause";
 import * as Schema from "effect/Schema";
 import { AsyncResult } from "effect/unstable/reactivity";
@@ -151,7 +151,7 @@ import { useTheme } from "../hooks/useTheme";
 import { writeTextToClipboard } from "../hooks/useCopyToClipboard";
 import { useTurnDiffSummaries } from "../hooks/useTurnDiffSummaries";
 import { isCommandPaletteOpen } from "../commandPaletteBus";
-import { buildTemporaryWorktreeBranchName } from "@ras-code/shared/git";
+import { buildTemporaryWorktreeBranchName } from "@t3tools/shared/git";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { RIGHT_PANEL_INLINE_LAYOUT_MEDIA_QUERY } from "../rightPanelLayout";
 import {
@@ -186,7 +186,7 @@ import { AgentsPanel } from "./AgentsPanel";
 import {
   deriveAgentPanelModel,
   foldSubagentActivities,
-} from "@ras-code/client-runtime/state/subagentRuntime";
+} from "@t3tools/client-runtime/state/subagentRuntime";
 import { BranchToolbar } from "./BranchToolbar";
 import { resolveShortcutCommand, shortcutLabelForCommand } from "../keybindings";
 import ThreadTerminalDrawer from "./ThreadTerminalDrawer";
@@ -288,8 +288,8 @@ import { threadEnvironment, useEnvironmentThread } from "../state/threads";
 import {
   requestOlderThreadTurns,
   threadHasOlderTurns,
-} from "@ras-code/client-runtime/state/threads";
-import { resolveProviderSkillsForCwd } from "@ras-code/client-runtime/providerSkills";
+} from "@t3tools/client-runtime/state/threads";
+import { resolveProviderSkillsForCwd } from "@t3tools/client-runtime/providerSkills";
 import { vcsEnvironment } from "../state/vcs";
 import { useEnvironments, usePrimaryEnvironment } from "../state/environments";
 import {
@@ -420,7 +420,7 @@ import {
 import { sanitizeThreadErrorMessage } from "~/rpc/transportError";
 import { RightPanelSheet } from "./RightPanelSheet";
 import { previewEnvironment } from "../state/preview";
-import { clampFileAttachmentUploadBytes } from "@ras-code/client-runtime/state/attachments";
+import { clampFileAttachmentUploadBytes } from "@t3tools/client-runtime/state/attachments";
 import { appAtomRegistry } from "../rpc/atomRegistry";
 import { fileAttachmentCapabilityBlockReason } from "./chat/composerAttachmentFiles";
 import { assetEnvironment } from "../state/assets";

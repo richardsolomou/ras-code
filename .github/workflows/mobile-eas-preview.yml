@@ -52,7 +52,7 @@ jobs:
           cache: true
           run-install: |
             args:
-              - --filter=@ras-code/mobile...
+              - --filter=@t3tools/mobile...
 
       - name: Expose pnpm
         if: steps.expo-token.outputs.present == 'true'

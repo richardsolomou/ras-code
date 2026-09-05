@@ -21,9 +21,9 @@ import {
   EnvironmentThemeFile,
   EnvironmentThemeId,
   environmentThemeFileHasColors,
-} from "@ras-code/contracts";
-import { fromJsonStringPretty, fromLenientJson } from "@ras-code/shared/schemaJson";
-import { BUILT_IN_THEME_IDS, UNPUBLISHABLE_THEME_IDS } from "@ras-code/shared/themePalettes";
+} from "@t3tools/contracts";
+import { fromJsonStringPretty, fromLenientJson } from "@t3tools/shared/schemaJson";
+import { BUILT_IN_THEME_IDS, UNPUBLISHABLE_THEME_IDS } from "@t3tools/shared/themePalettes";
 import * as Config from "effect/Config";
 import * as Console from "effect/Console";
 import * as DateTime from "effect/DateTime";

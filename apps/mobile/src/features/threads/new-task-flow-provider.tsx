@@ -8,7 +8,7 @@ import type {
   ProviderOptionSelection,
   RuntimeMode,
   ServerProvider,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import {
   CommandId,
   DEFAULT_PROVIDER_INTERACTION_MODE,
@@ -16,13 +16,13 @@ import {
   MessageId,
   RAS_PROJECT_FILE_NAME,
   ThreadId,
-} from "@ras-code/contracts";
-import { resolveEffectiveDefaultModelSelection } from "@ras-code/shared/model";
-import { parseRasProjectFile } from "@ras-code/shared/rasProjectFile";
+} from "@t3tools/contracts";
+import { resolveEffectiveDefaultModelSelection } from "@t3tools/shared/model";
+import { parseRasProjectFile } from "@t3tools/shared/rasProjectFile";
 import {
   isDefaultThreadEnvModeSettled,
   resolveDefaultThreadEnvMode,
-} from "@ras-code/shared/threadEnvMode";
+} from "@t3tools/shared/threadEnvMode";
 import * as Arr from "effect/Array";
 import { pipe } from "effect/Function";
 
@@ -76,8 +76,8 @@ import {
   setPendingConnectionError,
   useSavedRemoteConnections,
 } from "../../state/use-remote-environment-registry";
-import { EnvironmentProject } from "@ras-code/client-runtime/state/shell";
-import { type VcsRef } from "@ras-code/client-runtime/state/vcs";
+import { EnvironmentProject } from "@t3tools/client-runtime/state/shell";
+import { type VcsRef } from "@t3tools/client-runtime/state/vcs";
 import {
   buildHomeProjectScopes,
   sortHomeProjectScopes,

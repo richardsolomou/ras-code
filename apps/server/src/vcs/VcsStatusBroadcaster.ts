@@ -19,8 +19,8 @@ import type {
   VcsStatusRemoteResult,
   VcsStatusResult,
   VcsStatusStreamEvent,
-} from "@ras-code/contracts";
-import { mergeGitStatusParts } from "@ras-code/shared/git";
+} from "@t3tools/contracts";
+import { mergeGitStatusParts } from "@t3tools/shared/git";
 
 import * as BackgroundPolicy from "../background/BackgroundPolicy.ts";
 import * as GitWorkflowService from "../git/GitWorkflowService.ts";

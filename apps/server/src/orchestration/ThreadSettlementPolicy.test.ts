@@ -5,7 +5,7 @@ import {
   ProjectId,
   TurnId,
   type OrchestrationThreadShell,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import { resolveAutoSettlementAt } from "./ThreadSettlementPolicy.ts";
 
 const NOW = "2026-08-28T12:00:00.000Z";

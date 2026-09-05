@@ -83,7 +83,7 @@ import {
   wslRuntimeArchiveTarTarget,
 } from "./build-desktop-artifact.ts";
 import { BRAND_ASSET_PATHS } from "./lib/brand-assets.ts";
-import { HostProcessArchitecture, HostProcessPlatform } from "@ras-code/shared/hostProcess";
+import { HostProcessArchitecture, HostProcessPlatform } from "@t3tools/shared/hostProcess";
 
 // A minimal stand-in for the staged sidecar roots packed into the WSL archive.
 const stageWslRuntimeTreeFixture = Effect.fn("stageWslRuntimeTreeFixture")(function* (
@@ -364,10 +364,10 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
       resolveDesktopRuntimeDependencies(
         {
           "@effect/platform-node": "catalog:",
-          "@ras-code/contracts": "workspace:*",
-          "@ras-code/shared": "workspace:*",
-          "@ras-code/ssh": "workspace:*",
-          "@ras-code/tailscale": "workspace:*",
+          "@t3tools/contracts": "workspace:*",
+          "@t3tools/shared": "workspace:*",
+          "@t3tools/ssh": "workspace:*",
+          "@t3tools/tailscale": "workspace:*",
           effect: "catalog:",
           electron: "41.5.0",
         },

@@ -1,8 +1,8 @@
-import type { ModelSelection, ProviderInstanceId } from "@ras-code/contracts";
+import type { ModelSelection, ProviderInstanceId } from "@t3tools/contracts";
 import {
   CLAUDE_RESUME_COMPACTION_NEVER_ANSWER,
   isClaudeResumeCompactionQuestion,
-} from "@ras-code/shared/claudeCompaction";
+} from "@t3tools/shared/claudeCompaction";
 import {
   resolveSelectableProviderInstanceEntry,
   type ProviderInstanceEntry,

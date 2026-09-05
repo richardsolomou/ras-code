@@ -23,7 +23,7 @@ import {
   ServerSettings,
   ServerSettingsError,
   type ServerSettingsPatch,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import * as Cache from "effect/Cache";
 import * as Cause from "effect/Cause";
 import * as Context from "effect/Context";
@@ -45,15 +45,15 @@ import * as Stream from "effect/Stream";
 import * as SqlClient from "effect/unstable/sql/SqlClient";
 import { writeFileStringAtomically } from "./atomicWrite.ts";
 import * as ServerConfig from "./config.ts";
-import { type DeepPartial, deepMerge } from "@ras-code/shared/Struct";
-import { fromJsonStringPretty, fromLenientJson } from "@ras-code/shared/schemaJson";
+import { type DeepPartial, deepMerge } from "@t3tools/shared/Struct";
+import { fromJsonStringPretty, fromLenientJson } from "@t3tools/shared/schemaJson";
 import {
   applyServerSettingsPatch,
   isModelSelectionProviderEnabled,
-} from "@ras-code/shared/serverSettings";
+} from "@t3tools/shared/serverSettings";
 import * as ServerSecretStore from "./auth/ServerSecretStore.ts";
 
-export { resolveSourceControlWriterModelSelection } from "@ras-code/shared/serverSettings";
+export { resolveSourceControlWriterModelSelection } from "@t3tools/shared/serverSettings";
 
 const encodeServerSettings = Schema.encodeEffect(ServerSettings);
 const encodeServerSettingsJson = Schema.encodeUnknownEffect(fromJsonStringPretty(ServerSettings));

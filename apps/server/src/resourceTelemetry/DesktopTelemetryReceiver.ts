@@ -9,8 +9,8 @@ import {
   DesktopTelemetryControlMessage,
   type DesktopUpdateStatusReport,
   type ResourceTelemetrySourceStatus,
-} from "@ras-code/contracts";
-import { resolveServerBackgroundActivitySettings } from "@ras-code/shared/backgroundActivitySettings";
+} from "@t3tools/contracts";
+import { resolveServerBackgroundActivitySettings } from "@t3tools/shared/backgroundActivitySettings";
 import * as Context from "effect/Context";
 import * as DateTime from "effect/DateTime";
 import * as Duration from "effect/Duration";

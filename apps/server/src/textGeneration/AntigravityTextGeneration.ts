@@ -2,9 +2,9 @@ import {
   type ModelSelection,
   type ProviderSetupError,
   TextGenerationError,
-} from "@ras-code/contracts";
-import { sanitizeBranchFragment } from "@ras-code/shared/git";
-import { extractJsonObject } from "@ras-code/shared/schemaJson";
+} from "@t3tools/contracts";
+import { sanitizeBranchFragment } from "@t3tools/shared/git";
+import { extractJsonObject } from "@t3tools/shared/schemaJson";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";

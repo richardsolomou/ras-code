@@ -4,8 +4,8 @@ import type {
   PreviewSessionSnapshot,
   ProjectId,
   PullRequestState,
-} from "@ras-code/contracts";
-import { getTerminalLabel } from "@ras-code/shared/terminalLabels";
+} from "@t3tools/contracts";
+import { getTerminalLabel } from "@t3tools/shared/terminalLabels";
 import {
   Bot,
   ChevronDown,

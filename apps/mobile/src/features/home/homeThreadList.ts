@@ -2,24 +2,24 @@ import {
   buildProjectGroups,
   derivePhysicalProjectKey,
   deriveProjectGroupLabel,
-} from "@ras-code/client-runtime/state/project-grouping";
+} from "@t3tools/client-runtime/state/project-grouping";
 import type {
   EnvironmentProject,
   EnvironmentThreadShell,
-} from "@ras-code/client-runtime/state/shell";
+} from "@t3tools/client-runtime/state/shell";
 import {
   getThreadSortTimestamp,
   sortThreads,
   toSortableTimestamp,
-} from "@ras-code/client-runtime/state/thread-sort";
-import { threadSearchMatchKey } from "@ras-code/client-runtime/state/thread-search";
+} from "@t3tools/client-runtime/state/thread-sort";
+import { threadSearchMatchKey } from "@t3tools/client-runtime/state/thread-search";
 import type {
   EnvironmentId,
   ScopedProjectRef,
   SidebarProjectGroupingMode,
   SidebarProjectSortOrder,
   SidebarThreadSortOrder,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import * as Arr from "effect/Array";
 import * as Option from "effect/Option";
 import * as Order from "effect/Order";

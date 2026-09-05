@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { EventId } from "@ras-code/contracts";
+import { EventId } from "@t3tools/contracts";
 
 import { derivePendingFallbackOfferCountFromActivities } from "./ProjectionPipeline.ts";
 

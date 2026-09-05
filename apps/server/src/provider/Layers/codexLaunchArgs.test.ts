@@ -1,6 +1,6 @@
 import * as NodeAssert from "node:assert/strict";
 
-import { posthogGatewayCodexLaunchArgs } from "@ras-code/shared/posthogGateway";
+import { posthogGatewayCodexLaunchArgs } from "@t3tools/shared/posthogGateway";
 import { describe, it } from "vite-plus/test";
 
 import {

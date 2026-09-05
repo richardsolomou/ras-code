@@ -1,4 +1,4 @@
-import type { ServerConfigStreamEvent } from "@ras-code/contracts";
+import type { ServerConfigStreamEvent } from "@t3tools/contracts";
 
 export const KEYBINDINGS_SUCCESS_TOAST_COOLDOWN_MS = 2_000;
 

@@ -1,9 +1,9 @@
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
-import type { AssistantCitation } from "@ras-code/contracts";
+import type { AssistantCitation } from "@t3tools/contracts";
 import {
   serializeAssistantCitation,
   withAssistantCitationComment,
-} from "@ras-code/shared/assistantCitations";
+} from "@t3tools/shared/assistantCitations";
 import {
   $applyNodeReplacement,
   $getNodeByKey,

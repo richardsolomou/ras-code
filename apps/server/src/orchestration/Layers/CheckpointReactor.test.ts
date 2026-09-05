@@ -10,7 +10,7 @@ import {
   ProviderSession,
   ProviderInstanceId,
   type VcsStatusResult,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import {
   CommandId,
   DEFAULT_PROVIDER_INTERACTION_MODE,
@@ -19,7 +19,7 @@ import {
   ProjectId,
   ThreadId,
   TurnId,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as Clock from "effect/Clock";
 import * as Deferred from "effect/Deferred";

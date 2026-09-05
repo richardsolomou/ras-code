@@ -27,28 +27,28 @@ import type {
   ScopedThreadRef,
   ServerProviderSkill,
   ThreadLinkedPullRequest,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
   type AtomCommandResult,
-} from "@ras-code/client-runtime/state/runtime";
+} from "@t3tools/client-runtime/state/runtime";
 import {
   codexArtifactTemplatePresentationLabel,
   type CodexArtifactTemplate,
   type CodexArtifactTemplateKind,
-} from "@ras-code/client-runtime/codex-artifact-templates";
+} from "@t3tools/client-runtime/codex-artifact-templates";
 import {
   classifyMarkdownImageSource,
   markdownImageSourceFragment,
-} from "@ras-code/client-runtime/markdown-images";
+} from "@t3tools/client-runtime/markdown-images";
 import {
   assetUrlFailureLabel,
   type AssetUrlFailureReason,
-} from "@ras-code/client-runtime/state/assets";
-import { inlineCodeFilePathCandidate } from "@ras-code/client-runtime/markdown-links";
-import { mediaFileReference, mediaUrlReference } from "@ras-code/client-runtime/media-reference";
-import { mediaKindFromPath, mediaMimeTypeFromExtension } from "@ras-code/shared/filePreview";
+} from "@t3tools/client-runtime/state/assets";
+import { inlineCodeFilePathCandidate } from "@t3tools/client-runtime/markdown-links";
+import { mediaFileReference, mediaUrlReference } from "@t3tools/client-runtime/media-reference";
+import { mediaKindFromPath, mediaMimeTypeFromExtension } from "@t3tools/shared/filePreview";
 import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/unstable/reactivity";
 import React, {
@@ -74,7 +74,7 @@ import { defaultUrlTransform } from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import remarkBreaks from "remark-breaks";
-import { parseAssistantCitationHref } from "@ras-code/shared/assistantCitations";
+import { parseAssistantCitationHref } from "@t3tools/shared/assistantCitations";
 import { AssistantCitationChip } from "./chat/AssistantCitationChip";
 import remarkGfm from "remark-gfm";
 import { remarkGithubAlerts } from "../markdown-github-alerts";
@@ -83,7 +83,7 @@ import {
   CODEX_ARTIFACT_TEMPLATE_HAST_PROPERTIES,
   remarkCodexDirectives,
   renderCodexFileCitationsAsMarkdown,
-} from "@ras-code/client-runtime/codex-markdown-directives";
+} from "@t3tools/client-runtime/codex-markdown-directives";
 import { renderSkillInlineMarkdownChildren } from "./chat/SkillInlineText";
 import {
   resolveMarkdownMediaPreview,

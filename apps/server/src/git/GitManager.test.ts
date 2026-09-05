@@ -20,7 +20,7 @@ import type {
   GitActionProgressEvent,
   GitPreparePullRequestThreadInput,
   ThreadId,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 
 import {
   DEFAULT_SERVER_SETTINGS,
@@ -28,7 +28,7 @@ import {
   ProviderDriverKind,
   ProviderInstanceId,
   TextGenerationError,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import * as GitHubCli from "../sourceControl/GitHubCli.ts";
 import * as TextGeneration from "../textGeneration/TextGeneration.ts";
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";

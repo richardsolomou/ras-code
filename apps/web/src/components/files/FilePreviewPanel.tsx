@@ -4,19 +4,19 @@ import type {
   EnvironmentId,
   ResolvedKeybindingsConfig,
   ScopedThreadRef,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import {
   isWorkspaceImagePreviewPath,
   isWorkspaceVideoPreviewPath,
-} from "@ras-code/shared/filePreview";
+} from "@t3tools/shared/filePreview";
 import { VirtualizedFile, type SelectedLineRange } from "@pierre/diffs";
 import { Editor } from "@pierre/diffs/editor";
 import { EditProvider, File, type FileOptions, Virtualizer } from "@pierre/diffs/react";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
-} from "@ras-code/client-runtime/state/runtime";
-import { mediaFileReference } from "@ras-code/client-runtime/media-reference";
+} from "@t3tools/client-runtime/state/runtime";
+import { mediaFileReference } from "@t3tools/client-runtime/media-reference";
 import { Code2, Eye, FolderTree, Globe2, LoaderCircle } from "lucide-react";
 import * as Schema from "effect/Schema";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";

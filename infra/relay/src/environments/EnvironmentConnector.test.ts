@@ -10,11 +10,11 @@ import {
   RelayEnvironmentHealthResponseProofPayload,
   RelayEnvironmentMintResponse,
   RelayEnvironmentMintResponseProofPayload,
-} from "@ras-code/contracts/relay";
-import { EnvironmentHttpInternalServerError, EnvironmentId } from "@ras-code/contracts";
+} from "@t3tools/contracts/relay";
+import { EnvironmentHttpInternalServerError, EnvironmentId } from "@t3tools/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as DateTime from "effect/DateTime";
-import { RELAY_HEALTH_RESPONSE_TYP, RELAY_MINT_RESPONSE_TYP } from "@ras-code/shared/relayJwt";
+import { RELAY_HEALTH_RESPONSE_TYP, RELAY_MINT_RESPONSE_TYP } from "@t3tools/shared/relayJwt";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as Fiber from "effect/Fiber";

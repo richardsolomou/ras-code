@@ -17,10 +17,10 @@ import type {
   ProjectSearchContentsResult,
   ProjectSearchEntriesInput,
   ProjectSearchEntriesResult,
-} from "@ras-code/contracts";
-import { HostProcessPlatform } from "@ras-code/shared/hostProcess";
-import { isExplicitRelativePath, isWindowsAbsolutePath } from "@ras-code/shared/path";
-import { normalizeSearchQuery } from "@ras-code/shared/searchRanking";
+} from "@t3tools/contracts";
+import { HostProcessPlatform } from "@t3tools/shared/hostProcess";
+import { isExplicitRelativePath, isWindowsAbsolutePath } from "@t3tools/shared/path";
+import { normalizeSearchQuery } from "@t3tools/shared/searchRanking";
 
 import { expandHomePathWith } from "../pathExpansion.ts";
 import * as WorkspacePaths from "./WorkspacePaths.ts";

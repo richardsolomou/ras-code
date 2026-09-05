@@ -3,7 +3,7 @@ import {
   scopedThreadKey,
   scopeProjectRef,
   scopeThreadRef,
-} from "@ras-code/client-runtime/environment";
+} from "@t3tools/client-runtime/environment";
 import * as Schema from "effect/Schema";
 import {
   defaultInstanceIdForDriver,
@@ -16,12 +16,12 @@ import {
   ThreadId,
   type ModelSelection,
   type ProviderOptionSelection,
-} from "@ras-code/contracts";
-import { createModelSelection } from "@ras-code/shared/model";
+} from "@t3tools/contracts";
+import { createModelSelection } from "@t3tools/shared/model";
 import {
   collectAssistantCitations,
   serializeAssistantCitation,
-} from "@ras-code/shared/assistantCitations";
+} from "@t3tools/shared/assistantCitations";
 
 // The composer draft's `modelSelectionByProvider` and
 // `stickyModelSelectionByProvider` maps are keyed by `ProviderInstanceId`

@@ -13,7 +13,7 @@ import type {
   ExecutionEnvironmentCapabilities,
   ServerSettings,
   ServerSettingsPatch,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import * as Equal from "effect/Equal";
 import * as Struct from "effect/Struct";
 

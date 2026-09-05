@@ -14,7 +14,7 @@ import * as Layer from "effect/Layer";
 import * as Schema from "effect/Schema";
 import * as Stream from "effect/Stream";
 import * as TestClock from "effect/testing/TestClock";
-import { createModelSelection } from "@ras-code/shared/model";
+import { createModelSelection } from "@t3tools/shared/model";
 
 import {
   ApprovalRequestId,
@@ -23,7 +23,7 @@ import {
   type ProviderRuntimeEvent,
   ThreadId,
   ProviderInstanceId,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 
 import { ServerConfig } from "../../config.ts";
 import { ServerSettingsService } from "../../serverSettings.ts";

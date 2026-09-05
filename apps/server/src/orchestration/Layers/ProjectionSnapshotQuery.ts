@@ -27,7 +27,7 @@ import {
   ThreadForkPoint,
   ThreadLinkedPullRequest,
   ThreadId,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";

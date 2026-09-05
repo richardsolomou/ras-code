@@ -1,4 +1,4 @@
-import { EnvironmentId, WS_METHODS } from "@ras-code/contracts";
+import { EnvironmentId, WS_METHODS } from "@t3tools/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 

@@ -4,10 +4,10 @@ import * as NodeOS from "node:os";
 
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import * as NetService from "@ras-code/shared/Net";
-import { resolveGitWorktreePath, resolveWorktreeRasCodeHome } from "@ras-code/shared/devHome";
-import { HostProcessEnvironment, HostProcessWorkingDirectory } from "@ras-code/shared/hostProcess";
-import { resolveSpawnCommand } from "@ras-code/shared/shell";
+import * as NetService from "@t3tools/shared/Net";
+import { resolveGitWorktreePath, resolveWorktreeRasCodeHome } from "@t3tools/shared/devHome";
+import { HostProcessEnvironment, HostProcessWorkingDirectory } from "@t3tools/shared/hostProcess";
+import { resolveSpawnCommand } from "@t3tools/shared/shell";
 import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
 import * as Hash from "effect/Hash";
@@ -74,15 +74,15 @@ export const DEFAULT_RAS_CODE_HOME = Effect.map(Effect.service(Path.Path), (path
 const MODE_ARGS = {
   dev: [
     "run",
-    "--filter=@ras-code/contracts",
-    "--filter=@ras-code/web",
+    "--filter=@t3tools/contracts",
+    "--filter=@t3tools/web",
     "--filter=ras-code",
     "--parallel",
     "dev",
   ],
   "dev:server": ["run", "--filter=ras-code", "dev"],
-  "dev:web": ["run", "--filter=@ras-code/web", "dev"],
-  "dev:desktop": ["run", "--filter=@ras-code/desktop", "--filter=@ras-code/web", "dev"],
+  "dev:web": ["run", "--filter=@t3tools/web", "dev"],
+  "dev:desktop": ["run", "--filter=@t3tools/desktop", "--filter=@t3tools/web", "dev"],
 } as const satisfies Record<string, ReadonlyArray<string>>;
 
 type DevMode = keyof typeof MODE_ARGS;
@@ -675,7 +675,7 @@ export function runDevRunnerWithInput(input: DevRunnerCliInput) {
 
     const hostEnvironment = yield* HostProcessEnvironment;
     // A dev server started inside a worktree defaults to that worktree's own
-    // (gitignored) `.ras-code` — see @ras-code/shared/devHome for why this must
+    // (gitignored) `.ras-code` — see @t3tools/shared/devHome for why this must
     // outrank an ambient RAS_CODE_HOME. `--home-dir` still wins.
     const worktreeHome = yield* resolveWorktreeRasCodeHome(yield* HostProcessWorkingDirectory);
     // Trim before choosing: `--home-dir ""` is not a selection, and treating it

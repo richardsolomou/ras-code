@@ -1,12 +1,12 @@
-import { type EnvironmentConnectionPhase } from "@ras-code/client-runtime/connection";
-import { resolveActiveProviderInstanceId } from "@ras-code/client-runtime/provider-fallback";
+import { type EnvironmentConnectionPhase } from "@t3tools/client-runtime/connection";
+import { resolveActiveProviderInstanceId } from "@t3tools/client-runtime/provider-fallback";
 import {
   appendCodexArtifactTemplateUsePrompt,
   type CodexArtifactTemplate,
-} from "@ras-code/client-runtime/codex-artifact-templates";
-import type { EnvironmentThreadStatus } from "@ras-code/client-runtime/state/threads";
+} from "@t3tools/client-runtime/codex-artifact-templates";
+import type { EnvironmentThreadStatus } from "@t3tools/client-runtime/state/threads";
 import { useKeyboardChatComposerInset, useKeyboardScrollToEnd } from "@legendapp/list/keyboard";
-import { resolveProviderSkillsForCwd } from "@ras-code/client-runtime/providerSkills";
+import { resolveProviderSkillsForCwd } from "@t3tools/client-runtime/providerSkills";
 import type { LegendListRef } from "@legendapp/list/react-native";
 import { HeaderHeightContext } from "@react-navigation/elements";
 import type {
@@ -22,7 +22,7 @@ import type {
   ServerConfig as RasCodeServerConfig,
   ThreadId,
   UserInputQuestion,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import * as Haptics from "expo-haptics";
 import {
   memo,
@@ -65,7 +65,7 @@ import type { DraftComposerAttachment } from "../../lib/composerImages";
 import { CHAT_CONTENT_MAX_WIDTH, type LayoutVariant } from "../../lib/layout";
 import { IOS_NAV_BAR_HEIGHT } from "../../lib/layoutMetrics";
 import { scopedThreadKey } from "../../lib/scopedEntities";
-import { buildResolveConflictsPrompt } from "@ras-code/shared/sourceControl";
+import { buildResolveConflictsPrompt } from "@t3tools/shared/sourceControl";
 import type {
   PendingApproval,
   PendingFallbackOffer,

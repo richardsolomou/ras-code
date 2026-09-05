@@ -2,7 +2,7 @@ import {
   type ApprovalRequestId,
   type ProviderApprovalDecision,
   type ProviderApprovalOption,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import { memo } from "react";
 import { TriangleAlertIcon } from "lucide-react";
 import { Button } from "../ui/button";

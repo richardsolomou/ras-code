@@ -8,7 +8,7 @@ import {
   type OrchestrationCommand,
   OrchestrationDispatchCommandError,
   PROVIDER_SEND_TURN_MAX_IMAGE_BYTES,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 
 import {
   createAttachmentId,

@@ -4,7 +4,7 @@ import {
   type ProviderOptionDescriptor,
   type ProviderOptionSelection,
   type ServerProviderModel,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import {
   getComposerPromptInjectionState,
   getComposerProviderState,

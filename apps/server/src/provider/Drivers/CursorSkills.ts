@@ -10,7 +10,7 @@
  */
 import * as NodeOS from "node:os";
 
-import type { ServerProviderSkill } from "@ras-code/contracts";
+import type { ServerProviderSkill } from "@t3tools/contracts";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";

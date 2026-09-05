@@ -31,6 +31,9 @@ export const preservedPatterns: ReadonlyArray<RegExp> = [
   /\bPingDotGG\/T3Code\b/g,
   /\bbinbandit\/t3code\b/g,
   /@t3dotcodes\b/g,
+  // Our own workspace scope. Every package under it is private, so it never reaches a user, and
+  // keeping upstream's spelling keeps their import lines identical to ours.
+  /@t3tools\/[\w-]*/g,
   /\bsha512-[A-Za-z0-9+/=]+/g,
   /\bt3_relay\b/g,
   // Crosses the wire to provider agents as an ACP `_meta` key, and to clients and the relay as an
@@ -48,11 +51,6 @@ export const preservedPatterns: ReadonlyArray<RegExp> = [
 ];
 
 const textRules: ReadonlyArray<RebrandRule> = [
-  {
-    pattern: /@t3tools\//g,
-    replacement: "@ras-code/",
-    description: "workspace package scope",
-  },
   {
     pattern: /\bt3tools\/t3code\b/gi,
     replacement: "richardsolomou/ras-code",

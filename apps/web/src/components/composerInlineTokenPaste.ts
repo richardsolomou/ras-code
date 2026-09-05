@@ -1,4 +1,4 @@
-import type { AssistantCitation } from "@ras-code/contracts";
+import type { AssistantCitation } from "@t3tools/contracts";
 import {
   $createLineBreakNode,
   $createTextNode,

@@ -2,7 +2,7 @@ import type {
   ApprovalRequestId,
   ProviderApprovalDecision,
   ProviderApprovalOption,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import { Pressable, View } from "react-native";
 
 import { AppText as Text } from "../../components/AppText";

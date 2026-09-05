@@ -1,4 +1,4 @@
-import { parseManagedEndpointGatewayPath } from "@ras-code/shared/advertisedEndpoint";
+import { parseManagedEndpointGatewayPath } from "@t3tools/shared/advertisedEndpoint";
 import * as Cause from "effect/Cause";
 import * as Effect from "effect/Effect";
 import * as HttpClient from "effect/unstable/http/HttpClient";

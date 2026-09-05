@@ -31,21 +31,21 @@ import {
   ModelSelection,
   SourceControlProviderError,
   type SourceControlWritingStyleSettings,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import {
   detectSourceControlProviderFromGitRemoteUrl,
   mergeGitStatusParts,
   normalizeGitRemoteUrl,
   resolveAutoFeatureBranchName,
   sanitizeBranchFragment,
-} from "@ras-code/shared/git";
+} from "@t3tools/shared/git";
 import {
   getChangeRequestTerminologyForKind,
   isSshRemoteUrl,
   type ChangeRequestTerminology,
-} from "@ras-code/shared/sourceControl";
+} from "@t3tools/shared/sourceControl";
 
-import { GitManagerError, GitPullRequestMaterializationError } from "@ras-code/contracts";
+import { GitManagerError, GitPullRequestMaterializationError } from "@t3tools/contracts";
 import * as TextGeneration from "../textGeneration/TextGeneration.ts";
 import {
   conventionalCommitsTextGenerationPolicy,
@@ -56,11 +56,11 @@ import * as ProjectSetupScriptRunner from "../project/ProjectSetupScriptRunner.t
 import * as ProviderRegistry from "../provider/Services/ProviderRegistry.ts";
 import { extractBranchNameFromRemoteRef } from "./remoteRefs.ts";
 import * as ServerSettings from "../serverSettings.ts";
-import type { GitManagerServiceError } from "@ras-code/contracts";
+import type { GitManagerServiceError } from "@t3tools/contracts";
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
 import * as SourceControlProviderRegistry from "../sourceControl/SourceControlProviderRegistry.ts";
 import { detectPrTemplate } from "../sourceControl/PrTemplateDetection.ts";
-import type { ChangeRequest } from "@ras-code/contracts";
+import type { ChangeRequest } from "@t3tools/contracts";
 
 export interface GitActionProgressReporter {
   readonly publish: (event: GitActionProgressEvent) => Effect.Effect<void, never>;

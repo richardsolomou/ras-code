@@ -1,8 +1,8 @@
-import type { RepositoryIdentity } from "@ras-code/contracts";
+import type { RepositoryIdentity } from "@t3tools/contracts";
 import {
   detectSourceControlProviderFromGitRemoteUrl,
   normalizeGitRemoteUrl,
-} from "@ras-code/shared/git";
+} from "@t3tools/shared/git";
 import * as Cache from "effect/Cache";
 import * as Context from "effect/Context";
 import * as Duration from "effect/Duration";

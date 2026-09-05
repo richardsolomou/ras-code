@@ -1,8 +1,8 @@
-import type { ModelSelection } from "@ras-code/contracts";
+import type { ModelSelection } from "@t3tools/contracts";
 import {
   getModelSelectionBooleanOptionValue,
   getModelSelectionStringOptionValue,
-} from "@ras-code/shared/model";
+} from "@t3tools/shared/model";
 
 export function getCodexServiceTierOptionValue(
   modelSelection: ModelSelection | null | undefined,

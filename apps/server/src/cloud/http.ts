@@ -12,7 +12,7 @@ import {
   EnvironmentHttpConflictError,
   EnvironmentHttpInternalServerError,
   EnvironmentHttpUnauthorizedError,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import {
   RelayCloudEnvironmentHealthProofPayload,
   RelayCloudEnvironmentHealthRequest,
@@ -30,14 +30,14 @@ import {
   RelayEnvironmentLinkProofPayload,
   RelayLinkProofRequest,
   RelayManagedEndpointOrigin,
-} from "@ras-code/contracts/relay";
-import { stripManagedEndpointGatewayPrefix } from "@ras-code/shared/advertisedEndpoint";
-import { encodeOAuthScope } from "@ras-code/shared/oauthScope";
+} from "@t3tools/contracts/relay";
+import { stripManagedEndpointGatewayPrefix } from "@t3tools/shared/advertisedEndpoint";
+import { encodeOAuthScope } from "@t3tools/shared/oauthScope";
 import {
   parseRasRelayPublicOrigin,
   RAS_RELAY_PUBLIC_ORIGIN_HEADER,
-} from "@ras-code/shared/rasRelayProtocol";
-import { withRelayClientTracing } from "@ras-code/shared/relayTracing";
+} from "@t3tools/shared/rasRelayProtocol";
+import { withRelayClientTracing } from "@t3tools/shared/relayTracing";
 import {
   normalizeRelayIssuer,
   RELAY_HEALTH_REQUEST_TYP,
@@ -47,8 +47,8 @@ import {
   RELAY_MINT_RESPONSE_TYP,
   signRelayJwt,
   verifyRelayJwt,
-} from "@ras-code/shared/relayJwt";
-import { isSecureRelayUrl } from "@ras-code/shared/relayUrl";
+} from "@t3tools/shared/relayJwt";
+import { isSecureRelayUrl } from "@t3tools/shared/relayUrl";
 import * as DateTime from "effect/DateTime";
 import * as Crypto from "effect/Crypto";
 import * as Duration from "effect/Duration";

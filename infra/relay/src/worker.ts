@@ -20,11 +20,11 @@ import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse";
 import * as HttpApiBuilder from "effect/unstable/httpapi/HttpApiBuilder";
 import * as HttpApiScalar from "effect/unstable/httpapi/HttpApiScalar";
 
-import { RelayApi } from "@ras-code/contracts/relay";
+import { RelayApi } from "@t3tools/contracts/relay";
 import {
   parseManagedEndpointGatewayPath,
   parseRasRelayConnectorPath,
-} from "@ras-code/shared/advertisedEndpoint";
+} from "@t3tools/shared/advertisedEndpoint";
 
 import {
   clientApi,

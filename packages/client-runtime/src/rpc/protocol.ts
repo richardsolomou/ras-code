@@ -1,4 +1,4 @@
-import { WsRpcGroup } from "@ras-code/contracts";
+import { WsRpcGroup } from "@t3tools/contracts";
 import * as Effect from "effect/Effect";
 import { RpcClient } from "effect/unstable/rpc";
 

@@ -1,4 +1,4 @@
-import type { EnvironmentId, ThreadId } from "@ras-code/contracts";
+import type { EnvironmentId, ThreadId } from "@t3tools/contracts";
 
 interface TerminalLocationLike {
   readonly cwd: string;

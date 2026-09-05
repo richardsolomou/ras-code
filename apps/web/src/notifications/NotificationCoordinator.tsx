@@ -12,9 +12,9 @@ import {
   reduceNotifications,
   countThreadsAwaitingUser,
   type NotifierState,
-} from "@ras-code/client-runtime/notifications";
-import type { EnvironmentThread } from "@ras-code/client-runtime/state/models";
-import type { ThreadId } from "@ras-code/contracts";
+} from "@t3tools/client-runtime/notifications";
+import type { EnvironmentThread } from "@t3tools/client-runtime/state/models";
+import type { ThreadId } from "@t3tools/contracts";
 
 import {
   useAllEnvironmentShellsBootstrapped,

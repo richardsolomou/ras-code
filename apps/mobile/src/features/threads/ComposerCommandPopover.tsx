@@ -1,9 +1,9 @@
 import {
   resolveProviderSkillSourceKind,
   type ProviderSkillSourceKind,
-} from "@ras-code/client-runtime/providerSkills";
-import type { ServerProviderSkill, ServerProviderSlashCommand } from "@ras-code/contracts";
-import type { ComposerTriggerKind } from "@ras-code/shared/composerTrigger";
+} from "@t3tools/client-runtime/providerSkills";
+import type { ServerProviderSkill, ServerProviderSlashCommand } from "@t3tools/contracts";
+import type { ComposerTriggerKind } from "@t3tools/shared/composerTrigger";
 import { memo } from "react";
 import { Pressable, ScrollView, View, type ViewStyle } from "react-native";
 

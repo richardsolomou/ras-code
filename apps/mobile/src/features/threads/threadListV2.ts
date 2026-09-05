@@ -4,16 +4,16 @@ import {
   QUEUED_TURN_START_GRACE_MS,
   resolveSnoozePresets,
   snoozeWakeLabel,
-} from "@ras-code/client-runtime/state/thread-settled";
-import type { SnoozePreset } from "@ras-code/client-runtime/state/thread-settled";
-import type { EnvironmentThreadShell } from "@ras-code/client-runtime/state/shell";
-import { threadSearchMatchKey } from "@ras-code/client-runtime/state/thread-search";
+} from "@t3tools/client-runtime/state/thread-settled";
+import type { SnoozePreset } from "@t3tools/client-runtime/state/thread-settled";
+import type { EnvironmentThreadShell } from "@t3tools/client-runtime/state/shell";
+import { threadSearchMatchKey } from "@t3tools/client-runtime/state/thread-search";
 import {
   activeThreadAnchorTimestampMs,
   resolveSettledThreadTimestamp,
   sortPinnedThreadsByOrderKey,
-} from "@ras-code/client-runtime/state/thread-sort";
-import type { EnvironmentId, ProjectId } from "@ras-code/contracts";
+} from "@t3tools/client-runtime/state/thread-sort";
+import type { EnvironmentId, ProjectId } from "@t3tools/contracts";
 
 import type { PendingNewTask } from "../../state/use-pending-new-tasks";
 

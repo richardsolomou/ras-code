@@ -28,8 +28,8 @@ import type {
   PullRequestLabelCandidateList,
   PullRequestState,
   PullRequestThreadComment,
-} from "@ras-code/contracts";
-import { decodeJsonResult } from "@ras-code/shared/schemaJson";
+} from "@t3tools/contracts";
+import { decodeJsonResult } from "@t3tools/shared/schemaJson";
 
 import { dedupeChecks } from "./pullRequestChecks.ts";
 

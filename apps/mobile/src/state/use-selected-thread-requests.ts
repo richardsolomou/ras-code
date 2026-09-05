@@ -6,7 +6,7 @@ import {
   type ProviderApprovalDecision,
   type ProviderFallbackOfferDecision,
   type UserInputQuestion,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import { Atom } from "effect/unstable/reactivity";
 
 import { threadEnvironment } from "../state/threads";

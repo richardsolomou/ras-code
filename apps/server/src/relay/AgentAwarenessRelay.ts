@@ -4,20 +4,20 @@ import type {
   OrchestrationProjectShell,
   OrchestrationThreadShell,
   ThreadId,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import {
   RelayApi,
   type RelayAgentActivityPublishProofPayload,
   type RelayAgentActivityState,
-} from "@ras-code/contracts/relay";
-import { projectThreadAwareness } from "@ras-code/shared/agentAwareness";
-import { makeDrainableWorker } from "@ras-code/shared/DrainableWorker";
-import { withRelayClientTracing } from "@ras-code/shared/relayTracing";
+} from "@t3tools/contracts/relay";
+import { projectThreadAwareness } from "@t3tools/shared/agentAwareness";
+import { makeDrainableWorker } from "@t3tools/shared/DrainableWorker";
+import { withRelayClientTracing } from "@t3tools/shared/relayTracing";
 import {
   normalizeRelayIssuer,
   RELAY_ACTIVITY_PUBLISH_TYP,
   signRelayJwt,
-} from "@ras-code/shared/relayJwt";
+} from "@t3tools/shared/relayJwt";
 import * as Cause from "effect/Cause";
 import * as Context from "effect/Context";
 import * as Crypto from "effect/Crypto";

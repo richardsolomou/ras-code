@@ -8,7 +8,7 @@ import {
   ProviderInstanceId,
   ThreadId,
   TurnId,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import * as Cause from "effect/Cause";
 import * as Console from "effect/Console";
 import * as Context from "effect/Context";

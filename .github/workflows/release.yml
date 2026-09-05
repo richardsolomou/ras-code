@@ -292,11 +292,11 @@ jobs:
             run: vp check && vp run typecheck
           - name: test
             electron: true
-            run: vp run --parallel --concurrency-limit 4 --filter '!ras-code' --filter '!@ras-code/web' --filter '!@ras-code/monorepo' test
+            run: vp run --parallel --concurrency-limit 4 --filter '!ras-code' --filter '!@t3tools/web' --filter '!@t3tools/monorepo' test
           - name: test web 1
-            run: vp run --filter @ras-code/web test --shard 1/2
+            run: vp run --filter @t3tools/web test --shard 1/2
           - name: test web 2
-            run: vp run --filter @ras-code/web test --shard 2/2
+            run: vp run --filter @t3tools/web test --shard 2/2
           - name: test server 1
             run: vp run --filter ras-code test --shard 1/3
           - name: test server 2
@@ -322,7 +322,7 @@ jobs:
 
       - name: Ensure Electron runtime is installed
         if: matrix.electron
-        run: vp run --filter @ras-code/desktop ensure:electron
+        run: vp run --filter @t3tools/desktop ensure:electron
 
       - name: Run
         run: ${{ matrix.run }}
@@ -615,7 +615,7 @@ jobs:
       - name: Install desktop dependencies
         env:
           pnpm_config_cache_dir: ${{ runner.temp }}/pnpm-metadata
-        run: vp install --filter=@ras-code/desktop... --filter=ras-code... --filter=@ras-code/scripts...
+        run: vp install --filter=@t3tools/desktop... --filter=ras-code... --filter=@t3tools/scripts...
 
       - name: Cache resource monitor
         id: resource_monitor_cache
@@ -921,8 +921,8 @@ jobs:
           run-install: |
             args:
               - --filter=ras-code...
-              - --filter=@ras-code/web...
-              - --filter=@ras-code/scripts...
+              - --filter=@t3tools/web...
+              - --filter=@t3tools/scripts...
 
       - name: Download relay client tracing config
         uses: actions/download-artifact@v8
@@ -941,7 +941,7 @@ jobs:
       - name: Align package versions to release version
         run: node scripts/update-release-package-versions.ts "${{ needs.preflight.outputs.version }}"
 
-      # The ras-code build task depends on @ras-code/web#build, so the web client is
+      # The ras-code build task depends on @t3tools/web#build, so the web client is
       # built (once) as part of this step.
       - name: Build CLI package
         run: vp run --filter ras-code build
@@ -1043,7 +1043,7 @@ jobs:
           cache: false
           run-install: |
             args:
-              - --filter=@ras-code/scripts...
+              - --filter=@t3tools/scripts...
 
       - name: Download all desktop artifacts
         uses: actions/download-artifact@v8
@@ -1164,8 +1164,8 @@ jobs:
           cache: false
           run-install: |
             args:
-              - --filter=@ras-code/scripts...
-              - --filter=@ras-code/web...
+              - --filter=@t3tools/scripts...
+              - --filter=@t3tools/web...
               - --filter=ras-code-web-infra...
 
       - name: Download relay client tracing config
@@ -1276,8 +1276,8 @@ jobs:
           cache: false
           run-install: |
             args:
-              - --filter=@ras-code/scripts...
-              - --filter=@ras-code/oxlint-plugin-ras-code...
+              - --filter=@t3tools/scripts...
+              - --filter=@t3tools/oxlint-plugin-ras-code...
 
       - id: update_versions
         name: Update version strings

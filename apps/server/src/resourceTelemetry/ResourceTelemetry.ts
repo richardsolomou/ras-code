@@ -7,7 +7,7 @@ import type {
   ResourceTelemetryProcessIdentity,
   ResourceTelemetryRetryResult,
   ResourceTelemetrySnapshot,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import * as Context from "effect/Context";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";

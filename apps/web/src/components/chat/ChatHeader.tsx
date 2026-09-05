@@ -5,12 +5,12 @@ import {
   type ResolvedKeybindingsConfig,
   type ThreadForkPoint,
   type ThreadId,
-} from "@ras-code/contracts";
-import { scopeThreadRef } from "@ras-code/client-runtime/environment";
+} from "@t3tools/contracts";
+import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
-} from "@ras-code/client-runtime/state/runtime";
+} from "@t3tools/client-runtime/state/runtime";
 import { ChevronDownIcon } from "lucide-react";
 import {
   memo,

@@ -7,7 +7,7 @@ import {
   type PreparedVoiceTranscription,
   type VoiceTranscriber,
   type VoiceTranscriptionOptions,
-} from "@ras-code/client-runtime/voice-input";
+} from "@t3tools/client-runtime/voice-input";
 
 function getDeviceLocale(): string {
   return Intl.DateTimeFormat().resolvedOptions().locale;

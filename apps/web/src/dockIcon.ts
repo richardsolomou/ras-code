@@ -1,5 +1,5 @@
-import type { DesktopBridge } from "@ras-code/contracts";
-import { safeErrorLogAttributes } from "@ras-code/client-runtime/errors";
+import type { DesktopBridge } from "@t3tools/contracts";
+import { safeErrorLogAttributes } from "@t3tools/client-runtime/errors";
 
 export interface DockIconColors {
   readonly plate: string;

@@ -5,7 +5,7 @@ import {
   type PullRequestDetail,
   type PullRequestDetailView,
   type PullRequestReviewThread,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import {

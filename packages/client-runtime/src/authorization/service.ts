@@ -2,12 +2,12 @@ import {
   type ClientConnectionMethod,
   EnvironmentId,
   type ExecutionEnvironmentDescriptor,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import type {
   RelayEnvironmentBundledSession,
   RelayManagedEndpoint,
-} from "@ras-code/contracts/relay";
-import { oauthScopeSetEquals } from "@ras-code/shared/oauthScope";
+} from "@t3tools/contracts/relay";
+import { oauthScopeSetEquals } from "@t3tools/shared/oauthScope";
 import {
   buildRemoteWebSocketConnectionUrl,
   exchangeRemoteDpopAccessToken,
@@ -80,7 +80,7 @@ export class RemoteEnvironmentAuthorization extends Context.Service<
       >;
     }) => Effect.Effect<AuthorizedRemoteEnvironment, ConnectionAttemptError>;
   }
->()("@ras-code/client-runtime/authorization/service/RemoteEnvironmentAuthorization") {}
+>()("@t3tools/client-runtime/authorization/service/RemoteEnvironmentAuthorization") {}
 
 const CACHED_ENDPOINT_SOCKET_TIMEOUT_MS = 3_000;
 const BEARER_DESCRIPTOR_CACHE_TTL_MS = 10_000;

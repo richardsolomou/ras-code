@@ -8,28 +8,28 @@ import {
   PROVIDER_DISPLAY_NAMES,
   type ToolActivityIcon,
   type TurnId,
-} from "@ras-code/contracts";
-import { parseScopedThreadKey } from "@ras-code/client-runtime/environment";
-import type { CodexArtifactTemplate } from "@ras-code/client-runtime/codex-artifact-templates";
+} from "@t3tools/contracts";
+import { parseScopedThreadKey } from "@t3tools/client-runtime/environment";
+import type { CodexArtifactTemplate } from "@t3tools/client-runtime/codex-artifact-templates";
 import {
   resolveWorkEntryToolPresentation,
   resolveViewedImageAsset,
   workEntryViewedImagePath,
-} from "@ras-code/client-runtime/work-log/presentation";
-import { resolveWorkGroupScrollAnchor } from "@ras-code/client-runtime/work-log/scroll-anchor";
-import type { AgentPanelModel } from "@ras-code/client-runtime/state/subagentRuntime";
+} from "@t3tools/client-runtime/work-log/presentation";
+import { resolveWorkGroupScrollAnchor } from "@t3tools/client-runtime/work-log/scroll-anchor";
+import type { AgentPanelModel } from "@t3tools/client-runtime/state/subagentRuntime";
 import {
   emptyAgentPanelModel,
   formatSubagentTokenCount,
-} from "@ras-code/client-runtime/state/subagentRuntime";
+} from "@t3tools/client-runtime/state/subagentRuntime";
 
 const EMPTY_AGENT_PANEL_MODEL = emptyAgentPanelModel();
 const NOOP_OPEN_AGENTS = () => {};
 const NOOP_USE_ARTIFACT_TEMPLATE = () => {};
 const NOOP_OPEN_ATTACHMENT = (_attachment: ChatFileAttachment) => {};
-import { resolveChatListAnchoredEndSpace } from "@ras-code/shared/chatList";
-import { toolActivityFaviconUrl } from "@ras-code/shared/favicon";
-import { getProjectFaviconCacheKey } from "@ras-code/shared/projectFavicon";
+import { resolveChatListAnchoredEndSpace } from "@t3tools/shared/chatList";
+import { toolActivityFaviconUrl } from "@t3tools/shared/favicon";
+import { getProjectFaviconCacheKey } from "@t3tools/shared/projectFavicon";
 import {
   createContext,
   Fragment,
@@ -164,7 +164,7 @@ import {
 } from "~/lib/previewAnnotation";
 import { cn } from "~/lib/utils";
 import { useUiStateStore } from "~/uiStateStore";
-import { type TimestampFormat } from "@ras-code/contracts/settings";
+import { type TimestampFormat } from "@t3tools/contracts/settings";
 import {
   formatChatTimestampTooltip,
   formatDayAwareTimestamp,

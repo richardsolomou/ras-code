@@ -1,4 +1,4 @@
-import { type ApprovalRequestId, type ProviderFallbackOfferDecision } from "@ras-code/contracts";
+import { type ApprovalRequestId, type ProviderFallbackOfferDecision } from "@t3tools/contracts";
 import { memo } from "react";
 import { Button } from "../ui/button";
 

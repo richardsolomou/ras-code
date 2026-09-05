@@ -1,4 +1,4 @@
-import { ApprovalRequestId, EnvironmentId, ProjectId, ThreadId } from "@ras-code/contracts";
+import { ApprovalRequestId, EnvironmentId, ProjectId, ThreadId } from "@t3tools/contracts";
 
 export function scopedProjectKey(environmentId: EnvironmentId, projectId: ProjectId): string {
   return `${environmentId}:${projectId}`;

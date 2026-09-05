@@ -4,8 +4,8 @@ import {
   ProviderDriverKind,
   ProviderInstanceId,
   type ProviderInstanceConfig,
-} from "@ras-code/contracts";
-import { getBackgroundActivityPresetSettings } from "@ras-code/shared/backgroundActivitySettings";
+} from "@t3tools/contracts";
+import { getBackgroundActivityPresetSettings } from "@t3tools/shared/backgroundActivitySettings";
 import * as Duration from "effect/Duration";
 import { describe, expect, it } from "vite-plus/test";
 import {

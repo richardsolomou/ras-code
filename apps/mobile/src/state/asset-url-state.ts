@@ -1,9 +1,9 @@
-import type { EnvironmentConnectionPhase } from "@ras-code/client-runtime/connection";
-import { assetUrlFailureLabel } from "@ras-code/client-runtime/state/assets";
+import type { EnvironmentConnectionPhase } from "@t3tools/client-runtime/connection";
+import { assetUrlFailureLabel } from "@t3tools/client-runtime/state/assets";
 import type {
   AssetUrlFailureReason as SharedAssetUrlFailureReason,
   AssetUrlState as SharedAssetUrlState,
-} from "@ras-code/client-runtime/state/assets";
+} from "@t3tools/client-runtime/state/assets";
 
 // "disconnected" is this module's own: the environment, not the file, is the problem. The shared
 // reasons pass through so a failed preview can still say which file problem it hit.

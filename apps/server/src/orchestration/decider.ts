@@ -5,7 +5,7 @@ import {
   type OrchestrationReadModel,
   type ThreadLinkedPullRequest,
   type OrchestrationThread,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import * as DateTime from "effect/DateTime";
 import * as Crypto from "effect/Crypto";
 import * as Effect from "effect/Effect";

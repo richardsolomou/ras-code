@@ -2,11 +2,11 @@ import { SymbolView } from "./AppSymbol";
 import { Image } from "expo-image";
 import { useLayoutEffect, useMemo, useState } from "react";
 import { Text, View } from "react-native";
-import type { EnvironmentId } from "@ras-code/contracts";
+import type { EnvironmentId } from "@t3tools/contracts";
 import {
   getProjectFaviconCacheKey,
   isProjectFaviconFallbackUrl,
-} from "@ras-code/shared/projectFavicon";
+} from "@t3tools/shared/projectFavicon";
 import { useThemeColor } from "../lib/useThemeColor";
 import { useAssetUrl } from "../state/assets";
 import {

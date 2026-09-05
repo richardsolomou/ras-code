@@ -18,7 +18,7 @@
  *
  * @module providerUsageLimit
  */
-import { IsoDateTime, type ProviderUsageLimit } from "@ras-code/contracts";
+import { IsoDateTime, type ProviderUsageLimit } from "@t3tools/contracts";
 import * as DateTime from "effect/DateTime";
 import * as Predicate from "effect/Predicate";
 

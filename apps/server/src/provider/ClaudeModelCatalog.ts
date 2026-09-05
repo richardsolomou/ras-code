@@ -3,15 +3,15 @@ import {
   type ModelSelection,
   ProviderDriverKind,
   type ServerProviderModel,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import * as Option from "effect/Option";
 import {
   getModelSelectionStringOptionValue,
   getProviderOptionCurrentValue,
   getProviderOptionDescriptors,
   normalizeCustomModelSlug,
-} from "@ras-code/shared/model";
-import { compareSemverVersions } from "@ras-code/shared/semver";
+} from "@t3tools/shared/model";
+import { compareSemverVersions } from "@t3tools/shared/semver";
 
 import {
   type ClaudeCodeCompatibility,

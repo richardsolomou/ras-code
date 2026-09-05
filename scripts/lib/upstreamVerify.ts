@@ -8,7 +8,10 @@
  * shows up until a full typecheck runs, which is usually several changes later.
  */
 
-const UPSTREAM_PACKAGE_SCOPES = ["@t3tools/", "@t3-code/"] as const;
+// `@t3tools/` is ours now: every package under it is private, so the scope never reaches a user and
+// keeping upstream's spelling keeps ~3,000 import lines identical to theirs. `@t3-code/` is not a
+// scope we use, so it still means a pick that never got rebranded.
+const UPSTREAM_PACKAGE_SCOPES = ["@t3-code/"] as const;
 const UPSTREAM_PATH_MARKERS = [
   "oxlint-plugin-t3code",
   "apps/t3code",

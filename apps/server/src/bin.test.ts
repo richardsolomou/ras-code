@@ -11,9 +11,9 @@ import {
   EnvironmentOrchestrationHttpApi,
   ProviderInstanceId,
   ThreadId,
-} from "@ras-code/contracts";
-import * as NetService from "@ras-code/shared/Net";
-import { HostProcessEnvironment } from "@ras-code/shared/hostProcess";
+} from "@t3tools/contracts";
+import * as NetService from "@t3tools/shared/Net";
+import { HostProcessEnvironment } from "@t3tools/shared/hostProcess";
 import { assert, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import * as DateTime from "effect/DateTime";

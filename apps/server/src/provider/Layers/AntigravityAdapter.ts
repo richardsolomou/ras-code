@@ -15,7 +15,7 @@ import {
   type ProviderUserInputAnswers,
   type ThreadId,
   type TurnCompletedPayload,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import * as Cause from "effect/Cause";
 import * as Crypto from "effect/Crypto";
 import * as DateTime from "effect/DateTime";

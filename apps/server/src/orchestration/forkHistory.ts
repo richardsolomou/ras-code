@@ -1,4 +1,4 @@
-import type { ThreadForkMessageBoundary } from "@ras-code/contracts";
+import type { ThreadForkMessageBoundary } from "@t3tools/contracts";
 
 export function resolveForkTurnCount<
   Message extends { readonly id: string; readonly role: string; readonly streaming: boolean },

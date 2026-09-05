@@ -1,4 +1,4 @@
-import type { ProviderInstanceEnvironment } from "@ras-code/contracts";
+import type { ProviderInstanceEnvironment } from "@t3tools/contracts";
 
 export function mergeProviderInstanceEnvironment(
   environment: ProviderInstanceEnvironment | undefined,

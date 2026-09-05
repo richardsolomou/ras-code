@@ -14,8 +14,8 @@ import "vite-plus/test/config";
 import { defineConfig, type Connect, type Plugin } from "vite-plus";
 import pkg from "./package.json" with { type: "json" };
 
-import { DEV_PROXIED_PATH_PREFIXES } from "@ras-code/shared/devProxy";
-import { POSTHOG_DEV_PROXY_PATH, POSTHOG_MANAGED_PROXY_HOST } from "@ras-code/shared/posthog";
+import { DEV_PROXIED_PATH_PREFIXES } from "@t3tools/shared/devProxy";
+import { POSTHOG_DEV_PROXY_PATH, POSTHOG_MANAGED_PROXY_HOST } from "@t3tools/shared/posthog";
 
 import { loadRepoEnv } from "../../scripts/lib/public-config";
 

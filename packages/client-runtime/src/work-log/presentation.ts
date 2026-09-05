@@ -4,10 +4,10 @@ import {
   type ThreadId,
   type ToolActivitySource,
   type ToolLifecycleItemType,
-} from "@ras-code/contracts";
-import { classifyMarkdownImageSource } from "@ras-code/client-runtime/markdown-images";
-import { resolveMediaSource } from "@ras-code/client-runtime/media-source";
-import { isWorkspaceImagePreviewPath } from "@ras-code/shared/filePreview";
+} from "@t3tools/contracts";
+import { classifyMarkdownImageSource } from "@t3tools/client-runtime/markdown-images";
+import { resolveMediaSource } from "@t3tools/client-runtime/media-source";
+import { isWorkspaceImagePreviewPath } from "@t3tools/shared/filePreview";
 
 export function isWorktreeSetupActivity(kind: string): boolean {
   return kind === "setup-script.requested" || kind === "setup-script.started";

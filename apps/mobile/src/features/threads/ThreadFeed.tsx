@@ -10,26 +10,23 @@ import type {
   MessageId,
   ThreadId,
   TurnId,
-} from "@ras-code/contracts";
-import {
-  CHAT_LIST_ANCHOR_OFFSET,
-  resolveChatListAnchoredEndSpace,
-} from "@ras-code/shared/chatList";
-import { renderAssistantCitationsAsText } from "@ras-code/shared/assistantCitations";
+} from "@t3tools/contracts";
+import { CHAT_LIST_ANCHOR_OFFSET, resolveChatListAnchoredEndSpace } from "@t3tools/shared/chatList";
+import { renderAssistantCitationsAsText } from "@t3tools/shared/assistantCitations";
 import {
   codexArtifactTemplatePresentationLabel,
   type CodexArtifactTemplate,
-} from "@ras-code/client-runtime/codex-artifact-templates";
+} from "@t3tools/client-runtime/codex-artifact-templates";
 import {
   classifyMarkdownImageSource,
   markdownImageSourceFragment,
-} from "@ras-code/client-runtime/markdown-images";
-import { resolveViewedImageAsset } from "@ras-code/client-runtime/work-log/presentation";
+} from "@t3tools/client-runtime/markdown-images";
+import { resolveViewedImageAsset } from "@t3tools/client-runtime/work-log/presentation";
 import {
   renderCodexFileCitationsAsMarkdown,
   splitCodexArtifactTemplateMarkdown,
-} from "@ras-code/client-runtime/codex-markdown-directives";
-import { videoMimeType } from "@ras-code/shared/video";
+} from "@t3tools/client-runtime/codex-markdown-directives";
+import { videoMimeType } from "@t3tools/shared/video";
 import { SymbolView, type AppSymbolName } from "../../components/AppSymbol";
 import { HeaderHeightContext } from "@react-navigation/elements";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
@@ -135,12 +132,12 @@ import {
 } from "../../lib/appearancePreferences";
 import { useAppearancePreferences } from "../settings/appearance/AppearancePreferencesProvider";
 import { useAppearanceCodeSurface } from "../settings/appearance/useAppearanceCodeSurface";
-import { markdownFileIconSource } from "@ras-code/mobile-markdown-text/file-icons";
+import { markdownFileIconSource } from "@t3tools/mobile-markdown-text/file-icons";
 import {
   normalizeNativeMarkdownUrl,
   resolveMarkdownInlineCodePresentation,
   resolveMarkdownLinkPresentation,
-} from "@ras-code/mobile-markdown-text/links";
+} from "@t3tools/mobile-markdown-text/links";
 import {
   deriveThreadFeedPresentation,
   type ThreadFeedEntry,
@@ -168,10 +165,10 @@ import {
   type AssetUrlFailureReason,
   useRefreshAssetUrl,
 } from "../../state/assets";
-import { resolveAssetUrl } from "@ras-code/client-runtime/state/assets";
+import { resolveAssetUrl } from "@t3tools/client-runtime/state/assets";
 import { assetUrlFailureText } from "../../state/asset-url-state";
-import { formatAttachmentSize } from "@ras-code/client-runtime/state/attachments";
-import { squashAtomCommandFailure } from "@ras-code/client-runtime/state/runtime";
+import { formatAttachmentSize } from "@t3tools/client-runtime/state/attachments";
+import { squashAtomCommandFailure } from "@t3tools/client-runtime/state/runtime";
 import { useAtomQueryRunner } from "../../state/use-atom-query-runner";
 import { usePreparedConnection } from "../../state/session";
 import * as Option from "effect/Option";

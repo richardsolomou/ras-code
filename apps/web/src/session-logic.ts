@@ -1,13 +1,13 @@
 import * as Option from "effect/Option";
 import * as Arr from "effect/Array";
 import * as Schema from "effect/Schema";
-import { isBackgroundTaskActivity } from "@ras-code/client-runtime/state/subagentRuntime";
+import { isBackgroundTaskActivity } from "@t3tools/client-runtime/state/subagentRuntime";
 import {
   commandDetailRepeatsCommand,
   extractCommandOutputText,
   isWorktreeSetupActivity,
-} from "@ras-code/client-runtime/work-log/presentation";
-import { extractToolActivityPresentation } from "@ras-code/client-runtime/work-log/tool-presentation";
+} from "@t3tools/client-runtime/work-log/presentation";
+import { extractToolActivityPresentation } from "@t3tools/client-runtime/work-log/tool-presentation";
 import {
   ApprovalRequestId,
   isToolLifecycleItemType,
@@ -21,7 +21,7 @@ import {
   type UserInputQuestion,
   type ThreadId,
   type TurnId,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 
 import {
   FALLBACK_DECLINED_ACTIVITY_KIND,
@@ -100,9 +100,9 @@ export interface WorkLogEntry {
   changedFiles?: ReadonlyArray<string>;
   tone: "thinking" | "tool" | "info" | "error";
   toolTitle?: string;
-  toolSurface?: import("@ras-code/contracts").ToolActivitySurface;
-  toolIcon?: import("@ras-code/contracts").ToolActivityIcon;
-  toolSource?: import("@ras-code/contracts").ToolActivitySource;
+  toolSurface?: import("@t3tools/contracts").ToolActivitySurface;
+  toolIcon?: import("@t3tools/contracts").ToolActivityIcon;
+  toolSource?: import("@t3tools/contracts").ToolActivitySource;
   toolData?: unknown;
   itemType?: ToolLifecycleItemType;
   requestKind?: PendingApproval["requestKind"];

@@ -22,7 +22,7 @@ export class ElectronNotification extends Context.Service<
     /** Dock (macOS) or Unity launcher (Linux) badge. Zero clears it. */
     readonly setBadgeCount: (count: number) => Effect.Effect<boolean>;
   }
->()("@ras-code/desktop/electron/ElectronNotification") {}
+>()("@t3tools/desktop/electron/ElectronNotification") {}
 
 export function resolveNotificationIcon(
   iconPaths: DesktopAssets.DesktopIconPaths,

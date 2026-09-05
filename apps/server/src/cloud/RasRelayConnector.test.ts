@@ -3,14 +3,14 @@ import * as NodeHttp from "node:http";
 import * as NodeZlib from "node:zlib";
 
 import * as NodeSocket from "@effect/platform-node-shared/NodeSocket";
-import { PROVIDER_SEND_TURN_MAX_FILE_BYTES } from "@ras-code/contracts";
+import { PROVIDER_SEND_TURN_MAX_FILE_BYTES } from "@t3tools/contracts";
 import {
   decodeRasRelayBatch,
   encodeRasRelayBatch,
   RAS_RELAY_MAX_SOCKET_BUFFER_BYTES,
   RAS_RELAY_MAX_STREAM_BYTES,
   type RasRelayFrame,
-} from "@ras-code/shared/rasRelayProtocol";
+} from "@t3tools/shared/rasRelayProtocol";
 import { describe, expect, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 

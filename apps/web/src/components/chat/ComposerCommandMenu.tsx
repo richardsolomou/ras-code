@@ -2,13 +2,13 @@ import {
   formatProviderSkillDisplayName,
   resolveProviderSkillSourceKind,
   type ProviderSkillSourceKind,
-} from "@ras-code/client-runtime/providerSkills";
+} from "@t3tools/client-runtime/providerSkills";
 import {
   type ProjectEntry,
   type ProviderDriverKind,
   type ServerProviderSkill,
   type ServerProviderSlashCommand,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import {
   BlocksIcon,
   FolderIcon,

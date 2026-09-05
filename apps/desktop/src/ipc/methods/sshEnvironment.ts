@@ -4,8 +4,8 @@ import {
   issueRemoteWebSocketTicket,
   RemoteEnvironmentAuthUndeclaredStatusError,
   type RemoteEnvironmentAuthError,
-} from "@ras-code/client-runtime/authorization";
-import { fetchRemoteEnvironmentDescriptor } from "@ras-code/client-runtime/environment";
+} from "@t3tools/client-runtime/authorization";
+import { fetchRemoteEnvironmentDescriptor } from "@t3tools/client-runtime/environment";
 import {
   EnvironmentAuthInvalidError,
   DesktopDiscoveredSshHostSchema,
@@ -25,9 +25,9 @@ import {
   AuthAccessTokenResult,
   AuthSessionState,
   AuthWebSocketTicketResult,
-} from "@ras-code/contracts";
-import { SshHttpBridgeError } from "@ras-code/ssh/errors";
-import { resolveLoopbackSshHttpBaseUrl } from "@ras-code/ssh/tunnel";
+} from "@t3tools/contracts";
+import { SshHttpBridgeError } from "@t3tools/ssh/errors";
+import { resolveLoopbackSshHttpBaseUrl } from "@t3tools/ssh/tunnel";
 import * as Data from "effect/Data";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";

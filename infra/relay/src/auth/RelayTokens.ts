@@ -7,14 +7,14 @@ import {
   RelayWebClientId,
   type RelayPublicClientId,
   type RelayEnvironmentLinkChallengeRequest,
-} from "@ras-code/contracts/relay";
-import { encodeOAuthScope, parseAllowedOAuthScope } from "@ras-code/shared/oauthScope";
+} from "@t3tools/contracts/relay";
+import { encodeOAuthScope, parseAllowedOAuthScope } from "@t3tools/shared/oauthScope";
 import {
   normalizeRelayIssuer,
   RelayJwtError,
   signRelayJwt,
   verifyRelayJwt,
-} from "@ras-code/shared/relayJwt";
+} from "@t3tools/shared/relayJwt";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";

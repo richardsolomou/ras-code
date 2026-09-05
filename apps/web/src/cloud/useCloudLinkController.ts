@@ -1,10 +1,10 @@
 import { useAuth } from "@clerk/react";
-import { findErrorTraceId } from "@ras-code/client-runtime/errors";
+import { findErrorTraceId } from "@t3tools/client-runtime/errors";
 import {
   isAtomCommandInterrupted,
   settlePromise,
   squashAtomCommandFailure,
-} from "@ras-code/client-runtime/state/runtime";
+} from "@t3tools/client-runtime/state/runtime";
 import { useState } from "react";
 
 import { toastManager } from "../components/ui/toast";

@@ -1,4 +1,4 @@
-import { EventId, type OrchestrationThreadActivity } from "@ras-code/contracts";
+import { EventId, type OrchestrationThreadActivity } from "@t3tools/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import {

@@ -1,13 +1,13 @@
 import {
   AVAILABLE_CONNECTION_STATE,
   connectionProjectionPhase,
-} from "@ras-code/client-runtime/connection";
+} from "@t3tools/client-runtime/connection";
 import {
   createEnvironmentShellAtoms,
   createEnvironmentShellSummaryAtom,
   createEnvironmentSnapshotAtom,
   createShellEnvironmentAtoms,
-} from "@ras-code/client-runtime/state/shell";
+} from "@t3tools/client-runtime/state/shell";
 import * as Option from "effect/Option";
 import { AsyncResult, Atom } from "effect/unstable/reactivity";
 

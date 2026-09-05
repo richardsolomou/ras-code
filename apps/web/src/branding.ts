@@ -1,4 +1,4 @@
-import type { DesktopAppBranding } from "@ras-code/contracts";
+import type { DesktopAppBranding } from "@t3tools/contracts";
 import { formatAppDisplayName } from "./branding.logic";
 
 function readInjectedDesktopAppBranding(): DesktopAppBranding | null {

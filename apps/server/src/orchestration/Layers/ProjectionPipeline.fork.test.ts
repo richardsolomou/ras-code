@@ -9,7 +9,7 @@ import {
   ThreadForkPoint,
   ThreadId,
   TurnId,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";

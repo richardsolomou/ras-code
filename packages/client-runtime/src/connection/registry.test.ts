@@ -2,7 +2,7 @@ import {
   type DesktopSshEnvironmentTarget,
   EnvironmentId,
   type OrchestrationShellSnapshot,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as Context from "effect/Context";
 import * as Deferred from "effect/Deferred";

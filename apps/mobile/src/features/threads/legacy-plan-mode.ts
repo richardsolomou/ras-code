@@ -2,7 +2,7 @@ import {
   DEFAULT_PROVIDER_INTERACTION_MODE,
   type ProviderInteractionMode,
   type ServerProvider,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 
 type InteractionModeProvider = Pick<ServerProvider, "showInteractionModeToggle">;
 

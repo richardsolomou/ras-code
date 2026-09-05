@@ -5,9 +5,9 @@ import {
   CONFIGURED_LOCAL_SERVER_URLS_MAX_ITEMS,
   PREVIEW_URL_MAX_LENGTH,
   type DiscoveredLocalServer,
-} from "@ras-code/contracts";
-import { HostProcessPlatform } from "@ras-code/shared/hostProcess";
-import * as Net from "@ras-code/shared/Net";
+} from "@t3tools/contracts";
+import { HostProcessPlatform } from "@t3tools/shared/hostProcess";
+import * as Net from "@t3tools/shared/Net";
 import * as Cause from "effect/Cause";
 import * as Clock from "effect/Clock";
 import * as Duration from "effect/Duration";

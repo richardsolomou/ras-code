@@ -16,8 +16,8 @@ import * as Option from "effect/Option";
 import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 
-import { RAS_PROJECT_FILE_NAME, type RasProjectFile } from "@ras-code/contracts";
-import { RasProjectFileFromJson } from "@ras-code/shared/rasProjectFile";
+import { RAS_PROJECT_FILE_NAME, type RasProjectFile } from "@t3tools/contracts";
+import { RasProjectFileFromJson } from "@t3tools/shared/rasProjectFile";
 
 const decodeRasProjectFileJson = Schema.decodeEffect(RasProjectFileFromJson);
 

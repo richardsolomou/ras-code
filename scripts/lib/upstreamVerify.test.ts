@@ -16,10 +16,10 @@ describe("findImportResidue", () => {
   it("reports an upstream package scope a clean cherry-pick carried in", () => {
     const found = findImportResidue(
       "apps/web/src/state/attachments.ts",
-      'import { EnvironmentId } from "@t3tools/contracts";\n',
+      'import { EnvironmentId } from "@t3-code/contracts";\n',
     );
     expect(found).toEqual([
-      { path: "apps/web/src/state/attachments.ts", line: 1, marker: "@t3tools/", kind: "import" },
+      { path: "apps/web/src/state/attachments.ts", line: 1, marker: "@t3-code/", kind: "import" },
     ]);
   });
 
@@ -32,12 +32,12 @@ describe("findImportResidue", () => {
   });
 
   it("leaves our own package scope alone", () => {
-    expect(findImportResidue("a.ts", 'import { a } from "@ras-code/shared/a";')).toEqual([]);
+    expect(findImportResidue("a.ts", 'import { a } from "@t3tools/shared/a";')).toEqual([]);
   });
 
   it("spares the rebrand map, whose fixtures name upstream on purpose", () => {
     expect(
-      findImportResidue("scripts/lib/upstreamRebrandMap.test.ts", 'x = "@t3tools/contracts";'),
+      findImportResidue("scripts/lib/upstreamRebrandMap.test.ts", 'x = "@t3-code/contracts";'),
     ).toEqual([]);
   });
 });

@@ -1,8 +1,8 @@
 import {
   type ConnectionAttemptStage,
   type EnvironmentConnectionPhase,
-} from "@ras-code/client-runtime/connection";
-import { EnvironmentId, ThreadId, type ServerConfig } from "@ras-code/contracts";
+} from "@t3tools/client-runtime/connection";
+import { EnvironmentId, ThreadId, type ServerConfig } from "@t3tools/contracts";
 
 export interface EnvironmentRuntimeState {
   readonly connectionState: EnvironmentConnectionPhase;

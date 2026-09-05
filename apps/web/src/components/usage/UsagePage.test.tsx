@@ -1,5 +1,5 @@
-import { USAGE_CONTRACT_VERSION } from "@ras-code/contracts";
-import { mergeUsage } from "@ras-code/shared/usageMerge";
+import { USAGE_CONTRACT_VERSION } from "@t3tools/contracts";
+import { mergeUsage } from "@t3tools/shared/usageMerge";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 

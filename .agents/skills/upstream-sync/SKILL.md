@@ -201,6 +201,16 @@ Sequential batching on one branch is `batch`, above. Fan-out is for when the rou
 
 Do not batch with a shell loop that assumes word splitting. `zsh` does not split unquoted variables, so `git add $files` silently adds nothing while the loop reports success — which writes ledger entries for changes that never landed. Use a bash script with arrays, and check `git log` against the ledger afterwards.
 
+## What we rebrand, and what we do not
+
+Rebranding is not free: every rewritten line is a line upstream can edit and we cannot apply cleanly, and a new upstream file that imports our spelling does not compile until something rewrites it. So the map covers what a user can see and stops there.
+
+**Ours, and rebranded:** the product name in prose and UI, `RAS_CODE_*` environment variables, `~/.ras-code` and `.ras-code` on disk, `ras.json`, the `ras`/`ras-code` CLI commands, theme ids, the session cookie, CSS custom properties and font classes (they show in devtools), Effect service keys (they show in traces), Android package names (they show in app metadata), and the MCP tool names our own server exposes.
+
+**Upstream's, and left alone:** the `@t3tools/` workspace scope. Every package under it is private, so it never reaches a user, and keeping upstream's spelling keeps roughly 3,000 import lines identical to theirs.
+
+Reverting the remaining internal identifiers was measured and rejected. `RasCode`-style symbols, `ras_code_` snake identifiers and `ras-code-` kebab tokens are ~485 names, and "an upstream counterpart exists" is not enough to decide them: `t3_thread_send` exists upstream, but our `ras_code_thread_send` is a lookup key for the tool name _our_ MCP server exposes, and renaming it back reintroduces the label bug the sync through `70cd258d8` fixed. Hand review found that check wrong on about a third of the identifiers where the name carries meaning. The rest are test temp-dir prefixes, which are opaque strings the map already resolves in one line.
+
 ## Do not rename
 
 These keep their upstream spelling wherever they appear:

@@ -1,4 +1,4 @@
-import { type ThreadId } from "@ras-code/contracts";
+import { type ThreadId } from "@t3tools/contracts";
 
 import { extractTrailingElementContexts, type ParsedElementContextEntry } from "./elementContext";
 

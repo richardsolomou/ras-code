@@ -1,7 +1,7 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, it } from "@effect/vitest";
-import { EventId, ProviderDriverKind, ThreadId, TurnId } from "@ras-code/contracts";
-import { HostProcessArchitecture, HostProcessPlatform } from "@ras-code/shared/hostProcess";
+import { EventId, ProviderDriverKind, ThreadId, TurnId } from "@t3tools/contracts";
+import { HostProcessArchitecture, HostProcessPlatform } from "@t3tools/shared/hostProcess";
 import * as NodeUtil from "node:util";
 import * as ConfigProvider from "effect/ConfigProvider";
 import * as Effect from "effect/Effect";

@@ -1,10 +1,10 @@
-import { scopeProjectRef } from "@ras-code/client-runtime/environment";
+import { scopeProjectRef } from "@t3tools/client-runtime/environment";
 import type {
   EnvironmentId,
   ModelSelection,
   ProjectId,
   ScopedProjectRef,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import type { ComposerThreadDraftState, DraftThreadEnvMode } from "../composerDraftStore";
 
 type ComposerModelSelectionState = Pick<

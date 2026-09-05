@@ -23,7 +23,7 @@ import {
   ThreadId,
   TurnId,
   type ProviderRuntimeEvent,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 
 import { ServerConfig } from "../../config.ts";
 import {

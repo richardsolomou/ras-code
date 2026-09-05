@@ -18,7 +18,7 @@ import {
   settleAsyncResult,
   settlePromise,
   squashAtomCommandFailure,
-} from "@ras-code/client-runtime/state/runtime";
+} from "@t3tools/client-runtime/state/runtime";
 import { AndroidScreenHeader } from "../../components/AndroidScreenHeader";
 import { AppText as Text, AppTextInput as TextInput } from "../../components/AppText";
 import { supportsAgentAwarenessPush } from "../agent-awareness/capabilities";
@@ -44,12 +44,12 @@ import {
   MAX_SIDEBAR_AUTO_SETTLE_AFTER_DAYS,
   MIN_SIDEBAR_AUTO_SETTLE_AFTER_DAYS,
   type ServerSettingsPatch,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import {
   findSharedSettingsMismatches,
   pickSharedServerSettings,
   supportsSharedSettingsSync,
-} from "@ras-code/client-runtime/state/shared-settings";
+} from "@t3tools/client-runtime/state/shared-settings";
 import {
   type AppUpdateCheckState,
   isAppUpdateCheckAvailable,

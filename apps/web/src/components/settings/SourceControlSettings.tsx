@@ -10,12 +10,12 @@ import type {
   SourceControlProviderDiscoveryItem,
   VcsDriverKind,
   VcsDiscoveryItem,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import {
   getBackgroundActivityBaseProfile,
   getBackgroundActivityPresetSettings,
   resolveServerBackgroundActivitySettings,
-} from "@ras-code/shared/backgroundActivitySettings";
+} from "@t3tools/shared/backgroundActivitySettings";
 
 import { useDeviceSettings, useUpdateDeviceSettings } from "../../hooks/useSettings";
 import { SharedSettingsMismatchAlert } from "./SharedSettingsMismatchAlert";

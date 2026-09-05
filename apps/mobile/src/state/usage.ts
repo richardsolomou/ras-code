@@ -5,7 +5,7 @@
  * the results. Raw transcripts never leave the machine that produced them.
  *
  * Mirror of `apps/web/src/state/usage.ts` over mobile's atom wiring; the merge
- * rules themselves live in `@ras-code/shared/usageMerge`.
+ * rules themselves live in `@t3tools/shared/usageMerge`.
  *
  * @module state/usage
  */
@@ -15,9 +15,9 @@ import {
   type EnvironmentId,
   type UsageSummary,
   type UsageSummaryInput,
-} from "@ras-code/contracts";
-import { runAtomCommand } from "@ras-code/client-runtime/state/runtime";
-import { mergeUsage, type EnvironmentUsage, type MergedUsage } from "@ras-code/shared/usageMerge";
+} from "@t3tools/contracts";
+import { runAtomCommand } from "@t3tools/client-runtime/state/runtime";
+import { mergeUsage, type EnvironmentUsage, type MergedUsage } from "@t3tools/shared/usageMerge";
 import * as Option from "effect/Option";
 import { AsyncResult, Atom } from "effect/unstable/reactivity";
 import { useCallback, useMemo } from "react";

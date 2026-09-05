@@ -1,4 +1,4 @@
-import type { ProviderUsageLimit } from "@ras-code/contracts";
+import type { ProviderUsageLimit } from "@t3tools/contracts";
 import {
   FALLBACK_DECLINED_ACTIVITY_KIND,
   FALLBACK_ENGAGED_ACTIVITY_KIND,
@@ -11,7 +11,7 @@ import {
   readPendingFallbackOfferPayload,
   type FallbackNoticePayload,
   type PendingFallbackOfferPayload,
-} from "@ras-code/client-runtime/provider-fallback";
+} from "@t3tools/client-runtime/provider-fallback";
 
 export {
   FALLBACK_DECLINED_ACTIVITY_KIND,

@@ -43,7 +43,7 @@ jobs:
           run-install: true
 
       - name: Ensure Electron runtime is installed
-        run: vp run --filter @ras-code/desktop ensure:electron
+        run: vp run --filter @t3tools/desktop ensure:electron
 
       - name: Check
         run: vp check
@@ -57,7 +57,7 @@ jobs:
       - name: Verify preload bundle output
         run: node apps/desktop/scripts/verify-preload-bundle.mjs
 
-  # Everything except `ras-code` (apps/server) and `@ras-code/web`, which get
+  # Everything except `ras-code` (apps/server) and `@t3tools/web`, which get
   # their own runners below. `--parallel` drops the package dependency ordering
   # that `vp run` applies by default: these `test` tasks declare no `dependsOn`
   # and resolve workspace deps from source, so ordering only bought us idle
@@ -83,10 +83,10 @@ jobs:
           run-install: true
 
       - name: Ensure Electron runtime is installed
-        run: vp run --filter @ras-code/desktop ensure:electron
+        run: vp run --filter @t3tools/desktop ensure:electron
 
       - name: Test
-        run: vp run --parallel --concurrency-limit 4 --filter '!ras-code' --filter '!@ras-code/web' --filter '!@ras-code/monorepo' test
+        run: vp run --parallel --concurrency-limit 4 --filter '!ras-code' --filter '!@t3tools/web' --filter '!@t3tools/monorepo' test
 
   # The web suite is the largest (about 290 files) and is import-bound, so it
   # was pinning the shared Test runner while the other packages fought it for
@@ -117,7 +117,7 @@ jobs:
           run-install: true
 
       - name: Test
-        run: vp run --filter @ras-code/web test --shard ${{ matrix.shard }}/${{ strategy.job-total }}
+        run: vp run --filter @t3tools/web test --shard ${{ matrix.shard }}/${{ strategy.job-total }}
 
   # apps/server sets `fileParallelism: false`, so its 239 files run strictly
   # one at a time. Sharding spreads them over separate runners instead of
@@ -149,7 +149,7 @@ jobs:
 
       # No Electron setup here: `ras-code` (apps/server) has no Electron dependency
       # and none of its tests touch the runtime. Only the non-server `test`
-      # job, which covers @ras-code/desktop, needs the download.
+      # job, which covers @t3tools/desktop, needs the download.
       - name: Test
         env:
           RAS_CODE_TRANSFER_BUDGET_REPORT_PATH: ${{ runner.temp }}/ras-code-transfer-budget.md
@@ -309,7 +309,7 @@ jobs:
           cache: false
           run-install: |
             args:
-              - --filter=@ras-code/scripts...
+              - --filter=@t3tools/scripts...
 
       - name: Install mobile native static analysis tools
         run: brew bundle install --file apps/mobile/Brewfile
@@ -340,7 +340,7 @@ jobs:
           cache: false
           run-install: |
             args:
-              - --filter=@ras-code/scripts...
+              - --filter=@t3tools/scripts...
 
       - name: Exercise release-only workflow steps
         run: node scripts/release-smoke.ts

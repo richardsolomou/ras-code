@@ -1,7 +1,7 @@
 import {
   SelectableMarkdownText as RasCodeSelectableMarkdownText,
   type SelectableMarkdownTextProps,
-} from "@ras-code/mobile-markdown-text/renderer";
+} from "@t3tools/mobile-markdown-text/renderer";
 
 import { highlightCodeSnippet } from "../features/review/shikiReviewHighlighter";
 
@@ -14,7 +14,7 @@ export type {
   MarkdownImageRequest,
   NativeMarkdownTextStyle,
   SelectableMarkdownSkill,
-} from "@ras-code/mobile-markdown-text/types";
+} from "@t3tools/mobile-markdown-text/types";
 
 export function hasNativeSelectableMarkdownText(): boolean {
   return true;

@@ -1,4 +1,4 @@
-import { HostProcessPlatform } from "@ras-code/shared/hostProcess";
+import { HostProcessPlatform } from "@t3tools/shared/hostProcess";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -37,7 +37,7 @@ export class ElectronMenu extends Context.Service<
     ) => Effect.Effect<void>;
     readonly popupTemplate: (input: ElectronMenuTemplateInput) => Effect.Effect<void>;
   }
->()("@ras-code/desktop/electron/ElectronMenu") {}
+>()("@t3tools/desktop/electron/ElectronMenu") {}
 
 export const make = Effect.gen(function* () {
   const platform = yield* HostProcessPlatform;

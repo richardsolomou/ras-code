@@ -8,14 +8,14 @@ import {
   ProviderInstanceId,
   type ServerProvider,
   type ServerSettingsPatch,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import {
   createModelSelection,
   normalizeCustomModelSlug,
   resolveSelectableModel,
-} from "@ras-code/shared/model";
+} from "@t3tools/shared/model";
 import { getComposerProviderState } from "./components/chat/composerProviderState";
-import { UnifiedSettings } from "@ras-code/contracts/settings";
+import { UnifiedSettings } from "@t3tools/contracts/settings";
 import * as Arr from "effect/Array";
 import * as Result from "effect/Result";
 import {

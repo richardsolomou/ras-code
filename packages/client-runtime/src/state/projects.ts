@@ -5,7 +5,7 @@ import {
   isWindowsDrivePath,
   normalizeProjectPathForComparison,
   normalizeProjectPathForDispatch,
-} from "@ras-code/shared/path";
+} from "@t3tools/shared/path";
 
 export { normalizeProjectPathForComparison, normalizeProjectPathForDispatch };
 

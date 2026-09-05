@@ -5,8 +5,8 @@ import {
   AuthTokenExchangeGrantType,
   type ClientConnectionMethod,
   type AuthEnvironmentScope,
-} from "@ras-code/contracts";
-import { encodeOAuthScope } from "@ras-code/shared/oauthScope";
+} from "@t3tools/contracts";
+import { encodeOAuthScope } from "@t3tools/shared/oauthScope";
 import * as Effect from "effect/Effect";
 import { environmentEndpointUrl } from "../environment/endpoint.ts";
 import {

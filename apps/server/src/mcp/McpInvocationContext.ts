@@ -3,7 +3,7 @@ import {
   PreviewAutomationUnavailableError,
   type ProviderInstanceId,
   type ThreadId,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 

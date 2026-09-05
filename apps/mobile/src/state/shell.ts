@@ -3,7 +3,7 @@ import {
   createEnvironmentShellSummaryAtom,
   createEnvironmentSnapshotAtom,
   createShellEnvironmentAtoms,
-} from "@ras-code/client-runtime/state/shell";
+} from "@t3tools/client-runtime/state/shell";
 
 import { environmentCatalog } from "../connection/catalog";
 import { connectionAtomRuntime } from "../connection/runtime";

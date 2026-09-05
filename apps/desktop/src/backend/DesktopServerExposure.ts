@@ -1,15 +1,15 @@
 import {
   createAdvertisedEndpoint,
   type CreateAdvertisedEndpointInput,
-} from "@ras-code/shared/advertisedEndpoint";
+} from "@t3tools/shared/advertisedEndpoint";
 import {
   DesktopServerExposureModeSchema,
   type AdvertisedEndpoint,
   type AdvertisedEndpointProvider,
   type DesktopServerExposureMode,
   type DesktopServerExposureState,
-} from "@ras-code/contracts";
-import { readTailscaleStatus } from "@ras-code/tailscale";
+} from "@t3tools/contracts";
+import { readTailscaleStatus } from "@t3tools/tailscale";
 import * as Context from "effect/Context";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
@@ -284,7 +284,7 @@ export class DesktopServerExposure extends Context.Service<
     }) => Effect.Effect<DesktopServerExposureChange, DesktopTailscaleServePersistenceError>;
     readonly getAdvertisedEndpoints: Effect.Effect<readonly AdvertisedEndpoint[]>;
   }
->()("@ras-code/desktop/backend/DesktopServerExposure") {}
+>()("@t3tools/desktop/backend/DesktopServerExposure") {}
 
 interface RuntimeState {
   readonly requestedMode: DesktopServerExposureMode;

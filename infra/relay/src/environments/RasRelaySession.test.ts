@@ -7,7 +7,7 @@ import {
   RAS_RELAY_MAX_HTTP_RESPONSE_BUFFER_BYTES,
   RAS_RELAY_MAX_STREAM_BYTES,
   type RasRelayFrame,
-} from "@ras-code/shared/rasRelayProtocol";
+} from "@t3tools/shared/rasRelayProtocol";
 import { describe, expect, it } from "@effect/vitest";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";

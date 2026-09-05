@@ -1,14 +1,14 @@
 import { useAtomValue } from "@effect/atom-react";
-import { scopedThreadKey, scopeThreadRef } from "@ras-code/client-runtime/environment";
-import type { EnvironmentThreadShell } from "@ras-code/client-runtime/state/shell";
-import type { EnvironmentId, OrchestrationThreadShell } from "@ras-code/contracts";
+import { scopedThreadKey, scopeThreadRef } from "@t3tools/client-runtime/environment";
+import type { EnvironmentThreadShell } from "@t3tools/client-runtime/state/shell";
+import type { EnvironmentId, OrchestrationThreadShell } from "@t3tools/contracts";
 import {
   createLinkedPullRequestSummaryAtomFamily,
   pullRequestDetailToVcsStatus,
   resolveThreadPullRequestRef,
-} from "@ras-code/client-runtime/state/pull-requests";
-import { createEnvironmentRpcQueryAtomFamily } from "@ras-code/client-runtime/state/runtime";
-import { WS_METHODS } from "@ras-code/contracts";
+} from "@t3tools/client-runtime/state/pull-requests";
+import { createEnvironmentRpcQueryAtomFamily } from "@t3tools/client-runtime/state/runtime";
+import { WS_METHODS } from "@t3tools/contracts";
 import { Atom } from "effect/unstable/reactivity";
 import { useCallback, useEffect, useMemo } from "react";
 

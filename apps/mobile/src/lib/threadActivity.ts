@@ -3,7 +3,7 @@ import {
   isToolLifecycleItemType,
   ProviderApprovalOption,
   ProviderRequestKind,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import type {
   OrchestrationLatestTurn,
   OrchestrationThread,
@@ -11,8 +11,8 @@ import type {
   ToolLifecycleItemType,
   TurnId,
   UserInputQuestion,
-} from "@ras-code/contracts";
-import { formatDuration } from "@ras-code/shared/orchestrationTiming";
+} from "@t3tools/contracts";
+import { formatDuration } from "@t3tools/shared/orchestrationTiming";
 import {
   FALLBACK_DECLINED_ACTIVITY_KIND,
   FALLBACK_ENGAGED_ACTIVITY_KIND,
@@ -20,7 +20,7 @@ import {
   FALLBACK_OFFERED_ACTIVITY_KIND,
   derivePendingFallbackOfferActivities,
   readFallbackNoticePayload,
-} from "@ras-code/client-runtime/provider-fallback";
+} from "@t3tools/client-runtime/provider-fallback";
 import {
   commandDetailRepeatsCommand,
   extractCommandOutputText,
@@ -33,9 +33,9 @@ import {
   toolGroupAction,
   toolGroupSummaryKind,
   type ToolGroupSummaryKind,
-} from "@ras-code/client-runtime/work-log/presentation";
-import { extractToolActivityPresentation } from "@ras-code/client-runtime/work-log/tool-presentation";
-import { commandProgramName } from "@ras-code/client-runtime/work-log/command-label";
+} from "@t3tools/client-runtime/work-log/presentation";
+import { extractToolActivityPresentation } from "@t3tools/client-runtime/work-log/tool-presentation";
+import { commandProgramName } from "@t3tools/client-runtime/work-log/command-label";
 
 import * as Arr from "effect/Array";
 import * as Order from "effect/Order";
@@ -123,9 +123,9 @@ export interface WorkLogEntry {
   changedFiles?: ReadonlyArray<string>;
   tone: "thinking" | "tool" | "info" | "error";
   toolTitle?: string;
-  toolSurface?: import("@ras-code/contracts").ToolActivitySurface;
-  toolIcon?: import("@ras-code/contracts").ToolActivityIcon;
-  toolSource?: import("@ras-code/contracts").ToolActivitySource;
+  toolSurface?: import("@t3tools/contracts").ToolActivitySurface;
+  toolIcon?: import("@t3tools/contracts").ToolActivityIcon;
+  toolSource?: import("@t3tools/contracts").ToolActivitySource;
   itemType?: ToolLifecycleItemType;
   requestKind?: PendingApproval["requestKind"];
   toolLifecycleStatus?: WorkLogToolLifecycleStatus;

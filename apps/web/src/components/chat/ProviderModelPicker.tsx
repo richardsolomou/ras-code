@@ -3,7 +3,7 @@ import {
   type ProviderInstanceId,
   type ProviderDriverKind,
   type ResolvedKeybindingsConfig,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import { memo, useEffect, useMemo, useState } from "react";
 import type { VariantProps } from "class-variance-authority";
 import { Badge } from "../ui/badge";

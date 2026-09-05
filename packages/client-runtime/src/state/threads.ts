@@ -6,7 +6,7 @@ import {
   type OrchestrationThreadDetailSnapshot,
   type OrchestrationThreadStreamItem,
   type ThreadId as ThreadIdType,
-} from "@ras-code/contracts";
+} from "@t3tools/contracts";
 import * as Cause from "effect/Cause";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
@@ -102,7 +102,7 @@ const defaultOlderTurnRequestRegistry = makeThreadOlderTurnRequestRegistry();
  * the apps get working wiring without providing anything.
  */
 export class ThreadOlderTurnRequests extends Context.Reference<ThreadOlderTurnRequestRegistry>(
-  "@ras-code/client-runtime/state/threads/ThreadOlderTurnRequests",
+  "@t3tools/client-runtime/state/threads/ThreadOlderTurnRequests",
   { defaultValue: () => defaultOlderTurnRequestRegistry },
 ) {}
 
