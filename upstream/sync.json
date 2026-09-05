@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "2b96220f00de09b61327c8e881b7f509f8cc5a79",
+  "lastReviewed": "b90898077e60290a1eb7bea4224f325fd3bb1595",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3167,6 +3167,15 @@
       "ours": "92f43df1164b418cf46fd3312cf64c2f0ef6ad10",
       "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
       "reviewedAt": "2026-09-05T18:58:52.539Z"
+    },
+    {
+      "upstream": "b90898077e60290a1eb7bea4224f325fd3bb1595",
+      "pr": 8788,
+      "title": "fix(server): back off relay client restarts after rapid exits",
+      "decision": "reimplemented",
+      "ours": null,
+      "reason": "We already have the fix. Upstream stops a crash-looping relay client respawning ~100 times per second by backing off after fast exits; our supervisor routes every restart through retryConnector, which sleeps 2**attempt seconds plus jitter before the first attempt and caps at 30, so there is no immediate-respawn path to guard. Upstream's implementation also reads connector.child.exitCode and spawns cloudflared with TUNNEL_TOKEN directly, which the RasRelayConnector abstraction replaced, so the code cannot land as written.",
+      "reviewedAt": "2026-09-05T19:00:24.181Z"
     }
   ]
 }
