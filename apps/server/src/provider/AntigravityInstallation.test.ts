@@ -685,7 +685,11 @@ it.layer(NodeServices.layer)("Antigravity installation", (it) => {
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const baseDir = yield* fs.makeTempDirectoryScoped({ prefix: "ras-code-agy-path-test-" });
+      // `resolve` reports canonical paths, and every macOS temp directory sits under the
+      // /var -> /private/var symlink, so canonicalize the root every expectation derives from.
+      const baseDir = yield* fs
+        .makeTempDirectoryScoped({ prefix: "ras-code-agy-path-test-" })
+        .pipe(Effect.flatMap((dir) => fs.realPath(dir)));
       const externalDirectory = path.join(baseDir, "external");
       const externalExecutable = path.join(externalDirectory, "agy_acp_server.par");
       const externalHarness = path.join(externalDirectory, "localharness_external");
