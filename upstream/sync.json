@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "2675e3c70327719a99af4ae6e53e7b74fb8a9be0",
+  "lastReviewed": "09b81a34954c990f70257ae05efbb602c90aac97",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3437,6 +3437,15 @@
       "ours": "7d2924f50a0064d3135d1a40c7273163231622be",
       "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
       "reviewedAt": "2026-09-05T20:35:21.149Z"
+    },
+    {
+      "upstream": "09b81a34954c990f70257ae05efbb602c90aac97",
+      "pr": 8769,
+      "title": "fix(mobile): render workspace images in markdown file previews",
+      "decision": "adapted",
+      "ours": "8aea3ed5aa536fa01e9d70f31f5f8cded41cdbba",
+      "reason": "Took upstream's move of ThreadMarkdownImageView into its own module so file previews can share it, and carried our failureReason/detail placeholder (#45) across. Converged on upstream's className styling; the inline codeBackground was upstream's own older shape, not ours.",
+      "reviewedAt": "2026-09-05T20:40:27.326Z"
     }
   ]
 }
