@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "8e3aa324b57dd645980b203d5f8a5b9f9dc53a84",
+  "lastReviewed": "f2e3764c257a7e27c8171d7dd1e38d4383074206",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3752,6 +3752,33 @@
       "ours": null,
       "reason": "Touches apps/marketing, which we replaced.",
       "reviewedAt": "2026-09-05T21:15:46.508Z"
+    },
+    {
+      "upstream": "27e6cc27fe0f3cff53a44905e40615b7db99c80c",
+      "pr": 9669,
+      "title": "perf(server): cache and stream static web assets",
+      "decision": "adopted",
+      "ours": "51bd420c1ccb64c865ded95bb87f602bcbcd553f",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:15:59.876Z"
+    },
+    {
+      "upstream": "2263e13fda8c9a4f1b6f4dee32e3c9020195e2aa",
+      "pr": 9671,
+      "title": "perf(server): batch projector cursor writes",
+      "decision": "adopted",
+      "ours": "2e0b3185a3f380fa22f1b355ddee6ff702645094",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:15:59.877Z"
+    },
+    {
+      "upstream": "f2e3764c257a7e27c8171d7dd1e38d4383074206",
+      "pr": 9684,
+      "title": "perf(server): stop retaining unused OpenCode tool history",
+      "decision": "adopted",
+      "ours": "653519ede73eb2408f98697d19203bea6d0ac1b0",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:15:59.877Z"
     }
   ]
 }
