@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "b906ce2d73d025e801877f42a35b7a2f5629806f",
+  "lastReviewed": "dd7bc147f799f290eb58578a7f81643ecf9ad52e",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -4503,6 +4503,15 @@
       "ours": "436944eee94252560c03ae601059b3de83e7f28e",
       "reason": "Opted-in threads recover after a restart, with the opt-in moving from client settings to an environment-owned one. The merge left the client copy and two stray commas where #23's removed confirmation settings had shifted the anchor. Our updating guide names the renamed preference where it already covered it.",
       "reviewedAt": "2026-09-05T23:16:56.545Z"
+    },
+    {
+      "upstream": "dd7bc147f799f290eb58578a7f81643ecf9ad52e",
+      "pr": 9821,
+      "title": "fix(web): simplify changed files into a persistent folder tree",
+      "decision": "adopted",
+      "ours": "911f93ab2de0f136e224fefaa9261a3366f5c409",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T23:17:31.017Z"
     }
   ]
 }
