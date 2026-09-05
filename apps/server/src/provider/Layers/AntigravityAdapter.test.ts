@@ -890,6 +890,28 @@ it.layer(layer)("AntigravityAdapter", (it) => {
     }).pipe(Effect.scoped),
   );
 
+  it.effect("writes into a new subdirectory of a session root reached through a symlink", () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const h = yield* makeHarness();
+      const real = yield* fs.makeTempDirectoryScoped({ prefix: "ras-code-agy-symlink-" });
+      const links = yield* fs.makeTempDirectoryScoped({ prefix: "ras-code-agy-symlink-link-" });
+      const cwd = path.join(links, "workspace");
+      yield* fs.symlink(real, cwd);
+      yield* h.adapter.startSession({ threadId, cwd, runtimeMode: "approval-required" });
+      const write = h.fileHandlers.write;
+      if (!write) return yield* Effect.die("File handlers were not registered.");
+
+      yield* write({
+        sessionId: nativeSessionId,
+        path: path.join(cwd, "nested", "new.txt"),
+        content: "created",
+      });
+      expect(yield* fs.readFileString(path.join(real, "nested", "new.txt"))).toBe("created");
+    }).pipe(Effect.scoped),
+  );
+
   it.effect("does not launch a process for a disabled instance or invalid resume cursor", () =>
     Effect.gen(function* () {
       const disabled = yield* makeHarness({ enabled: false });

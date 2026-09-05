@@ -196,6 +196,36 @@ function isInsideRoot(path: Path.Path, root: string, candidate: string): boolean
   return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
 }
 
+/**
+ * Canonicalizes `target` through directories that do not exist yet, by resolving its nearest
+ * existing ancestor and re-appending the missing segments. `realPath` fails outright on a missing
+ * path, so resolving only the immediate parent leaves a write into a new subdirectory
+ * uncanonicalized while the roots it is compared against are not.
+ */
+const realPathThroughMissing = Effect.fn("AntigravityAdapter.realPathThroughMissing")(
+  function* (input: {
+    readonly fileSystem: FileSystem.FileSystem;
+    readonly path: Path.Path;
+    readonly target: string;
+  }) {
+    const { path } = input;
+    const missing: Array<string> = [];
+    let current = input.target;
+    for (;;) {
+      const real = yield* input.fileSystem.realPath(current).pipe(Effect.orElseSucceed(() => null));
+      if (real !== null) {
+        return missing.length === 0 ? real : path.join(real, ...missing);
+      }
+      const parent = path.dirname(current);
+      if (parent === current) {
+        return input.target;
+      }
+      missing.unshift(path.basename(current));
+      current = parent;
+    }
+  },
+);
+
 /** Resolves an agent-supplied path and rejects anything outside the session roots. */
 const resolveClientFilePath = Effect.fn("AntigravityAdapter.resolveClientFilePath")(
   function* (input: {
@@ -207,9 +237,11 @@ const resolveClientFilePath = Effect.fn("AntigravityAdapter.resolveClientFilePat
     const { path } = input;
     const resolved = path.resolve(input.requestPath);
     // Follow symlinks on the parent so a link out of the workspace cannot escape it.
-    const parent = yield* input.fileSystem
-      .realPath(path.dirname(resolved))
-      .pipe(Effect.orElseSucceed(() => path.dirname(resolved)));
+    const parent = yield* realPathThroughMissing({
+      fileSystem: input.fileSystem,
+      path,
+      target: path.dirname(resolved),
+    });
     const real = path.join(parent, path.basename(resolved));
     const roots = yield* Effect.forEach(input.allowedRoots, (root) =>
       input.fileSystem.realPath(root).pipe(Effect.orElseSucceed(() => root)),
