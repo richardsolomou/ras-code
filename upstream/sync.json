@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "2aa907b1969237efdaced29612fb46ba51be7041",
+  "lastReviewed": "1e051873094c0c75cd35fef89c90461c22cce76b",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -2654,6 +2654,33 @@
       "ours": "9d18b8a9971493f8607069516b870ab833498960",
       "reason": "Converged on upstream's asset-url-state module. Widened its failure reason to carry the shared reason through on a connected environment, so our per-reason image labels survive instead of collapsing to a generic failure, and gave the module its own label for the disconnected case. Upstream's connection fallback literal gained the stage field our presentation type added.",
       "reviewedAt": "2026-09-05T09:31:27.390Z"
+    },
+    {
+      "upstream": "2b745efe57cddc1753d3007d081c64bd20e3ab79",
+      "pr": 9202,
+      "title": "fix(usage): price new models without waiting a day for the rate table",
+      "decision": "adopted",
+      "ours": "3b99cfc6fd6b64f501b3772c65b328a7d04ff2c3",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T09:31:48.846Z"
+    },
+    {
+      "upstream": "19c97ea56d30b3a2de31a060f8f47d6b7404b78f",
+      "pr": 9127,
+      "title": "fix(web): unlock the composer when preview capture fails",
+      "decision": "adopted",
+      "ours": "83d7b0e7223f89703437ebeb9015023dc618d41b",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T09:31:48.847Z"
+    },
+    {
+      "upstream": "1e051873094c0c75cd35fef89c90461c22cce76b",
+      "pr": 9397,
+      "title": "fix(antigravity): refresh the model manifest so older Gemini models fold as legacy",
+      "decision": "adopted",
+      "ours": "5f594ec8663abb803e44939d3c41bd81ed641278",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T09:31:48.847Z"
     }
   ]
 }
