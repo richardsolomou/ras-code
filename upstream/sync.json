@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "5c6c1d67d82bb81bddaee6d83e54e8aecd96ec7d",
+  "lastReviewed": "12b6d026bdfba0cc8438fa5e323a8587d65bd2af",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -4303,6 +4303,33 @@
       "ours": "a2759fc17cdfc5ed940d1bacafbd4a3fcd869aca",
       "reason": "Fake provider CLIs run through a Node stub. The posix launcher and the Windows shim run this process's own node by absolute path: a test that replaces the environment drops PATH, and the shell's fallback PATH finds node on Linux but not on macOS. The rebrand map also learned that T3CODE_ has no word boundary behind a leading underscore.",
       "reviewedAt": "2026-09-05T22:54:11.396Z"
+    },
+    {
+      "upstream": "c251e41b5e5287b786cda44ddc263b8e6a74859c",
+      "pr": 9568,
+      "title": "test(desktop): make path fixtures and timeouts host-portable",
+      "decision": "adopted",
+      "ours": "94bf83c0dd26e1ae9a688b0cfde8567f924d5ba3",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T22:59:13.305Z"
+    },
+    {
+      "upstream": "f083f520fbde1e1bf4332399df47b45c2bd99722",
+      "pr": 9569,
+      "title": "fix(server): tolerate the missing directory fsync on Windows",
+      "decision": "adopted",
+      "ours": "4de1c1526c51193d5874e2db854d29375829fc41",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T22:59:13.306Z"
+    },
+    {
+      "upstream": "12b6d026bdfba0cc8438fa5e323a8587d65bd2af",
+      "pr": 9570,
+      "title": "test(server): pin git config for fixtures and compare native realpaths",
+      "decision": "adopted",
+      "ours": "dd953eb3b1e8e5850ccfc9acdcd8108271cf32d1",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T22:59:13.306Z"
     }
   ]
 }
