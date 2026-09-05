@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "98a29cbaa1ccf8d8afb6d35e3e1d925ff9b5fa90",
+  "lastReviewed": "389bbcc8d9dd5c463668944f7093052301c8a850",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -4476,6 +4476,15 @@
       "ours": "febd332e21ed18fdce609c0e57cbf00c336b46af",
       "reason": "Clean cherry-pick.",
       "reviewedAt": "2026-09-05T23:10:58.809Z"
+    },
+    {
+      "upstream": "389bbcc8d9dd5c463668944f7093052301c8a850",
+      "pr": 9805,
+      "title": "fix(web): give toggle thumbs consistent inset spacing",
+      "decision": "adapted",
+      "ours": "2cb552c04d3774aea7a67b96a28f470a45499e6d",
+      "reason": "Toggle thumbs get consistent inset spacing. The checked track keeps our success colour.",
+      "reviewedAt": "2026-09-05T23:11:34.812Z"
     }
   ]
 }
