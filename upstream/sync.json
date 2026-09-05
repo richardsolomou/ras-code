@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "343db2c328af56fe0fa7672f3af055550832689b",
+  "lastReviewed": "c5ba51d629b3813182cf3e161cc3f23b1e541dc3",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3158,6 +3158,96 @@
       "ours": "ccd406b2539b04e49d7857b6c590ded3ec4dc7c8",
       "reason": "Converged the settings pages onto upstream's shared SettingsSection and SettingsRow treatment, including the provider editor and list row, keeping our legend heading style. Upstream moves the refresh control and last-checked summary from the list footer into the section header; ours went with it, and the add-provider button becomes icon-only with a tooltip, which a browser pass showed was overflowing its 26px box while it still carried a text child. The Appearance split is not taken: it separates a theme library and contrast and glass rows that #51 and #23 removed, so there is nothing here to separate. ThemeSettings stays deleted.",
       "reviewedAt": "2026-09-05T17:14:59.660Z"
+    },
+    {
+      "upstream": "2b96220f00de09b61327c8e881b7f509f8cc5a79",
+      "pr": 9528,
+      "title": "fix(server): settle branch threads immediately on pull request merge",
+      "decision": "adopted",
+      "ours": "92f43df1164b418cf46fd3312cf64c2f0ef6ad10",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T18:58:52.539Z"
+    },
+    {
+      "upstream": "b90898077e60290a1eb7bea4224f325fd3bb1595",
+      "pr": 8788,
+      "title": "fix(server): back off relay client restarts after rapid exits",
+      "decision": "reimplemented",
+      "ours": null,
+      "reason": "We already have the fix. Upstream stops a crash-looping relay client respawning ~100 times per second by backing off after fast exits; our supervisor routes every restart through retryConnector, which sleeps 2**attempt seconds plus jitter before the first attempt and caps at 30, so there is no immediate-respawn path to guard. Upstream's implementation also reads connector.child.exitCode and spawns cloudflared with TUNNEL_TOKEN directly, which the RasRelayConnector abstraction replaced, so the code cannot land as written.",
+      "reviewedAt": "2026-09-05T19:00:24.181Z"
+    },
+    {
+      "upstream": "75ab5ab3fb6ad35117da754644c404a31b2fed84",
+      "pr": 8897,
+      "title": "fix(codex): accept rate limit errors on thread resume",
+      "decision": "adopted",
+      "ours": "e2cc23188ec64ac9a21900d9140cda219ad08e3d",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T19:00:38.851Z"
+    },
+    {
+      "upstream": "6319a9714881a1d25549f797c468fabebae92813",
+      "pr": 9068,
+      "title": "fix(desktop): preview CDP sessions no longer hard-crash the app",
+      "decision": "adopted",
+      "ours": "17c2397b63ed651690bec38fd86824d268a4cf85",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T19:00:38.852Z"
+    },
+    {
+      "upstream": "f54ab901fa77f76eeb1e1cdfa103b9ed6f5ee4ca",
+      "pr": 3902,
+      "title": "Fix worktree removal timing out on large install trees",
+      "decision": "adopted",
+      "ours": "de425d6be637689f6bc10aa288e65249226bf52b",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T19:00:38.852Z"
+    },
+    {
+      "upstream": "0ba06a122bc73f705bfc18875366b4eeb1160992",
+      "pr": 9482,
+      "title": "fix(web): settle the resting composer layout with a pixel of slack",
+      "decision": "adopted",
+      "ours": "453deed4084c0e474f820ddf49eb83ed736c5c47",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T19:00:38.852Z"
+    },
+    {
+      "upstream": "07c4ab5077fa9c32bf34ab07dd2caa3907878dd9",
+      "pr": 9535,
+      "title": "fix(web): keep automatic project icons consistent",
+      "decision": "obsolete",
+      "ours": null,
+      "reason": "Keeps the project-name-derived icon stable when the sidebar shows a repository label instead of the project title. #52 replaced that surface with a saved emoji plus the project favicon, so ProjectFavicon takes neither projectName nor projectIcon and there is no derived icon to keep consistent.",
+      "reviewedAt": "2026-09-05T19:01:15.277Z"
+    },
+    {
+      "upstream": "dddc0bdcb2230147e207efb17df2e49dbe1bdd8c",
+      "pr": null,
+      "title": "fix(server): include SQLite conditions in persistence errors",
+      "decision": "adopted",
+      "ours": "a675df50fee4ed1de181ee7f6c77bda3aa035b44",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T19:01:23.830Z"
+    },
+    {
+      "upstream": "6f405370c8e552da9dcfdd6922e85789fd918340",
+      "pr": 9543,
+      "title": "fix(dev): keep shared dev reloads and hot updates working",
+      "decision": "adapted",
+      "ours": "9c256b184d818b6e95e688f7381a21ff32e25117",
+      "reason": "Took upstream's rethrow, which is the fix: swallowing the startup failure kept it away from the dev overlay and broke reloads. Kept our boot-shell message ahead of it so a production failure still says something, and our env var name in the docs upstream extended.",
+      "reviewedAt": "2026-09-05T19:02:11.959Z"
+    },
+    {
+      "upstream": "c5ba51d629b3813182cf3e161cc3f23b1e541dc3",
+      "pr": 9293,
+      "title": "feat(providers): add context compaction command",
+      "decision": "adapted",
+      "ours": "2c17905f2327ede73f3b927fb1d94166304ca7bf",
+      "reason": "Adopted the compaction command. The runtime event pipeline becomes upstream's generator with our provider analytics recording folded back in after the counter. In the reactor, upstream's compaction guard and failure handling land ahead of our usage-limit fallback routing, minus the sendTurnRequest it opens, since this fork dispatches through dispatchTurn. Our extracted turn-start failure handlers and model matcher stay.",
+      "reviewedAt": "2026-09-05T19:13:03.068Z"
     }
   ]
 }
