@@ -650,7 +650,11 @@ export function ProviderInstanceCard({
           <span className="min-w-0 flex-1">
             <span className="flex min-w-0 items-center gap-2">
               <span className="truncate text-sm font-medium text-foreground">{displayName}</span>
-              {versionCodeNode}
+              {versionLabel ? (
+                <code className="max-w-24 shrink-0 truncate text-xs text-muted-foreground">
+                  {versionLabel}
+                </code>
+              ) : null}
             </span>
             <span className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
               <span className={cn("size-1.5 shrink-0 rounded-full", statusStyle.dot)} />

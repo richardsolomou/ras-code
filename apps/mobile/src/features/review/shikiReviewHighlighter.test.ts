@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vite-plus/test";
+import { describe, expect, it, vi } from "vite-plus/test";
 
 import type { ReviewRenderableFile } from "./reviewModel";
 import { highlightCodeSnippet, highlightReviewFile } from "./shikiReviewHighlighter";
@@ -136,5 +136,43 @@ describe("highlightCodeSnippet", () => {
         .join(""),
     ).toBe(source);
     expect(highlighted.flat().some((token) => token.color !== null)).toBe(true);
+  });
+});
+
+describe("highlightSourceFile", () => {
+  it("initializes source and snippet highlighting without a warmup", async () => {
+    vi.resetModules();
+    const highlighter = await import("./shikiReviewHighlighter");
+    const source = "const answer: number = 42;";
+
+    const highlighted = await highlighter.highlightSourceFile({
+      path: "example.ts",
+      contents: source,
+      theme: "dark",
+    });
+
+    expect(
+      highlighted
+        .flat()
+        .map((token) => token.content)
+        .join(""),
+    ).toBe(source);
+    expect(highlighted.flat().some((token) => token.color !== null)).toBe(true);
+
+    // Both entry points highlight from a cold start. Their token arrays are not
+    // compared: the split depends on the regex engine the host resolves, and
+    // Linux CI has produced a different one for the same grammar and theme.
+    const snippet = await highlighter.highlightCodeSnippet({
+      code: source,
+      language: "ts",
+      theme: "dark",
+    });
+    expect(
+      snippet
+        .flat()
+        .map((token) => token.content)
+        .join(""),
+    ).toBe(source);
+    expect(snippet.flat().some((token) => token.color !== null)).toBe(true);
   });
 });

@@ -87,6 +87,14 @@ describe("rebrandText", () => {
     );
   });
 
+  it("rewrites fixture home directories to the CLI name", () => {
+    assert.strictEqual(rebrandText('cwd: "/home/t3/workspace"'), 'cwd: "/home/ras/workspace"');
+    assert.strictEqual(rebrandText('"/Users/t3/Documents"'), '"/Users/ras/Documents"');
+    assert.strictEqual(rebrandText('"/home/t3-code/x"'), '"/home/ras-code/x"');
+    // Only home directories: anywhere else keeps the product-stem spelling.
+    assert.strictEqual(rebrandText('"/srv/t3/x"'), '"/srv/ras-code/x"');
+  });
+
   it("rewrites relay client ids without the product stem", () => {
     assert.strictEqual(rebrandText('clientId: "t3-mobile"'), 'clientId: "ras-mobile"');
     assert.strictEqual(rebrandText('clientId: "t3-web"'), 'clientId: "ras-web"');

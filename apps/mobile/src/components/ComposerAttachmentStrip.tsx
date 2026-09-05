@@ -1,16 +1,21 @@
 import { SymbolView } from "../components/AppSymbol";
 import { videoMimeType } from "@t3tools/shared/video";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Image, Pressable, ScrollView, View } from "react-native";
 
 import { AppText as Text } from "./AppText";
-import type { DraftComposerAttachment, DraftComposerFileAttachment } from "../lib/composerImages";
+import {
+  isFileBackedComposerAttachment,
+  type DraftComposerAttachment,
+  type DraftComposerFileAttachment,
+  type DraftComposerImageAttachment,
+} from "../lib/composerImages";
+import { resolveOwnedComposerAttachmentFileUri } from "../lib/composerAttachmentFiles";
 import { VideoAttachmentTile } from "./VideoAttachmentTile";
 import type { MediaActionsSource } from "../lib/mediaActions";
 import { PresentationSource } from "./NativePresentation";
 import type { FilePreviewSource } from "./FilePreviewModal";
 import { isPdfFile } from "../lib/filePreview";
-import { useThemeColor } from "../lib/useThemeColor";
 import type { EnvironmentId } from "@t3tools/contracts";
 import {
   retryComposerAttachmentUpload,
@@ -88,36 +93,75 @@ export function ComposerAttachmentThumbnail(props: ComposerAttachmentThumbnailPr
   );
 }
 
+/**
+ * Thumbnail URI for a draft image. File-backed previews rebase into the
+ * current iOS data container (its UUID changes across installs); the raw
+ * persisted URI renders meanwhile, which is correct everywhere but after a
+ * container move.
+ */
+function useComposerImagePreviewUri(attachment: DraftComposerImageAttachment): string {
+  const { fileUri, previewUri } = attachment;
+  const [rebased, setRebased] = useState<{ fileUri: string; uri: string } | null>(null);
+  useEffect(() => {
+    if (fileUri === undefined) return;
+    let cancelled = false;
+    void (async () => {
+      const { Paths } = await import("expo-file-system");
+      const owned = resolveOwnedComposerAttachmentFileUri(fileUri, Paths.document.uri);
+      // Re-render only when the container actually moved.
+      if (!cancelled && owned !== null && owned !== previewUri) setRebased({ fileUri, uri: owned });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [fileUri, previewUri]);
+  return fileUri !== undefined && rebased?.fileUri === fileUri ? rebased.uri : previewUri;
+}
+
+function ComposerImageAttachment(
+  props: ComposerAttachmentThumbnailProps & { readonly attachment: DraftComposerImageAttachment },
+) {
+  const { attachment } = props;
+  const style = { width: props.size, height: props.size, borderRadius: props.borderRadius };
+  const previewUri = useComposerImagePreviewUri(attachment);
+  const sourceIdentifier = `draft-image:${attachment.id}`;
+  return (
+    <PresentationSource identifier={sourceIdentifier}>
+      <Pressable
+        accessibilityRole="imagebutton"
+        accessibilityLabel={`Open ${attachment.name}`}
+        disabled={!props.onPressPreview}
+        onPress={() =>
+          props.onPressPreview?.(
+            // File-backed images open through the retain-lease + container
+            // rebase path; legacy drafts still carry their inline bytes.
+            isFileBackedComposerAttachment(attachment)
+              ? { kind: "image", attachment, name: attachment.name, sourceIdentifier }
+              : {
+                  kind: "image",
+                  uri: attachment.dataUrl ?? attachment.previewUri,
+                  name: attachment.name,
+                  sourceIdentifier,
+                },
+          )
+        }
+      >
+        <Image
+          source={{ uri: previewUri }}
+          style={style}
+          className="bg-subtle"
+          resizeMode="cover"
+        />
+      </Pressable>
+    </PresentationSource>
+  );
+}
+
 function ComposerAttachmentContent(props: ComposerAttachmentThumbnailProps) {
   const { attachment } = props;
-  const subtleBg = useThemeColor("--color-subtle");
   const style = { width: props.size, height: props.size, borderRadius: props.borderRadius };
   if (attachment.type === "image") {
-    const sourceIdentifier = `draft-image:${attachment.id}`;
-    return (
-      <PresentationSource identifier={sourceIdentifier}>
-        <Pressable
-          accessibilityRole="imagebutton"
-          accessibilityLabel={`Open ${attachment.name}`}
-          disabled={!props.onPressPreview}
-          onPress={() =>
-            props.onPressPreview?.({
-              kind: "image",
-              uri: attachment.dataUrl,
-              name: attachment.name,
-              sourceIdentifier,
-            })
-          }
-        >
-          <Image
-            source={{ uri: attachment.previewUri }}
-            style={{ ...style, backgroundColor: subtleBg }}
-            className="bg-subtle"
-            resizeMode="cover"
-          />
-        </Pressable>
-      </PresentationSource>
-    );
+    return <ComposerImageAttachment {...props} attachment={attachment} />;
   }
   const onPressVideo = props.onPressVideo;
   if (onPressVideo && videoMimeType(attachment) !== null) {

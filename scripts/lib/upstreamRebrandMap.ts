@@ -195,6 +195,12 @@ const textRules: ReadonlyArray<RebrandRule> = [
     description: "kebab-case product id",
   },
   {
+    // POSIX home directories in fixtures, named after the `ras` CLI.
+    pattern: /(?<=\/(?:home|Users)\/)t3(?![\w-])/g,
+    replacement: "ras",
+    description: "fixture home directories",
+  },
+  {
     // Relay client ids, spelled without the product stem in `RelayPublicClientId`.
     pattern: /\bt3-(mobile|web)(?![\w-])/g,
     replacement: "ras-$1",

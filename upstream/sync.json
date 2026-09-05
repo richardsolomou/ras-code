@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "dab5f6e6e02e78675655e69503aa89654e5b8050",
+  "lastReviewed": "4701041eef6339bbda0d9d9b00a929c4e9e18662",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3824,6 +3824,467 @@
       "ours": "4fcde9e4f224d36c9855e7665f66cb35c5d480e1",
       "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
       "reviewedAt": "2026-09-05T21:19:37.510Z"
+    },
+    {
+      "upstream": "1587f248dd81ed45e214d476451ebf16dbfadb1a",
+      "pr": 9132,
+      "title": "feat(server): measure provider turn token usage",
+      "decision": "adapted",
+      "ours": "b69413a2cac6191bb9dde9d92447de9514785b2a",
+      "reason": "Per-turn token measurement across the Codex and OpenCode adapters, emitting provider.turn.completed. Our recordProviderRuntimeEvent stays beside it: #69 feeds PostHog LLM analytics with $ai_generation captures, which upstream's product event does not produce, and neither dispatch shares state with the other. Upstream's privacy paragraph is scoped to their event; $ai_generation does carry the turn and thread ids as its trace and session.",
+      "reviewedAt": "2026-09-05T21:44:17.506Z"
+    },
+    {
+      "upstream": "4ee2a9d046a0986451c703c9221bb32ba53540bb",
+      "pr": 9697,
+      "title": "perf(marketing): stop continuous homepage motion",
+      "decision": "skipped",
+      "ours": null,
+      "reason": "Touches apps/marketing, which we replaced.",
+      "reviewedAt": "2026-09-05T21:45:07.678Z"
+    },
+    {
+      "upstream": "c163d502dd32b993c03d8c20a5fae55b159bd8dc",
+      "pr": 9694,
+      "title": "perf(server): avoid full patches for checkpoint summaries",
+      "decision": "adopted",
+      "ours": "cc76d6264062e325a2bab4b9b055dfda5b7e1528",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-05T21:46:23.408Z"
+    },
+    {
+      "upstream": "b3e1d88590489da2bb63b95c18a57e6f400b8b7f",
+      "pr": 9692,
+      "title": "perf(web): defer diff workers until a code view opens",
+      "decision": "adapted",
+      "ours": "a8d647b61c48cbc455c93a2719a0419f2c43dac7",
+      "reason": "Diff workers now start with the code views that use them rather than with every chat. Our ComposerHandleContext wrapper stays, without the pool provider upstream pushed down into MessagesTimeline and FilePreviewPanel.",
+      "reviewedAt": "2026-09-05T21:47:37.919Z"
+    },
+    {
+      "upstream": "010d6bb1b5281cb1e6eacf1ee0f2500973242836",
+      "pr": 9701,
+      "title": "perf(marketing): serve website fonts locally",
+      "decision": "skipped",
+      "ours": null,
+      "reason": "Touches apps/marketing, which we replaced.",
+      "reviewedAt": "2026-09-05T21:47:47.273Z"
+    },
+    {
+      "upstream": "3bbbc1d9fd8b3d649c60ba0137c7dae93a6aab3f",
+      "pr": 9703,
+      "title": "perf(server): stop rebuilding terminal history per chunk",
+      "decision": "adopted",
+      "ours": "6e60d2af8aec3a16d45409b0ee3beb2ffb1aa06a",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:47:53.564Z"
+    },
+    {
+      "upstream": "dffb4cd3b16dc6f41aced99922950ee3083082c6",
+      "pr": 9706,
+      "title": "perf(server): use one query for buffered provider events",
+      "decision": "adapted",
+      "ours": "1e23c0606aa77892a716603de5883b91e00ad977",
+      "reason": "Buffered provider events settle in one query, asserted with a SQL statement counter. Upstream's rewritten assertion uses our message id, which carries the turn.",
+      "reviewedAt": "2026-09-05T21:48:49.862Z"
+    },
+    {
+      "upstream": "c75299ee2085a121bceb6df76796e971fe92b5b6",
+      "pr": 9708,
+      "title": "perf(relay): avoid repeated activity decoding",
+      "decision": "adopted",
+      "ours": "ba793f66d1d0b24b642b9ae746761d3a892a672c",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:48:55.535Z"
+    },
+    {
+      "upstream": "c7c1dfe4df99edf65a49d8a31b39ef1361f37f44",
+      "pr": 9709,
+      "title": "perf(web): stop continuous chat status animations",
+      "decision": "adopted",
+      "ours": "4c636a7bd3d7f4f0559499f20a093544dd1795aa",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-05T21:49:14.226Z"
+    },
+    {
+      "upstream": "7839140e5e93d3f401d7eb45b86cf1a234eb3609",
+      "pr": 9710,
+      "title": "fix(mobile): preserve saved work after storage read failures",
+      "decision": "adopted",
+      "ours": "7dbdb7d28b9e9f164ff8b02178569c67ebeb219f",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:49:31.534Z"
+    },
+    {
+      "upstream": "da7e46d08e85bcb07ecd78721a40f7b612fac2f2",
+      "pr": 9707,
+      "title": "perf(web): stop replaying terminal buffers on rollover",
+      "decision": "adopted",
+      "ours": "bde19fd30aa08274b24f1b47deeb9059f055a4b1",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:49:31.535Z"
+    },
+    {
+      "upstream": "95103905f5f045523994213bf76bfb14acc31b27",
+      "pr": 9631,
+      "title": "feat(web): preview pull request links",
+      "decision": "adopted",
+      "ours": "9b17c35d21954cd413c0fd0d61635cc5b85ce092",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:49:31.535Z"
+    },
+    {
+      "upstream": "c66f15f39e61fda0a9a100578833ec12e7526859",
+      "pr": 9716,
+      "title": "perf(client): reduce thread-list update work",
+      "decision": "adopted",
+      "ours": "9963f0d40502f0c795a76e45c5ca2e717519e000",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:49:31.535Z"
+    },
+    {
+      "upstream": "d536b0580d044967dc644498d8c5a6e96464f767",
+      "pr": 9610,
+      "title": "fix(server): settle inactive threads with open PRs",
+      "decision": "adopted",
+      "ours": "c39b260cef52b2c49cbf72893930416e8b8c6bc2",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:49:31.535Z"
+    },
+    {
+      "upstream": "108f295cc3672716c3cb8291ce487846df5ce098",
+      "pr": 9715,
+      "title": "fix(server): bound slow-client event buffers",
+      "decision": "adopted",
+      "ours": "a1aa77c5211e3ac25ce623efd63fce8ffa082161",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:49:31.535Z"
+    },
+    {
+      "upstream": "8ccb933a8aae461b616b199ab287164c3311a755",
+      "pr": 9720,
+      "title": "test(server): allow either valid file-search match",
+      "decision": "adopted",
+      "ours": "dfd8c7bdfa78e67038887c257cb84e730ea596c4",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:49:31.535Z"
+    },
+    {
+      "upstream": "8357eef14cbd5ed063e4a64404c33d1bfbc78446",
+      "pr": 9619,
+      "title": "fix(web): match provider settings layout for disconnected devices",
+      "decision": "adapted",
+      "ours": "9cb90ed1d255af2e3093eaa5133d693e8a9c9d7a",
+      "reason": "Placeholder states now share the provider editor's card chrome. Our SettingsDeviceTabs keeps rendering the device row, so upstream's re-added providerEnvironmentDetail went: SettingsDeviceTabs already owns that label as settingsDeviceDetail.",
+      "reviewedAt": "2026-09-05T21:50:49.242Z"
+    },
+    {
+      "upstream": "120fab18d84f1eb993ecc7fa858a8dd212747079",
+      "pr": 9625,
+      "title": "fix(web): keep the slash menu above the composer when vertical space is short",
+      "decision": "adopted",
+      "ours": "8558f663fa57fa439b2e3262f2a7f6b540e4bbd9",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:50:55.231Z"
+    },
+    {
+      "upstream": "9eb4d71681dc7d002082db2f8b4bacf7614412f4",
+      "pr": 9721,
+      "title": "fix(mobile): remove provider setup",
+      "decision": "adopted",
+      "ours": "7b3cf9c61a459e1fd6bc4f52fb004ebf7a20df4b",
+      "reason": "Provider setup leaves mobile; sign-in completes on web or desktop. Our only edits to the deleted screen were the scope rename, so the deletion lands as upstream wrote it.",
+      "reviewedAt": "2026-09-05T21:51:40.947Z"
+    },
+    {
+      "upstream": "5eab021a5185e492b6b021f83564143d5263e8a6",
+      "pr": 9718,
+      "title": "perf(web): stop rendering hidden terminals",
+      "decision": "adopted",
+      "ours": "b2a39dc3bbec90404b1bd56e4c4f3531ecdeba7d",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:51:47.326Z"
+    },
+    {
+      "upstream": "c4353bc6b972fa527579b530f01cc8744b2407d2",
+      "pr": 9713,
+      "title": "fix(mobile): read file-backed image drafts before enabling them",
+      "decision": "adopted",
+      "ours": "940d7419c2ff6ee08e3733c9e3c599e828972bda",
+      "reason": "File-backed image drafts rebase into the current iOS container before they render. The inline subtle background that survived the extraction was upstream's own older shape, dropped with their new component.",
+      "reviewedAt": "2026-09-05T21:53:48.958Z"
+    },
+    {
+      "upstream": "50bfca43d76ced00f5d67cfbab8bc44c50eb0e53",
+      "pr": 9726,
+      "title": "perf(server): replay only the selected thread",
+      "decision": "adopted",
+      "ours": "b0bad2e649b74b52fb072629bd4f8dca64f95dfb",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:54:02.996Z"
+    },
+    {
+      "upstream": "7d5dc66c151a9ca7bfef45cffc9d3516842c5566",
+      "pr": 9654,
+      "title": "fix(web): mute composer helper text",
+      "decision": "adopted",
+      "ours": "2f6006667f4433f211c8f60ef0c44d83150cb1d1",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:54:02.997Z"
+    },
+    {
+      "upstream": "c7bf3115f2223ede5cb2316613dc7369155dbeb1",
+      "pr": 9651,
+      "title": "feat(web): unpin threads from the sidebar multi-select menu",
+      "decision": "adopted",
+      "ours": "1ae6ea7bfd45604cc001ab60c722f7d0d4f994a1",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:54:02.997Z"
+    },
+    {
+      "upstream": "19c1710a88a2c87c159d76269dacdf0b17ddd9f4",
+      "pr": 9725,
+      "title": "perf(web): reuse timeline rows while text streams",
+      "decision": "adapted",
+      "ours": "c879234792bc9dfa9c55995ba87466f97ac92712",
+      "reason": "Timeline rows are reused across streaming renders through a kept projection. Landed under our checkpointTurnCountByAssistantMessageId, which #52 keys by assistant message rather than upstream's revert count keyed by user message.",
+      "reviewedAt": "2026-09-05T21:55:21.187Z"
+    },
+    {
+      "upstream": "088cc3f95599b7b933289d719fa1e9b0608cb4cd",
+      "pr": 9734,
+      "title": "fix(relay): bound stalled push requests",
+      "decision": "adopted",
+      "ours": "2a4d24dc31e4123e6fa7cc001d6892707fdc7a82",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:55:28.010Z"
+    },
+    {
+      "upstream": "c8f77e0d441264efb0acfac312e852c81ae3da83",
+      "pr": 9738,
+      "title": "perf(server): stop caching unused OpenCode tool parts",
+      "decision": "adopted",
+      "ours": "869479ac5c729535379e22fa44c39e8f3044b469",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:55:28.011Z"
+    },
+    {
+      "upstream": "cfc9bf34156ddcc4a98b7f5c67193adb5aedce06",
+      "pr": 9739,
+      "title": "fix(web): fold single trailing activity",
+      "decision": "adopted",
+      "ours": "d8e83d036024ebf2b5c7e9cd5dd098275e202891",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-05T21:55:49.918Z"
+    },
+    {
+      "upstream": "cbe93e8dfba68ff6fbe8c69e43a633fdc79db62d",
+      "pr": 9743,
+      "title": "fix(web): show project settings for new threads",
+      "decision": "adopted",
+      "ours": "2302545e3e145cdfa486590a1d89a81381c78ce8",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:56:09.445Z"
+    },
+    {
+      "upstream": "d6e29dc9dee943b34d6b0d11441fa944c7bff7c9",
+      "pr": 9749,
+      "title": "perf(mobile): bound the parsed review cache",
+      "decision": "adopted",
+      "ours": "49b0b72f7653ba93129a2e0ece6185937be30a92",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:56:09.446Z"
+    },
+    {
+      "upstream": "fec606f9ae524277ef1f6886e614f32d9e15e36e",
+      "pr": 9747,
+      "title": "perf(web): avoid repeated terminal metadata scans",
+      "decision": "adopted",
+      "ours": "f0ed058ceabdcd758962f46fb34b6024cb22dda5",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:56:09.446Z"
+    },
+    {
+      "upstream": "cf9729d5ee9660c08556e823080d3bb19648ed28",
+      "pr": 9748,
+      "title": "perf(server): bound terminal history by bytes",
+      "decision": "adopted",
+      "ours": "9a09dcd9d663289f74609c0c2fb8b3b3ce86c04c",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:56:09.446Z"
+    },
+    {
+      "upstream": "a76b898b3aa4fd4081104b06a3b2c942bd4fecb7",
+      "pr": 9627,
+      "title": "feat(web): link pull request authors to profiles",
+      "decision": "adopted",
+      "ours": "2caa78b325548971310ea1c57fa76d951c3beebf",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:56:09.446Z"
+    },
+    {
+      "upstream": "0de956ed2f92b8a6ead56e1566801db232d365dc",
+      "pr": 9744,
+      "title": "fix(web): refine server update notice",
+      "decision": "adopted",
+      "ours": "9b427e39c15ec0ff82112d94bbda896702d05d35",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:56:09.447Z"
+    },
+    {
+      "upstream": "d7cf8aaa8d4fbcbdd523b4f4bc86fda5c47b4a70",
+      "pr": 9740,
+      "title": "perf(client): stop thread streams when unused",
+      "decision": "adopted",
+      "ours": "b6b19118e9736fab312dd944744dcb6c7b709576",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:56:09.447Z"
+    },
+    {
+      "upstream": "77b655c47b82c9b2aad09e447117b7618a16e21d",
+      "pr": 9752,
+      "title": "perf(mobile): defer file preview highlighter startup",
+      "decision": "adopted",
+      "ours": "c372644fd2ca9fa8087a6df47e875ea924816e81",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:56:09.447Z"
+    },
+    {
+      "upstream": "15eda897d37aad232fca5089f5eb6ef7b726c31c",
+      "pr": 9760,
+      "title": "perf(web): defer image URL requests for thread history",
+      "decision": "adopted",
+      "ours": "eb00810d7521a9a0634336a396e4a5df31b1675a",
+      "reason": "Thread history stops requesting image URLs until the images are on screen. The duplicate ./types import the merge left in session-logic.ts went with upstream's replacement block.",
+      "reviewedAt": "2026-09-05T22:03:25.007Z"
+    },
+    {
+      "upstream": "6365919f2e5bcfb4fa4020b95e19af26ae40979f",
+      "pr": 9758,
+      "title": "perf(server): skip history reads for metadata commands",
+      "decision": "adapted",
+      "ours": "eb00810d7521a9a0634336a396e4a5df31b1675a",
+      "reason": "Metadata commands stop reading history. Turn dispatch keeps the shell read and pulls messages only for a fork handoff or a provider switch, which are the paths whose transcripts need them; two fork-only call sites moved off the removed resolveThread.",
+      "reviewedAt": "2026-09-05T22:03:27.421Z"
+    },
+    {
+      "upstream": "bc03c3640d6d3bb44e5fb477bfd78d7484cd0e00",
+      "pr": 9762,
+      "title": "fix(models): make GPT-6-Astra current",
+      "decision": "adopted",
+      "ours": "167abcb68cf692cd0ec94af5e7086b7315d6a217",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T22:04:06.306Z"
+    },
+    {
+      "upstream": "d115a96763b76d00f06b06272688cf68eebe8206",
+      "pr": 9753,
+      "title": "fix(web): stop empty diffs replacing pull requests",
+      "decision": "adopted",
+      "ours": "0c7a16cedd40c32b925c23859dea9b6289abe711",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T22:04:06.307Z"
+    },
+    {
+      "upstream": "45bd3b631bf1e84520c90ebdfdd1b135871ced14",
+      "pr": 9759,
+      "title": "fix(sidebar): mute background working threads",
+      "decision": "adopted",
+      "ours": "30fd10b4e5d345f44448768aa00003eef4a2ee33",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T22:04:06.307Z"
+    },
+    {
+      "upstream": "f6db4206258b0ef30e8dd8949627acfd209bf338",
+      "pr": 9763,
+      "title": "fix(web): reset automatic pull to default",
+      "decision": "adopted",
+      "ours": "3eff84264d82cfd606f3884152fbe30c70525fd1",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T22:04:06.307Z"
+    },
+    {
+      "upstream": "13427ecd8ba5bfa7892fc90d1e3f0ef59514870f",
+      "pr": 9061,
+      "title": "fix(web): restore file comment focus in editable preview",
+      "decision": "adopted",
+      "ours": "c47533d3d31ec8d594d51bbe254bd88c59d95259",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T22:04:06.307Z"
+    },
+    {
+      "upstream": "2e688a53cf8fc7a9caa9fd5070148bfcd3d5a741",
+      "pr": 9755,
+      "title": "docs: keep internal guides focused on architecture",
+      "decision": "deferred",
+      "ours": null,
+      "intent": "docs/internals holds architecture only; runbooks and setup guides move to docs/operations, which is the split AGENTS.md already describes.",
+      "reason": "Thirty-one files. Upstream deletes ci.md, scripts.md, work-artifacts.md, workspace-layout.md and the connect auth-flow diagram, all of which carry fork-only content from #32, #38, #54 and #103, and relocates the rest. Converging means moving our content rather than dropping it, which is its own pass.",
+      "reviewedAt": "2026-09-05T22:05:07.735Z"
+    },
+    {
+      "upstream": "9e1fb459a985d13c1d4e57080f49d70dabf3b681",
+      "pr": 9756,
+      "title": "docs: focus user guides on features and workflows",
+      "decision": "deferred",
+      "ours": null,
+      "intent": "docs/user reads as shipped-product guidance: features and workflows, no repo tooling or source paths.",
+      "reason": "The user-facing half of the same editorial pass as 2e688a53c, and our user docs carry fork content (the telemetry page is ours). Both convergences land together.",
+      "reviewedAt": "2026-09-05T22:05:51.810Z"
+    },
+    {
+      "upstream": "cd713679bbe06c435823bafc48e5bcfa3266a9aa",
+      "pr": 9766,
+      "title": "fix(web): stop panel motion during navigation",
+      "decision": "adapted",
+      "ours": "3b98f30e0a88701ceb719414a50ba2bce7f25e75",
+      "reason": "Panel transitions stop while a route change is in flight. Upstream's suppression provider sits inside our ThreadDragProvider, and the legacy sidebar branch it reintroduced stays out: #23 removed it.",
+      "reviewedAt": "2026-09-05T22:06:50.095Z"
+    },
+    {
+      "upstream": "8e056a0e5124775b9439751667bac483d7b5320a",
+      "pr": 9767,
+      "title": "fix(web): open composer selectors below controls",
+      "decision": "adopted",
+      "ours": "c1cce262474fe90d3bf7ca8d8826f44d859aca9e",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T22:07:03.310Z"
+    },
+    {
+      "upstream": "163d86a78430d23414abde323ca70d8379280c0b",
+      "pr": 9768,
+      "title": "perf(server): skip unused Linux process detail reads",
+      "decision": "adopted",
+      "ours": "9fd683e19267974c0695a159c1e8f8e92b7059a9",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T22:07:03.310Z"
+    },
+    {
+      "upstream": "bfef973d9ec64e580fff4197ac53085207471ffd",
+      "pr": 9773,
+      "title": "fix(server): remove retired Codex models after refresh",
+      "decision": "adopted",
+      "ours": "e39808b2fd4a0b8c3f783889fd5c545861c326be",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T22:07:03.311Z"
+    },
+    {
+      "upstream": "cc60753aa2279722149e182fb942ca87f70ff804",
+      "pr": 9564,
+      "title": "test: stop path and platform tests depending on the host OS",
+      "decision": "adapted",
+      "ours": "2f0658e53840e4112e53d78abbbeaae96041e51a",
+      "reason": "Path and platform tests stop assuming a POSIX host. The showcase capture paths keep our mobile theme id in their last segment.",
+      "reviewedAt": "2026-09-05T22:08:10.236Z"
+    },
+    {
+      "upstream": "4701041eef6339bbda0d9d9b00a929c4e9e18662",
+      "pr": 9565,
+      "title": "test(server): skip posix executable fixtures on a Windows host",
+      "decision": "adapted",
+      "ours": "e1e589c8c2a89d8bb4d6abc50cf8e1ce4858602d",
+      "reason": "POSIX executable fixtures skip on a Windows host. The rebrand map now maps upstream's /home/t3 to our /home/ras, which the fork already used but the map spelled ras-code.",
+      "reviewedAt": "2026-09-05T22:10:06.327Z"
     }
   ]
 }
