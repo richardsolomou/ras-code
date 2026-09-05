@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "b7d6e65021b021207424c56cb32d6d711fd875fb",
+  "lastReviewed": "24aef0e6c1bd5373a82eeed8054b50fc6e041b76",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -4411,6 +4411,15 @@
       "ours": "ab72e02b67d9245faaf0e768bc8ab63319f06f97",
       "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
       "reviewedAt": "2026-09-05T23:02:36.561Z"
+    },
+    {
+      "upstream": "24aef0e6c1bd5373a82eeed8054b50fc6e041b76",
+      "pr": 9775,
+      "title": "feat(mobile): split the usage page into Usage and Limits tabs",
+      "decision": "adapted",
+      "ours": "be805dfc55a9d3354ccf7fc50b9f8dc551fa5329",
+      "reason": "Mobile usage splits into Usage and Limits tabs. Our usage doc is one flowing page rather than upstream's sections, so their new refresh guidance joins the Limits paragraph there.",
+      "reviewedAt": "2026-09-05T23:05:11.200Z"
     }
   ]
 }
