@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "8ac5462920c45cdee63af15b2598909736f2ec84",
+  "lastReviewed": "082cab224624eb3a6cd494df3719c59014fb0c99",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3698,6 +3698,24 @@
       "ours": "16470c5e20f5ec0036c6e2d2df0d15e3289f25e2",
       "reason": "Thread summaries stop loading message bodies. Our fallback-offer count joins upstream's approval count query, and our latestAssistantSummary moved to a getLatestSettledAssistantText query rather than keeping the full message list load that this change exists to remove.",
       "reviewedAt": "2026-09-05T21:11:57.307Z"
+    },
+    {
+      "upstream": "cccd7e3c885065e925f559c5708378cdb3b51eb3",
+      "pr": 9663,
+      "title": "perf(web): speed up terminal snapshots",
+      "decision": "adopted",
+      "ours": "ed96a0ee32643c4329ceeb00b7f21fb33e259bed",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:12:52.570Z"
+    },
+    {
+      "upstream": "082cab224624eb3a6cd494df3719c59014fb0c99",
+      "pr": 9668,
+      "title": "fix(web): show machine icons in the environment picker",
+      "decision": "adopted",
+      "ours": "19dded3422dc13e6937f51722e30600d144e275a",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:12:52.571Z"
     }
   ]
 }
