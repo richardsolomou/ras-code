@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "6f405370c8e552da9dcfdd6922e85789fd918340",
+  "lastReviewed": "c5ba51d629b3813182cf3e161cc3f23b1e541dc3",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3239,6 +3239,15 @@
       "ours": "9c256b184d818b6e95e688f7381a21ff32e25117",
       "reason": "Took upstream's rethrow, which is the fix: swallowing the startup failure kept it away from the dev overlay and broke reloads. Kept our boot-shell message ahead of it so a production failure still says something, and our env var name in the docs upstream extended.",
       "reviewedAt": "2026-09-05T19:02:11.959Z"
+    },
+    {
+      "upstream": "c5ba51d629b3813182cf3e161cc3f23b1e541dc3",
+      "pr": 9293,
+      "title": "feat(providers): add context compaction command",
+      "decision": "adapted",
+      "ours": "2c17905f2327ede73f3b927fb1d94166304ca7bf",
+      "reason": "Adopted the compaction command. The runtime event pipeline becomes upstream's generator with our provider analytics recording folded back in after the counter. In the reactor, upstream's compaction guard and failure handling land ahead of our usage-limit fallback routing, minus the sendTurnRequest it opens, since this fork dispatches through dispatchTurn. Our extracted turn-start failure handlers and model matcher stay.",
+      "reviewedAt": "2026-09-05T19:13:03.068Z"
     }
   ]
 }
