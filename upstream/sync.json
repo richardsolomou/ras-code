@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "710f6dc417ebf303eede3df3605a6938482d83ab",
+  "lastReviewed": "9e1bc36a0843699db54ee28abbdac70584ae8f33",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3347,6 +3347,15 @@
       "ours": "2ed6541e0037e3d0f7ddcefae239a4561758a123",
       "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
       "reviewedAt": "2026-09-05T20:22:55.777Z"
+    },
+    {
+      "upstream": "9e1bc36a0843699db54ee28abbdac70584ae8f33",
+      "pr": 9553,
+      "title": "fix(web): keep the last message visible when the resting composer expands",
+      "decision": "adapted",
+      "ours": "476add13c82bb2f3e1fc6f570f363c240bd50ec1",
+      "reason": "Code applied clean; both conflicts were comments our fork had trimmed and upstream then rewrote, so upstream's now describe the current code.",
+      "reviewedAt": "2026-09-05T20:23:29.851Z"
     }
   ]
 }
