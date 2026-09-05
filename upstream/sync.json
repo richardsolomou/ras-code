@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "5cc369b7eb882dbea8d5ad21ba688c73a0058748",
+  "lastReviewed": "caab2fdbac041ac2e851ad4fa3ac4a40a1d4a8f6",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3500,6 +3500,15 @@
       "ours": "e9cb26925b0ce4a9ecfaa80b645d07cc48ede84a",
       "reason": "Took the turn tracking, turn.aborted handling and refreshAfterTurn. Our reconcileThreadPullRequest still runs on completion: refreshLocalGitStatusFromTurnCompletion only accepts turn.completed, so its sessionCwd is now bound through a narrowing ternary.",
       "reviewedAt": "2026-09-05T20:43:10.205Z"
+    },
+    {
+      "upstream": "caab2fdbac041ac2e851ad4fa3ac4a40a1d4a8f6",
+      "pr": 9537,
+      "title": "fix(web): render draft PRs in gray",
+      "decision": "adapted",
+      "ours": "349c4356c8382f8d51b14b11057e8087fbd0a2c0",
+      "reason": "Draft pull requests render gray. Upstream also edited apps/mobile/.../thread-list-items.tsx, a legacy surface #23 removed; the live v2 row reads textClassName off presentThreadPr, so the fix reaches mobile without it.",
+      "reviewedAt": "2026-09-05T20:44:30.980Z"
     }
   ]
 }
