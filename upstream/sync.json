@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "4701041eef6339bbda0d9d9b00a929c4e9e18662",
+  "lastReviewed": "30f128fababb1fea46041d228b6ea52733d2ee09",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -4285,6 +4285,15 @@
       "ours": "e1e589c8c2a89d8bb4d6abc50cf8e1ce4858602d",
       "reason": "POSIX executable fixtures skip on a Windows host. The rebrand map now maps upstream's /home/t3 to our /home/ras, which the fork already used but the map spelled ras-code.",
       "reviewedAt": "2026-09-05T22:10:06.327Z"
+    },
+    {
+      "upstream": "30f128fababb1fea46041d228b6ea52733d2ee09",
+      "pr": 9566,
+      "title": "test: skip symlink fixtures where the host cannot create symlinks",
+      "decision": "adapted",
+      "ours": "31b1b3a524f682d7efed7edc2a60410ec7fa6f81",
+      "reason": "Symlink fixtures skip where the host cannot create symlinks. The rebrand map now preserves the relay's t3env_ credential prefix, which those server fixtures carry and which the relay stamps into every credential it issues.",
+      "reviewedAt": "2026-09-05T22:47:50.488Z"
     }
   ]
 }
