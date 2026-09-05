@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "0cb02abf5b3af2985d9dd23a637a63388e98fd49",
+  "lastReviewed": "bf40fa786c521b552eb554bbd4f2c75c4123cd03",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3419,6 +3419,15 @@
       "ours": "0fda6c4e139b317879361461bf01a69375bfc631",
       "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
       "reviewedAt": "2026-09-05T20:26:06.546Z"
+    },
+    {
+      "upstream": "bf40fa786c521b552eb554bbd4f2c75c4123cd03",
+      "pr": 9578,
+      "title": "fix(web): align the sidebar wordmark by baseline",
+      "decision": "skipped",
+      "ours": null,
+      "reason": "Baseline-aligns upstream's sidebar wordmark. Ours is a different composition: the RAS mark beside a 'Code' text span inside a drag region, so there is no shared alignment to fix.",
+      "reviewedAt": "2026-09-05T20:26:43.157Z"
     }
   ]
 }
