@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "1108be0fc862d5a95374bf0b96518a20e6351025",
+  "lastReviewed": "5f4c7161fa7782ea93b63fe934d43229742e7ec8",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -4339,6 +4339,42 @@
       "ours": "0e2459ed43cbf383236e450a26f91f7df0020e24",
       "reason": "POSIX mode-bit assertions skip on a Windows host. Upstream also edited packages/shared/src/relayClient.test.ts, the managed tunnel client #54 replaced with the RAS relay; the path is now registered as removed.",
       "reviewedAt": "2026-09-05T23:00:34.865Z"
+    },
+    {
+      "upstream": "9af5139f5974281a59f5cd62c11d918d62126313",
+      "pr": 9572,
+      "title": "test(server): keep provider fixture directories host-portable",
+      "decision": "adopted",
+      "ours": "6b90901710fe3eeb3bf2d8600fee71c9a1c8f8d8",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T23:00:47.388Z"
+    },
+    {
+      "upstream": "9fa54eeb4c481b444c68e38d00066d707af5f677",
+      "pr": 9573,
+      "title": "test: resolve the Windows temp directory to its long name",
+      "decision": "adopted",
+      "ours": "36e61f323c7c1e19363b0bd3ce125541dff91cb4",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T23:00:47.389Z"
+    },
+    {
+      "upstream": "912276bcd9ca258ad9309727df8e279e5ab698f8",
+      "pr": 9574,
+      "title": "test(server): run the Antigravity install harness for the host platform",
+      "decision": "adopted",
+      "ours": "aae9f33b2689df1ceee9dd70956c21128bb25597",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T23:00:47.389Z"
+    },
+    {
+      "upstream": "5f4c7161fa7782ea93b63fe934d43229742e7ec8",
+      "pr": 9575,
+      "title": "fix(server): canonicalise media paths the same way their callers do",
+      "decision": "adopted",
+      "ours": "8887271ca5e644e31d54cc373f61a65feeb25b17",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T23:00:47.389Z"
     }
   ]
 }
