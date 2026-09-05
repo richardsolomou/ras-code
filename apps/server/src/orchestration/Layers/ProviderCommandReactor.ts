@@ -1400,9 +1400,15 @@ const make = Effect.gen(function* () {
     // failed leaves a turn behind but no answer, and the retry still needs the
     // handoff.
     const forkedFrom = thread.forkedFrom ?? null;
+    // Only a fork handoff or a provider switch reads history; an ordinary turn
+    // keeps the shell read.
+    const priorMessages =
+      forkedFrom !== null || input.freshProviderHandoff === true
+        ? ((yield* resolveThreadDetail(input.threadId))?.messages ?? [])
+        : [];
     const forkContextDelivered =
       forkedFrom === null ||
-      thread.messages.some((message) => message.role === "assistant" && message.inherited !== true);
+      priorMessages.some((message) => message.role === "assistant" && message.inherited !== true);
     const messageTextWithForkContext =
       forkedFrom !== null &&
       !forkContextDelivered &&
@@ -1412,14 +1418,14 @@ const make = Effect.gen(function* () {
       })) === undefined
         ? withForkTranscript({
             messageText: input.messageText,
-            inheritedMessages: thread.messages.filter((message) => message.inherited === true),
+            inheritedMessages: priorMessages.filter((message) => message.inherited === true),
           })
         : input.messageText;
     const messageText =
       input.freshProviderHandoff === true
         ? withProviderSwitchTranscript({
             messageText: messageTextWithForkContext,
-            priorMessages: thread.messages.filter(
+            priorMessages: priorMessages.filter(
               (message) => message.id !== input.messageId && !message.streaming,
             ),
           })
@@ -2349,7 +2355,7 @@ const make = Effect.gen(function* () {
     pending: PendingTurnAttempt,
   ) {
     const threadId = pending.event.payload.threadId;
-    const thread = yield* resolveThread(threadId);
+    const thread = yield* resolveThreadShell(threadId);
     if (!thread) {
       return;
     }
@@ -2408,7 +2414,7 @@ const make = Effect.gen(function* () {
   ) {
     const threadId = pending.event.payload.threadId;
     const approvedRoute = pending.returningFromFallback;
-    const thread = approvedRoute === undefined ? yield* resolveThread(threadId) : undefined;
+    const thread = approvedRoute === undefined ? yield* resolveThreadShell(threadId) : undefined;
     if (approvedRoute === undefined && thread === undefined) return false;
     const baseSelection =
       approvedRoute?.primarySelection ??

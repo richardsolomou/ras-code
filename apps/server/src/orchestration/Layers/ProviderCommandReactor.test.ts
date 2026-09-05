@@ -20,6 +20,7 @@ import {
   EnvironmentId,
   EventId,
   MessageId,
+  NonNegativeInt,
   ProjectId,
   ThreadId,
   TurnId,
@@ -878,6 +879,63 @@ describe("ProviderCommandReactor", () => {
     harness: ReactorHarness,
     command: Parameters<ReactorHarness["engine"]["dispatch"]>[0],
   ) => harness.runEffect(harness.engine.dispatch(command));
+
+  it("carries the inherited transcript into a forked thread's first prompt", async () => {
+    const harness = await createHarness();
+    const now = "2026-01-01T00:00:00.000Z";
+
+    await dispatchCommand(harness, {
+      type: "thread.fork",
+      commandId: CommandId.make("cmd-fork-transcript"),
+      threadId: ThreadId.make("thread-forked"),
+      projectId: asProjectId("project-1"),
+      sourceThreadId: ThreadId.make("thread-1"),
+      sourceMessageId: asMessageId("user-message-1"),
+      turnCount: NonNegativeInt.make(1),
+      title: "Fork of Thread",
+      modelSelection: createModelSelection(ProviderInstanceId.make("codex"), "gpt-5-codex"),
+      runtimeMode: "approval-required",
+      interactionMode: DEFAULT_PROVIDER_INTERACTION_MODE,
+      branch: null,
+      worktreePath: null,
+      inheritedMessages: [
+        {
+          messageId: asMessageId("inherited-ask"),
+          role: "user",
+          text: "first ask",
+          createdAt: now,
+        },
+        {
+          messageId: asMessageId("inherited-answer"),
+          role: "assistant",
+          text: "first answer",
+          createdAt: now,
+        },
+      ],
+      createdAt: now,
+    });
+
+    await dispatchCommand(harness, {
+      type: "thread.turn.start",
+      commandId: CommandId.make("cmd-fork-turn"),
+      threadId: ThreadId.make("thread-forked"),
+      message: {
+        messageId: asMessageId("fork-user-message"),
+        role: "user",
+        text: "keep going",
+        attachments: [],
+      },
+      interactionMode: DEFAULT_PROVIDER_INTERACTION_MODE,
+      runtimeMode: "approval-required",
+      createdAt: now,
+    });
+
+    await waitFor(() => harness.sendTurn.mock.calls.length === 1);
+    const input = harness.sendTurn.mock.calls[0]?.[0] as { readonly input: string };
+    expect(input.input).toContain("<forked-conversation>");
+    expect(input.input).toContain("first answer");
+    expect(input.input.endsWith("keep going")).toBe(true);
+  });
 
   it("reacts to thread.turn.start by ensuring session and sending provider turn", async () => {
     const harness = await createHarness();

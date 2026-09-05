@@ -35,16 +35,6 @@ import {
   type FallbackNoticePayload,
 } from "./components/settings/providerUsageLimit.logic";
 
-import type {
-  ChatAttachment,
-  ChatMessage,
-  ProposedPlan,
-  SessionPhase,
-  Thread,
-  ThreadSession,
-  TurnDiffSummary,
-} from "./types";
-
 import {
   isImageAttachment,
   type ChatAttachment,
