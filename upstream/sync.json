@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "caab2fdbac041ac2e851ad4fa3ac4a40a1d4a8f6",
+  "lastReviewed": "f1e90e388b86fe4b007a55c0e685a1fa878115e6",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3509,6 +3509,15 @@
       "ours": "349c4356c8382f8d51b14b11057e8087fbd0a2c0",
       "reason": "Draft pull requests render gray. Upstream also edited apps/mobile/.../thread-list-items.tsx, a legacy surface #23 removed; the live v2 row reads textClassName off presentThreadPr, so the fix reaches mobile without it.",
       "reviewedAt": "2026-09-05T20:44:30.980Z"
+    },
+    {
+      "upstream": "f1e90e388b86fe4b007a55c0e685a1fa878115e6",
+      "pr": 9599,
+      "title": "refactor(web): move usage provider controls to settings",
+      "decision": "adapted",
+      "ours": "bb8deaf96b8f7dfc00db2c5a43ccfcb31483547a",
+      "reason": "Hub management moves into provider settings, which drops the environment picker our Usage page carried. Upstream also extends an effect that switches devices when search deep-links a setting the selected device cannot render; #112 replaced that local state with the shared settings scope, so there is nothing here to extend.",
+      "reviewedAt": "2026-09-05T20:50:01.788Z"
     }
   ]
 }
