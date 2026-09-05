@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "3c3e05ccfe34ab7af273f4a4faa72909cafd7a21",
+  "lastReviewed": "f239b77df93077e40c27cc5c5909e94266571859",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3275,6 +3275,15 @@
       "ours": "1fa13d5d589ac3f879f33a9237220fba9dec8328",
       "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
       "reviewedAt": "2026-09-05T20:19:48.586Z"
+    },
+    {
+      "upstream": "f239b77df93077e40c27cc5c5909e94266571859",
+      "pr": 9541,
+      "title": "fix(web): close composer menus when their controls hide",
+      "decision": "adapted",
+      "ours": "36734af00851739be6c7b904045a797e0fb98886",
+      "reason": "Took the new hidden prop that closes a menu when its trigger hides; the interaction-mode toggle it sits beside is not in this fork.",
+      "reviewedAt": "2026-09-05T20:20:27.470Z"
     }
   ]
 }
