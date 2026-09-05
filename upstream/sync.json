@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "246064993535e5d90107d3d7784ceef3cc883435",
+  "lastReviewed": "777f5bb2e11fe30e7fdcb5741b0b1d9bb20924d6",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3806,6 +3806,15 @@
       "ours": "96af62fb20e16b06d8651e3fd2d0885610f77c8e",
       "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
       "reviewedAt": "2026-09-05T21:18:33.461Z"
+    },
+    {
+      "upstream": "777f5bb2e11fe30e7fdcb5741b0b1d9bb20924d6",
+      "pr": 9693,
+      "title": "perf(mobile): reuse diff rows during comment edits",
+      "decision": "adapted",
+      "ours": "6622b5e7ca967aaff5f1c4e5f21f631308bed81a",
+      "reason": "Diff rows survive comment edits. Dropped the theme-variable helpers upstream's test carries: #51 removed the theme editor and mobileTheme.test-support with it.",
+      "reviewedAt": "2026-09-05T21:19:29.704Z"
     }
   ]
 }
