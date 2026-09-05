@@ -51,6 +51,7 @@ type TraitsRenderInput = {
   prompt: string;
   onPromptChange: (prompt: string) => void;
   size?: ComposerControlSize;
+  hidden?: boolean;
   triggerVariant?: VariantProps<typeof buttonVariants>["variant"];
   triggerClassName?: string;
   isComposerOwned?: boolean;
@@ -121,6 +122,7 @@ function renderTraitsControl(
     prompt,
     onPromptChange,
     size,
+    hidden,
     triggerVariant,
     triggerClassName,
     isComposerOwned,
@@ -150,6 +152,7 @@ function renderTraitsControl(
       prompt={prompt}
       onPromptChange={onPromptChange}
       {...(size !== undefined ? { size } : {})}
+      {...(hidden !== undefined ? { hidden } : {})}
       {...(triggerVariant !== undefined ? { triggerVariant } : {})}
       {...(triggerClassName !== undefined ? { triggerClassName } : {})}
       {...(isComposerOwned ? { isComposerOwned } : {})}

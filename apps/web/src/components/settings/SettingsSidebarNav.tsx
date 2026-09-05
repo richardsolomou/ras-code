@@ -1,4 +1,6 @@
 import {
+  lazy,
+  Suspense,
   useCallback,
   useEffect,
   useMemo,
@@ -36,7 +38,6 @@ import {
   SidebarMenuSubItem,
   useSidebar,
 } from "../ui/sidebar";
-import { RasConnectSidebarAvatar, RasConnectSidebarSignIn } from "../clerk/RasConnectSidebarSignIn";
 import { SidebarUtilityMenu } from "../sidebar/SidebarChrome";
 import { scrollToSettingsTarget } from "./settingsLayout";
 import {
@@ -46,6 +47,17 @@ import {
   type SettingsSearchItem,
 } from "./settingsSearch";
 import { useAvailableSettingsSearchItems } from "./useAvailableSettingsSearchItems";
+
+const RasConnectSidebarSignIn = lazy(() =>
+  import("../clerk/RasConnectSidebarSignIn").then((module) => ({
+    default: module.RasConnectSidebarSignIn,
+  })),
+);
+const RasConnectSidebarAvatar = lazy(() =>
+  import("../clerk/RasConnectSidebarSignIn").then((module) => ({
+    default: module.RasConnectSidebarAvatar,
+  })),
+);
 
 const SETTINGS_SECTION_ICONS: Readonly<
   Record<SettingsPath, ComponentType<{ className?: string }>>
@@ -353,7 +365,7 @@ export function SettingsSidebarNav({ pathname }: { pathname: string }) {
                             <SidebarMenuSubButton
                               render={<button type="button" />}
                               size="sm"
-                              className="text-sidebar-muted-foreground/65"
+                              className="w-full text-sidebar-muted-foreground/65"
                               onClick={() => handlePageSectionClick(item.to, section.targetId)}
                             >
                               <span className="ms-0.5">{section.label}</span>
@@ -370,12 +382,16 @@ export function SettingsSidebarNav({ pathname }: { pathname: string }) {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="p-[var(--sidebar-content-inset)]">
-        <RasConnectSidebarSignIn />
+        <Suspense fallback={null}>
+          <RasConnectSidebarSignIn />
+        </Suspense>
         <div className="flex items-center gap-1">
           <div className="min-w-0 flex-1">
             <SidebarUtilityMenu />
           </div>
-          <RasConnectSidebarAvatar />
+          <Suspense fallback={null}>
+            <RasConnectSidebarAvatar />
+          </Suspense>
         </div>
       </SidebarFooter>
     </>

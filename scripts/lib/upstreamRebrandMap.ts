@@ -98,6 +98,16 @@ const textRules: ReadonlyArray<RebrandRule> = [
     description: "product identifiers nested inside delimiters",
   },
   {
+    pattern: /T3Connect(?=[A-Z]|\b)/g,
+    replacement: "RasConnect",
+    description: "remote access product name in PascalCase identifiers",
+  },
+  {
+    pattern: /\bt3Connect(?=[A-Z]|\b)/g,
+    replacement: "rasConnect",
+    description: "remote access product name in camelCase identifiers",
+  },
+  {
     pattern: /\bT3 Connect\b/g,
     replacement: "RAS Connect",
     description: "remote access product name",

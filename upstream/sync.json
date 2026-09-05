@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "c5ba51d629b3813182cf3e161cc3f23b1e541dc3",
+  "lastReviewed": "bf40fa786c521b552eb554bbd4f2c75c4123cd03",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3248,6 +3248,186 @@
       "ours": "2c17905f2327ede73f3b927fb1d94166304ca7bf",
       "reason": "Adopted the compaction command. The runtime event pipeline becomes upstream's generator with our provider analytics recording folded back in after the counter. In the reactor, upstream's compaction guard and failure handling land ahead of our usage-limit fallback routing, minus the sendTurnRequest it opens, since this fork dispatches through dispatchTurn. Our extracted turn-start failure handlers and model matcher stay.",
       "reviewedAt": "2026-09-05T19:13:03.068Z"
+    },
+    {
+      "upstream": "5989de44a24888dab02854477ea1d0f50ac3a4a6",
+      "pr": 9548,
+      "title": "fix(mobile): keep store screenshots free of system banners and show dictation",
+      "decision": "adopted",
+      "ours": "e90aba290d56140b16837496bc834eb0ff2459cb",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T20:19:48.585Z"
+    },
+    {
+      "upstream": "54aef6fbe16f637092505b30bd25230c4b0744d8",
+      "pr": 9539,
+      "title": "fix(web): restore composer controls as space becomes available",
+      "decision": "adopted",
+      "ours": "a67175a8d7fa43799366cf54843896dda962559c",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T20:19:48.586Z"
+    },
+    {
+      "upstream": "3c3e05ccfe34ab7af273f4a4faa72909cafd7a21",
+      "pr": 9540,
+      "title": "fix(web): measure collapsed model labels at their visible width",
+      "decision": "adopted",
+      "ours": "1fa13d5d589ac3f879f33a9237220fba9dec8328",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T20:19:48.586Z"
+    },
+    {
+      "upstream": "f239b77df93077e40c27cc5c5909e94266571859",
+      "pr": 9541,
+      "title": "fix(web): close composer menus when their controls hide",
+      "decision": "adapted",
+      "ours": "36734af00851739be6c7b904045a797e0fb98886",
+      "reason": "Took the new hidden prop that closes a menu when its trigger hides; the interaction-mode toggle it sits beside is not in this fork.",
+      "reviewedAt": "2026-09-05T20:20:27.470Z"
+    },
+    {
+      "upstream": "3e2c1a66f74f0a45768332c360cd3682f61129e1",
+      "pr": 9473,
+      "title": "fix(web): thread error banner no longer shifts the chat",
+      "decision": "adopted",
+      "ours": "a09455f8c361b64362c7f425103de3f8c7fc8d70",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T20:20:31.464Z"
+    },
+    {
+      "upstream": "617edab6539ee6573055dc9fc45fdeacdb12f673",
+      "pr": 9551,
+      "title": "fix(server): reveal normalized paths in File Explorer",
+      "decision": "adopted",
+      "ours": "fef47f76c4f14cc246bfafd8f87007e348ed95b4",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T20:20:31.464Z"
+    },
+    {
+      "upstream": "232de5e8aac61e6f3de4bc61d10746167db9e905",
+      "pr": 9547,
+      "title": "feat(marketing): fresh screenshot and floating marks on the homepage",
+      "decision": "skipped",
+      "ours": null,
+      "reason": "Touches apps/marketing, which we replaced.",
+      "reviewedAt": "2026-09-05T20:20:39.845Z"
+    },
+    {
+      "upstream": "1641b4aba58ab495cad7a9800b173af3416e16dd",
+      "pr": 9534,
+      "title": "feat(usage): redeem Codex reset credits from the Limits tab",
+      "decision": "adapted",
+      "ours": "5302d5417d19f4185a3bd273273fadd65b34ac7d",
+      "reason": "Adopted the reset-credit redemption. Upstream deletes the probe spawn block our fork had only rebranded; the Codex client name it carried lives on in the block upstream kept, already spelled ras-code_desktop.",
+      "reviewedAt": "2026-09-05T20:21:52.163Z"
+    },
+    {
+      "upstream": "4e547318b60031eb546d8cf2b84ad9fa0785a87a",
+      "pr": 9125,
+      "title": "fix(server): find newly opened pull requests after agent turns",
+      "decision": "adapted",
+      "ours": "d47e87b6621e45e52f8107b0100edb04028eb2c3",
+      "reason": "Adopted the fix. Our fork had added its own test at the same point covering a durable link for a pull request discovered after a turn; upstream's covers re-asking at turn end while the branch is checked out. Both kept.",
+      "reviewedAt": "2026-09-05T20:22:50.501Z"
+    },
+    {
+      "upstream": "f96a220b5b154ea44c94bf43929c6362cd511699",
+      "pr": 9538,
+      "title": "ci: add on-demand Windows test workflow",
+      "decision": "adopted",
+      "ours": "380df4832e601f93ce490892f42a86bf2fcc58ee",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T20:22:55.776Z"
+    },
+    {
+      "upstream": "710f6dc417ebf303eede3df3605a6938482d83ab",
+      "pr": 9549,
+      "title": "fix(web): simplify expanded tool details",
+      "decision": "adopted",
+      "ours": "2ed6541e0037e3d0f7ddcefae239a4561758a123",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T20:22:55.777Z"
+    },
+    {
+      "upstream": "9e1bc36a0843699db54ee28abbdac70584ae8f33",
+      "pr": 9553,
+      "title": "fix(web): keep the last message visible when the resting composer expands",
+      "decision": "adapted",
+      "ours": "476add13c82bb2f3e1fc6f570f363c240bd50ec1",
+      "reason": "Code applied clean; both conflicts were comments our fork had trimmed and upstream then rewrote, so upstream's now describe the current code.",
+      "reviewedAt": "2026-09-05T20:23:29.851Z"
+    },
+    {
+      "upstream": "fee2e0ff8168b82ab19f496fcc874c1f3871f522",
+      "pr": 9558,
+      "title": "test(web): fix flaky startup and Tailwind tests",
+      "decision": "adopted",
+      "ours": "1272c67e46c813c0e4d347e1933b6fb704e733a6",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T20:23:40.995Z"
+    },
+    {
+      "upstream": "65f1839ae82af4e67f389f23e4ccc50f51a4a83f",
+      "pr": 9560,
+      "title": "fix(web): keep codex restart responses continuous",
+      "decision": "adopted",
+      "ours": "ad224a99366fc34c83853a3ec9d8946085c69ae3",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T20:23:40.996Z"
+    },
+    {
+      "upstream": "d7884ce90b9845e6e8aa737dfe02062b91b11c91",
+      "pr": 9562,
+      "title": "fix(web): make settings sidebar sub-section buttons full width",
+      "decision": "adopted",
+      "ours": "7c6656c47bffa0ca4c2b41f6d28b57cb1c53b551",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T20:23:40.996Z"
+    },
+    {
+      "upstream": "2b10398cca3fa74a7c2187c8d9c23ba789333f5b",
+      "pr": 9563,
+      "title": "fix(web): render settings sidebar immediately",
+      "decision": "adapted",
+      "ours": "cd8db993d3650171c8581f124fe479f36c55eafd",
+      "reason": "Took upstream's lazy import and Suspense boundaries so the settings sidebar paints before Clerk loads, under our RasConnect component names. The rebrand map gained a T3Connect rule: the generic PascalCase rule was turning it into RasCodeConnect, which is not the product name.",
+      "reviewedAt": "2026-09-05T20:25:13.698Z"
+    },
+    {
+      "upstream": "95390ed78458f139cb795bab4baa53ec39222ff7",
+      "pr": 9557,
+      "title": "chore: vouch august contributors",
+      "decision": "skipped",
+      "ours": null,
+      "reason": "Upstream's contributor trust list, which we do not inherit.",
+      "reviewedAt": "2026-09-05T20:25:27.133Z"
+    },
+    {
+      "upstream": "42bdea1c9c1d4b7c5c2e77cd23cf53fae68a6fd4",
+      "pr": 9554,
+      "title": "fix(web): stabilize right panel transitions",
+      "decision": "adapted",
+      "ours": "a968a7ef78bdaa612681faf8ced970a5f3ab1cf2",
+      "reason": "Took upstream's move of the panel layout controls out of the header; our pane controls stay where they were.",
+      "reviewedAt": "2026-09-05T20:26:03.094Z"
+    },
+    {
+      "upstream": "0cb02abf5b3af2985d9dd23a637a63388e98fd49",
+      "pr": 9371,
+      "title": "fix: better shell syntax handling for labels",
+      "decision": "adopted",
+      "ours": "0fda6c4e139b317879361461bf01a69375bfc631",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T20:26:06.546Z"
+    },
+    {
+      "upstream": "bf40fa786c521b552eb554bbd4f2c75c4123cd03",
+      "pr": 9578,
+      "title": "fix(web): align the sidebar wordmark by baseline",
+      "decision": "skipped",
+      "ours": null,
+      "reason": "Baseline-aligns upstream's sidebar wordmark. Ours is a different composition: the RAS mark beside a 'Code' text span inside a drag region, so there is no shared alignment to fix.",
+      "reviewedAt": "2026-09-05T20:26:43.157Z"
     }
   ]
 }
