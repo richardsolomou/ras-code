@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "082cab224624eb3a6cd494df3719c59014fb0c99",
+  "lastReviewed": "3b6be3ef4daa848e10c095d8a088064ac836be7f",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3716,6 +3716,15 @@
       "ours": "19dded3422dc13e6937f51722e30600d144e275a",
       "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
       "reviewedAt": "2026-09-05T21:12:52.571Z"
+    },
+    {
+      "upstream": "3b6be3ef4daa848e10c095d8a088064ac836be7f",
+      "pr": 9673,
+      "title": "perf(mobile): bound diff syntax highlighting work",
+      "decision": "adapted",
+      "ours": "f123dcd41a64df5982fee6bfa7152b333d41bc98",
+      "reason": "Took upstream's chunked tokenizer, which bounds the work per frame and aborts, in place of our tokenizeTimeLimit-only guard. Kept the limit itself at 0: their chunks still call codeToTokensBase with Shiki's 500ms default, which corrupts grammar state for everything after a slow chunk.",
+      "reviewedAt": "2026-09-05T21:13:52.494Z"
     }
   ]
 }
