@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "c4353bc6b972fa527579b530f01cc8744b2407d2",
+  "lastReviewed": "c7bf3115f2223ede5cb2316613dc7369155dbeb1",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -4013,6 +4013,33 @@
       "ours": "940d7419c2ff6ee08e3733c9e3c599e828972bda",
       "reason": "File-backed image drafts rebase into the current iOS container before they render. The inline subtle background that survived the extraction was upstream's own older shape, dropped with their new component.",
       "reviewedAt": "2026-09-05T21:53:48.958Z"
+    },
+    {
+      "upstream": "50bfca43d76ced00f5d67cfbab8bc44c50eb0e53",
+      "pr": 9726,
+      "title": "perf(server): replay only the selected thread",
+      "decision": "adopted",
+      "ours": "b0bad2e649b74b52fb072629bd4f8dca64f95dfb",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:54:02.996Z"
+    },
+    {
+      "upstream": "7d5dc66c151a9ca7bfef45cffc9d3516842c5566",
+      "pr": 9654,
+      "title": "fix(web): mute composer helper text",
+      "decision": "adopted",
+      "ours": "2f6006667f4433f211c8f60ef0c44d83150cb1d1",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:54:02.997Z"
+    },
+    {
+      "upstream": "c7bf3115f2223ede5cb2316613dc7369155dbeb1",
+      "pr": 9651,
+      "title": "feat(web): unpin threads from the sidebar multi-select menu",
+      "decision": "adopted",
+      "ours": "1ae6ea7bfd45604cc001ab60c722f7d0d4f994a1",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:54:02.997Z"
     }
   ]
 }
