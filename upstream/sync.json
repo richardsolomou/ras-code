@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "3bbbc1d9fd8b3d649c60ba0137c7dae93a6aab3f",
+  "lastReviewed": "dffb4cd3b16dc6f41aced99922950ee3083082c6",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3878,6 +3878,15 @@
       "ours": "6e60d2af8aec3a16d45409b0ee3beb2ffb1aa06a",
       "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
       "reviewedAt": "2026-09-05T21:47:53.564Z"
+    },
+    {
+      "upstream": "dffb4cd3b16dc6f41aced99922950ee3083082c6",
+      "pr": 9706,
+      "title": "perf(server): use one query for buffered provider events",
+      "decision": "adapted",
+      "ours": "1e23c0606aa77892a716603de5883b91e00ad977",
+      "reason": "Buffered provider events settle in one query, asserted with a SQL statement counter. Upstream's rewritten assertion uses our message id, which carries the turn.",
+      "reviewedAt": "2026-09-05T21:48:49.862Z"
     }
   ]
 }
