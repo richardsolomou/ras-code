@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "cfc9bf34156ddcc4a98b7f5c67193adb5aedce06",
+  "lastReviewed": "6365919f2e5bcfb4fa4020b95e19af26ae40979f",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -4076,6 +4076,87 @@
       "ours": "d8e83d036024ebf2b5c7e9cd5dd098275e202891",
       "reason": "Clean cherry-pick.",
       "reviewedAt": "2026-09-05T21:55:49.918Z"
+    },
+    {
+      "upstream": "cbe93e8dfba68ff6fbe8c69e43a633fdc79db62d",
+      "pr": 9743,
+      "title": "fix(web): show project settings for new threads",
+      "decision": "adopted",
+      "ours": "2302545e3e145cdfa486590a1d89a81381c78ce8",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:56:09.445Z"
+    },
+    {
+      "upstream": "d6e29dc9dee943b34d6b0d11441fa944c7bff7c9",
+      "pr": 9749,
+      "title": "perf(mobile): bound the parsed review cache",
+      "decision": "adopted",
+      "ours": "49b0b72f7653ba93129a2e0ece6185937be30a92",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:56:09.446Z"
+    },
+    {
+      "upstream": "fec606f9ae524277ef1f6886e614f32d9e15e36e",
+      "pr": 9747,
+      "title": "perf(web): avoid repeated terminal metadata scans",
+      "decision": "adopted",
+      "ours": "f0ed058ceabdcd758962f46fb34b6024cb22dda5",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:56:09.446Z"
+    },
+    {
+      "upstream": "cf9729d5ee9660c08556e823080d3bb19648ed28",
+      "pr": 9748,
+      "title": "perf(server): bound terminal history by bytes",
+      "decision": "adopted",
+      "ours": "9a09dcd9d663289f74609c0c2fb8b3b3ce86c04c",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:56:09.446Z"
+    },
+    {
+      "upstream": "a76b898b3aa4fd4081104b06a3b2c942bd4fecb7",
+      "pr": 9627,
+      "title": "feat(web): link pull request authors to profiles",
+      "decision": "adopted",
+      "ours": "2caa78b325548971310ea1c57fa76d951c3beebf",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:56:09.446Z"
+    },
+    {
+      "upstream": "0de956ed2f92b8a6ead56e1566801db232d365dc",
+      "pr": 9744,
+      "title": "fix(web): refine server update notice",
+      "decision": "adopted",
+      "ours": "9b427e39c15ec0ff82112d94bbda896702d05d35",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:56:09.447Z"
+    },
+    {
+      "upstream": "d7cf8aaa8d4fbcbdd523b4f4bc86fda5c47b4a70",
+      "pr": 9740,
+      "title": "perf(client): stop thread streams when unused",
+      "decision": "adopted",
+      "ours": "b6b19118e9736fab312dd944744dcb6c7b709576",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:56:09.447Z"
+    },
+    {
+      "upstream": "77b655c47b82c9b2aad09e447117b7618a16e21d",
+      "pr": 9752,
+      "title": "perf(mobile): defer file preview highlighter startup",
+      "decision": "adopted",
+      "ours": "c372644fd2ca9fa8087a6df47e875ea924816e81",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:56:09.447Z"
+    },
+    {
+      "upstream": "6365919f2e5bcfb4fa4020b95e19af26ae40979f",
+      "pr": 9758,
+      "title": "perf(server): skip history reads for metadata commands",
+      "decision": "adopted",
+      "ours": "181cf1d573d919711fe6e9b021074cc7e51d169c",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:56:09.447Z"
     }
   ]
 }
