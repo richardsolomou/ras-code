@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "4e547318b60031eb546d8cf2b84ad9fa0785a87a",
+  "lastReviewed": "710f6dc417ebf303eede3df3605a6938482d83ab",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3329,6 +3329,24 @@
       "ours": "d47e87b6621e45e52f8107b0100edb04028eb2c3",
       "reason": "Adopted the fix. Our fork had added its own test at the same point covering a durable link for a pull request discovered after a turn; upstream's covers re-asking at turn end while the branch is checked out. Both kept.",
       "reviewedAt": "2026-09-05T20:22:50.501Z"
+    },
+    {
+      "upstream": "f96a220b5b154ea44c94bf43929c6362cd511699",
+      "pr": 9538,
+      "title": "ci: add on-demand Windows test workflow",
+      "decision": "adopted",
+      "ours": "380df4832e601f93ce490892f42a86bf2fcc58ee",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T20:22:55.776Z"
+    },
+    {
+      "upstream": "710f6dc417ebf303eede3df3605a6938482d83ab",
+      "pr": 9549,
+      "title": "fix(web): simplify expanded tool details",
+      "decision": "adopted",
+      "ours": "2ed6541e0037e3d0f7ddcefae239a4561758a123",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T20:22:55.777Z"
     }
   ]
 }
