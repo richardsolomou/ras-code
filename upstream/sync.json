@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "f239b77df93077e40c27cc5c5909e94266571859",
+  "lastReviewed": "617edab6539ee6573055dc9fc45fdeacdb12f673",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3284,6 +3284,24 @@
       "ours": "36734af00851739be6c7b904045a797e0fb98886",
       "reason": "Took the new hidden prop that closes a menu when its trigger hides; the interaction-mode toggle it sits beside is not in this fork.",
       "reviewedAt": "2026-09-05T20:20:27.470Z"
+    },
+    {
+      "upstream": "3e2c1a66f74f0a45768332c360cd3682f61129e1",
+      "pr": 9473,
+      "title": "fix(web): thread error banner no longer shifts the chat",
+      "decision": "adopted",
+      "ours": "a09455f8c361b64362c7f425103de3f8c7fc8d70",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T20:20:31.464Z"
+    },
+    {
+      "upstream": "617edab6539ee6573055dc9fc45fdeacdb12f673",
+      "pr": 9551,
+      "title": "fix(server): reveal normalized paths in File Explorer",
+      "decision": "adopted",
+      "ours": "fef47f76c4f14cc246bfafd8f87007e348ed95b4",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T20:20:31.464Z"
     }
   ]
 }
