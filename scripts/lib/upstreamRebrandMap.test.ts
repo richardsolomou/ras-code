@@ -150,6 +150,13 @@ describe("rebrandText", () => {
     assert.strictEqual(rebrandText("scripts/t3-sqlite-state.ts"), "scripts/ras-sqlite-state.ts");
   });
 
+  it("rewrites the project file type inside a longer identifier", () => {
+    assert.strictEqual(
+      rebrandText("readT3ProjectFileDefaultThreadEnvMode"),
+      "readRasProjectFileDefaultThreadEnvMode",
+    );
+  });
+
   it("rewrites the Android Maven group", () => {
     assert.strictEqual(
       rebrandText("group = 'com.t3tools.markdowntext'"),
