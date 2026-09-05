@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "2b10398cca3fa74a7c2187c8d9c23ba789333f5b",
+  "lastReviewed": "95390ed78458f139cb795bab4baa53ec39222ff7",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3392,6 +3392,15 @@
       "ours": "cd8db993d3650171c8581f124fe479f36c55eafd",
       "reason": "Took upstream's lazy import and Suspense boundaries so the settings sidebar paints before Clerk loads, under our RasConnect component names. The rebrand map gained a T3Connect rule: the generic PascalCase rule was turning it into RasCodeConnect, which is not the product name.",
       "reviewedAt": "2026-09-05T20:25:13.698Z"
+    },
+    {
+      "upstream": "95390ed78458f139cb795bab4baa53ec39222ff7",
+      "pr": 9557,
+      "title": "chore: vouch august contributors",
+      "decision": "skipped",
+      "ours": null,
+      "reason": "Upstream's contributor trust list, which we do not inherit.",
+      "reviewedAt": "2026-09-05T20:25:27.133Z"
     }
   ]
 }
