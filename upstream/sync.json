@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "01f3e50eca5102ccd881de6f942a98fe6a518ad4",
+  "lastReviewed": "caa8a0db98f9d32e98a1645caa7f7dd37b14f187",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3671,6 +3671,15 @@
       "ours": "16c1c475db934f29f909fc8b391d9857630ce353",
       "reason": "OpenCode approvals and stop unblock. Two tests parameterised over enableLegacyTokenStreaming, a pre-ledger upstream setting this fork does not carry; both now assert buffered delivery, which is the only mode here.",
       "reviewedAt": "2026-09-05T21:07:31.442Z"
+    },
+    {
+      "upstream": "caa8a0db98f9d32e98a1645caa7f7dd37b14f187",
+      "pr": 9657,
+      "title": "fix(desktop): quit immediately on a second shortcut press",
+      "decision": "adopted",
+      "ours": "a89505410791188d82f82cd1ae038bae260eaff3",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-05T21:08:07.182Z"
     }
   ]
 }
