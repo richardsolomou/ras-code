@@ -1,23 +1,20 @@
 # Claude
 
-This guide is for people who want to use more than one Claude setup in RAS Code. For Codex, see
-[Codex](./providers-codex.md). For first-time setup, see [Install RAS Code](./install.md).
+RAS Code uses Claude Code's login and configuration. Start with the default provider
+for one account; [provider setup](./install.md#providers) covers installation and
+shared provider settings.
 
-Common reasons:
+## Separate accounts or configurations
 
-- use separate work and personal Claude accounts
-- try a different Claude Code configuration without disturbing your main setup
-- run Claude through a router such as Claude Code Router
-- use external providers exposed through a Claude-compatible workflow
+Use a separate Claude config directory for each account. This also works for named
+presets that need different Claude settings or a router connection.
 
-## I Only Use One Claude Account
-
-Use the default provider.
-
-Log in with Claude Code normally:
+Keep your existing account in the default directory. On the environment's machine,
+create the second login:
 
 ```bash
-claude auth login
+mkdir -p ~/.claude_personal
+CLAUDE_CONFIG_DIR=~/.claude_personal claude auth login
 ```
 
 In RAS Code Settings, your Claude provider can stay like this:

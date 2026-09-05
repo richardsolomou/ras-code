@@ -2,7 +2,7 @@
 
 > For maintainers. Using RAS Code? See [docs/user](../user/).
 
-A pnpm workspace driven by [vite-plus](https://vite.plus) (`vp`). See [scripts.md](./scripts.md) for
+A pnpm workspace driven by [vite-plus](https://vite.plus) (`vp`). See the [development runbook](../operations/development.md) for
 the task commands.
 
 ## apps

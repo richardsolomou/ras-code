@@ -27,7 +27,7 @@ The server is event-sourced: clients send typed commands, a pure decider turns t
 
 ## Scope
 
-RAS Code is an independent, opinionated fork. It tracks upstream T3 Code changes selectively while shipping its own desktop, web, mobile, and hosted RAS Connect surfaces. Existing T3 Code wire contracts remain append-only for compatibility.
+RAS Code is an independent, opinionated fork. It tracks upstream RAS Code changes selectively while shipping its own desktop, web, mobile, and hosted RAS Connect surfaces. Existing RAS Code wire contracts remain append-only for compatibility.
 
 ## Use
 
@@ -73,6 +73,6 @@ See [docs/internals/overview.md](docs/internals/overview.md) for the full pictur
 
 ## Credits and license
 
-RAS Code is a fork of [T3 Code](https://github.com/pingdotgg/t3code) by Ping Labs. T3 Code and T3 are marks of Ping Labs; RAS Code is unofficial and is not endorsed by them.
+RAS Code is a fork of [T3 Code](https://github.com/pingdotgg/t3code) by Ping Labs. RAS Code and RAS Code are marks of Ping Labs; RAS Code is unofficial and is not endorsed by them.
 
 RAS Code is licensed under the [MIT License](LICENSE).

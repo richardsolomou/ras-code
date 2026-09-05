@@ -341,7 +341,6 @@ const directoryRenames: ReadonlyArray<readonly [string, string]> = [
 const pathRules: ReadonlyArray<readonly [RegExp, string]> = [
   [/^t3\.json$/, "ras.json"],
   [/\bt3-connect\b/, "ras-connect"],
-  [/\bt3-code-connect-auth-flow\b/, "ras-code-connect-auth-flow"],
   [/T3ProjectFile/g, "RasProjectFile"],
   [/\bt3ProjectFile/g, "rasProjectFile"],
   [

@@ -7,9 +7,9 @@ The relay is the hosted control plane for RAS Connect. It helps clients discover
 remote environments, manages the cloud-side records needed for those connections, and delivers
 optional mobile notifications and Live Activities.
 
-Managed traffic passes through the relay Worker's shared path gateway. A per-environment Durable
-Object multiplexes it over the RAS Code server's authenticated outbound connector.
-See the [RAS Connect architecture overview](../../docs/internals/ras-code-connect-auth-flow.html) for the larger system
+The relay is intentionally not in the hot path for normal RAS Code traffic. After a client connects,
+regular API and WebSocket traffic goes directly between that client and the selected environment.
+See the [RAS Connect architecture note](../../docs/internals/ras-connect.md) for the larger system
 design.
 
 ## Responsibilities
@@ -163,9 +163,7 @@ publishable key from the same environment for downstream desktop, CLI, and hoste
 
 See:
 
-- [RAS Connect Clerk Setup](../../docs/internals/ras-connect.md) for Clerk keys, JWT templates, and sign-up restrictions
-  setup.
+- [RAS Connect setup](../../docs/operations/connect-setup.md) for Clerk keys, JWT templates, and sign-up restrictions.
 - [Relay Database](../../docs/operations/relay-database.md) for the tunnel, Access, and migration topology.
 - [Relay Observability](../../docs/operations/relay-observability.md) for deployment tracing and diagnostics.
-- [RAS Connect Architecture Overview](../../docs/internals/ras-code-connect-auth-flow.html) for the full link,
-  connect, endpoint, and notification flows.
+- [RAS Connect architecture](../../docs/internals/ras-connect.md) for environment linking and trust boundaries.

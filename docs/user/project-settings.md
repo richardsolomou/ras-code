@@ -57,10 +57,9 @@ From a terminal, `ras project model <project> --inherit` clears a project's own 
 
 ## Keep the default branch current
 
-Turn on **Automatically pull** in a project's settings to keep its default-branch checkout current.
-RAS Code checks in the background and when the server starts. It uses the branch's configured
-upstream and only performs a fast-forward pull when the checkout has no working-tree changes,
-untracked files, or local commits.
+Enable **Automatically pull** to keep the default-branch checkout up to date with its configured
+upstream.
 
-The pull is skipped if the checkout is on another branch, has no upstream, or contains local work.
-Pull failures do not prevent the server from starting.
+RAS Code only pulls when it can fast-forward and the checkout has no changed files, untracked files,
+or local commits. It skips checkouts on another branch or without an upstream. If a checkout has
+local work, resolve it yourself before automatic pulls can resume.
