@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "c5ba51d629b3813182cf3e161cc3f23b1e541dc3",
+  "lastReviewed": "3c3e05ccfe34ab7af273f4a4faa72909cafd7a21",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3248,6 +3248,33 @@
       "ours": "2c17905f2327ede73f3b927fb1d94166304ca7bf",
       "reason": "Adopted the compaction command. The runtime event pipeline becomes upstream's generator with our provider analytics recording folded back in after the counter. In the reactor, upstream's compaction guard and failure handling land ahead of our usage-limit fallback routing, minus the sendTurnRequest it opens, since this fork dispatches through dispatchTurn. Our extracted turn-start failure handlers and model matcher stay.",
       "reviewedAt": "2026-09-05T19:13:03.068Z"
+    },
+    {
+      "upstream": "5989de44a24888dab02854477ea1d0f50ac3a4a6",
+      "pr": 9548,
+      "title": "fix(mobile): keep store screenshots free of system banners and show dictation",
+      "decision": "adopted",
+      "ours": "e90aba290d56140b16837496bc834eb0ff2459cb",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T20:19:48.585Z"
+    },
+    {
+      "upstream": "54aef6fbe16f637092505b30bd25230c4b0744d8",
+      "pr": 9539,
+      "title": "fix(web): restore composer controls as space becomes available",
+      "decision": "adopted",
+      "ours": "a67175a8d7fa43799366cf54843896dda962559c",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T20:19:48.586Z"
+    },
+    {
+      "upstream": "3c3e05ccfe34ab7af273f4a4faa72909cafd7a21",
+      "pr": 9540,
+      "title": "fix(web): measure collapsed model labels at their visible width",
+      "decision": "adopted",
+      "ours": "1fa13d5d589ac3f879f33a9237220fba9dec8328",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T20:19:48.586Z"
     }
   ]
 }
