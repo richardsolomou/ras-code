@@ -4421,16 +4421,6 @@
       "reviewedAt": "2026-09-05T23:07:47.129Z"
     },
     {
-      "upstream": "5e1c23d769b182018f5bd6d3623a7edec13d26bc",
-      "pr": 9778,
-      "title": "docs(web): document panel motion during navigation",
-      "decision": "deferred",
-      "ours": null,
-      "intent": "The appearance guide says panel transitions pause while a route change is in flight.",
-      "reason": "Edits docs/user/appearance.md, which 9e1fb459a creates and which is deferred. Lands with that restructure.",
-      "reviewedAt": "2026-09-05T23:08:20.165Z"
-    },
-    {
       "upstream": "394e8470c89927a06575e08c434006b2320f1781",
       "pr": 9774,
       "title": "feat(usage): support custom model prices",
@@ -4537,6 +4527,15 @@
       "ours": "5289f101845797800a831302aa3123e63a1d338d",
       "reason": "User guides move to upstream's shorter, feature-led shape. Our pages stay where they document features the fork ships and upstream trimmed; source-control was rebuilt on upstream's structure with our GitHub labels and agent-linked pull requests folded in. Picked up upstream's mobile store links, the Codex /feedback command, and the tool-icon guidance, and repaired a mislabelled Mobile app section that held the ras-code app text.",
       "reviewedAt": "2026-09-05T23:48:36.070Z"
+    },
+    {
+      "upstream": "5e1c23d769b182018f5bd6d3623a7edec13d26bc",
+      "pr": 9778,
+      "title": "docs(web): document panel motion during navigation",
+      "decision": "adopted",
+      "ours": "91af2997a2a2e0c8ffdb905428bdddf67d108fbe",
+      "reason": "Clean cherry-pick once the docs restructure that creates appearance.md had landed.",
+      "reviewedAt": "2026-09-05T23:48:51.313Z"
     }
   ]
 }
