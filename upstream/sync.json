@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "42bdea1c9c1d4b7c5c2e77cd23cf53fae68a6fd4",
+  "lastReviewed": "0cb02abf5b3af2985d9dd23a637a63388e98fd49",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3410,6 +3410,15 @@
       "ours": "a968a7ef78bdaa612681faf8ced970a5f3ab1cf2",
       "reason": "Took upstream's move of the panel layout controls out of the header; our pane controls stay where they were.",
       "reviewedAt": "2026-09-05T20:26:03.094Z"
+    },
+    {
+      "upstream": "0cb02abf5b3af2985d9dd23a637a63388e98fd49",
+      "pr": 9371,
+      "title": "fix: better shell syntax handling for labels",
+      "decision": "adopted",
+      "ours": "0fda6c4e139b317879361461bf01a69375bfc631",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T20:26:06.546Z"
     }
   ]
 }
