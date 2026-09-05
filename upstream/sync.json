@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "0a0b6be96833adae68b36540c00d347eda278736",
+  "lastReviewed": "19d8ab2ae9fc562ee7b216a0d72903fbfafa9572",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3140,6 +3140,15 @@
       "ours": "b18f328b9501b80451aee5c045362fd00cbb71a7",
       "reason": "Clean cherry-pick.",
       "reviewedAt": "2026-09-05T11:56:18.929Z"
+    },
+    {
+      "upstream": "19d8ab2ae9fc562ee7b216a0d72903fbfafa9572",
+      "pr": 9507,
+      "title": "feat(usage): show Codex and Claude subscription limits on a Limits tab",
+      "decision": "adapted",
+      "ours": "ad8b13d904f27c313f6c360afa5086b2894d8b5c",
+      "reason": "Converged on upstream normalising rate limits at the adapter boundary: the account.rate-limits.updated payload becomes {limits} and our fallback routing reads it through a new providerUsageLimitFromWindows, which keeps the rule the Codex parsing had, that an exhausted account reports the furthest reset because quota only returns when the last full window resets. The fork-only gateway driver implements applyUsageLimits as a documented no-op, since its snapshot is recomposed from its two children on every publish. Kept our probe model rows inside upstream's restructured SDK fixture.",
+      "reviewedAt": "2026-09-05T16:31:14.402Z"
     }
   ]
 }
