@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "343db2c328af56fe0fa7672f3af055550832689b",
+  "lastReviewed": "2b96220f00de09b61327c8e881b7f509f8cc5a79",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3158,6 +3158,15 @@
       "ours": "ccd406b2539b04e49d7857b6c590ded3ec4dc7c8",
       "reason": "Converged the settings pages onto upstream's shared SettingsSection and SettingsRow treatment, including the provider editor and list row, keeping our legend heading style. Upstream moves the refresh control and last-checked summary from the list footer into the section header; ours went with it, and the add-provider button becomes icon-only with a tooltip, which a browser pass showed was overflowing its 26px box while it still carried a text child. The Appearance split is not taken: it separates a theme library and contrast and glass rows that #51 and #23 removed, so there is nothing here to separate. ThemeSettings stays deleted.",
       "reviewedAt": "2026-09-05T17:14:59.660Z"
+    },
+    {
+      "upstream": "2b96220f00de09b61327c8e881b7f509f8cc5a79",
+      "pr": 9528,
+      "title": "fix(server): settle branch threads immediately on pull request merge",
+      "decision": "adopted",
+      "ours": "92f43df1164b418cf46fd3312cf64c2f0ef6ad10",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T18:58:52.539Z"
     }
   ]
 }
