@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "0ba06a122bc73f705bfc18875366b4eeb1160992",
+  "lastReviewed": "07c4ab5077fa9c32bf34ab07dd2caa3907878dd9",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3212,6 +3212,15 @@
       "ours": "453deed4084c0e474f820ddf49eb83ed736c5c47",
       "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
       "reviewedAt": "2026-09-05T19:00:38.852Z"
+    },
+    {
+      "upstream": "07c4ab5077fa9c32bf34ab07dd2caa3907878dd9",
+      "pr": 9535,
+      "title": "fix(web): keep automatic project icons consistent",
+      "decision": "obsolete",
+      "ours": null,
+      "reason": "Keeps the project-name-derived icon stable when the sidebar shows a repository label instead of the project title. #52 replaced that surface with a saved emoji plus the project favicon, so ProjectFavicon takes neither projectName nor projectIcon and there is no derived icon to keep consistent.",
+      "reviewedAt": "2026-09-05T19:01:15.277Z"
     }
   ]
 }
