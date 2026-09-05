@@ -71,27 +71,29 @@ describe("mergeRemoteModelsIntoCustomModels", () => {
     { id: "moonshotai/kimi-k3" },
   ];
 
+  const definition = (slug: string) => ({ slug, name: slug, capabilities: null });
+
   it("appends new ids after the ones already saved", () => {
     expect(
       mergeRemoteModelsIntoCustomModels(
-        ["kept"],
+        [definition("kept")],
         [{ id: "claude-a" }, { id: "claude-b" }],
         claudeDriver,
       ),
-    ).toEqual(["kept", "claude-a", "claude-b"]);
+    ).toEqual([definition("kept"), definition("claude-a"), definition("claude-b")]);
   });
 
   it("keeps only Claude ids for a Claude instance, which speaks Anthropic Messages", () => {
     expect(mergeRemoteModelsIntoCustomModels([], catalog, claudeDriver)).toEqual([
-      "claude-sonnet-4-6",
+      definition("claude-sonnet-4-6"),
     ]);
   });
 
   it("drops Claude ids for a Codex instance, which the gateway refuses on the Responses shape", () => {
     expect(mergeRemoteModelsIntoCustomModels([], catalog, codexDriver)).toEqual([
-      "gpt-5.4",
-      "zai-org/glm-5.2",
-      "moonshotai/kimi-k3",
+      definition("gpt-5.4"),
+      definition("zai-org/glm-5.2"),
+      definition("moonshotai/kimi-k3"),
     ]);
   });
 
@@ -102,15 +104,15 @@ describe("mergeRemoteModelsIntoCustomModels", () => {
   });
 
   it("drops ids the instance already has", () => {
-    expect(mergeRemoteModelsIntoCustomModels(["kept"], [{ id: "kept" }], claudeDriver)).toEqual([
-      "kept",
-    ]);
+    expect(
+      mergeRemoteModelsIntoCustomModels([definition("kept")], [{ id: "kept" }], claudeDriver),
+    ).toEqual([definition("kept")]);
   });
 
   it("drops duplicates within one gateway response", () => {
     expect(
       mergeRemoteModelsIntoCustomModels([], [{ id: "claude-a" }, { id: "claude-a" }], claudeDriver),
-    ).toEqual(["claude-a"]);
+    ).toEqual([definition("claude-a")]);
   });
 
   it("ignores blank ids", () => {
