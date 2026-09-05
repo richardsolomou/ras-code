@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "389bbcc8d9dd5c463668944f7093052301c8a850",
+  "lastReviewed": "5a2f3ebf6ee6eab6124ad68272c2fb5d74bc0f5d",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -4485,6 +4485,15 @@
       "ours": "2cb552c04d3774aea7a67b96a28f470a45499e6d",
       "reason": "Toggle thumbs get consistent inset spacing. The checked track keeps our success colour.",
       "reviewedAt": "2026-09-05T23:11:34.812Z"
+    },
+    {
+      "upstream": "5a2f3ebf6ee6eab6124ad68272c2fb5d74bc0f5d",
+      "pr": 9781,
+      "title": "fix(web): use segmented controls for mode switches",
+      "decision": "adapted",
+      "ours": "cc6280d6931bcf22117086f3ab6d946e80e70389",
+      "reason": "Mode switches become segmented controls, which retires providerSettingsTabs.ts. Our SettingsDeviceTabs was its last consumer and now carries the underlined tab style itself: a device switcher is not a mode switch. ThemeEditorPanel.tsx, which #51 removed, is registered with the rest of the theme editor.",
+      "reviewedAt": "2026-09-05T23:13:22.690Z"
     }
   ]
 }
