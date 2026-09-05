@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "5a2f3ebf6ee6eab6124ad68272c2fb5d74bc0f5d",
+  "lastReviewed": "b906ce2d73d025e801877f42a35b7a2f5629806f",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -4494,6 +4494,15 @@
       "ours": "cc6280d6931bcf22117086f3ab6d946e80e70389",
       "reason": "Mode switches become segmented controls, which retires providerSettingsTabs.ts. Our SettingsDeviceTabs was its last consumer and now carries the underlined tab style itself: a device switcher is not a mode switch. ThemeEditorPanel.tsx, which #51 removed, is registered with the rest of the theme editor.",
       "reviewedAt": "2026-09-05T23:13:22.690Z"
+    },
+    {
+      "upstream": "b906ce2d73d025e801877f42a35b7a2f5629806f",
+      "pr": 9803,
+      "title": "fix(server): recover opted-in threads after machine restarts",
+      "decision": "adapted",
+      "ours": "436944eee94252560c03ae601059b3de83e7f28e",
+      "reason": "Opted-in threads recover after a restart, with the opt-in moving from client settings to an environment-owned one. The merge left the client copy and two stray commas where #23's removed confirmation settings had shifted the anchor. Our updating guide names the renamed preference where it already covered it.",
+      "reviewedAt": "2026-09-05T23:16:56.545Z"
     }
   ]
 }

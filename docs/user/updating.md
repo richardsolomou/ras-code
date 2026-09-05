@@ -16,11 +16,12 @@ update the server, and the version difference remains visible in Connections.
 ## Before You Update
 
 Updating restarts the server, so the connection will disappear briefly. **Settings** → **General**
-has a **Continue threads after server updates** preference. It is off by default. When enabled, the
-update buttons automatically resume supported provider threads after the replacement server is
-ready. Providers with native promptless continuation use it; other providers receive a short
-instruction to continue where they left off. Terminal commands and other running work may still be
-interrupted during the update.
+has a **Continue threads after restarts** preference, set per environment. It is off by default.
+When enabled, supported provider threads resume after an update, a crash, or a machine restart,
+without needing a connected client. RAS Code has to start again on that machine; the preference does
+not enable automatic startup. Providers with native promptless continuation use it; other providers
+receive a short instruction to continue where they left off. Threads with no saved provider resume
+state need a new message. Terminal commands and other running work may still be interrupted.
 
 The update does not remove saved threads, settings, or project files.
 

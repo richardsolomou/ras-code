@@ -27,7 +27,6 @@ const clientSettings: ClientSettings = {
   browserProfiles: [{ id: "work", name: "Work", kind: "persistent" }],
   browserDefaultProfileId: "work",
   confirmQuit: "double-click",
-  continueThreadsAfterServerUpdate: true,
   contextWindowMeterEnabled: false,
   composerCollapseOnBlur: false,
   composerCollapseOnScroll: true,
