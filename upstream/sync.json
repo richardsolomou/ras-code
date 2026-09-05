@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "cd713679bbe06c435823bafc48e5bcfa3266a9aa",
+  "lastReviewed": "bfef973d9ec64e580fff4197ac53085207471ffd",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -4240,6 +4240,33 @@
       "ours": "3b98f30e0a88701ceb719414a50ba2bce7f25e75",
       "reason": "Panel transitions stop while a route change is in flight. Upstream's suppression provider sits inside our ThreadDragProvider, and the legacy sidebar branch it reintroduced stays out: #23 removed it.",
       "reviewedAt": "2026-09-05T22:06:50.095Z"
+    },
+    {
+      "upstream": "8e056a0e5124775b9439751667bac483d7b5320a",
+      "pr": 9767,
+      "title": "fix(web): open composer selectors below controls",
+      "decision": "adopted",
+      "ours": "c1cce262474fe90d3bf7ca8d8826f44d859aca9e",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T22:07:03.310Z"
+    },
+    {
+      "upstream": "163d86a78430d23414abde323ca70d8379280c0b",
+      "pr": 9768,
+      "title": "perf(server): skip unused Linux process detail reads",
+      "decision": "adopted",
+      "ours": "9fd683e19267974c0695a159c1e8f8e92b7059a9",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T22:07:03.310Z"
+    },
+    {
+      "upstream": "bfef973d9ec64e580fff4197ac53085207471ffd",
+      "pr": 9773,
+      "title": "fix(server): remove retired Codex models after refresh",
+      "decision": "adopted",
+      "ours": "e39808b2fd4a0b8c3f783889fd5c545861c326be",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T22:07:03.311Z"
     }
   ]
 }
