@@ -59,7 +59,7 @@ import {
   hasMeaningfulAssistantText,
   isUsageLimitFailureMessage,
   PASSIVE_ITEM_TYPES,
-  normalizeProviderUsageLimit,
+  providerUsageLimitFromWindows,
 } from "../../provider/providerUsageLimit.ts";
 import { ProviderRegistry } from "../../provider/Services/ProviderRegistry.ts";
 import { OrchestrationEngineService } from "../Services/OrchestrationEngine.ts";
@@ -2098,7 +2098,7 @@ const make = Effect.gen(function* () {
       if (instanceId === undefined) {
         return;
       }
-      const usageLimit = normalizeProviderUsageLimit(event.payload.rateLimits);
+      const usageLimit = providerUsageLimitFromWindows(event.payload.limits);
       if (usageLimit === null) {
         return;
       }

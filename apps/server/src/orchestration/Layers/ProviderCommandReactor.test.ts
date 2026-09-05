@@ -3666,7 +3666,9 @@ describe("ProviderCommandReactor", () => {
           createdAt: "2026-01-01T00:00:00.000Z",
           type: "account.rate-limits.updated",
           payload: {
-            rateLimits: { type: "rate_limit_event", rate_limit_info: { status: "allowed" } },
+            limits: {
+              windows: [{ id: "five_hour", kind: "session", label: "5 hour", usedPercent: 12 }],
+            },
           },
         });
         return harness.usageLimits.get(PRIMARY)?.status === "ok";
@@ -4260,9 +4262,16 @@ describe("ProviderCommandReactor", () => {
         createdAt: "2026-01-01T00:00:00.000Z",
         type: "account.rate-limits.updated",
         payload: {
-          rateLimits: {
-            type: "rate_limit_event",
-            rate_limit_info: { status: "rejected", resetsAt: 4_070_908_800 },
+          limits: {
+            windows: [
+              {
+                id: "five_hour",
+                kind: "session",
+                label: "5 hour",
+                usedPercent: 100,
+                resetsAt: "2098-12-31T00:00:00.000Z",
+              },
+            ],
           },
         },
       });

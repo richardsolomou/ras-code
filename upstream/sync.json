@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "c0ebc882b88dbcffd5a712e403b3c3c517ba4ea6",
+  "lastReviewed": "19d8ab2ae9fc562ee7b216a0d72903fbfafa9572",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3086,6 +3086,69 @@
       "ours": "a58797626fe98c17fff87aad6fbac2f1f1540ee1",
       "reason": "Clean cherry-pick.",
       "reviewedAt": "2026-09-05T11:15:33.539Z"
+    },
+    {
+      "upstream": "9c9ae3dc0e94a957d9c4a61bb211caf914828054",
+      "pr": 9521,
+      "title": "fix(server): keep events during thread subscription startup",
+      "decision": "adopted",
+      "ours": "6324a030e14e982227aaefab1eb60ab7347e9c31",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:48:30.602Z"
+    },
+    {
+      "upstream": "44701efd6790c39dc82cb08104f7295e1780210f",
+      "pr": 9518,
+      "title": "chore: forward issue/PR/discussion events to Cursor hygiene",
+      "decision": "adopted",
+      "ours": "05b688d10946921f1d49960abcd8a63eae0ebcca",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:48:30.603Z"
+    },
+    {
+      "upstream": "9d28c21a26aeef198cb064fe466e49cbeabfe09c",
+      "pr": 9523,
+      "title": "fix(auth): keep pairing credentials out of access read models",
+      "decision": "adopted",
+      "ours": "7467a8f7e408286d5b165dd2f89d6222a6453f08",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:48:30.603Z"
+    },
+    {
+      "upstream": "e3723e06b5b154a3e0ede55c02e2cabc5301d3bf",
+      "pr": 9527,
+      "title": "chore: drop comment events from Cursor hygiene forwarder",
+      "decision": "adopted",
+      "ours": "23a9aaf5c7467192dca1f85f23ec34d3802f50cd",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:48:30.603Z"
+    },
+    {
+      "upstream": "d76b24dd15a219666941ab1b4967d8f738adcda0",
+      "pr": 9512,
+      "title": "feat(codex): support async questions",
+      "decision": "adapted",
+      "ours": "a43f24dca493ca42e4c5811dee81a9d384a64695",
+      "reason": "Adopted async questions. Two upstream tests did not build here: one imported AuthStandardClientScopes our import block already had, and one turned on enableLegacyTokenStreaming, which #23 removed when it made the buffered path unconditional. The streaming assertion now completes the turn and checks the deltas either side of the question land as one message, which is the behaviour it was covering.",
+      "reviewedAt": "2026-09-05T11:55:52.590Z"
+    },
+    {
+      "upstream": "0a0b6be96833adae68b36540c00d347eda278736",
+      "pr": 9517,
+      "title": "fix(web): keep right panel controls clickable",
+      "decision": "adopted",
+      "ours": "b18f328b9501b80451aee5c045362fd00cbb71a7",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-05T11:56:18.929Z"
+    },
+    {
+      "upstream": "19d8ab2ae9fc562ee7b216a0d72903fbfafa9572",
+      "pr": 9507,
+      "title": "feat(usage): show Codex and Claude subscription limits on a Limits tab",
+      "decision": "adapted",
+      "ours": "ad8b13d904f27c313f6c360afa5086b2894d8b5c",
+      "reason": "Converged on upstream normalising rate limits at the adapter boundary: the account.rate-limits.updated payload becomes {limits} and our fallback routing reads it through a new providerUsageLimitFromWindows, which keeps the rule the Codex parsing had, that an exhausted account reports the furthest reset because quota only returns when the last full window resets. The fork-only gateway driver implements applyUsageLimits as a documented no-op, since its snapshot is recomposed from its two children on every publish. Kept our probe model rows inside upstream's restructured SDK fixture.",
+      "reviewedAt": "2026-09-05T16:31:14.402Z"
     }
   ]
 }
