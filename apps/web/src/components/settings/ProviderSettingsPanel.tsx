@@ -75,7 +75,6 @@ import {
   SettingsRow,
   SettingsSection,
   useRelativeTimeTick,
-  useSettingsSearchTargetId,
 } from "./settingsLayout";
 import { ScrollArea } from "../ui/scroll-area";
 import {
@@ -397,9 +396,6 @@ export function EnvironmentProviderSettings({
   const [selectedInstanceId, setSelectedInstanceId] = useState<ProviderInstanceId | null>(
     targetInstanceId ?? null,
   );
-  const [advancedOpen, setAdvancedOpen] = useState(false);
-  const advancedVisible = readOnly || advancedOpen;
-  const searchTargetId = useSettingsSearchTargetId();
   const [updatingProviderDrivers, setUpdatingProviderDrivers] = useState<
     ReadonlySet<ProviderDriverKind>
   >(() => new Set());
