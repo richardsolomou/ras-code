@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "232de5e8aac61e6f3de4bc61d10746167db9e905",
+  "lastReviewed": "1641b4aba58ab495cad7a9800b173af3416e16dd",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3311,6 +3311,15 @@
       "ours": null,
       "reason": "Touches apps/marketing, which we replaced.",
       "reviewedAt": "2026-09-05T20:20:39.845Z"
+    },
+    {
+      "upstream": "1641b4aba58ab495cad7a9800b173af3416e16dd",
+      "pr": 9534,
+      "title": "feat(usage): redeem Codex reset credits from the Limits tab",
+      "decision": "adapted",
+      "ours": "5302d5417d19f4185a3bd273273fadd65b34ac7d",
+      "reason": "Adopted the reset-credit redemption. Upstream deletes the probe spawn block our fork had only rebranded; the Codex client name it carried lives on in the block upstream kept, already spelled ras-code_desktop.",
+      "reviewedAt": "2026-09-05T20:21:52.163Z"
     }
   ]
 }
