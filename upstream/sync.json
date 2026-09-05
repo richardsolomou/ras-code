@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "8ccb933a8aae461b616b199ab287164c3311a755",
+  "lastReviewed": "8357eef14cbd5ed063e4a64404c33d1bfbc78446",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3968,6 +3968,15 @@
       "ours": "dfd8c7bdfa78e67038887c257cb84e730ea596c4",
       "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
       "reviewedAt": "2026-09-05T21:49:31.535Z"
+    },
+    {
+      "upstream": "8357eef14cbd5ed063e4a64404c33d1bfbc78446",
+      "pr": 9619,
+      "title": "fix(web): match provider settings layout for disconnected devices",
+      "decision": "adapted",
+      "ours": "9cb90ed1d255af2e3093eaa5133d693e8a9c9d7a",
+      "reason": "Placeholder states now share the provider editor's card chrome. Our SettingsDeviceTabs keeps rendering the device row, so upstream's re-added providerEnvironmentDetail went: SettingsDeviceTabs already owns that label as settingsDeviceDetail.",
+      "reviewedAt": "2026-09-05T21:50:49.242Z"
     }
   ]
 }
