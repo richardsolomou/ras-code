@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "5f4c7161fa7782ea93b63fe934d43229742e7ec8",
+  "lastReviewed": "b123cbb317ca47ff080a15b44c4bc0c99126f729",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -4375,6 +4375,15 @@
       "ours": "8887271ca5e644e31d54cc373f61a65feeb25b17",
       "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
       "reviewedAt": "2026-09-05T23:00:47.389Z"
+    },
+    {
+      "upstream": "b123cbb317ca47ff080a15b44c4bc0c99126f729",
+      "pr": 9576,
+      "title": "test(server): make Windows path and async fixtures deterministic",
+      "decision": "adapted",
+      "ours": "c4f885bbc04522a9ef8e8627f45523237ca6fadc",
+      "reason": "Windows path and async fixtures become deterministic. The rebrand map now rewrites com.t3tools.t3code as one reverse-DNS unit; mapping the segments separately produced com.richardsolomou.ras_code.ras-code, and our launchd label is com.richardsolomou.ras-code.",
+      "reviewedAt": "2026-09-05T23:02:26.418Z"
     }
   ]
 }
