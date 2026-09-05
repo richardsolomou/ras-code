@@ -15,6 +15,7 @@ import { useProject, useThread, useThreadShellsForProjectRefs } from "../state/e
 import {
   type EnvMode,
   type EnvironmentOption,
+  resolveContextStripLabelsCompact,
   resolveCurrentWorkspaceLabel,
   resolveEnvModeLabel,
   resolveEffectiveEnvMode,
@@ -39,6 +40,8 @@ import {
 } from "./ui/menu";
 import { Separator } from "./ui/separator";
 import { ComposerSurface } from "./chat/ComposerSurface";
+import { measureRestingComposerControls } from "./chat/restingComposerControlsMeasurement";
+import { resolveRestingComposerControlsNaturalWidth } from "./composerFooterLayout";
 import { cn } from "~/lib/utils";
 
 interface BranchToolbarProps {
@@ -236,7 +239,6 @@ const MobileRunContextSelector = memo(function MobileRunContextSelector({
  * the expanded width without remembered values that could go stale or latch
  * the strip compact. A small hysteresis keeps the boundary from flapping.
  */
-const COMPACT_EXPAND_HYSTERESIS_PX = 16;
 const COMPOSER_CONTEXT_MOTION_DURATION_MS = 180;
 const COMPOSER_CONTEXT_MOTION_EASING = "cubic-bezier(0.32, 0.72, 0, 1)";
 const COMPOSER_CONTEXT_CONTROL_SELECTOR = "[data-composer-context-control]";
@@ -282,11 +284,18 @@ function useLabelsOverflow(element: HTMLDivElement | null): boolean {
     let groups = 0;
     for (const child of current.children) {
       if (!(child instanceof HTMLElement)) continue;
-      // Measure hosted controls so Git labels compact before the model picker.
+      // Reserve the hosted controls' natural width, blocks in overflow included, so Git
+      // labels compact before the model picker. Reserving only the visible controls lets
+      // the labels expand into room the composer just freed and hide the controls again.
       const hostedControls = child.matches('[data-chat-resting-composer-controls-host="true"]')
         ? child.querySelector<HTMLElement>('[data-chat-composer-resting-controls="true"]')
         : null;
-      const width = hostedControls ? contentWidth(hostedControls) : contentWidth(child);
+      const hostedMeasurement = hostedControls
+        ? measureRestingComposerControls(hostedControls)
+        : null;
+      const width = hostedMeasurement
+        ? resolveRestingComposerControlsNaturalWidth(hostedMeasurement)
+        : contentWidth(hostedControls ?? child);
       if (width <= 1) continue;
       groups += 1;
       needed += width;
@@ -310,9 +319,11 @@ function useLabelsOverflow(element: HTMLDivElement | null): boolean {
         needed += Math.max(0, textWidth - label.clientWidth);
       }
     }
-    const nextOverflows = compact
-      ? needed > available - COMPACT_EXPAND_HYSTERESIS_PX
-      : needed > available;
+    const nextOverflows = resolveContextStripLabelsCompact({
+      compact,
+      neededWidth: needed,
+      availableWidth: available,
+    });
     if (nextOverflows !== compact) {
       pendingControlRectsRef.current = new Map(
         Array.from(current.querySelectorAll<HTMLElement>(COMPOSER_CONTEXT_CONTROL_SELECTOR)).map(

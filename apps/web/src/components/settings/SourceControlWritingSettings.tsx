@@ -1,9 +1,8 @@
 import { useRef } from "react";
-import type { SourceControlWritingStyleMode } from "@ras-code/contracts";
+import type { ProviderInstanceId, SourceControlWritingStyleMode } from "@ras-code/contracts";
 import { DEFAULT_UNIFIED_SETTINGS } from "@ras-code/contracts/settings";
 import { createModelSelection } from "@ras-code/shared/model";
 import { resolveSourceControlWriterModelSelection } from "@ras-code/shared/serverSettings";
-
 import { useDeviceSettings, useUpdateDeviceSettings } from "../../hooks/useSettings";
 import {
   applyProviderInstanceSettings,
@@ -15,6 +14,8 @@ import {
   resolveAppModelSelectionState,
 } from "../../modelSelection";
 import { useSettingsEnvironmentProviders } from "../../state/settingsEnvironment";
+import { useNavigate } from "@tanstack/react-router";
+import { usePrimaryEnvironmentId } from "../../state/environments";
 import { ProviderModelPicker } from "../chat/ProviderModelPicker";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "../ui/select";
 import { Switch } from "../ui/switch";
@@ -48,6 +49,8 @@ const MODE_OPTIONS: Record<SourceControlWritingStyleMode, { label: string; descr
 export function SourceControlWritingSettingsSection() {
   const settings = useDeviceSettings();
   const updateSettings = useUpdateDeviceSettings();
+  const navigate = useNavigate();
+  const environmentId = usePrimaryEnvironmentId();
   const serverProviders = useSettingsEnvironmentProviders();
   const customInstructionsRef = useRef<HTMLTextAreaElement>(null);
   const style = settings.sourceControlWritingStyle;
@@ -55,22 +58,31 @@ export function SourceControlWritingSettingsSection() {
   const isSourceControlWritingStyleDirty =
     style.mode !== defaults.mode || style.customInstructions !== defaults.customInstructions;
 
-  const defaultModelSelection = resolveAppModelSelectionState(settings, serverProviders);
-  const usesDedicatedModel = settings.sourceControlWriterModelSelection !== null;
-  const resolvedSourceControlWriterSelection = resolveSourceControlWriterModelSelection(
-    settings,
-    serverProviders,
+  const textGenerationProviders = serverProviders.filter(
+    (provider) => provider.supportsTextGeneration !== false,
   );
-  const activeSelection =
-    resolvedSourceControlWriterSelection === settings.textGenerationModelSelection
-      ? defaultModelSelection
-      : resolvedSourceControlWriterSelection;
+  const defaultModelSelection = resolveAppModelSelectionState(settings, textGenerationProviders);
+  const usesDedicatedModel = settings.sourceControlWriterModelSelection !== null;
+  const activeSelection = resolveAppModelSelectionState(
+    {
+      ...settings,
+      textGenerationModelSelection: resolveSourceControlWriterModelSelection(
+        settings,
+        textGenerationProviders,
+      ),
+    },
+    textGenerationProviders,
+  );
   const instanceEntries = sortProviderInstanceEntries(
-    applyProviderInstanceSettings(deriveProviderInstanceEntries(serverProviders), settings),
+    applyProviderInstanceSettings(deriveProviderInstanceEntries(textGenerationProviders), settings),
+  );
+  const canEnableDedicatedModel = instanceEntries.some(
+    (entry) =>
+      entry.instanceId === defaultModelSelection.instanceId && entry.enabled && entry.isAvailable,
   );
   const modelOptionsByInstance = getCustomModelOptionsByInstance(
     settings,
-    serverProviders,
+    textGenerationProviders,
     activeSelection.instanceId,
     activeSelection.model,
   );
@@ -185,7 +197,12 @@ export function SourceControlWritingSettingsSection() {
         description="Optional model override for change descriptions, change request titles and descriptions, and branch or bookmark names. Off uses the global text generation model."
         control={
           <div className="flex flex-wrap items-center justify-end gap-2">
-            {usesDedicatedModel ? (
+            {usesDedicatedModel && !canEnableDedicatedModel ? (
+              <span className="text-sm text-muted-foreground">
+                No text generation providers available.
+              </span>
+            ) : null}
+            {usesDedicatedModel && canEnableDedicatedModel ? (
               <ProviderModelPicker
                 activeInstanceId={activeSelection.instanceId}
                 model={activeSelection.model}
@@ -195,6 +212,16 @@ export function SourceControlWritingSettingsSection() {
                 triggerVariant="outline"
                 triggerClassName={SETTINGS_PICKER_TRIGGER_CLASSNAME}
                 triggerAriaLabel="Source control writer model"
+                {...(environmentId
+                  ? {
+                      onOpenProviderSetup: (instanceId: ProviderInstanceId) => {
+                        void navigate({
+                          to: "/settings/providers",
+                          search: { environmentId, instanceId },
+                        });
+                      },
+                    }
+                  : {})}
                 onInstanceModelChange={(instanceId, model) => {
                   updateSettings({
                     sourceControlWriterModelSelection: createModelSelection(instanceId, model),
@@ -204,6 +231,7 @@ export function SourceControlWritingSettingsSection() {
             ) : null}
             <Switch
               checked={usesDedicatedModel}
+              disabled={!usesDedicatedModel && !canEnableDedicatedModel}
               onCheckedChange={(checked) =>
                 updateSettings({
                   sourceControlWriterModelSelection: checked

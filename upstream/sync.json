@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "5b8445b7a777ab1070aa97b062b1618971073a96",
+  "lastReviewed": "06336460c9988f29c71e839c4c9c840c4552e077",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -2591,6 +2591,60 @@
       "intent": "Collapse the idle web composer while preserving focus, scroll anchoring, and responsive controls.",
       "reason": "Ported the resting composer into fork environment controls, provider usage indicators, and console styling.",
       "reviewedAt": "2026-09-04T15:23:31.729Z"
+    },
+    {
+      "upstream": "4b26132d2c740ff344ef3fae7ae62e9765759e29",
+      "pr": 9384,
+      "title": "fix(web): keep trailing tool groups out of \"Worked for\" accordion",
+      "decision": "adapted",
+      "ours": "90a0ec8be7f8b7ffada5e05664b4d94ec5190b79",
+      "reason": "Ported into our message-actions design: the extracted AssistantMessageMeta carries checkpointTurnCount so the actions menu follows the meta row when it moves below trailing tool groups. Dropped upstream's revertTurnCountByUserMessageId test input, which we replaced in #60.",
+      "reviewedAt": "2026-09-05T08:11:39.313Z"
+    },
+    {
+      "upstream": "5d1b02cdeebff4b0b4f15a1e8425b06ae3cfe8d1",
+      "pr": 9385,
+      "title": "feat(marketing): put named-developer quotes on the landing page",
+      "decision": "skipped",
+      "ours": null,
+      "reason": "Touches apps/marketing, which we replaced.",
+      "reviewedAt": "2026-09-05T08:11:50.944Z"
+    },
+    {
+      "upstream": "18573d60aab1344bf124a044b01445086e910c4c",
+      "pr": 9122,
+      "title": "fix(claude): expand slash commands when a message has attachments",
+      "decision": "adopted",
+      "ours": "704da3d98e58c986bd66eb9969373968d1a3b381",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T08:12:00.582Z"
+    },
+    {
+      "upstream": "044ea8e347d980a215057c325de8335d38f0f9aa",
+      "pr": 9393,
+      "title": "fix(web): stop the resting composer layout loop",
+      "decision": "adapted",
+      "ours": "80c2d1951c84743cbd6f0bc653151bebcfab2c5b",
+      "reason": "Clean apart from our trimmed comments and the interaction-mode toggle we removed; kept both and took upstream's shared measurement plus the hidden-menu prop.",
+      "reviewedAt": "2026-09-05T08:13:02.919Z"
+    },
+    {
+      "upstream": "652515a349741d234111b85f27597be3265d1ffc",
+      "pr": 9126,
+      "title": "fix(web): render assistant images inline in chat",
+      "decision": "adapted",
+      "ours": "a9809882f455290f9d5571fd0b357094246d81ac",
+      "reason": "Clean apart from the new tests passing revertTurnCountByUserMessageId, which our message-actions redesign replaced with checkpointTurnCountByAssistantMessageId.",
+      "reviewedAt": "2026-09-05T08:13:40.884Z"
+    },
+    {
+      "upstream": "06336460c9988f29c71e839c4c9c840c4552e077",
+      "pr": 9348,
+      "title": "feat(providers): add Google Antigravity via the official ACP agent",
+      "decision": "adapted",
+      "ours": "95475a2d62e9547e8a749c9b0dcd9a123a72088f",
+      "reason": "Adopted the Antigravity driver, ACP support, provider auth commands and provider-setup deep links. Converged on upstream's resolveComposerProviderSelection (it carries the Antigravity continuation rule) while keeping our candidate ordering; kept our checkpoint-based message actions, our settings environment scope, and our removal of plan mode, so upstream's interaction-mode plumbing was dropped rather than reintroduced.",
+      "reviewedAt": "2026-09-05T08:30:22.116Z"
     }
   ]
 }

@@ -10,6 +10,7 @@ import {
   ProviderSession,
   ProviderDriverKind,
   ProviderInstanceId,
+  ProviderSetupError,
 } from "@ras-code/contracts";
 import { createModelSelection } from "@ras-code/shared/model";
 import {
@@ -32,6 +33,7 @@ import * as ManagedRuntime from "effect/ManagedRuntime";
 import * as PubSub from "effect/PubSub";
 import * as Scope from "effect/Scope";
 import * as Stream from "effect/Stream";
+import * as SqlClient from "effect/unstable/sql/SqlClient";
 import { it as effectIt } from "@effect/vitest";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 
@@ -45,6 +47,7 @@ import {
   ProviderService,
   type ProviderServiceShape,
 } from "../../provider/Services/ProviderService.ts";
+import { ProviderAuthService } from "../../provider/Services/ProviderAuthService.ts";
 import { makeProviderRegistryLayer } from "../../provider/testUtils/providerRegistryMock.ts";
 import { TextGeneration } from "../../textGeneration/TextGeneration.ts";
 import * as RepositoryIdentityResolver from "../../project/RepositoryIdentityResolver.ts";
@@ -119,12 +122,17 @@ describe("ProviderCommandReactor", () => {
           ? "codex"
           : raw.startsWith("posthog")
             ? "posthogGateway"
-            : raw,
+            : raw.startsWith("antigravity")
+              ? "antigravity"
+              : raw,
     );
   };
 
   let runtime: ManagedRuntime.ManagedRuntime<
-    OrchestrationEngineService | ProviderCommandReactor | ProjectionSnapshotQuery,
+    | OrchestrationEngineService
+    | ProviderCommandReactor
+    | ProjectionSnapshotQuery
+    | SqlClient.SqlClient,
     unknown
   > | null = null;
   let scope: Scope.Closeable | null = null;
@@ -193,6 +201,7 @@ describe("ProviderCommandReactor", () => {
     readonly primaryProviderSnapshot?: Record<string, unknown>;
     /** Continuation keys for instances of one driver that do not share a home. */
     readonly continuationKeys?: Record<string, string>;
+    readonly tryHandlePromptCommandEffect?: ProviderAuthService["Service"]["tryHandlePromptCommand"];
   }) {
     const now = "2026-01-01T00:00:00.000Z";
     const baseDir =
@@ -201,6 +210,9 @@ describe("ProviderCommandReactor", () => {
     const { stateDir } = deriveServerPathsSync(baseDir, undefined);
     createdStateDirs.add(stateDir);
     const runtimeEventPubSub = Effect.runSync(PubSub.unbounded<ProviderRuntimeEvent>());
+    const tryHandlePromptCommand = vi.fn<ProviderAuthService["Service"]["tryHandlePromptCommand"]>(
+      input?.tryHandlePromptCommandEffect ?? (() => Effect.succeed(false)),
+    );
     let nextSessionIndex = 1;
     const runtimeSessions: Array<ProviderSession> = [];
     const modelSelection = input?.threadModelSelection ?? {
@@ -374,6 +386,7 @@ describe("ProviderCommandReactor", () => {
         Effect.succeed({
           sessionModelSwitch: input?.sessionModelSwitch ?? "in-session",
         }),
+      assertConversationRollbackSupported: () => unsupported(),
       getInstanceInfo: (instanceId) => {
         const driverKind = driverKindForInstanceId(instanceId);
         return Effect.succeed({
@@ -453,6 +466,7 @@ describe("ProviderCommandReactor", () => {
       Layer.provideMerge(reactorOrchestrationLayer),
       Layer.provideMerge(projectionSnapshotLayer),
       Layer.provideMerge(Layer.succeed(ProviderService, service)),
+      Layer.provide(Layer.mock(ProviderAuthService, { tryHandlePromptCommand })),
       Layer.provideMerge(makeProviderRegistryLayer(providerSnapshots as never, usageLimits)),
       Layer.provideMerge(
         Layer.mock(GitWorkflowService.GitWorkflowService)({
@@ -483,6 +497,7 @@ describe("ProviderCommandReactor", () => {
             : {},
         ),
       ),
+      Layer.provideMerge(SqlitePersistenceMemory),
       Layer.provideMerge(ServerConfig.layerTest(process.cwd(), baseDir)),
       // Shared with the orchestration layers above: the same Layer value is
       // memoised, so the reactor's repositories read what the engine wrote.
@@ -572,6 +587,18 @@ describe("ProviderCommandReactor", () => {
     return {
       engine,
       readModel: () => Effect.runPromise(snapshotQuery.getSnapshot()),
+      readPendingTurnStarts: () =>
+        runtime!.runPromise(
+          Effect.gen(function* () {
+            const sql = yield* SqlClient.SqlClient;
+            return yield* sql<{ readonly threadId: string }>`
+              SELECT thread_id AS "threadId"
+              FROM projection_turns
+              WHERE turn_id IS NULL AND state = 'pending'
+            `;
+          }),
+        ),
+      tryHandlePromptCommand,
       startSession,
       sendTurn,
       interruptTurn,
@@ -596,6 +623,220 @@ describe("ProviderCommandReactor", () => {
       },
     };
   }
+
+  effectIt.effect.each(["new", "ready", "stopped"] as const)(
+    "handles sign-out for a %s thread before worktree repair, text helpers, or startup",
+    (sessionStatus) =>
+      Effect.gen(function* () {
+        const instanceId = ProviderInstanceId.make("antigravity-personal");
+        const handled = yield* Deferred.make<void>();
+        const harness = yield* Effect.promise(() =>
+          createHarness({
+            ...(sessionStatus === "new"
+              ? {}
+              : {
+                  threadModelSelection: { instanceId, model: "gemini-3.1-pro" },
+                }),
+            tryHandlePromptCommandEffect: () =>
+              Deferred.succeed(handled, undefined).pipe(Effect.as(true)),
+          }),
+        );
+        const threadId = ThreadId.make("thread-1");
+        const createdAt = "2026-01-01T00:00:00.000Z";
+        if (sessionStatus !== "new") {
+          yield* harness.engine.dispatch({
+            type: "thread.session.set",
+            commandId: CommandId.make("cmd-sign-out-bound-session"),
+            threadId,
+            session: {
+              threadId,
+              providerInstanceId: instanceId,
+              providerName: "antigravity",
+              status: sessionStatus,
+              runtimeMode: "approval-required",
+              activeTurnId: null,
+              lastError: null,
+              updatedAt: createdAt,
+            },
+            createdAt,
+          });
+        }
+        yield* harness.engine.dispatch({
+          type: "thread.meta.update",
+          commandId: CommandId.make("cmd-sign-out-worktree"),
+          threadId,
+          title: "New thread",
+          branch: "ras-code/1234abcd",
+          worktreePath: NodePath.join(harness.stateDir, "missing-worktree"),
+        });
+
+        yield* harness.engine.dispatch({
+          type: "thread.turn.start",
+          commandId: CommandId.make("cmd-provider-sign-out"),
+          threadId,
+          message: {
+            messageId: MessageId.make("message-provider-sign-out"),
+            role: "user",
+            text: "/logout",
+            attachments: [],
+          },
+          modelSelection: {
+            instanceId:
+              sessionStatus === "new" ? instanceId : ProviderInstanceId.make("antigravity-other"),
+            model: "gemini-3.1-pro",
+          },
+          interactionMode: DEFAULT_PROVIDER_INTERACTION_MODE,
+          runtimeMode: "approval-required",
+          createdAt,
+        });
+        yield* Deferred.await(handled);
+        yield* Effect.promise(() => harness.drain());
+
+        const thread = (yield* Effect.promise(() => harness.readModel())).threads.find(
+          (entry) => entry.id === threadId,
+        );
+        expect(thread?.session).toMatchObject({
+          status: "stopped",
+          providerName: "antigravity",
+          providerInstanceId: instanceId,
+          activeTurnId: null,
+          lastError: null,
+        });
+        expect(thread?.messages.map((message) => message.text)).toEqual(["/logout"]);
+        expect(thread?.activities).toContainEqual(
+          expect.objectContaining({ kind: "provider.auth.signed-out", tone: "info", turnId: null }),
+        );
+        expect(yield* Effect.promise(() => harness.readPendingTurnStarts())).toEqual([]);
+        expect(harness.tryHandlePromptCommand).toHaveBeenCalledWith({
+          instanceId,
+          text: "/logout",
+          hasAttachments: false,
+        });
+        expect(harness.pruneWorktrees).not.toHaveBeenCalled();
+        expect(harness.createWorktree).not.toHaveBeenCalled();
+        expect(harness.generateThreadTitle).not.toHaveBeenCalled();
+        expect(harness.generateBranchName).not.toHaveBeenCalled();
+        expect(harness.startSession).not.toHaveBeenCalled();
+        expect(harness.sendTurn).not.toHaveBeenCalled();
+      }),
+  );
+
+  effectIt.effect("clears a failed sign-out request without sending it as a prompt", () =>
+    Effect.gen(function* () {
+      const instanceId = ProviderInstanceId.make("antigravity-personal");
+      const handled = yield* Deferred.make<void>();
+      const harness = yield* Effect.promise(() =>
+        createHarness({
+          threadModelSelection: { instanceId, model: "gemini-3.1-pro" },
+          tryHandlePromptCommandEffect: () =>
+            Deferred.succeed(handled, undefined).pipe(
+              Effect.andThen(
+                Effect.fail(
+                  new ProviderSetupError({
+                    instanceId,
+                    operation: "logout",
+                    detail: "The provider could not sign out. Try again.",
+                  }),
+                ),
+              ),
+            ),
+        }),
+      );
+      const threadId = ThreadId.make("thread-1");
+
+      yield* harness.engine.dispatch({
+        type: "thread.turn.start",
+        commandId: CommandId.make("cmd-provider-sign-out-failed"),
+        threadId,
+        message: {
+          messageId: MessageId.make("message-provider-sign-out-failed"),
+          role: "user",
+          text: "/logout",
+          attachments: [],
+        },
+        interactionMode: DEFAULT_PROVIDER_INTERACTION_MODE,
+        runtimeMode: "approval-required",
+        createdAt: "2026-01-01T00:00:00.000Z",
+      });
+      yield* Deferred.await(handled);
+      yield* Effect.promise(() => harness.drain());
+
+      const thread = (yield* Effect.promise(() => harness.readModel())).threads.find(
+        (entry) => entry.id === threadId,
+      );
+      expect(thread?.session).toMatchObject({
+        status: "error",
+        activeTurnId: null,
+        lastError: expect.stringContaining("The provider could not sign out. Try again."),
+      });
+      expect(thread?.activities).toContainEqual(
+        expect.objectContaining({ kind: "provider.turn.start.failed", tone: "error" }),
+      );
+      expect(
+        thread?.activities.some((activity) => activity.kind === "provider.auth.signed-out"),
+      ).toBe(false);
+      expect(yield* Effect.promise(() => harness.readPendingTurnStarts())).toEqual([]);
+      expect(harness.startSession).not.toHaveBeenCalled();
+      expect(harness.sendTurn).not.toHaveBeenCalled();
+    }),
+  );
+
+  effectIt.effect.each([
+    { label: "a command mention", text: "What does /logout do?", attachments: [] },
+    {
+      label: "a command with an attachment",
+      text: "/logout",
+      attachments: [
+        {
+          type: "file" as const,
+          id: "attached-notes",
+          name: "notes.txt",
+          mimeType: "text/plain",
+          sizeBytes: 8,
+        },
+      ],
+    },
+    { label: "another provider's command", text: "/logout", attachments: [] },
+  ])("sends $label when the provider auth handler leaves it unhandled", ({ text, attachments }) =>
+    Effect.gen(function* () {
+      const started = yield* Deferred.make<void>();
+      const harness = yield* Effect.promise(() =>
+        createHarness({
+          startSessionEffect: (session) =>
+            Deferred.succeed(started, undefined).pipe(Effect.as(session)),
+        }),
+      );
+
+      yield* harness.engine.dispatch({
+        type: "thread.turn.start",
+        commandId: CommandId.make("cmd-provider-command-unhandled"),
+        threadId: ThreadId.make("thread-1"),
+        message: {
+          messageId: MessageId.make("message-provider-command-unhandled"),
+          role: "user",
+          text,
+          attachments,
+        },
+        interactionMode: DEFAULT_PROVIDER_INTERACTION_MODE,
+        runtimeMode: "approval-required",
+        createdAt: "2026-01-01T00:00:00.000Z",
+      });
+      yield* Deferred.await(started);
+      yield* Effect.promise(() => harness.drain());
+
+      expect(harness.tryHandlePromptCommand).toHaveBeenCalledWith({
+        instanceId: ProviderInstanceId.make("codex"),
+        text,
+        hasAttachments: attachments.length > 0,
+      });
+      expect(harness.sendTurn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          input: text,
+          ...(attachments.length > 0 ? { attachments } : {}),
+        }),
+      );
+    }),
+  );
 
   type ReactorHarness = Awaited<ReturnType<typeof createHarness>>;
 

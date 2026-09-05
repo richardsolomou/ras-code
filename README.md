@@ -14,7 +14,7 @@
 
 ## Product
 
-RAS Code brings the best parts of [T3 Code](https://github.com/pingdotgg/t3code), [Conductor](https://conductor.build), and [PostHog Desktop](https://posthog.com) into one project. It runs the agent CLIs you already pay for — Claude Code, Codex, Cursor, Grok Build, and OpenCode — and gives you one place to direct them from a desktop app, a browser, or your phone.
+RAS Code brings the best parts of [T3 Code](https://github.com/pingdotgg/t3code), [Conductor](https://conductor.build), and [PostHog Desktop](https://posthog.com) into one project. It runs the agent CLIs you already pay for — Claude Code, Codex, Cursor, Grok Build, OpenCode, and Google Antigravity — and gives you one place to direct them from a desktop app, a browser, or your phone.
 
 You can:
 
