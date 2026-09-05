@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "dffb4cd3b16dc6f41aced99922950ee3083082c6",
+  "lastReviewed": "c75299ee2085a121bceb6df76796e971fe92b5b6",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3887,6 +3887,15 @@
       "ours": "1e23c0606aa77892a716603de5883b91e00ad977",
       "reason": "Buffered provider events settle in one query, asserted with a SQL statement counter. Upstream's rewritten assertion uses our message id, which carries the turn.",
       "reviewedAt": "2026-09-05T21:48:49.862Z"
+    },
+    {
+      "upstream": "c75299ee2085a121bceb6df76796e971fe92b5b6",
+      "pr": 9708,
+      "title": "perf(relay): avoid repeated activity decoding",
+      "decision": "adopted",
+      "ours": "ba793f66d1d0b24b642b9ae746761d3a892a672c",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:48:55.535Z"
     }
   ]
 }
