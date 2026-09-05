@@ -195,6 +195,12 @@ const textRules: ReadonlyArray<RebrandRule> = [
     description: "kebab-case product id",
   },
   {
+    // Relay client ids, spelled without the product stem in `RelayPublicClientId`.
+    pattern: /\bt3-(mobile|web)(?![\w-])/g,
+    replacement: "ras-$1",
+    description: "relay public client ids",
+  },
+  {
     pattern: /\bt3-([a-z0-9][a-z0-9-]*)/g,
     replacement: "ras-code-$1",
     description:

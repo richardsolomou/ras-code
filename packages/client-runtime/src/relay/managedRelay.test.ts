@@ -201,7 +201,7 @@ describe("ManagedRelayClient", () => {
     let persistedTokens: ReadonlyArray<ManagedRelay.ManagedRelayAccessTokenCacheEntry> = [
       {
         accountId: "user-1",
-        clientId: "ras-code-mobile",
+        clientId: "ras-mobile",
         relayUrl: "https://relay.example.test",
         thumbprint: "client-thumbprint",
         scopes: [RelayEnvironmentStatusScope],
