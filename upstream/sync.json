@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "57626eb6eaa436b22260068d23f4e3df5f389cd1",
+  "lastReviewed": "cfddb4201df8941bbfde008919da70fe5ec7552b",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -2717,6 +2717,15 @@
       "ours": "8ab6b5c1abcad5a04dff4cae6934883d4e15814b",
       "reason": "Upstream's new test mocks only what upstream's pane hooks touch. Ours also use useNavigate, useRef and the fork's project-file defaults, so the mocks gained them; useNavigate points at the same spy the assertions check, so the abandon case still covers the path this fork takes.",
       "reviewedAt": "2026-09-05T09:34:23.589Z"
+    },
+    {
+      "upstream": "cfddb4201df8941bbfde008919da70fe5ec7552b",
+      "pr": 9381,
+      "title": "fix(mobile): skip unsupported shared settings targets",
+      "decision": "adopted",
+      "ours": "5bcdec9bb99e13b9d8a8ba80ad321ff5b72ca056",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-05T09:35:35.316Z"
     }
   ]
 }
