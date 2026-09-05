@@ -371,13 +371,8 @@ describe("ProviderRuntimeIngestion", () => {
     expect(thread.session?.lastError).toBe("turn failed");
   });
 
-  it.each([
-    { delivery: "buffered", enableLegacyTokenStreaming: false },
-    { delivery: "streamed", enableLegacyTokenStreaming: true },
-  ])("settles OpenCode aborted turns and saves $delivery assistant text", async (settings) => {
-    const harness = await createHarness({
-      serverSettings: { enableLegacyTokenStreaming: settings.enableLegacyTokenStreaming },
-    });
+  it("settles OpenCode aborted turns and saves assistant text", async () => {
+    const harness = await createHarness();
     const threadId = asThreadId("thread-1");
     const turnId = asTurnId("opencode-aborted-turn");
     const base = {
@@ -428,9 +423,7 @@ describe("ProviderRuntimeIngestion", () => {
     { source: "the previous turn", turnId: asTurnId("opencode-stopped-turn") },
     { source: "an unspecified turn", turnId: undefined },
   ])("ignores late OpenCode aborts for $source across newer turns", async (lateAbort) => {
-    const harness = await createHarness({
-      serverSettings: { enableLegacyTokenStreaming: true },
-    });
+    const harness = await createHarness();
     const threadId = asThreadId("thread-1");
     const stoppedTurnId = asTurnId("opencode-stopped-turn");
     const nextTurnId = asTurnId("opencode-next-turn");
@@ -480,13 +473,9 @@ describe("ProviderRuntimeIngestion", () => {
     const thread = (await harness.readModel()).threads.find((entry) => entry.id === threadId);
     expect(thread?.session).toMatchObject({ status: "running", activeTurnId: nextTurnId });
     expect(thread?.latestTurn).toMatchObject({ turnId: nextTurnId, state: "running" });
-    expect(thread?.messages).toEqual([
-      expect.objectContaining({
-        turnId: nextTurnId,
-        text: "The next turn is running.",
-        streaming: true,
-      }),
-    ]);
+    // Assistant text is buffered until the turn settles, so a late abort for an
+    // older turn must not flush the running one early.
+    expect(thread?.messages).toEqual([]);
 
     harness.emit({
       ...base,
@@ -497,6 +486,15 @@ describe("ProviderRuntimeIngestion", () => {
       payload: { state: "completed" },
     });
     await harness.drain();
+
+    const settled = (await harness.readModel()).threads.find((entry) => entry.id === threadId);
+    expect(settled?.messages).toEqual([
+      expect.objectContaining({
+        turnId: nextTurnId,
+        text: "The next turn is running.",
+        streaming: false,
+      }),
+    ]);
 
     const pendingAt = "2026-01-01T00:00:03.000Z";
     for (const hasPendingStart of [false, true]) {
