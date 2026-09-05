@@ -122,6 +122,9 @@ const LEGACY_SURFACES = "the legacy sidebar and plan mode, which we removed";
  * Surfaces we deleted outright. A change that only touches these has nothing to land against, so it
  * is `obsolete` rather than skipped: skipping implies a judgement, obsolete states a fact.
  */
+const PROJECT_ICON_PICKER =
+  "the named project-icon picker, which we replaced with emoji and favicons";
+
 const removedPrefixes: ReadonlyArray<readonly [string, string]> = [
   ["experiments/", "experiments, which we do not carry"],
   [".macroscope/", "Macroscope review configuration, which we do not carry"],
@@ -133,6 +136,10 @@ const removedPrefixes: ReadonlyArray<readonly [string, string]> = [
   ["apps/mobile/src/features/threads/legacy-plan-mode", LEGACY_SURFACES],
   ["apps/mobile/src/features/threads/use-legacy-plan-mode-enabled", LEGACY_SURFACES],
   ["apps/mobile/generated-uniwind-themes.css", "the generated mobile theme artifact we removed"],
+  // The named project-icon picker, replaced in #52 by a saved emoji plus the project favicon, so
+  // there is no project-name-derived icon to change.
+  ["apps/web/src/projectIconModel", PROJECT_ICON_PICKER],
+  ["apps/web/src/components/settings/ProjectIconPickerDialog", PROJECT_ICON_PICKER],
   // The custom theme editor and its VS Code / OpenVSX theme import, removed in
   // #51 in favour of the fixed theme set.
   ["apps/web/src/components/settings/ThemeColorPicker", THEME_EDITOR],

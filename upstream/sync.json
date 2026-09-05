@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "645d58547d282eb2aaf6c48e5907625fc112386a",
+  "lastReviewed": "4e89d74436a167c01f25a6a5283638843398ea3a",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -2762,6 +2762,15 @@
       "ours": "55373616f7826e1c2f71ab80fdfffa59b3162883",
       "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
       "reviewedAt": "2026-09-05T09:35:44.526Z"
+    },
+    {
+      "upstream": "4e89d74436a167c01f25a6a5283638843398ea3a",
+      "pr": 9457,
+      "title": "fix(web): make project icons the default",
+      "decision": "obsolete",
+      "ours": null,
+      "reason": "Changes the project-name-derived icon in the named icon picker. #52 replaced that surface with a saved emoji plus the project favicon, so projectIconModel and ProjectIconPickerDialog do not exist here and our ProjectFavicon derives nothing from the project name. Both paths are now in the removed-surface map.",
+      "reviewedAt": "2026-09-05T11:11:07.344Z"
     }
   ]
 }
