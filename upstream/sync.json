@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "010d6bb1b5281cb1e6eacf1ee0f2500973242836",
+  "lastReviewed": "3bbbc1d9fd8b3d649c60ba0137c7dae93a6aab3f",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3869,6 +3869,15 @@
       "ours": null,
       "reason": "Touches apps/marketing, which we replaced.",
       "reviewedAt": "2026-09-05T21:47:47.273Z"
+    },
+    {
+      "upstream": "3bbbc1d9fd8b3d649c60ba0137c7dae93a6aab3f",
+      "pr": 9703,
+      "title": "perf(server): stop rebuilding terminal history per chunk",
+      "decision": "adopted",
+      "ours": "6e60d2af8aec3a16d45409b0ee3beb2ffb1aa06a",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:47:53.564Z"
     }
   ]
 }
