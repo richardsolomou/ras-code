@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "5d1b02cdeebff4b0b4f15a1e8425b06ae3cfe8d1",
+  "lastReviewed": "18573d60aab1344bf124a044b01445086e910c4c",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -2609,6 +2609,15 @@
       "ours": null,
       "reason": "Touches apps/marketing, which we replaced.",
       "reviewedAt": "2026-09-05T08:11:50.944Z"
+    },
+    {
+      "upstream": "18573d60aab1344bf124a044b01445086e910c4c",
+      "pr": 9122,
+      "title": "fix(claude): expand slash commands when a message has attachments",
+      "decision": "adopted",
+      "ours": "704da3d98e58c986bd66eb9969373968d1a3b381",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T08:12:00.582Z"
     }
   ]
 }
