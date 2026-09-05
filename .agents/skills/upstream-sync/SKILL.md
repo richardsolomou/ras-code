@@ -143,6 +143,8 @@ node scripts/upstream-sync.ts verify
 
 Typecheck and tests do **not** belong per pick. Half of a round is clean cherry-picks: last round 63 of 125 entries read `"Clean cherry-pick."` verbatim. A per-package typecheck is ~8s and a test pass is more, so running both after each of those costs far more than it ever catches, and catches nothing that surviving to `gate` would miss.
 
+Typecheck once after each `adopt-aligned` run, though. `verify` is all that runs between its picks, and a run of nine commits is nine chances to delete something only a fork file uses. Two rounds in a row ended with a broken tree found much later: `createDebouncedStorage` removed while the split chat panes still called it, and `resolveThread` renamed while two fork-only call sites still named it, which surfaced as 243 errors across the server because an undefined name turns every downstream layer's requirements into `unknown`. One typecheck per run costs seconds and names the commit while you still remember it.
+
 When you do typecheck mid-round, reinstall first if any pick since the last install touched a manifest. A dependency bump lands in `package.json` and the lockfile but not in `node_modules`, so the typecheck reads the old package's types and reports errors in code that is correct against the new one. `vp i` takes seconds and turns a fabricated bug report into a clean run.
 
 For a run of changes you have already read and judged as adopt:
