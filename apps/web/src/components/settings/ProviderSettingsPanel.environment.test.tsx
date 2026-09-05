@@ -282,7 +282,14 @@ describe("EnvironmentProviderSettings routing", () => {
       panel,
       (element) => element.props.title === "Providers" && "headerAction" in element.props,
     );
-    expect(providersSection?.props.headerAction).toBeNull();
+    // A read-only session still gets the last-checked summary; what it must not get is any
+    // control that writes, so the refresh and add-provider buttons stay out of the header.
+    expect(providersSection?.props.headerAction).not.toBeNull();
+    const headerWriteControl = visitElements(
+      providersSection?.props.headerAction as ReactElement<Record<string, unknown>>,
+      (element) => typeof element.props.onClick === "function",
+    );
+    expect(headerWriteControl).toBeNull();
     expect(visitElements(panel, isRefreshButton)).toBeNull();
   });
 
@@ -301,15 +308,19 @@ describe("EnvironmentProviderSettings routing", () => {
     expect(visitElements(panel, isRefreshButton)).not.toBeNull();
   });
 
-  it("opens Advanced when search targets the provider health interval", () => {
-    settingsSearchState.targetId = "provider-health-check-interval";
+  it("keeps Advanced visible when search targets the provider health interval", () => {
     let panel = renderPanel();
+    expect(visitElements(panel, (element) => element.props.title === "Advanced")).not.toBeNull();
+    expect(
+      visitElements(panel, (element) => element.props.id === "provider-health-check-interval"),
+    ).not.toBeNull();
 
-    expect(findAdvancedPanel(panel)?.props.open).toBe(false);
-    flushEffects();
-
+    settingsSearchState.targetId = "provider-health-check-interval";
     panel = renderPanel();
-    expect(findAdvancedPanel(panel)?.props.open).toBe(true);
+    expect(visitElements(panel, (element) => element.props.title === "Advanced")).not.toBeNull();
+    expect(
+      visitElements(panel, (element) => element.props.id === "provider-health-check-interval"),
+    ).not.toBeNull();
   });
 
   it("deletes and resets provider configuration without erasing shared preferences", () => {
