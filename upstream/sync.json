@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "c7c1dfe4df99edf65a49d8a31b39ef1361f37f44",
+  "lastReviewed": "8ccb933a8aae461b616b199ab287164c3311a755",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3905,6 +3905,69 @@
       "ours": "4c636a7bd3d7f4f0559499f20a093544dd1795aa",
       "reason": "Clean cherry-pick.",
       "reviewedAt": "2026-09-05T21:49:14.226Z"
+    },
+    {
+      "upstream": "7839140e5e93d3f401d7eb45b86cf1a234eb3609",
+      "pr": 9710,
+      "title": "fix(mobile): preserve saved work after storage read failures",
+      "decision": "adopted",
+      "ours": "7dbdb7d28b9e9f164ff8b02178569c67ebeb219f",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:49:31.534Z"
+    },
+    {
+      "upstream": "da7e46d08e85bcb07ecd78721a40f7b612fac2f2",
+      "pr": 9707,
+      "title": "perf(web): stop replaying terminal buffers on rollover",
+      "decision": "adopted",
+      "ours": "bde19fd30aa08274b24f1b47deeb9059f055a4b1",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:49:31.535Z"
+    },
+    {
+      "upstream": "95103905f5f045523994213bf76bfb14acc31b27",
+      "pr": 9631,
+      "title": "feat(web): preview pull request links",
+      "decision": "adopted",
+      "ours": "9b17c35d21954cd413c0fd0d61635cc5b85ce092",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:49:31.535Z"
+    },
+    {
+      "upstream": "c66f15f39e61fda0a9a100578833ec12e7526859",
+      "pr": 9716,
+      "title": "perf(client): reduce thread-list update work",
+      "decision": "adopted",
+      "ours": "9963f0d40502f0c795a76e45c5ca2e717519e000",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:49:31.535Z"
+    },
+    {
+      "upstream": "d536b0580d044967dc644498d8c5a6e96464f767",
+      "pr": 9610,
+      "title": "fix(server): settle inactive threads with open PRs",
+      "decision": "adopted",
+      "ours": "c39b260cef52b2c49cbf72893930416e8b8c6bc2",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:49:31.535Z"
+    },
+    {
+      "upstream": "108f295cc3672716c3cb8291ce487846df5ce098",
+      "pr": 9715,
+      "title": "fix(server): bound slow-client event buffers",
+      "decision": "adopted",
+      "ours": "a1aa77c5211e3ac25ce623efd63fce8ffa082161",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:49:31.535Z"
+    },
+    {
+      "upstream": "8ccb933a8aae461b616b199ab287164c3311a755",
+      "pr": 9720,
+      "title": "test(server): allow either valid file-search match",
+      "decision": "adopted",
+      "ours": "dfd8c7bdfa78e67038887c257cb84e730ea596c4",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:49:31.535Z"
     }
   ]
 }
