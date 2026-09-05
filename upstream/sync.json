@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "ff5843410d44796676b06627788d94354849c4d7",
+  "lastReviewed": "498ab9c399d5e8c3097a286be14d03238e071ac1",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -2996,6 +2996,15 @@
       "ours": "63b3b20378950f8b97bf44fe414f0fbe98201609",
       "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
       "reviewedAt": "2026-09-05T11:13:40.811Z"
+    },
+    {
+      "upstream": "498ab9c399d5e8c3097a286be14d03238e071ac1",
+      "pr": 7261,
+      "title": "feat(desktop): resolve Chromium cookie keys on Linux",
+      "decision": "adapted",
+      "ours": "215ef5ca0b1e61c9b8a4cdeb8aa27ce40bd1b4f9",
+      "reason": "Took the Linux key resolution and the browser-secret helper build. Our release workflow shards quality across a matrix rather than three named steps, so the libsecret build dependency goes in before the shared Run step; every matrix entry is ubuntu-latest. Kept our RAS_CODE_DESKTOP_DEV env name in the dev command upstream extended.",
+      "reviewedAt": "2026-09-05T11:15:00.869Z"
     }
   ]
 }
