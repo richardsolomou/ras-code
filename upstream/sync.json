@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "d76b24dd15a219666941ab1b4967d8f738adcda0",
+  "lastReviewed": "0a0b6be96833adae68b36540c00d347eda278736",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3131,6 +3131,15 @@
       "ours": "a43f24dca493ca42e4c5811dee81a9d384a64695",
       "reason": "Adopted async questions. Two upstream tests did not build here: one imported AuthStandardClientScopes our import block already had, and one turned on enableLegacyTokenStreaming, which #23 removed when it made the buffered path unconditional. The streaming assertion now completes the turn and checks the deltas either side of the question land as one message, which is the behaviour it was covering.",
       "reviewedAt": "2026-09-05T11:55:52.590Z"
+    },
+    {
+      "upstream": "0a0b6be96833adae68b36540c00d347eda278736",
+      "pr": 9517,
+      "title": "fix(web): keep right panel controls clickable",
+      "decision": "adopted",
+      "ours": "b18f328b9501b80451aee5c045362fd00cbb71a7",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-05T11:56:18.929Z"
     }
   ]
 }
