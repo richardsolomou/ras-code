@@ -134,11 +134,20 @@ describe("rebrandText", () => {
     assert.strictEqual(rebrandText("modules/t3-terminal"), "modules/ras-code-terminal");
   });
 
-  it("rewrites product-scoped kebab identifiers", () => {
+  it("rewrites product-scoped kebab identifiers the table has never seen", () => {
     assert.strictEqual(
       rebrandText('prefix: "t3-browser-secret-"'),
       'prefix: "ras-code-browser-secret-"',
     );
+    assert.strictEqual(
+      rebrandText('makeTempDir("t3-editors-")'),
+      'makeTempDir("ras-code-editors-")',
+    );
+  });
+
+  it("keeps kebab identifiers that map to a different stem", () => {
+    assert.strictEqual(rebrandText("t3-code and t3-connect"), "ras-code and ras-connect");
+    assert.strictEqual(rebrandText("scripts/t3-sqlite-state.ts"), "scripts/ras-sqlite-state.ts");
   });
 
   it("rewrites the Android Maven group", () => {
@@ -344,16 +353,16 @@ describe("collectUnmappedBrandTokensFromDiff", () => {
     const diff = [
       "diff --git a/a.ts b/a.ts",
       "+++ b/a.ts",
-      '+const scheme = "t3-citation";',
-      '+const other = "t3-citation";',
+      '+const scheme = "t3citation";',
+      '+const other = "t3citation";',
     ].join("\n");
     assert.deepStrictEqual(collectUnmappedBrandTokensFromDiff(diff), [
-      { token: "t3-citation", count: 2 },
+      { token: "t3citation", count: 2 },
     ]);
   });
 
   it("ignores removed and context lines, which are not arriving here", () => {
-    const diff = ['-const scheme = "t3-citation";', ' const kept = "t3-citation";'].join("\n");
+    const diff = ['-const scheme = "t3citation";', ' const kept = "t3citation";'].join("\n");
     assert.deepStrictEqual(collectUnmappedBrandTokensFromDiff(diff), []);
   });
 
@@ -365,10 +374,10 @@ describe("collectUnmappedBrandTokensFromDiff", () => {
   });
 
   it("puts the most frequent token first so the map gets the biggest win", () => {
-    const diff = ['+"t3-one";', '+"t3-two";', '+"t3-two";'].join("\n");
+    const diff = ['+"t3one";', '+"t3two";', '+"t3two";'].join("\n");
     assert.deepStrictEqual(
       collectUnmappedBrandTokensFromDiff(diff).map((entry) => entry.token),
-      ["t3-two", "t3-one"],
+      ["t3two", "t3one"],
     );
   });
 });

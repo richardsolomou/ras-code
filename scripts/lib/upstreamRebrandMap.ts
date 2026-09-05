@@ -163,12 +163,6 @@ const textRules: ReadonlyArray<RebrandRule> = [
     description: "Android package names",
   },
   {
-    pattern:
-      /\bt3-(composer-editor|markdown-text|native-controls|review-diff|terminal|composer-attachments|attachment-downloads)\b/g,
-    replacement: "ras-code-$1",
-    description: "mobile native module and on-device data directories",
-  },
-  {
     pattern: /\bt3-sqlite-state\b/g,
     replacement: "ras-sqlite-state",
     description: "server state script",
@@ -184,10 +178,10 @@ const textRules: ReadonlyArray<RebrandRule> = [
     description: "kebab-case product id",
   },
   {
-    pattern:
-      /\bt3-(browser-secret|markdown-run|file|skill|native-app-icon-test|async-questions|projection-cursor-batch|auth-session-(?:owner|other)|agy-(?:test|path-test|fs|outside)|antigravity-(?:validate|driver|setup|skills|adapter-test|transport|attachments|browser-preflight|text)|provider-(?:log|install-route)|test|opencode-output|env|static-(?:cache|hashes|mutable|replace|close)|vcs-auto-pull-(?:real|link)|bootstrap|tailwind)\b/g,
+    pattern: /\bt3-([a-z0-9][a-z0-9-]*)/g,
     replacement: "ras-code-$1",
-    description: "known product-scoped kebab identifiers",
+    description:
+      "product-scoped kebab identifiers; runs after the ones that map to a different stem",
   },
   {
     pattern: /\bcom\.t3tools\./g,
