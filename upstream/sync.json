@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "764946502390845919d974490bc85e87b788c996",
+  "lastReviewed": "5e1c23d769b182018f5bd6d3623a7edec13d26bc",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -4439,6 +4439,16 @@
       "intent": "Provider controls sit on the machine-tab row rather than in the section header, with the row's padding on a wrapper instead of inside the tabs.",
       "reason": "Upstream moves the tabs out of headerAction and takes the padding off the tab strip. Our SettingsDeviceTabs owns that padding for five settings panels, so converging changes all of them and wants a browser pass; #112 put these controls in the section header, which this walks back.",
       "reviewedAt": "2026-09-05T23:07:47.129Z"
+    },
+    {
+      "upstream": "5e1c23d769b182018f5bd6d3623a7edec13d26bc",
+      "pr": 9778,
+      "title": "docs(web): document panel motion during navigation",
+      "decision": "deferred",
+      "ours": null,
+      "intent": "The appearance guide says panel transitions pause while a route change is in flight.",
+      "reason": "Edits docs/user/appearance.md, which 9e1fb459a creates and which is deferred. Lands with that restructure.",
+      "reviewedAt": "2026-09-05T23:08:20.165Z"
     }
   ]
 }
