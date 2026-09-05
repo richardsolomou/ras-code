@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "57832803eed4c87c462de92892777a0934019721",
+  "lastReviewed": "f559fe0ba6fb5950bd14a2404f10b9c94b33f696",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3473,6 +3473,24 @@
       "ours": "1e11e08aae1470bb0dfaa490b09d3080a1641281",
       "reason": "Took the tab-level no-drag narrowing, the window-control spacer, and the in-header layout controls. Our paneControls stay beside them; panelLayoutControls is fixed-positioned, so header order does not move anything.",
       "reviewedAt": "2026-09-05T20:41:35.717Z"
+    },
+    {
+      "upstream": "39abb9d1d6ae6501c573b9dc0cb9c28e2f75659c",
+      "pr": 9582,
+      "title": "fix(connect): refresh authorization without disconnecting",
+      "decision": "adopted",
+      "ours": "fb7eae52dd497cd46e995e14e9e63ff9dee03565",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T20:41:43.215Z"
+    },
+    {
+      "upstream": "f559fe0ba6fb5950bd14a2404f10b9c94b33f696",
+      "pr": 9430,
+      "title": "fix(web): show context meter in compact composer",
+      "decision": "adopted",
+      "ours": "7bd4c3470e254f8680ef7b66d28b1278404fa722",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T20:41:43.215Z"
     }
   ]
 }
