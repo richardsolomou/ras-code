@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "1e051873094c0c75cd35fef89c90461c22cce76b",
+  "lastReviewed": "fff33f9e851912363c5b1f3ac65598be35eb5f0d",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -2681,6 +2681,15 @@
       "ours": "5f594ec8663abb803e44939d3c41bd81ed641278",
       "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
       "reviewedAt": "2026-09-05T09:31:48.847Z"
+    },
+    {
+      "upstream": "fff33f9e851912363c5b1f3ac65598be35eb5f0d",
+      "pr": 9399,
+      "title": "perf(ci): reuse dependency checks in release builds",
+      "decision": "adopted",
+      "ours": "0ae1d2c343eeb4f218c3a60e37a5d1e70108b20a",
+      "reason": "Clean cherry-pick; our release workflow keeps the same job boundaries the change hooks into.",
+      "reviewedAt": "2026-09-05T09:32:09.910Z"
     }
   ]
 }
