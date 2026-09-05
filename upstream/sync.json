@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "6365919f2e5bcfb4fa4020b95e19af26ae40979f",
+  "lastReviewed": "15eda897d37aad232fca5089f5eb6ef7b726c31c",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -4150,13 +4150,22 @@
       "reviewedAt": "2026-09-05T21:56:09.447Z"
     },
     {
+      "upstream": "15eda897d37aad232fca5089f5eb6ef7b726c31c",
+      "pr": 9760,
+      "title": "perf(web): defer image URL requests for thread history",
+      "decision": "adopted",
+      "ours": "eb00810d7521a9a0634336a396e4a5df31b1675a",
+      "reason": "Thread history stops requesting image URLs until the images are on screen. The duplicate ./types import the merge left in session-logic.ts went with upstream's replacement block.",
+      "reviewedAt": "2026-09-05T22:03:25.007Z"
+    },
+    {
       "upstream": "6365919f2e5bcfb4fa4020b95e19af26ae40979f",
       "pr": 9758,
       "title": "perf(server): skip history reads for metadata commands",
-      "decision": "adopted",
-      "ours": "181cf1d573d919711fe6e9b021074cc7e51d169c",
-      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
-      "reviewedAt": "2026-09-05T21:56:09.447Z"
+      "decision": "adapted",
+      "ours": "eb00810d7521a9a0634336a396e4a5df31b1675a",
+      "reason": "Metadata commands stop reading history. Turn dispatch keeps the shell read and pulls messages only for a fork handoff or a provider switch, which are the paths whose transcripts need them; two fork-only call sites moved off the removed resolveThread.",
+      "reviewedAt": "2026-09-05T22:03:27.421Z"
     }
   ]
 }
