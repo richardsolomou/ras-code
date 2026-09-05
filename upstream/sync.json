@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "e3723e06b5b154a3e0ede55c02e2cabc5301d3bf",
+  "lastReviewed": "d76b24dd15a219666941ab1b4967d8f738adcda0",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3122,6 +3122,15 @@
       "ours": "23a9aaf5c7467192dca1f85f23ec34d3802f50cd",
       "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
       "reviewedAt": "2026-09-05T11:48:30.603Z"
+    },
+    {
+      "upstream": "d76b24dd15a219666941ab1b4967d8f738adcda0",
+      "pr": 9512,
+      "title": "feat(codex): support async questions",
+      "decision": "adapted",
+      "ours": "a43f24dca493ca42e4c5811dee81a9d384a64695",
+      "reason": "Adopted async questions. Two upstream tests did not build here: one imported AuthStandardClientScopes our import block already had, and one turned on enableLegacyTokenStreaming, which #23 removed when it made the buffered path unconditional. The streaming assertion now completes the turn and checks the deltas either side of the question land as one message, which is the behaviour it was covering.",
+      "reviewedAt": "2026-09-05T11:55:52.590Z"
     }
   ]
 }
