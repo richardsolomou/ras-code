@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "9e1fb459a985d13c1d4e57080f49d70dabf3b681",
+  "lastReviewed": "cd713679bbe06c435823bafc48e5bcfa3266a9aa",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -4231,6 +4231,15 @@
       "intent": "docs/user reads as shipped-product guidance: features and workflows, no repo tooling or source paths.",
       "reason": "The user-facing half of the same editorial pass as 2e688a53c, and our user docs carry fork content (the telemetry page is ours). Both convergences land together.",
       "reviewedAt": "2026-09-05T22:05:51.810Z"
+    },
+    {
+      "upstream": "cd713679bbe06c435823bafc48e5bcfa3266a9aa",
+      "pr": 9766,
+      "title": "fix(web): stop panel motion during navigation",
+      "decision": "adapted",
+      "ours": "3b98f30e0a88701ceb719414a50ba2bce7f25e75",
+      "reason": "Panel transitions stop while a route change is in flight. Upstream's suppression provider sits inside our ThreadDragProvider, and the legacy sidebar branch it reintroduced stays out: #23 removed it.",
+      "reviewedAt": "2026-09-05T22:06:50.095Z"
     }
   ]
 }
