@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "44dc8ae259f5c3349f7ab8045e39bd62408b52a9",
+  "lastReviewed": "246064993535e5d90107d3d7784ceef3cc883435",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3788,6 +3788,24 @@
       "ours": "22ad5829e30113f190fad621d69b52d9b457f9d4",
       "reason": "Feed rows are reused across streaming renders. Our resolveInstanceName follows buildThreadFeed to its new call site, and upstream's new activity-entry cache is keyed by resolver as well as activities so a provider rename is not served a stale instance name.",
       "reviewedAt": "2026-09-05T21:18:26.447Z"
+    },
+    {
+      "upstream": "ec8b2119c377f5c1dbe6235b221ef98eca31a96e",
+      "pr": 9689,
+      "title": "perf(server): omit repeated OpenCode progress logs",
+      "decision": "adopted",
+      "ours": "519b527faf89b9da789ac2cfa711cd133b30e4df",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:18:33.460Z"
+    },
+    {
+      "upstream": "246064993535e5d90107d3d7784ceef3cc883435",
+      "pr": 9691,
+      "title": "perf(clients): avoid waiting to read cached relay tokens",
+      "decision": "adopted",
+      "ours": "96af62fb20e16b06d8651e3fd2d0885610f77c8e",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:18:33.461Z"
     }
   ]
 }
