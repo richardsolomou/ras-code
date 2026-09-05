@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "c8f77e0d441264efb0acfac312e852c81ae3da83",
+  "lastReviewed": "cfc9bf34156ddcc4a98b7f5c67193adb5aedce06",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -4067,6 +4067,15 @@
       "ours": "869479ac5c729535379e22fa44c39e8f3044b469",
       "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
       "reviewedAt": "2026-09-05T21:55:28.011Z"
+    },
+    {
+      "upstream": "cfc9bf34156ddcc4a98b7f5c67193adb5aedce06",
+      "pr": 9739,
+      "title": "fix(web): fold single trailing activity",
+      "decision": "adopted",
+      "ours": "d8e83d036024ebf2b5c7e9cd5dd098275e202891",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-05T21:55:49.918Z"
     }
   ]
 }
