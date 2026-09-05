@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "9eb4d71681dc7d002082db2f8b4bacf7614412f4",
+  "lastReviewed": "5eab021a5185e492b6b021f83564143d5263e8a6",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3995,6 +3995,15 @@
       "ours": "7b3cf9c61a459e1fd6bc4f52fb004ebf7a20df4b",
       "reason": "Provider setup leaves mobile; sign-in completes on web or desktop. Our only edits to the deleted screen were the scope rename, so the deletion lands as upstream wrote it.",
       "reviewedAt": "2026-09-05T21:51:40.947Z"
+    },
+    {
+      "upstream": "5eab021a5185e492b6b021f83564143d5263e8a6",
+      "pr": 9718,
+      "title": "perf(web): stop rendering hidden terminals",
+      "decision": "adopted",
+      "ours": "b2a39dc3bbec90404b1bd56e4c4f3531ecdeba7d",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:51:47.326Z"
     }
   ]
 }
