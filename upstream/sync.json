@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "13427ecd8ba5bfa7892fc90d1e3f0ef59514870f",
+  "lastReviewed": "2e688a53cf8fc7a9caa9fd5070148bfcd3d5a741",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -4211,6 +4211,16 @@
       "ours": "c47533d3d31ec8d594d51bbe254bd88c59d95259",
       "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
       "reviewedAt": "2026-09-05T22:04:06.307Z"
+    },
+    {
+      "upstream": "2e688a53cf8fc7a9caa9fd5070148bfcd3d5a741",
+      "pr": 9755,
+      "title": "docs: keep internal guides focused on architecture",
+      "decision": "deferred",
+      "ours": null,
+      "intent": "docs/internals holds architecture only; runbooks and setup guides move to docs/operations, which is the split AGENTS.md already describes.",
+      "reason": "Thirty-one files. Upstream deletes ci.md, scripts.md, work-artifacts.md, workspace-layout.md and the connect auth-flow diagram, all of which carry fork-only content from #32, #38, #54 and #103, and relocates the rest. Converging means moving our content rather than dropping it, which is its own pass.",
+      "reviewedAt": "2026-09-05T22:05:07.735Z"
     }
   ]
 }
