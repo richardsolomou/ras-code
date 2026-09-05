@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "5a433244d0b827176df8b76a05959cd1a7a98ce2",
+  "lastReviewed": "087cfb8ae262f344f7e409f5a8c0eda6f0ef12f9",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -4521,6 +4521,15 @@
       "ours": "663666e56b3056e719adf472c6dad7b0e1d011ed",
       "reason": "Custom models gain names and option descriptors. An entry's own capabilities win, then our rule decides: a namespaced slug is served by a custom model_provider, so it does not borrow a GPT model's descriptors. Both sides' new test blocks are kept.",
       "reviewedAt": "2026-09-05T23:20:26.920Z"
+    },
+    {
+      "upstream": "087cfb8ae262f344f7e409f5a8c0eda6f0ef12f9",
+      "pr": 9420,
+      "title": "fix(cursor): discover symlinked skills as package boundaries",
+      "decision": "adopted",
+      "ours": "e63427bab544d45449f7121e606ac5e8d0cc41a3",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T23:20:33.319Z"
     }
   ]
 }
