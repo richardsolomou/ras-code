@@ -240,7 +240,7 @@ describe("ManagedRelayClient", () => {
           endpoint: {
             httpBaseUrl: "https://desktop.example.test/",
             wsBaseUrl: "wss://desktop.example.test/ws",
-            providerKind: "cloudflare_tunnel",
+            providerKind: "ras_relay",
           },
           status: "online",
           checkedAt: "2026-09-04T00:00:00.000Z",
