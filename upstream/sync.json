@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "db8d60f486c5fc1a80d01b591a359f0c87f0868c",
+  "lastReviewed": "de025aa69ffb0ce1a45d30aed25c60454660b62d",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -2825,6 +2825,15 @@
       "ours": "66b4951083f1814a2f067f76721e366ab8f577fc",
       "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
       "reviewedAt": "2026-09-05T11:11:22.522Z"
+    },
+    {
+      "upstream": "de025aa69ffb0ce1a45d30aed25c60454660b62d",
+      "pr": 9466,
+      "title": "fix(mobile): show loading and syncing in the working pill",
+      "decision": "adopted",
+      "ours": "dc80729950cbd87ad009702db475be9e6b9b1a75",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-05T11:11:54.378Z"
     }
   ]
 }
