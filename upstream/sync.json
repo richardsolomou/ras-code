@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "15eda897d37aad232fca5089f5eb6ef7b726c31c",
+  "lastReviewed": "13427ecd8ba5bfa7892fc90d1e3f0ef59514870f",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -4166,6 +4166,51 @@
       "ours": "eb00810d7521a9a0634336a396e4a5df31b1675a",
       "reason": "Metadata commands stop reading history. Turn dispatch keeps the shell read and pulls messages only for a fork handoff or a provider switch, which are the paths whose transcripts need them; two fork-only call sites moved off the removed resolveThread.",
       "reviewedAt": "2026-09-05T22:03:27.421Z"
+    },
+    {
+      "upstream": "bc03c3640d6d3bb44e5fb477bfd78d7484cd0e00",
+      "pr": 9762,
+      "title": "fix(models): make GPT-6-Astra current",
+      "decision": "adopted",
+      "ours": "167abcb68cf692cd0ec94af5e7086b7315d6a217",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T22:04:06.306Z"
+    },
+    {
+      "upstream": "d115a96763b76d00f06b06272688cf68eebe8206",
+      "pr": 9753,
+      "title": "fix(web): stop empty diffs replacing pull requests",
+      "decision": "adopted",
+      "ours": "0c7a16cedd40c32b925c23859dea9b6289abe711",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T22:04:06.307Z"
+    },
+    {
+      "upstream": "45bd3b631bf1e84520c90ebdfdd1b135871ced14",
+      "pr": 9759,
+      "title": "fix(sidebar): mute background working threads",
+      "decision": "adopted",
+      "ours": "30fd10b4e5d345f44448768aa00003eef4a2ee33",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T22:04:06.307Z"
+    },
+    {
+      "upstream": "f6db4206258b0ef30e8dd8949627acfd209bf338",
+      "pr": 9763,
+      "title": "fix(web): reset automatic pull to default",
+      "decision": "adopted",
+      "ours": "3eff84264d82cfd606f3884152fbe30c70525fd1",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T22:04:06.307Z"
+    },
+    {
+      "upstream": "13427ecd8ba5bfa7892fc90d1e3f0ef59514870f",
+      "pr": 9061,
+      "title": "fix(web): restore file comment focus in editable preview",
+      "decision": "adopted",
+      "ours": "c47533d3d31ec8d594d51bbe254bd88c59d95259",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T22:04:06.307Z"
     }
   ]
 }
