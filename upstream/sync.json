@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "4e89d74436a167c01f25a6a5283638843398ea3a",
+  "lastReviewed": "db8d60f486c5fc1a80d01b591a359f0c87f0868c",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -2771,6 +2771,60 @@
       "ours": null,
       "reason": "Changes the project-name-derived icon in the named icon picker. #52 replaced that surface with a saved emoji plus the project favicon, so projectIconModel and ProjectIconPickerDialog do not exist here and our ProjectFavicon derives nothing from the project name. Both paths are now in the removed-surface map.",
       "reviewedAt": "2026-09-05T11:11:07.344Z"
+    },
+    {
+      "upstream": "c78f05a45e1c2b274d8b0ab2b4d2d88b4767c968",
+      "pr": 9459,
+      "title": "fix(server): reuse pr state when settling threads",
+      "decision": "adopted",
+      "ours": "f4eaeba0c538b2256f7326a07e0c1f3e075b91c9",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:11:22.521Z"
+    },
+    {
+      "upstream": "8bd544cdfd22aa38ab82bc1adc0b851755a299ef",
+      "pr": 9460,
+      "title": "fix(web): keep agent images collapsed",
+      "decision": "adopted",
+      "ours": "264db0a8afdf12e6702d23df3660ce9f5c1d7c16",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:11:22.522Z"
+    },
+    {
+      "upstream": "126afb56fca56c663f4f40acd46f123ab27eee2b",
+      "pr": 9452,
+      "title": "fix(web): banner buttons no longer expand the resting composer",
+      "decision": "adopted",
+      "ours": "5faed088676e399583e7261331a4c6d85f733dae",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:11:22.522Z"
+    },
+    {
+      "upstream": "d5825e1d2fb1703ced2bbe2661f6a4937dd530bf",
+      "pr": 9433,
+      "title": "fix(web): stop clipping the traits chevron on long Codex effort labels",
+      "decision": "adopted",
+      "ours": "acee496aeefaaffb0d6193095e9e99eba7537b64",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:11:22.522Z"
+    },
+    {
+      "upstream": "46e8b1a23ab14fa2c128c6b315955d8eb976d85f",
+      "pr": 9461,
+      "title": "fix(web): make right panel tabs easier to scroll",
+      "decision": "adopted",
+      "ours": "26bda855b0525b4dc163f0d9fe3bac40ac5541ae",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:11:22.522Z"
+    },
+    {
+      "upstream": "db8d60f486c5fc1a80d01b591a359f0c87f0868c",
+      "pr": 9463,
+      "title": "fix(web): render transparent previews on white",
+      "decision": "adopted",
+      "ours": "66b4951083f1814a2f067f76721e366ab8f577fc",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:11:22.522Z"
     }
   ]
 }
