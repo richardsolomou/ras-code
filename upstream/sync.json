@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "09b81a34954c990f70257ae05efbb602c90aac97",
+  "lastReviewed": "07891e9569c88457516b44c08c820471762969e8",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3446,6 +3446,24 @@
       "ours": "8aea3ed5aa536fa01e9d70f31f5f8cded41cdbba",
       "reason": "Took upstream's move of ThreadMarkdownImageView into its own module so file previews can share it, and carried our failureReason/detail placeholder (#45) across. Converged on upstream's className styling; the inline codeBackground was upstream's own older shape, not ours.",
       "reviewedAt": "2026-09-05T20:40:27.326Z"
+    },
+    {
+      "upstream": "b34ff8f56469afa8f3f85d89894e1b4cf49b5213",
+      "pr": 9584,
+      "title": "fix(usage): deduplicate CLI proxy subscription accounts",
+      "decision": "adopted",
+      "ours": "1b75bcd42abd5631fa120be4885d697ed6d4edb2",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T20:40:40.194Z"
+    },
+    {
+      "upstream": "07891e9569c88457516b44c08c820471762969e8",
+      "pr": 9592,
+      "title": "fix(web): bound disconnected send toasts",
+      "decision": "adopted",
+      "ours": "8f70a98c3e2365ce8ce9ff9c35e499738fdc2f07",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T20:40:40.195Z"
     }
   ]
 }
