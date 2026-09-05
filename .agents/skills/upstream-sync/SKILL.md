@@ -65,6 +65,14 @@ Start by merging `origin/main` into the sync branch, and merge it again before o
 
 The same reasoning bounds the round: a day of upstream is a batch worth doing, a week is a merge conflict with a ledger attached.
 
+One exception, and it is the dangerous one. When the round is stacked on a previous sync branch and that branch was **squash-merged**, do not merge `origin/main`. Squashing rewrites the parent's commits into one, so the merge base falls back to before them and both sides look like they added the same code. Git then merges cleanly and duplicates it: the last round came back with a redeclared `findRemoteTrackingRemote` and three duplicate function implementations in `UsageLimits.tsx`, none of them a conflict. Replay this round's own commits instead:
+
+```bash
+git rebase --onto origin/main <tip of the squashed parent branch> <this branch>
+```
+
+`gh pr view <parent> --json headRefOid` gives the tip after the remote branch is deleted.
+
 ## Pick a track
 
 **Fast track — cherry-pick.** Use it while the file still maps one-to-one and the conflict is mechanical: our longer brand name rewrapping a line, a renamed identifier, a test-fixture prefix. Most changes are still this today.
