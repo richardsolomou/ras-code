@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "c3b8825bf476cbce5e061c0f99570cf1f6723b89",
+  "lastReviewed": "99e3b721c5255ded20b00ba1798f848bfc0f1f65",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3545,6 +3545,15 @@
       "ours": "f3877603c23c306e865316076b63ec0d736b66fc",
       "reason": "Failed calls keep their tool icon under a muted red tint. Took upstream's colorClassName mechanism throughout: the useThemeColor tint it replaces was upstream's own code from #8614, not ours. Our fixed dark-theme error hexes stay; the new --tool-error-icon token joins them.",
       "reviewedAt": "2026-09-05T20:57:49.189Z"
+    },
+    {
+      "upstream": "99e3b721c5255ded20b00ba1798f848bfc0f1f65",
+      "pr": 9602,
+      "title": "fix(connect): diagnose incomplete headless server setup",
+      "decision": "adapted",
+      "ours": "f317045ba0b793d69350238382283c4d82270cbe",
+      "reason": "Relay failures now carry the relay's own diagnostic and a recovery hint. Added RelayEnvironmentLinkLimitExceededError to the contracts: the relay can return it and we could not decode it. Two hunks touch surfaces we do not carry, both from upstream changes that predate the ledger: releaseManagedTunnelOnShutdown (#4531) and formatRelayClientStatus.",
+      "reviewedAt": "2026-09-05T21:02:47.718Z"
     }
   ]
 }
