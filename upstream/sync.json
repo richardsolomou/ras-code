@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "07c4ab5077fa9c32bf34ab07dd2caa3907878dd9",
+  "lastReviewed": "dddc0bdcb2230147e207efb17df2e49dbe1bdd8c",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3221,6 +3221,15 @@
       "ours": null,
       "reason": "Keeps the project-name-derived icon stable when the sidebar shows a repository label instead of the project title. #52 replaced that surface with a saved emoji plus the project favicon, so ProjectFavicon takes neither projectName nor projectIcon and there is no derived icon to keep consistent.",
       "reviewedAt": "2026-09-05T19:01:15.277Z"
+    },
+    {
+      "upstream": "dddc0bdcb2230147e207efb17df2e49dbe1bdd8c",
+      "pr": null,
+      "title": "fix(server): include SQLite conditions in persistence errors",
+      "decision": "adopted",
+      "ours": "a675df50fee4ed1de181ee7f6c77bda3aa035b44",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T19:01:23.830Z"
     }
   ]
 }
