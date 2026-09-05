@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "caa8a0db98f9d32e98a1645caa7f7dd37b14f187",
+  "lastReviewed": "560afffdea82000d757c98ea79678aee75f8648c",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3680,6 +3680,15 @@
       "ours": "a89505410791188d82f82cd1ae038bae260eaff3",
       "reason": "Clean cherry-pick.",
       "reviewedAt": "2026-09-05T21:08:07.182Z"
+    },
+    {
+      "upstream": "560afffdea82000d757c98ea79678aee75f8648c",
+      "pr": 9135,
+      "title": "fix(server): update Claude Agent SDK to 0.3.260",
+      "decision": "adopted",
+      "ours": "46e627c714e837b7d0aa813a35b8b63a02fc4e4f",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:08:13.294Z"
     }
   ]
 }
