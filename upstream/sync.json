@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "19d8ab2ae9fc562ee7b216a0d72903fbfafa9572",
+  "lastReviewed": "343db2c328af56fe0fa7672f3af055550832689b",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3149,6 +3149,15 @@
       "ours": "ad8b13d904f27c313f6c360afa5086b2894d8b5c",
       "reason": "Converged on upstream normalising rate limits at the adapter boundary: the account.rate-limits.updated payload becomes {limits} and our fallback routing reads it through a new providerUsageLimitFromWindows, which keeps the rule the Codex parsing had, that an exhausted account reports the furthest reset because quota only returns when the last full window resets. The fork-only gateway driver implements applyUsageLimits as a documented no-op, since its snapshot is recomposed from its two children on every publish. Kept our probe model rows inside upstream's restructured SDK fixture.",
       "reviewedAt": "2026-09-05T16:31:14.402Z"
+    },
+    {
+      "upstream": "343db2c328af56fe0fa7672f3af055550832689b",
+      "pr": 9354,
+      "title": "feat(web): reorganize settings pages",
+      "decision": "adapted",
+      "ours": "ccd406b2539b04e49d7857b6c590ded3ec4dc7c8",
+      "reason": "Converged the settings pages onto upstream's shared SettingsSection and SettingsRow treatment, including the provider editor and list row, keeping our legend heading style. Upstream moves the refresh control and last-checked summary from the list footer into the section header; ours went with it, and the add-provider button becomes icon-only with a tooltip, which a browser pass showed was overflowing its 26px box while it still carried a text child. The Appearance split is not taken: it separates a theme library and contrast and glass rows that #51 and #23 removed, so there is nothing here to separate. ThemeSettings stays deleted.",
+      "reviewedAt": "2026-09-05T17:14:59.660Z"
     }
   ]
 }
