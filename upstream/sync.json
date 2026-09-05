@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "645d58547d282eb2aaf6c48e5907625fc112386a",
+  "lastReviewed": "c0ebc882b88dbcffd5a712e403b3c3c517ba4ea6",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -2762,6 +2762,330 @@
       "ours": "55373616f7826e1c2f71ab80fdfffa59b3162883",
       "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
       "reviewedAt": "2026-09-05T09:35:44.526Z"
+    },
+    {
+      "upstream": "4e89d74436a167c01f25a6a5283638843398ea3a",
+      "pr": 9457,
+      "title": "fix(web): make project icons the default",
+      "decision": "obsolete",
+      "ours": null,
+      "reason": "Changes the project-name-derived icon in the named icon picker. #52 replaced that surface with a saved emoji plus the project favicon, so projectIconModel and ProjectIconPickerDialog do not exist here and our ProjectFavicon derives nothing from the project name. Both paths are now in the removed-surface map.",
+      "reviewedAt": "2026-09-05T11:11:07.344Z"
+    },
+    {
+      "upstream": "c78f05a45e1c2b274d8b0ab2b4d2d88b4767c968",
+      "pr": 9459,
+      "title": "fix(server): reuse pr state when settling threads",
+      "decision": "adopted",
+      "ours": "f4eaeba0c538b2256f7326a07e0c1f3e075b91c9",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:11:22.521Z"
+    },
+    {
+      "upstream": "8bd544cdfd22aa38ab82bc1adc0b851755a299ef",
+      "pr": 9460,
+      "title": "fix(web): keep agent images collapsed",
+      "decision": "adopted",
+      "ours": "264db0a8afdf12e6702d23df3660ce9f5c1d7c16",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:11:22.522Z"
+    },
+    {
+      "upstream": "126afb56fca56c663f4f40acd46f123ab27eee2b",
+      "pr": 9452,
+      "title": "fix(web): banner buttons no longer expand the resting composer",
+      "decision": "adopted",
+      "ours": "5faed088676e399583e7261331a4c6d85f733dae",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:11:22.522Z"
+    },
+    {
+      "upstream": "d5825e1d2fb1703ced2bbe2661f6a4937dd530bf",
+      "pr": 9433,
+      "title": "fix(web): stop clipping the traits chevron on long Codex effort labels",
+      "decision": "adopted",
+      "ours": "acee496aeefaaffb0d6193095e9e99eba7537b64",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:11:22.522Z"
+    },
+    {
+      "upstream": "46e8b1a23ab14fa2c128c6b315955d8eb976d85f",
+      "pr": 9461,
+      "title": "fix(web): make right panel tabs easier to scroll",
+      "decision": "adopted",
+      "ours": "26bda855b0525b4dc163f0d9fe3bac40ac5541ae",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:11:22.522Z"
+    },
+    {
+      "upstream": "db8d60f486c5fc1a80d01b591a359f0c87f0868c",
+      "pr": 9463,
+      "title": "fix(web): render transparent previews on white",
+      "decision": "adopted",
+      "ours": "66b4951083f1814a2f067f76721e366ab8f577fc",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:11:22.522Z"
+    },
+    {
+      "upstream": "de025aa69ffb0ce1a45d30aed25c60454660b62d",
+      "pr": 9466,
+      "title": "fix(mobile): show loading and syncing in the working pill",
+      "decision": "adopted",
+      "ours": "dc80729950cbd87ad009702db475be9e6b9b1a75",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-05T11:11:54.378Z"
+    },
+    {
+      "upstream": "36c4e9cf5c0123e33d65f2af9497ee090404b532",
+      "pr": 9438,
+      "title": "fix(server): keep a/ and b/ prefixes in rendered git patches",
+      "decision": "adopted",
+      "ours": "1283e0526cbf80846b55cb386f6122e3ec8405fc",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:12:02.153Z"
+    },
+    {
+      "upstream": "d2b6f3b9296f682c6158b894ab33d98d0c4bfb2b",
+      "pr": 9282,
+      "title": "fix(server): full-access OpenCode threads no longer ask for approvals",
+      "decision": "adopted",
+      "ours": "b7e583a1a8d2d0c450b47dede75242b4dd7971e0",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:12:02.154Z"
+    },
+    {
+      "upstream": "493fbb58870c912b9cb2ba6c2f1dae938877a59a",
+      "pr": 9467,
+      "title": "fix(web): reuse pull request list data while loading",
+      "decision": "adopted",
+      "ours": "ea5fa26e41663d1a695a3408d6eb1b92374db948",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:12:02.154Z"
+    },
+    {
+      "upstream": "03728361aa7beb9c13da320097450e6fe65aac3e",
+      "pr": 9469,
+      "title": "feat(web): let users turn off composer collapse on blur and scroll",
+      "decision": "adapted",
+      "ours": "580c0c22bda99b311922555a890857086dcef867",
+      "reason": "Adopted the two new composer-collapse settings; the settings-summary dependency list keeps our removal of the thread confirmation preferences, which #23 cut.",
+      "reviewedAt": "2026-09-05T11:12:57.404Z"
+    },
+    {
+      "upstream": "373be93e68bf3d32207471b27e976ac84bff806a",
+      "pr": 9465,
+      "title": "fix(web): move workflow approval beside checks",
+      "decision": "adopted",
+      "ours": "81e5206ae85c70252f6832026c8fce35deead5e9",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:13:40.809Z"
+    },
+    {
+      "upstream": "4b8b5d9e0177002c84a6f55837670aa0ef816915",
+      "pr": 9488,
+      "title": "fix(desktop): refresh generated annotation styles",
+      "decision": "adopted",
+      "ours": "9b0150bb579905cb028562aa45e7e97c60976395",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:13:40.810Z"
+    },
+    {
+      "upstream": "0869ad648b67a286d7a47af878f1d256d0ff689f",
+      "pr": 9479,
+      "title": "fix(web): let the PR reviewer and label search boxes take keystrokes",
+      "decision": "adopted",
+      "ours": "fe07c30efcbcc78042d1b52d7a957ea949a929cf",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:13:40.810Z"
+    },
+    {
+      "upstream": "77138cf33194a303adfbbd69cc93efa69f84245d",
+      "pr": 9490,
+      "title": "fix(web): dont collapse composer when interacting with bottom row",
+      "decision": "adopted",
+      "ours": "3b6ae8f861870c3b9f8b4376612d424159067b90",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:13:40.810Z"
+    },
+    {
+      "upstream": "678f23a69943e3eef7171f452b44f2931d2ef21f",
+      "pr": 9485,
+      "title": "fix(desktop): restore second-press quit fallback",
+      "decision": "adopted",
+      "ours": "c13ddd044b584fe79e8107650363be29923ed25d",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:13:40.810Z"
+    },
+    {
+      "upstream": "c726c30a148c2add6a3ec7f31f54ae48dc5d2f0c",
+      "pr": 9492,
+      "title": "fix(web): keep opencode icon hollow in collapsed composer",
+      "decision": "adopted",
+      "ours": "040d0ec2607d78377ff62826fdd9d52472ba4b2e",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:13:40.810Z"
+    },
+    {
+      "upstream": "12e8997e58dbca8f1bd8c63b67d662eb69cf0e0d",
+      "pr": 9484,
+      "title": "fix(web): keep agent browser preview visible",
+      "decision": "adopted",
+      "ours": "6549bee8a1b61a6c211bb85a2f7807c1bd43f452",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:13:40.810Z"
+    },
+    {
+      "upstream": "409bc4fa6f3bb9869052bdba4244b30606457f20",
+      "pr": 9486,
+      "title": "fix(mobile): keep the machine glyph next to the environment label",
+      "decision": "adopted",
+      "ours": "e3930a78a879e0d809deeab7a978b681aa1022be",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:13:40.810Z"
+    },
+    {
+      "upstream": "80b53730d1e821563e5c348fdf4f5fc7616a49f7",
+      "pr": 9493,
+      "title": "fix(mobile): let back swipe pop from horizontal scroll edges",
+      "decision": "adopted",
+      "ours": "9156575b7efc2c9fabf241b925bf7184396010fd",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:13:40.810Z"
+    },
+    {
+      "upstream": "0aae1e2ad7ab174004f39746eb4c72b905de932d",
+      "pr": 9410,
+      "title": "fix(antigravity): discover legacy workspace skills",
+      "decision": "adopted",
+      "ours": "56781f1ed0dc5188f4678b02f4b825b902bd36db",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:13:40.810Z"
+    },
+    {
+      "upstream": "ef4cc6085e24d6309252412c6dab5482ac11a09f",
+      "pr": 9495,
+      "title": "fix(mobile): resolve Antigravity provider icon and normalize driver matching",
+      "decision": "adopted",
+      "ours": "1ae7bafe51c1dd74c7db739c29e3206a801d5fa1",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:13:40.810Z"
+    },
+    {
+      "upstream": "e01c153c18a94a2aa33df7115c6cfee1eb09880f",
+      "pr": 9425,
+      "title": "fix(antigravity): forward Google sign-in URLs from browser helper",
+      "decision": "adopted",
+      "ours": "c8aae449fa91807cdf29210b4c56275b63f09d40",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:13:40.811Z"
+    },
+    {
+      "upstream": "39449e53e31a56103192aa7905e89fc92c977a4a",
+      "pr": 7255,
+      "title": "feat(desktop): import browser cookies into a profile",
+      "decision": "adopted",
+      "ours": "09a7b4550c3a22d683a8605504f034529075d6ea",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:13:40.811Z"
+    },
+    {
+      "upstream": "ff5843410d44796676b06627788d94354849c4d7",
+      "pr": 7260,
+      "title": "feat(desktop): import from Chrome, Edge, Brave, Vivaldi, Opera, Arc and Firefox",
+      "decision": "adopted",
+      "ours": "63b3b20378950f8b97bf44fe414f0fbe98201609",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:13:40.811Z"
+    },
+    {
+      "upstream": "498ab9c399d5e8c3097a286be14d03238e071ac1",
+      "pr": 7261,
+      "title": "feat(desktop): resolve Chromium cookie keys on Linux",
+      "decision": "adapted",
+      "ours": "215ef5ca0b1e61c9b8a4cdeb8aa27ce40bd1b4f9",
+      "reason": "Took the Linux key resolution and the browser-secret helper build. Our release workflow shards quality across a matrix rather than three named steps, so the libsecret build dependency goes in before the shared Run step; every matrix entry is ubuntu-latest. Kept our RAS_CODE_DESKTOP_DEV env name in the dev command upstream extended.",
+      "reviewedAt": "2026-09-05T11:15:00.869Z"
+    },
+    {
+      "upstream": "f25e4428961982e3935300cfd3c78f7d0fac4ee9",
+      "pr": 9510,
+      "title": "fix(antigravity): allow slow runtime startup during setup",
+      "decision": "adopted",
+      "ours": "6b7f3c6832ab460589d24734742aab4fb92112b6",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:15:17.541Z"
+    },
+    {
+      "upstream": "baf67b6e3accd48d510fd0d39a4e6b978a1eea80",
+      "pr": 9511,
+      "title": "fix(antigravity): keep model choices up to date",
+      "decision": "adopted",
+      "ours": "50bcca092a5ecdbc43d4754986f50c41ffe6021c",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:15:17.542Z"
+    },
+    {
+      "upstream": "eb334ca57448742139fb8ec38fb397c1e51c45c5",
+      "pr": 9514,
+      "title": "fix(antigravity): handle native sign-in URLs on stderr",
+      "decision": "adopted",
+      "ours": "05c5e93f77646755d8f8eba138bf77410139350b",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:15:17.542Z"
+    },
+    {
+      "upstream": "8ea52c8f2f4361e875d72ab30d72d37cfae4d87f",
+      "pr": 9509,
+      "title": "fix(antigravity): update managed runtime to 1.1.1",
+      "decision": "adopted",
+      "ours": "3894a465a71df8207ae648a8e492ec6accb29408",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:15:17.542Z"
+    },
+    {
+      "upstream": "3653cb22ffb30bf133fecc30c955941fe267cf1c",
+      "pr": 9516,
+      "title": "fix(desktop): address the browser import review left over from the stack",
+      "decision": "adopted",
+      "ours": "25308f4c34182436c5d7e9e292583de26c76dbae",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:15:17.542Z"
+    },
+    {
+      "upstream": "f8a14b28ff80a92d8f4df9a9aa53bfacb8195199",
+      "pr": 9515,
+      "title": "feat(antigravity): show subagent calls and results",
+      "decision": "adopted",
+      "ours": "1042eccf5258fc290b002ad2a635066e6090e12d",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:15:17.542Z"
+    },
+    {
+      "upstream": "6382268323f86e01b2d40206bcf33beccb3fb64a",
+      "pr": 9498,
+      "title": "fix(web): let paste expand a resting composer",
+      "decision": "adopted",
+      "ours": "5b6cd9bfc568c7d8eb3eeac40d07313c59265cd8",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:15:17.542Z"
+    },
+    {
+      "upstream": "522ebe65a542ace6f22d9ad95f95ef9ade7e87f1",
+      "pr": 9499,
+      "title": "fix(web): keep the composer open while selecting timeline text",
+      "decision": "adopted",
+      "ours": "2443d68336a26357620334d8e678e3796cc965cf",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T11:15:17.542Z"
+    },
+    {
+      "upstream": "c0ebc882b88dbcffd5a712e403b3c3c517ba4ea6",
+      "pr": 9513,
+      "title": "fix(web): return focus to the composer after closing a media preview",
+      "decision": "adopted",
+      "ours": "a58797626fe98c17fff87aad6fbac2f1f1540ee1",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-05T11:15:33.539Z"
     }
   ]
 }
