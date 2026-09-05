@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "b123cbb317ca47ff080a15b44c4bc0c99126f729",
+  "lastReviewed": "b7d6e65021b021207424c56cb32d6d711fd875fb",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -4384,6 +4384,33 @@
       "ours": "c4f885bbc04522a9ef8e8627f45523237ca6fadc",
       "reason": "Windows path and async fixtures become deterministic. The rebrand map now rewrites com.t3tools.t3code as one reverse-DNS unit; mapping the segments separately produced com.richardsolomou.ras_code.ras-code, and our launchd label is com.richardsolomou.ras-code.",
       "reviewedAt": "2026-09-05T23:02:26.418Z"
+    },
+    {
+      "upstream": "781f41ef1f6b5054e75f77237df9eba3b7f61cc9",
+      "pr": 9580,
+      "title": "fix(server): refuse symlinked theme files on Windows too",
+      "decision": "adopted",
+      "ours": "bbde0e1dbd31a3ee02ce1a6a05157022b141b924",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T23:02:36.560Z"
+    },
+    {
+      "upstream": "0a590fa01af66ec135d2ebf2d5542b08a37dc275",
+      "pr": 9589,
+      "title": "test(scripts): keep Windows packaging checks host-portable",
+      "decision": "adopted",
+      "ours": "a9b48fee9c7b6150ba8a01fb20cebf01285fdb57",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T23:02:36.561Z"
+    },
+    {
+      "upstream": "b7d6e65021b021207424c56cb32d6d711fd875fb",
+      "pr": 9770,
+      "title": "fix(contracts): include tool.denied in runtime event types",
+      "decision": "adopted",
+      "ours": "ab72e02b67d9245faaf0e768bc8ab63319f06f97",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T23:02:36.561Z"
     }
   ]
 }
