@@ -33,6 +33,13 @@ export const preservedPatterns: ReadonlyArray<RegExp> = [
   /@t3dotcodes\b/g,
   /\bsha512-[A-Za-z0-9+/=]+/g,
   /\bt3_relay\b/g,
+  // Crosses the wire to provider agents as an ACP `_meta` key, and to clients and the relay as an
+  // OAuth token-type URN. Both are asserted by their own tests, and both have been rebranded by
+  // accident and repaired by hand once already.
+  /\bt3SessionLoadReady\b/g,
+  /\burn:t3:[\w:-]+/g,
+  // The fork notice names upstream on purpose.
+  /\[T3 Code\]\(https:\/\/github\.com\/pingdotgg\/t3code\)/g,
   // The WSL runtime cache still lives under these names on users' disks, so
   // renaming them here would orphan every installed runtime.
   /\$HOME\/\.t3\/wsl-runtime/g,

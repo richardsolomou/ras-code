@@ -173,6 +173,21 @@ describe("rebrandText do-not-rename list", () => {
     assert.strictEqual(rebrandText(source), source);
   });
 
+  it("keeps the ACP session-load meta key", () => {
+    const source = 'expect(response._meta).toMatchObject({ t3SessionLoadReady: "replay_idle" });';
+    assert.strictEqual(rebrandText(source), source);
+  });
+
+  it("keeps the OAuth token-type URN", () => {
+    const source = 'subject_token_type: "urn:t3:params:oauth:token-type:environment-bootstrap",';
+    assert.strictEqual(rebrandText(source), source);
+  });
+
+  it("keeps the fork attribution pointing at upstream", () => {
+    const source = "RAS Code is a fork of [T3 Code](https://github.com/pingdotgg/t3code).";
+    assert.strictEqual(rebrandText(source), source);
+  });
+
   it("keeps the checkpoint ref namespace", () => {
     const source = 'const ref = "refs/t3/checkpoints/abc";';
     assert.strictEqual(rebrandText(source), source);
