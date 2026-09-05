@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "9e1bc36a0843699db54ee28abbdac70584ae8f33",
+  "lastReviewed": "d7884ce90b9845e6e8aa737dfe02062b91b11c91",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3356,6 +3356,33 @@
       "ours": "476add13c82bb2f3e1fc6f570f363c240bd50ec1",
       "reason": "Code applied clean; both conflicts were comments our fork had trimmed and upstream then rewrote, so upstream's now describe the current code.",
       "reviewedAt": "2026-09-05T20:23:29.851Z"
+    },
+    {
+      "upstream": "fee2e0ff8168b82ab19f496fcc874c1f3871f522",
+      "pr": 9558,
+      "title": "test(web): fix flaky startup and Tailwind tests",
+      "decision": "adopted",
+      "ours": "1272c67e46c813c0e4d347e1933b6fb704e733a6",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T20:23:40.995Z"
+    },
+    {
+      "upstream": "65f1839ae82af4e67f389f23e4ccc50f51a4a83f",
+      "pr": 9560,
+      "title": "fix(web): keep codex restart responses continuous",
+      "decision": "adopted",
+      "ours": "ad224a99366fc34c83853a3ec9d8946085c69ae3",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T20:23:40.996Z"
+    },
+    {
+      "upstream": "d7884ce90b9845e6e8aa737dfe02062b91b11c91",
+      "pr": 9562,
+      "title": "fix(web): make settings sidebar sub-section buttons full width",
+      "decision": "adopted",
+      "ours": "7c6656c47bffa0ca4c2b41f6d28b57cb1c53b551",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T20:23:40.996Z"
     }
   ]
 }
