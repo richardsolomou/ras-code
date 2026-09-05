@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "b3e1d88590489da2bb63b95c18a57e6f400b8b7f",
+  "lastReviewed": "010d6bb1b5281cb1e6eacf1ee0f2500973242836",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3860,6 +3860,15 @@
       "ours": "a8d647b61c48cbc455c93a2719a0419f2c43dac7",
       "reason": "Diff workers now start with the code views that use them rather than with every chat. Our ComposerHandleContext wrapper stays, without the pool provider upstream pushed down into MessagesTimeline and FilePreviewPanel.",
       "reviewedAt": "2026-09-05T21:47:37.919Z"
+    },
+    {
+      "upstream": "010d6bb1b5281cb1e6eacf1ee0f2500973242836",
+      "pr": 9701,
+      "title": "perf(marketing): serve website fonts locally",
+      "decision": "skipped",
+      "ours": null,
+      "reason": "Touches apps/marketing, which we replaced.",
+      "reviewedAt": "2026-09-05T21:47:47.273Z"
     }
   ]
 }
