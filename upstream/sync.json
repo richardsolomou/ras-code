@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "120fab18d84f1eb993ecc7fa858a8dd212747079",
+  "lastReviewed": "9eb4d71681dc7d002082db2f8b4bacf7614412f4",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3986,6 +3986,15 @@
       "ours": "8558f663fa57fa439b2e3262f2a7f6b540e4bbd9",
       "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
       "reviewedAt": "2026-09-05T21:50:55.231Z"
+    },
+    {
+      "upstream": "9eb4d71681dc7d002082db2f8b4bacf7614412f4",
+      "pr": 9721,
+      "title": "fix(mobile): remove provider setup",
+      "decision": "adopted",
+      "ours": "7b3cf9c61a459e1fd6bc4f52fb004ebf7a20df4b",
+      "reason": "Provider setup leaves mobile; sign-in completes on web or desktop. Our only edits to the deleted screen were the scope rename, so the deletion lands as upstream wrote it.",
+      "reviewedAt": "2026-09-05T21:51:40.947Z"
     }
   ]
 }
