@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "2e688a53cf8fc7a9caa9fd5070148bfcd3d5a741",
+  "lastReviewed": "9e1fb459a985d13c1d4e57080f49d70dabf3b681",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -4221,6 +4221,16 @@
       "intent": "docs/internals holds architecture only; runbooks and setup guides move to docs/operations, which is the split AGENTS.md already describes.",
       "reason": "Thirty-one files. Upstream deletes ci.md, scripts.md, work-artifacts.md, workspace-layout.md and the connect auth-flow diagram, all of which carry fork-only content from #32, #38, #54 and #103, and relocates the rest. Converging means moving our content rather than dropping it, which is its own pass.",
       "reviewedAt": "2026-09-05T22:05:07.735Z"
+    },
+    {
+      "upstream": "9e1fb459a985d13c1d4e57080f49d70dabf3b681",
+      "pr": 9756,
+      "title": "docs: focus user guides on features and workflows",
+      "decision": "deferred",
+      "ours": null,
+      "intent": "docs/user reads as shipped-product guidance: features and workflows, no repo tooling or source paths.",
+      "reason": "The user-facing half of the same editorial pass as 2e688a53c, and our user docs carry fork content (the telemetry page is ours). Both convergences land together.",
+      "reviewedAt": "2026-09-05T22:05:51.810Z"
     }
   ]
 }
