@@ -123,7 +123,9 @@ const textRules: ReadonlyArray<RebrandRule> = [
     description: "remote access product name in prose and search terms",
   },
   {
-    pattern: /\bT3 Code\b/g,
+    // No leading boundary: an escaped newline in a source string literal ends in
+    // `n`, so `\nT3 Code` has no word boundary before the name.
+    pattern: /T3 Code\b/g,
     replacement: "RAS Code",
     description: "product name",
   },
@@ -191,6 +193,12 @@ const textRules: ReadonlyArray<RebrandRule> = [
     pattern: /\bt3-code\b/g,
     replacement: "ras-code",
     description: "kebab-case product id",
+  },
+  {
+    // Relay client ids, spelled without the product stem in `RelayPublicClientId`.
+    pattern: /\bt3-(mobile|web)(?![\w-])/g,
+    replacement: "ras-$1",
+    description: "relay public client ids",
   },
   {
     pattern: /\bt3-([a-z0-9][a-z0-9-]*)/g,

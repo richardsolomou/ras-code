@@ -1,5 +1,14 @@
-import { createContext, useContext } from "react";
-import { Image, Linking, type TextStyle, useColorScheme } from "react-native";
+import { createContext, useCallback, useContext } from "react";
+import {
+  findNodeHandle,
+  Image,
+  Linking,
+  Platform,
+  StyleSheet,
+  Text as RNText,
+  type TextStyle,
+  useColorScheme,
+} from "react-native";
 
 import { MarkdownTextPrimitive } from "./MarkdownTextPrimitive";
 import { markdownFileIconSource } from "./markdownFileIcons";
@@ -8,6 +17,7 @@ import type {
   MarkdownFileContextMenu,
   NativeMarkdownTextStyle,
 } from "./SelectableMarkdownText.types";
+import { installMarkdownCopySanitizer } from "./RasCodeMarkdownTextSelectionModule";
 
 export interface MarkdownFileContextMenuHandlers {
   readonly fileContextMenu: (href: string) => MarkdownFileContextMenu | undefined;
@@ -22,6 +32,19 @@ const EXTERNAL_LINK_PREFIX = "◉ ";
 const INLINE_ATTACHMENT_PREFIX = "\uFFFC\u00A0";
 const SKILL_ICON_PLACEHOLDER = "\uFFFC";
 const PARAGRAPH_STYLE_ENCODING_OFFSET = 1000;
+const MONO_FONT_FAMILY = Platform.select({
+  ios: "ui-monospace",
+  android: "monospace",
+  default: "monospace",
+});
+const styles = StyleSheet.create({
+  inlineIcon: {
+    width: 14,
+    height: 14,
+    marginHorizontal: 3,
+    transform: [{ translateY: 2 }],
+  },
+});
 
 function runKeySignature(run: NativeMarkdownTextRun): string {
   return [
@@ -101,7 +124,7 @@ function runStyle(run: NativeMarkdownTextRun, textStyle: NativeMarkdownTextStyle
       isFile || isSkill
         ? textStyle.boldFontFamily
         : run.code || isCodeBlock
-          ? "ui-monospace"
+          ? MONO_FONT_FAMILY
           : isHeading
             ? textStyle.headingFontFamily
             : run.bold
@@ -153,6 +176,19 @@ export function NativeMarkdownSelectableText(props: {
 }) {
   const colorScheme = useColorScheme();
   const menu = useContext(MarkdownFileContextMenuContext);
+  const containsInlineFileIcon = props.runs.some((run) => run.fileIcon != null);
+  const attachAndroidText = useCallback(
+    (textView: RNText | null) => {
+      if (Platform.OS !== "android" || !containsInlineFileIcon || textView === null) {
+        return;
+      }
+      const reactTag = findNodeHandle(textView);
+      if (reactTag !== null) {
+        installMarkdownCopySanitizer(reactTag);
+      }
+    },
+    [containsInlineFileIcon],
+  );
   const occurrences = new Map<string, number>();
   const prefixedExternalLinks = new Set<string>();
   const keyedRuns = props.runs.map((run) => {
@@ -161,10 +197,13 @@ export function NativeMarkdownSelectableText(props: {
     occurrences.set(signature, occurrence + 1);
 
     let text = run.text;
-    if (run.fileIcon) {
+    if (run.fileIcon && Platform.OS === "ios") {
       text = `${INLINE_ATTACHMENT_PREFIX}${text}`;
     } else if (run.skillName && run.skillLabel) {
-      text = `${SKILL_ICON_PLACEHOLDER}\u00A0${run.skillLabel}`;
+      text =
+        Platform.OS === "ios"
+          ? `${SKILL_ICON_PLACEHOLDER}\u00A0${run.skillLabel}`
+          : `$${run.skillName}`;
     } else if (run.externalHost && run.href && !prefixedExternalLinks.has(run.href)) {
       prefixedExternalLinks.add(run.href);
       text = `${EXTERNAL_LINK_PREFIX}${text}`;
@@ -196,6 +235,7 @@ export function NativeMarkdownSelectableText(props: {
   return (
     <MarkdownTextPrimitive
       key={appearanceKey}
+      nativeTextRef={attachAndroidText}
       uiTextView
       selectable
       style={{
@@ -214,11 +254,13 @@ export function NativeMarkdownSelectableText(props: {
           <MarkdownTextPrimitive
             key={key}
             nativeID={
-              run.fileIcon
-                ? `ras-code-file:${Image.resolveAssetSource(markdownFileIconSource(run.fileIcon)).uri}`
-                : run.skillName
-                  ? "ras-code-skill:sf:cube"
-                  : undefined
+              Platform.OS === "ios"
+                ? run.fileIcon
+                  ? `ras-code-file:${Image.resolveAssetSource(markdownFileIconSource(run.fileIcon)).uri}`
+                  : run.skillName
+                    ? "ras-code-skill:sf:cube"
+                    : undefined
+                : undefined
             }
             contextMenuConfig={contextMenu ? JSON.stringify(contextMenu) : undefined}
             style={runStyle(run, props.textStyle)}
@@ -239,6 +281,9 @@ export function NativeMarkdownSelectableText(props: {
                 : undefined
             }
           >
+            {Platform.OS === "android" && run.fileIcon ? (
+              <Image source={markdownFileIconSource(run.fileIcon)} style={styles.inlineIcon} />
+            ) : null}
             {text}
           </MarkdownTextPrimitive>
         );

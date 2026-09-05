@@ -326,6 +326,7 @@ export default defineConfig(() => {
       // uploaded directory holds `app/assets/x`.
       outDir: appBasePath === "/" ? "dist" : `dist${appBasePath}`,
       emptyOutDir: true,
+      manifest: true,
       sourcemap: buildSourcemap,
     },
     test: {

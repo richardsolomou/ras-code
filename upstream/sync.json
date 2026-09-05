@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "bf40fa786c521b552eb554bbd4f2c75c4123cd03",
+  "lastReviewed": "dab5f6e6e02e78675655e69503aa89654e5b8050",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3428,6 +3428,402 @@
       "ours": null,
       "reason": "Baseline-aligns upstream's sidebar wordmark. Ours is a different composition: the RAS mark beside a 'Code' text span inside a drag region, so there is no shared alignment to fix.",
       "reviewedAt": "2026-09-05T20:26:43.157Z"
+    },
+    {
+      "upstream": "2675e3c70327719a99af4ae6e53e7b74fb8a9be0",
+      "pr": 9579,
+      "title": "fix(antigravity): keep subagent batches active after launch",
+      "decision": "adopted",
+      "ours": "7d2924f50a0064d3135d1a40c7273163231622be",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T20:35:21.149Z"
+    },
+    {
+      "upstream": "09b81a34954c990f70257ae05efbb602c90aac97",
+      "pr": 8769,
+      "title": "fix(mobile): render workspace images in markdown file previews",
+      "decision": "adapted",
+      "ours": "8aea3ed5aa536fa01e9d70f31f5f8cded41cdbba",
+      "reason": "Took upstream's move of ThreadMarkdownImageView into its own module so file previews can share it, and carried our failureReason/detail placeholder (#45) across. Converged on upstream's className styling; the inline codeBackground was upstream's own older shape, not ours.",
+      "reviewedAt": "2026-09-05T20:40:27.326Z"
+    },
+    {
+      "upstream": "b34ff8f56469afa8f3f85d89894e1b4cf49b5213",
+      "pr": 9584,
+      "title": "fix(usage): deduplicate CLI proxy subscription accounts",
+      "decision": "adopted",
+      "ours": "1b75bcd42abd5631fa120be4885d697ed6d4edb2",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T20:40:40.194Z"
+    },
+    {
+      "upstream": "07891e9569c88457516b44c08c820471762969e8",
+      "pr": 9592,
+      "title": "fix(web): bound disconnected send toasts",
+      "decision": "adopted",
+      "ours": "8f70a98c3e2365ce8ce9ff9c35e499738fdc2f07",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T20:40:40.195Z"
+    },
+    {
+      "upstream": "57832803eed4c87c462de92892777a0934019721",
+      "pr": 9591,
+      "title": "fix(desktop): restore panel titlebar interactions",
+      "decision": "adapted",
+      "ours": "1e11e08aae1470bb0dfaa490b09d3080a1641281",
+      "reason": "Took the tab-level no-drag narrowing, the window-control spacer, and the in-header layout controls. Our paneControls stay beside them; panelLayoutControls is fixed-positioned, so header order does not move anything.",
+      "reviewedAt": "2026-09-05T20:41:35.717Z"
+    },
+    {
+      "upstream": "39abb9d1d6ae6501c573b9dc0cb9c28e2f75659c",
+      "pr": 9582,
+      "title": "fix(connect): refresh authorization without disconnecting",
+      "decision": "adopted",
+      "ours": "fb7eae52dd497cd46e995e14e9e63ff9dee03565",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T20:41:43.215Z"
+    },
+    {
+      "upstream": "f559fe0ba6fb5950bd14a2404f10b9c94b33f696",
+      "pr": 9430,
+      "title": "fix(web): show context meter in compact composer",
+      "decision": "adopted",
+      "ours": "7bd4c3470e254f8680ef7b66d28b1278404fa722",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T20:41:43.215Z"
+    },
+    {
+      "upstream": "5cc369b7eb882dbea8d5ad21ba688c73a0058748",
+      "pr": 9496,
+      "title": "fix(pull-requests): refresh data after thread turns",
+      "decision": "adapted",
+      "ours": "e9cb26925b0ce4a9ecfaa80b645d07cc48ede84a",
+      "reason": "Took the turn tracking, turn.aborted handling and refreshAfterTurn. Our reconcileThreadPullRequest still runs on completion: refreshLocalGitStatusFromTurnCompletion only accepts turn.completed, so its sessionCwd is now bound through a narrowing ternary.",
+      "reviewedAt": "2026-09-05T20:43:10.205Z"
+    },
+    {
+      "upstream": "caab2fdbac041ac2e851ad4fa3ac4a40a1d4a8f6",
+      "pr": 9537,
+      "title": "fix(web): render draft PRs in gray",
+      "decision": "adapted",
+      "ours": "349c4356c8382f8d51b14b11057e8087fbd0a2c0",
+      "reason": "Draft pull requests render gray. Upstream also edited apps/mobile/.../thread-list-items.tsx, a legacy surface #23 removed; the live v2 row reads textClassName off presentThreadPr, so the fix reaches mobile without it.",
+      "reviewedAt": "2026-09-05T20:44:30.980Z"
+    },
+    {
+      "upstream": "f1e90e388b86fe4b007a55c0e685a1fa878115e6",
+      "pr": 9599,
+      "title": "refactor(web): move usage provider controls to settings",
+      "decision": "adapted",
+      "ours": "bb8deaf96b8f7dfc00db2c5a43ccfcb31483547a",
+      "reason": "Hub management moves into provider settings, which drops the environment picker our Usage page carried. Upstream also extends an effect that switches devices when search deep-links a setting the selected device cannot render; #112 replaced that local state with the shared settings scope, so there is nothing here to extend.",
+      "reviewedAt": "2026-09-05T20:50:01.788Z"
+    },
+    {
+      "upstream": "00f8b7c28056188e3c5630160806a0afe51c9010",
+      "pr": 9616,
+      "title": "fix: show idle subagent batches without completion marks",
+      "decision": "adopted",
+      "ours": "8f90df275ecec256e1b2f0d21e40bf80e8f43f33",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T20:50:52.032Z"
+    },
+    {
+      "upstream": "61a91b6ef1bd45424169c6650362b358d49bbe34",
+      "pr": 9597,
+      "title": "fix(web): group image views like other tool calls",
+      "decision": "adapted",
+      "ours": "e8d0ca6957ddd836f54a71c4785d3e014ebaf4b8",
+      "reason": "Converged on buildRuntimeInstructions, which now carries what our bespoke Codex string carried: the exact-identifier wording a gateway-routed model needs, and images that resolve inside the project directory rather than upstream's absolute paths, which this server does not serve. The long-form image rules stay appended for Codex and Claude. Upstream's deletion of the two image-row timeline tests is taken; image views group like every other tool call now.",
+      "reviewedAt": "2026-09-05T20:56:14.370Z"
+    },
+    {
+      "upstream": "c3b8825bf476cbce5e061c0f99570cf1f6723b89",
+      "pr": 9606,
+      "title": "fix: preserve tool icons on failed calls",
+      "decision": "adapted",
+      "ours": "f3877603c23c306e865316076b63ec0d736b66fc",
+      "reason": "Failed calls keep their tool icon under a muted red tint. Took upstream's colorClassName mechanism throughout: the useThemeColor tint it replaces was upstream's own code from #8614, not ours. Our fixed dark-theme error hexes stay; the new --tool-error-icon token joins them.",
+      "reviewedAt": "2026-09-05T20:57:49.189Z"
+    },
+    {
+      "upstream": "99e3b721c5255ded20b00ba1798f848bfc0f1f65",
+      "pr": 9602,
+      "title": "fix(connect): diagnose incomplete headless server setup",
+      "decision": "adapted",
+      "ours": "f317045ba0b793d69350238382283c4d82270cbe",
+      "reason": "Relay failures now carry the relay's own diagnostic and a recovery hint. Added RelayEnvironmentLinkLimitExceededError to the contracts: the relay can return it and we could not decode it. Two hunks touch surfaces we do not carry, both from upstream changes that predate the ledger: releaseManagedTunnelOnShutdown (#4531) and formatRelayClientStatus.",
+      "reviewedAt": "2026-09-05T21:02:47.718Z"
+    },
+    {
+      "upstream": "4cc800c7593db13726171918572afe3502c43ba6",
+      "pr": 9613,
+      "title": "fix(web): keep command palette above composer menus",
+      "decision": "adopted",
+      "ours": "4c4efe202f86086a19078b610943701c4293bcd7",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:03:03.009Z"
+    },
+    {
+      "upstream": "93c3ab4ffe408a3e06228a33efc8a0745da91178",
+      "pr": 9601,
+      "title": "fix(web): snooze menu no longer overlaps thread details",
+      "decision": "adopted",
+      "ours": "7a11777d2a233a03ced70489b5b06d37637a7800",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:03:03.010Z"
+    },
+    {
+      "upstream": "706231535ceac8618712913dfdc4a058c2ffb0d8",
+      "pr": 9375,
+      "title": "fix(web): match composer pull request state icons",
+      "decision": "adapted",
+      "ours": "99480b3ed51b05c717df57248efc5022f3132c30",
+      "reason": "Composer and branch toolbar pull request icons follow the request's own state. Upstream also edited LegacySidebar.tsx, which #23 removed; ThreadStatusIndicators is the live surface and takes the fix. Also handles the relay link-limit tag the previous pick added to the contracts, matching upstream's own classification.",
+      "reviewedAt": "2026-09-05T21:04:15.729Z"
+    },
+    {
+      "upstream": "2152d44de2db30a6bae965b0afd30be080e5c872",
+      "pr": 9585,
+      "title": "fix(server): load OpenCode workspace skills via SDK to avoid 64KB CLI pipe truncation",
+      "decision": "adopted",
+      "ours": "580f43fd69030bb95c0608d2b4c92e02611f5ccc",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:04:38.475Z"
+    },
+    {
+      "upstream": "ec3ec6f0b4e005c47aff07d4d9e31506241bce3a",
+      "pr": 9622,
+      "title": "fix(web): mute sidebar branch name to match worktree icon",
+      "decision": "adopted",
+      "ours": "13c9d182c8cf339504ecaf75370d6bd90369220c",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:04:38.476Z"
+    },
+    {
+      "upstream": "5f878d2a85807618a4c8571cdef5daa3124672d6",
+      "pr": 9623,
+      "title": "fix(web,mobile): fold context compaction under settled turn folds",
+      "decision": "adopted",
+      "ours": "d3541ec45805aed5510af16c13ac2e00b7041276",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:04:38.476Z"
+    },
+    {
+      "upstream": "09d13de4381925fa2a6dea74eff8185fa301e905",
+      "pr": 8779,
+      "title": "feat(mobile): make chat text selectable on Android",
+      "decision": "adopted",
+      "ours": "1b7f1a21ba6c2e3f9f3ebbb71b4177f83a7db988",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:04:38.476Z"
+    },
+    {
+      "upstream": "14bf3f6d1644a37029be58429e8f0138e1ceb743",
+      "pr": 9644,
+      "title": "fix(web): toggle a single stashed prompt with Cmd+S",
+      "decision": "adopted",
+      "ours": "4a577bbe5da5b3d9e8c58456664dcc2222e4230d",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:04:38.476Z"
+    },
+    {
+      "upstream": "eb77683e5544e071db74831bae052bbd8a7d5f88",
+      "pr": null,
+      "title": "fix(server): prevent duplicate desktop clients after restart",
+      "decision": "adopted",
+      "ours": "ae7954efede5eceef23cfc1a19204ebc79a386ae",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:04:38.476Z"
+    },
+    {
+      "upstream": "d487dfbf46be344e818725be70ee04be2436bfb4",
+      "pr": 9647,
+      "title": "fix(web): resume Antigravity threads without repeated sign-in",
+      "decision": "adopted",
+      "ours": "b1c0084954861cd15b85af0f38024b0a5d67a613",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:04:38.477Z"
+    },
+    {
+      "upstream": "d5b94100863057fb4629f9ad4a35753d16917924",
+      "pr": 9199,
+      "title": "feat(mobile): paste the phone clipboard into the terminal",
+      "decision": "adopted",
+      "ours": "70e8c85a07be68c8604998a372783f454f00c850",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:04:38.477Z"
+    },
+    {
+      "upstream": "f0347322441f3b8e473a8d13ea7006cbcb4fb761",
+      "pr": 9658,
+      "title": "feat(web): show which sidebar threads hold an unsent draft",
+      "decision": "adopted",
+      "ours": "9719a0ecfd898848d029f0a65b25ee553ae98f6d",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:04:38.477Z"
+    },
+    {
+      "upstream": "01f3e50eca5102ccd881de6f942a98fe6a518ad4",
+      "pr": 9653,
+      "title": "fix(server): unblock OpenCode approvals and stop",
+      "decision": "adapted",
+      "ours": "16c1c475db934f29f909fc8b391d9857630ce353",
+      "reason": "OpenCode approvals and stop unblock. Two tests parameterised over enableLegacyTokenStreaming, a pre-ledger upstream setting this fork does not carry; both now assert buffered delivery, which is the only mode here.",
+      "reviewedAt": "2026-09-05T21:07:31.442Z"
+    },
+    {
+      "upstream": "caa8a0db98f9d32e98a1645caa7f7dd37b14f187",
+      "pr": 9657,
+      "title": "fix(desktop): quit immediately on a second shortcut press",
+      "decision": "adopted",
+      "ours": "a89505410791188d82f82cd1ae038bae260eaff3",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-05T21:08:07.182Z"
+    },
+    {
+      "upstream": "560afffdea82000d757c98ea79678aee75f8648c",
+      "pr": 9135,
+      "title": "fix(server): update Claude Agent SDK to 0.3.260",
+      "decision": "adopted",
+      "ours": "46e627c714e837b7d0aa813a35b8b63a02fc4e4f",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:08:13.294Z"
+    },
+    {
+      "upstream": "8ac5462920c45cdee63af15b2598909736f2ec84",
+      "pr": 9662,
+      "title": "perf(server): stop loading message bodies for thread summaries",
+      "decision": "adapted",
+      "ours": "16470c5e20f5ec0036c6e2d2df0d15e3289f25e2",
+      "reason": "Thread summaries stop loading message bodies. Our fallback-offer count joins upstream's approval count query, and our latestAssistantSummary moved to a getLatestSettledAssistantText query rather than keeping the full message list load that this change exists to remove.",
+      "reviewedAt": "2026-09-05T21:11:57.307Z"
+    },
+    {
+      "upstream": "cccd7e3c885065e925f559c5708378cdb3b51eb3",
+      "pr": 9663,
+      "title": "perf(web): speed up terminal snapshots",
+      "decision": "adopted",
+      "ours": "ed96a0ee32643c4329ceeb00b7f21fb33e259bed",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:12:52.570Z"
+    },
+    {
+      "upstream": "082cab224624eb3a6cd494df3719c59014fb0c99",
+      "pr": 9668,
+      "title": "fix(web): show machine icons in the environment picker",
+      "decision": "adopted",
+      "ours": "19dded3422dc13e6937f51722e30600d144e275a",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:12:52.571Z"
+    },
+    {
+      "upstream": "3b6be3ef4daa848e10c095d8a088064ac836be7f",
+      "pr": 9673,
+      "title": "perf(mobile): bound diff syntax highlighting work",
+      "decision": "adapted",
+      "ours": "f123dcd41a64df5982fee6bfa7152b333d41bc98",
+      "reason": "Took upstream's chunked tokenizer, which bounds the work per frame and aborts, in place of our tokenizeTimeLimit-only guard. Kept the limit itself at 0: their chunks still call codeToTokensBase with Shiki's 500ms default, which corrupts grammar state for everything after a slow chunk.",
+      "reviewedAt": "2026-09-05T21:13:52.494Z"
+    },
+    {
+      "upstream": "887ece307131bdc853cc10f3b82067dee77c4ecf",
+      "pr": 9677,
+      "title": "perf(web): keep Markdown mounted during streaming",
+      "decision": "adopted",
+      "ours": "f1dba75a1af10dc1364bee67f93592ee95a9a9b4",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-05T21:14:41.460Z"
+    },
+    {
+      "upstream": "7cf5b284e6e37895f535433c77f728b3e4292c9b",
+      "pr": 9679,
+      "title": "perf(mobile): skip unused legacy list work",
+      "decision": "obsolete",
+      "ours": null,
+      "reason": "Skips the legacy home list build when thread list v2 is on. #23 deleted homeListItems.ts and the legacy path outright here, so there is no work to skip.",
+      "reviewedAt": "2026-09-05T21:15:13.732Z"
+    },
+    {
+      "upstream": "8e3aa324b57dd645980b203d5f8a5b9f9dc53a84",
+      "pr": 9682,
+      "title": "perf(marketing): serve images at their display size",
+      "decision": "skipped",
+      "ours": null,
+      "reason": "Touches apps/marketing, which we replaced.",
+      "reviewedAt": "2026-09-05T21:15:46.508Z"
+    },
+    {
+      "upstream": "27e6cc27fe0f3cff53a44905e40615b7db99c80c",
+      "pr": 9669,
+      "title": "perf(server): cache and stream static web assets",
+      "decision": "adopted",
+      "ours": "51bd420c1ccb64c865ded95bb87f602bcbcd553f",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:15:59.876Z"
+    },
+    {
+      "upstream": "2263e13fda8c9a4f1b6f4dee32e3c9020195e2aa",
+      "pr": 9671,
+      "title": "perf(server): batch projector cursor writes",
+      "decision": "adopted",
+      "ours": "2e0b3185a3f380fa22f1b355ddee6ff702645094",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:15:59.877Z"
+    },
+    {
+      "upstream": "f2e3764c257a7e27c8171d7dd1e38d4383074206",
+      "pr": 9684,
+      "title": "perf(server): stop retaining unused OpenCode tool history",
+      "decision": "adopted",
+      "ours": "653519ede73eb2408f98697d19203bea6d0ac1b0",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:15:59.877Z"
+    },
+    {
+      "upstream": "44dc8ae259f5c3349f7ab8045e39bd62408b52a9",
+      "pr": 9688,
+      "title": "perf(mobile): reuse chat feed rows during streaming",
+      "decision": "adapted",
+      "ours": "22ad5829e30113f190fad621d69b52d9b457f9d4",
+      "reason": "Feed rows are reused across streaming renders. Our resolveInstanceName follows buildThreadFeed to its new call site, and upstream's new activity-entry cache is keyed by resolver as well as activities so a provider rename is not served a stale instance name.",
+      "reviewedAt": "2026-09-05T21:18:26.447Z"
+    },
+    {
+      "upstream": "ec8b2119c377f5c1dbe6235b221ef98eca31a96e",
+      "pr": 9689,
+      "title": "perf(server): omit repeated OpenCode progress logs",
+      "decision": "adopted",
+      "ours": "519b527faf89b9da789ac2cfa711cd133b30e4df",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:18:33.460Z"
+    },
+    {
+      "upstream": "246064993535e5d90107d3d7784ceef3cc883435",
+      "pr": 9691,
+      "title": "perf(clients): avoid waiting to read cached relay tokens",
+      "decision": "adopted",
+      "ours": "96af62fb20e16b06d8651e3fd2d0885610f77c8e",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:18:33.461Z"
+    },
+    {
+      "upstream": "777f5bb2e11fe30e7fdcb5741b0b1d9bb20924d6",
+      "pr": 9693,
+      "title": "perf(mobile): reuse diff rows during comment edits",
+      "decision": "adapted",
+      "ours": "6622b5e7ca967aaff5f1c4e5f21f631308bed81a",
+      "reason": "Diff rows survive comment edits. Dropped the theme-variable helpers upstream's test carries: #51 removed the theme editor and mobileTheme.test-support with it.",
+      "reviewedAt": "2026-09-05T21:19:29.704Z"
+    },
+    {
+      "upstream": "dab5f6e6e02e78675655e69503aa89654e5b8050",
+      "pr": 9695,
+      "title": "perf(web): defer composer draft serialization",
+      "decision": "adopted",
+      "ours": "4fcde9e4f224d36c9855e7665f66cb35c5d480e1",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T21:19:37.510Z"
     }
   ]
 }

@@ -10,9 +10,9 @@
 import { scopedThreadKey } from "@t3tools/client-runtime/environment";
 import type { ScopedThreadRef } from "@t3tools/contracts";
 import { create } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
+import { persist, type PersistStorage, type StorageValue } from "zustand/middleware";
 
-import { createDebouncedStorage, createMemoryStorage } from "./lib/storage";
+import { createDeferredStorage, createMemoryStorage } from "./lib/storage";
 
 const CHAT_PANES_STORAGE_KEY = "ras-code:chat-panes:v1";
 const CHAT_PANES_STORAGE_VERSION = 1;
@@ -340,15 +340,32 @@ interface ChatPaneStore extends ChatPaneLayout {
 // Debounced because zustand's persist writes on every `set`, including the no-op
 // ones: focus lands on a pointerdown and the divider commits a fraction, and
 // neither should mean a synchronous localStorage write.
-const chatPaneDebouncedStorage = createDebouncedStorage(
+const chatPaneDeferredStorage = createDeferredStorage<StorageValue<ChatPaneLayout>>(
   typeof localStorage === "undefined" ? createMemoryStorage() : localStorage,
+  (value) => JSON.stringify(value),
 );
+
+export const chatPanePersistStorage: PersistStorage<ChatPaneLayout> & { flush: () => void } = {
+  getItem: (name) => {
+    // The base storage is localStorage (or in-memory), which is synchronous.
+    const raw = chatPaneDeferredStorage.getItem(name);
+    if (typeof raw !== "string") {
+      return null;
+    }
+    // Parsed persisted JSON, normalized by `migrate` and `merge` from unknown,
+    // so this mirrors the cast zustand's createJSONStorage performs.
+    return JSON.parse(raw) as StorageValue<ChatPaneLayout>;
+  },
+  setItem: (name, value) => chatPaneDeferredStorage.setItem(name, value),
+  removeItem: (name) => chatPaneDeferredStorage.removeItem(name),
+  flush: () => chatPaneDeferredStorage.flush(),
+};
 
 // A pane closed or resized inside the debounce window would otherwise be lost,
 // so the close button would read as not having worked after a reload.
 if (typeof window !== "undefined" && typeof window.addEventListener === "function") {
   window.addEventListener("beforeunload", () => {
-    chatPaneDebouncedStorage.flush();
+    chatPanePersistStorage.flush();
   });
 }
 
@@ -385,7 +402,7 @@ export const useChatPaneStore = create<ChatPaneStore>()(
     {
       name: CHAT_PANES_STORAGE_KEY,
       version: CHAT_PANES_STORAGE_VERSION,
-      storage: createJSONStorage(() => chatPaneDebouncedStorage),
+      storage: chatPanePersistStorage,
       partialize: (state): ChatPaneLayout => ({
         companion: state.companion,
         companionSide: state.companionSide,

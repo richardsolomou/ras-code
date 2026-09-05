@@ -80,6 +80,20 @@ describe("rebrandText", () => {
     );
   });
 
+  it("rewrites the product name after an escaped newline", () => {
+    assert.strictEqual(
+      rebrandText('"\\n\\nT3 Code will stay reachable."'),
+      '"\\n\\nRAS Code will stay reachable."',
+    );
+  });
+
+  it("rewrites relay client ids without the product stem", () => {
+    assert.strictEqual(rebrandText('clientId: "t3-mobile"'), 'clientId: "ras-mobile"');
+    assert.strictEqual(rebrandText('clientId: "t3-web"'), 'clientId: "ras-web"');
+    assert.strictEqual(rebrandText("t3-webview-bridge"), "ras-code-webview-bridge");
+    assert.strictEqual(rebrandText("t3-mobile-composer"), "ras-code-mobile-composer");
+  });
+
   it("rewrites the remote access product name", () => {
     assert.strictEqual(rebrandText("Connect through T3 Connect."), "Connect through RAS Connect.");
   });

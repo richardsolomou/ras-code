@@ -1,4 +1,5 @@
 import type { ProviderInteractionMode } from "@t3tools/contracts";
+import { buildRuntimeInstructions } from "./RuntimeInstructions.ts";
 
 import { IMAGE_SHARING_INSTRUCTIONS } from "./SharedProviderInstructions.ts";
 
@@ -177,11 +178,6 @@ export interface CodexRuntimeInfo {
   readonly reasoningEffort: string;
 }
 
-// Values come from trusted config, but keep the block single-line regardless.
-function toSingleLine(value: string): string {
-  return value.replaceAll(/\s+/g, " ").trim();
-}
-
 export function buildCodexDeveloperInstructions(
   interactionMode: ProviderInteractionMode,
   runtime: CodexRuntimeInfo,
@@ -199,7 +195,7 @@ export function buildCodexDeveloperInstructions(
   // Appended outside the mode blocks: it applies to plan and default alike.
   return `${base}
 
-${IMAGE_SHARING_INSTRUCTIONS}
+  ${IMAGE_SHARING_INSTRUCTIONS}
 
-<runtime_info>The active model identifier is "${toSingleLine(runtime.model)}". If the user asks which model is running, answer with this exact identifier. You are running in RAS Code through the Codex harness with ${toSingleLine(runtime.reasoningEffort)} reasoning effort. Do not say that the model identifier is unavailable. Do not mention this information unless the user asks.</runtime_info>`;
+  ${buildRuntimeInstructions({ harness: "Codex", ...runtime })}`;
 }

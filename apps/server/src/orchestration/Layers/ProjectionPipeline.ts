@@ -182,22 +182,9 @@ function deriveLastFallbackEngagedAt(
  * One-line preview of the newest settled assistant message, for clients that
  * notify about threads whose detail they never loaded.
  */
-function deriveLatestAssistantSummary(
-  messages: ReadonlyArray<ProjectionThreadMessage>,
-): string | null {
-  let latest: ProjectionThreadMessage | null = null;
-  for (const message of messages) {
-    if (message.role !== "assistant" || message.isStreaming) continue;
-    if (
-      latest === null ||
-      message.createdAt > latest.createdAt ||
-      (message.createdAt === latest.createdAt && message.messageId > latest.messageId)
-    ) {
-      latest = message;
-    }
-  }
-  if (latest === null) return null;
-  const summary = latest.text
+function summarizeAssistantText(text: string | null): string | null {
+  if (text === null) return null;
+  const summary = text
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, LATEST_ASSISTANT_SUMMARY_MAX_LENGTH)
@@ -674,26 +661,22 @@ const makeOrchestrationProjectionPipeline = Effect.fn("makeOrchestrationProjecti
         return;
       }
 
-      const [messages, proposedPlans, activities, pendingApprovals] = yield* Effect.all([
-        projectionThreadMessageRepository.listByThreadId({ threadId }),
+      const [
+        latestUserMessageAt,
+        latestAssistantText,
+        proposedPlans,
+        activities,
+        pendingApprovalRowCount,
+      ] = yield* Effect.all([
+        projectionThreadMessageRepository.getLatestUserMessageAt({ threadId }),
+        projectionThreadMessageRepository.getLatestSettledAssistantText({ threadId }),
         projectionThreadProposedPlanRepository.listByThreadId({ threadId }),
         projectionThreadActivityRepository.listUserInputLifecycleByThreadId({ threadId }),
-        projectionPendingApprovalRepository.listByThreadId({ threadId }),
+        projectionPendingApprovalRepository.countPendingByThreadId({ threadId }),
       ]);
 
-      let latestUserMessageAt: string | null = null;
-      for (const message of messages) {
-        if (
-          message.role === "user" &&
-          (latestUserMessageAt === null || message.createdAt > latestUserMessageAt)
-        ) {
-          latestUserMessageAt = message.createdAt;
-        }
-      }
-
       const pendingApprovalCount =
-        pendingApprovals.filter((approval) => approval.status === "pending").length +
-        derivePendingFallbackOfferCountFromActivities(activities);
+        pendingApprovalRowCount + derivePendingFallbackOfferCountFromActivities(activities);
       const pendingUserInputCount = derivePendingUserInputCountFromActivities(activities);
       const hasActionableProposedPlan = deriveHasActionableProposedPlan({
         latestTurnId: existingRow.value.latestTurnId,
@@ -707,7 +690,7 @@ const makeOrchestrationProjectionPipeline = Effect.fn("makeOrchestrationProjecti
         pendingUserInputCount,
         hasActionableProposedPlan: hasActionableProposedPlan ? 1 : 0,
         lastFallbackEngagedAt: deriveLastFallbackEngagedAt(activities),
-        latestAssistantSummary: deriveLatestAssistantSummary(messages),
+        latestAssistantSummary: summarizeAssistantText(latestAssistantText),
         ...(updatedAt !== undefined ? { updatedAt } : {}),
       });
     });
@@ -1918,6 +1901,44 @@ const makeOrchestrationProjectionPipeline = Effect.fn("makeOrchestrationProjecti
               });
               return;
             }
+            if (Option.isNone(existingRow) || existingRow.value.status !== "resolved") {
+              return;
+            }
+
+            // Sending a reply clears the badge before the provider accepts it.
+            // A failed reply must restore the request unless a terminal event
+            // already closed it, including a reply from another client.
+            const requestActivities = (yield* projectionThreadActivityRepository.listByThreadId({
+              threadId: existingRow.value.threadId,
+            })).filter((activity) => extractActivityRequestId(activity.payload) === requestId);
+            const wasRequested = requestActivities.some(
+              (activity) => activity.kind === "approval.requested",
+            );
+            const wasResolved = requestActivities.some((activity) => {
+              if (activity.kind === "approval.resolved") {
+                return true;
+              }
+              if (activity.kind !== "provider.approval.respond.failed") {
+                return false;
+              }
+              const activityPayload =
+                typeof activity.payload === "object" && activity.payload !== null
+                  ? (activity.payload as Record<string, unknown>)
+                  : null;
+              return isStalePendingApprovalFailureDetail(
+                typeof activityPayload?.detail === "string"
+                  ? activityPayload.detail.toLowerCase()
+                  : null,
+              );
+            });
+            if (wasRequested && !wasResolved) {
+              yield* projectionPendingApprovalRepository.upsert({
+                ...existingRow.value,
+                status: "pending",
+                decision: null,
+                resolvedAt: null,
+              });
+            }
             return;
           }
           // Only approval-requested activities should create pending-approval
@@ -2111,11 +2132,21 @@ const makeOrchestrationProjectionPipeline = Effect.fn("makeOrchestrationProjecti
             prunedThreadRelativePaths: new Map<string, Set<string>>(),
           };
           yield* sql.withTransaction(
-            Effect.forEach(
-              projectors,
-              (projector) => applyProjectorForEvent(projector, event, attachmentSideEffects),
-              { concurrency: 1, discard: true },
-            ),
+            Effect.gen(function* () {
+              yield* Effect.forEach(
+                projectors,
+                (projector) => projector.apply(event, attachmentSideEffects),
+                { concurrency: 1, discard: true },
+              );
+              // Runtime projectors commit together. Bootstrap still advances each cursor separately.
+              yield* projectionStateRepository.upsertMany(
+                projectors.map((projector) => ({
+                  projector: projector.name,
+                  lastAppliedSequence: event.sequence,
+                  updatedAt: event.occurredAt,
+                })),
+              );
+            }),
           );
           // Return the cleanup effect so the caller runs it after the outer transaction commits.
           // @effect-diagnostics-next-line returnEffectInGen:off

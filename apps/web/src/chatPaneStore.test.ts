@@ -1,8 +1,10 @@
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import type { EnvironmentId, ThreadId } from "@t3tools/contracts";
 import { describe, expect, it } from "vite-plus/test";
+import type { StorageValue } from "zustand/middleware";
 
 import {
+  chatPanePersistStorage,
   CHAT_PANE_MIN_WIDTH,
   selectFocusedThread,
   canOpenThreadInSplit,
@@ -17,6 +19,7 @@ import {
   planThreadOpen,
   reconcileCompanion,
   takeRouteOpenPane,
+  type ChatPaneLayout,
   type ChatPaneMeasuredLayout,
   useChatPaneStore,
 } from "./chatPaneStore";
@@ -539,5 +542,24 @@ describe("reconcileCompanion", () => {
         knownThreadKeys: new Set(["env-1:alpha", "env-1:beta"]),
       }).companion,
     ).toEqual(beta);
+  });
+});
+
+describe("chatPanePersistStorage", () => {
+  it("round-trips a persisted layout through the deferred write", () => {
+    const stored: StorageValue<ChatPaneLayout> = {
+      state: {
+        ...INITIAL_CHAT_PANE_LAYOUT,
+        companionSide: "left",
+        leftFraction: 0.25,
+      },
+      version: 1,
+    };
+
+    chatPanePersistStorage.setItem("chat-panes-round-trip", stored);
+    expect(chatPanePersistStorage.getItem("chat-panes-round-trip")).toBeNull();
+
+    chatPanePersistStorage.flush();
+    expect(chatPanePersistStorage.getItem("chat-panes-round-trip")).toEqual(stored);
   });
 });

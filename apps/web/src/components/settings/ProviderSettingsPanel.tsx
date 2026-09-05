@@ -57,6 +57,7 @@ import { stackedThreadToast, toastManager } from "../ui/toast";
 import { AddProviderInstanceDialog } from "./AddProviderInstanceDialog";
 import { SettingsDeviceTabs } from "./SettingsDeviceTabs";
 import { ProviderInstanceCard } from "./ProviderInstanceCard";
+import { UsageProviderSettings } from "./UsageProviderSettings";
 import { ProviderSetupSection, readAntigravityAuthMethod } from "./ProviderSetupSection";
 import { DRIVER_OPTIONS, getDriverOption } from "./providerDriverMeta";
 import { searchableSetting } from "./settingsSearch";
@@ -74,7 +75,6 @@ import {
   SettingsRow,
   SettingsSection,
   useRelativeTimeTick,
-  useSettingsSearchTargetId,
 } from "./settingsLayout";
 import { ScrollArea } from "../ui/scroll-area";
 import {
@@ -396,9 +396,6 @@ export function EnvironmentProviderSettings({
   const [selectedInstanceId, setSelectedInstanceId] = useState<ProviderInstanceId | null>(
     targetInstanceId ?? null,
   );
-  const [advancedOpen, setAdvancedOpen] = useState(false);
-  const advancedVisible = readOnly || advancedOpen;
-  const searchTargetId = useSettingsSearchTargetId();
   const [updatingProviderDrivers, setUpdatingProviderDrivers] = useState<
     ReadonlySet<ProviderDriverKind>
   >(() => new Set());
@@ -896,6 +893,14 @@ export function EnvironmentProviderSettings({
           </div>
         </div>
       </SettingsSection>
+
+      <UsageProviderSettings
+        key={environmentId}
+        environmentId={environmentId}
+        environmentLabel={environmentLabel}
+        sources={settings.usageLimitSources}
+        readOnly={readOnly}
+      />
 
       <SettingsSection title="Advanced">
         <SettingsRow
