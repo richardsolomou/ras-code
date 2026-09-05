@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "95390ed78458f139cb795bab4baa53ec39222ff7",
+  "lastReviewed": "42bdea1c9c1d4b7c5c2e77cd23cf53fae68a6fd4",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3401,6 +3401,15 @@
       "ours": null,
       "reason": "Upstream's contributor trust list, which we do not inherit.",
       "reviewedAt": "2026-09-05T20:25:27.133Z"
+    },
+    {
+      "upstream": "42bdea1c9c1d4b7c5c2e77cd23cf53fae68a6fd4",
+      "pr": 9554,
+      "title": "fix(web): stabilize right panel transitions",
+      "decision": "adapted",
+      "ours": "a968a7ef78bdaa612681faf8ced970a5f3ab1cf2",
+      "reason": "Took upstream's move of the panel layout controls out of the header; our pane controls stay where they were.",
+      "reviewedAt": "2026-09-05T20:26:03.094Z"
     }
   ]
 }
