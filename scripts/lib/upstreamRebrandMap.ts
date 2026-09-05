@@ -130,7 +130,7 @@ const textRules: ReadonlyArray<RebrandRule> = [
     description: "standalone product shorthand",
   },
   {
-    pattern: /\bT3ProjectFile/g,
+    pattern: /T3ProjectFile/g,
     replacement: "RasProjectFile",
     description: "project file types",
   },
@@ -292,7 +292,7 @@ const pathRules: ReadonlyArray<readonly [RegExp, string]> = [
   [/^t3\.json$/, "ras.json"],
   [/\bt3-connect\b/, "ras-connect"],
   [/\bt3-code-connect-auth-flow\b/, "ras-code-connect-auth-flow"],
-  [/\bT3ProjectFile/g, "RasProjectFile"],
+  [/T3ProjectFile/g, "RasProjectFile"],
   [/\bt3ProjectFile/g, "rasProjectFile"],
   [
     /expo\/modules\/t3(composereditor|markdowntext|nativecontrols|reviewdiff|terminal)\b/g,

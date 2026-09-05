@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "06336460c9988f29c71e839c4c9c840c4552e077",
+  "lastReviewed": "645d58547d282eb2aaf6c48e5907625fc112386a",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -2645,6 +2645,123 @@
       "ours": "95475a2d62e9547e8a749c9b0dcd9a123a72088f",
       "reason": "Adopted the Antigravity driver, ACP support, provider auth commands and provider-setup deep links. Converged on upstream's resolveComposerProviderSelection (it carries the Antigravity continuation rule) while keeping our candidate ordering; kept our checkpoint-based message actions, our settings environment scope, and our removal of plan mode, so upstream's interaction-mode plumbing was dropped rather than reintroduced.",
       "reviewedAt": "2026-09-05T08:30:22.116Z"
+    },
+    {
+      "upstream": "2aa907b1969237efdaced29612fb46ba51be7041",
+      "pr": 9123,
+      "title": "fix(mobile): show an error instead of an endless preview spinner",
+      "decision": "adapted",
+      "ours": "9d18b8a9971493f8607069516b870ab833498960",
+      "reason": "Converged on upstream's asset-url-state module. Widened its failure reason to carry the shared reason through on a connected environment, so our per-reason image labels survive instead of collapsing to a generic failure, and gave the module its own label for the disconnected case. Upstream's connection fallback literal gained the stage field our presentation type added.",
+      "reviewedAt": "2026-09-05T09:31:27.390Z"
+    },
+    {
+      "upstream": "2b745efe57cddc1753d3007d081c64bd20e3ab79",
+      "pr": 9202,
+      "title": "fix(usage): price new models without waiting a day for the rate table",
+      "decision": "adopted",
+      "ours": "3b99cfc6fd6b64f501b3772c65b328a7d04ff2c3",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T09:31:48.846Z"
+    },
+    {
+      "upstream": "19c97ea56d30b3a2de31a060f8f47d6b7404b78f",
+      "pr": 9127,
+      "title": "fix(web): unlock the composer when preview capture fails",
+      "decision": "adopted",
+      "ours": "83d7b0e7223f89703437ebeb9015023dc618d41b",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T09:31:48.847Z"
+    },
+    {
+      "upstream": "1e051873094c0c75cd35fef89c90461c22cce76b",
+      "pr": 9397,
+      "title": "fix(antigravity): refresh the model manifest so older Gemini models fold as legacy",
+      "decision": "adopted",
+      "ours": "5f594ec8663abb803e44939d3c41bd81ed641278",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T09:31:48.847Z"
+    },
+    {
+      "upstream": "fff33f9e851912363c5b1f3ac65598be35eb5f0d",
+      "pr": 9399,
+      "title": "perf(ci): reuse dependency checks in release builds",
+      "decision": "adopted",
+      "ours": "0ae1d2c343eeb4f218c3a60e37a5d1e70108b20a",
+      "reason": "Clean cherry-pick; our release workflow keeps the same job boundaries the change hooks into.",
+      "reviewedAt": "2026-09-05T09:32:09.910Z"
+    },
+    {
+      "upstream": "77e35c561259733d880ab62a43aad0894d301d9b",
+      "pr": 9307,
+      "title": "fix(web): send cited messages with Cmd+Enter",
+      "decision": "adopted",
+      "ours": "bf0c01596e180ef5067771c37170fc9afea77a0d",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T09:32:15.404Z"
+    },
+    {
+      "upstream": "098bf5329727fcd7d973bf842e6b4d50d6e7b924",
+      "pr": 8902,
+      "title": "fix(web): preserve explicit preview navigation URLs",
+      "decision": "adopted",
+      "ours": "551c157e28274aa74e7d7abea153353aa757506a",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T09:32:15.405Z"
+    },
+    {
+      "upstream": "57626eb6eaa436b22260068d23f4e3df5f389cd1",
+      "pr": 9168,
+      "title": "fix(web): prevent loading ssh environments from overriding navigation",
+      "decision": "adapted",
+      "ours": "8ab6b5c1abcad5a04dff4cae6934883d4e15814b",
+      "reason": "Upstream's new test mocks only what upstream's pane hooks touch. Ours also use useNavigate, useRef and the fork's project-file defaults, so the mocks gained them; useNavigate points at the same spy the assertions check, so the abandon case still covers the path this fork takes.",
+      "reviewedAt": "2026-09-05T09:34:23.589Z"
+    },
+    {
+      "upstream": "cfddb4201df8941bbfde008919da70fe5ec7552b",
+      "pr": 9381,
+      "title": "fix(mobile): skip unsupported shared settings targets",
+      "decision": "adopted",
+      "ours": "5bcdec9bb99e13b9d8a8ba80ad321ff5b72ca056",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-05T09:35:35.316Z"
+    },
+    {
+      "upstream": "2120fbc185737b71f09de020b95224f9e636d1e5",
+      "pr": 9419,
+      "title": "fix(web): avoid duplicate Antigravity install status",
+      "decision": "adopted",
+      "ours": "0c93e72d92b0133579b2261e2e60e8fc6e724d65",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T09:35:44.524Z"
+    },
+    {
+      "upstream": "d4ba2a1f11498eae9683f6dc95a08b1c17c29765",
+      "pr": 9451,
+      "title": "fix(composer): mute fast icon when collapsed",
+      "decision": "adopted",
+      "ours": "338eb3ca756e293c0b80f67e672f4e2c8c940e1f",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T09:35:44.525Z"
+    },
+    {
+      "upstream": "21b9dda5afb00a33e228a68d2ccc885bba7285dc",
+      "pr": 9448,
+      "title": "fix(web): unify skeleton loading animations on one pulse",
+      "decision": "adopted",
+      "ours": "9aaa713ca1017bd3f2a02833f1e990987b3a26cc",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T09:35:44.526Z"
+    },
+    {
+      "upstream": "645d58547d282eb2aaf6c48e5907625fc112386a",
+      "pr": 9453,
+      "title": "fix(web): prioritize authored pull requests",
+      "decision": "adopted",
+      "ours": "55373616f7826e1c2f71ab80fdfffa59b3162883",
+      "reason": "Auto-adopted because its normalized three-way merge did not overlap fork edits.",
+      "reviewedAt": "2026-09-05T09:35:44.526Z"
     }
   ]
 }

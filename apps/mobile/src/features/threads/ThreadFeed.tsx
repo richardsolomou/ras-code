@@ -163,13 +163,13 @@ import {
 import { useMarkdownCodeHighlight } from "./markdownCodeHighlightState";
 import {
   assetEnvironment,
-  assetUrlFailureLabel,
   useAssetUrl,
   useAssetUrlState,
   type AssetUrlFailureReason,
   useRefreshAssetUrl,
 } from "../../state/assets";
 import { resolveAssetUrl } from "@ras-code/client-runtime/state/assets";
+import { assetUrlFailureText } from "../../state/asset-url-state";
 import { formatAttachmentSize } from "@ras-code/client-runtime/state/attachments";
 import { squashAtomCommandFailure } from "@ras-code/client-runtime/state/runtime";
 import { useAtomQueryRunner } from "../../state/use-atom-query-runner";
@@ -567,7 +567,7 @@ function ThreadMarkdownImageView(props: {
             {failed ? (
               <View style={{ alignItems: "center", gap: 2, paddingHorizontal: 12 }}>
                 <Text className="text-xs text-foreground-muted">
-                  {assetUrlFailureLabel(props.failureReason ?? "unavailable")}
+                  {assetUrlFailureText(props.failureReason ?? "unavailable")}
                 </Text>
                 {props.detail ? (
                   <Text
