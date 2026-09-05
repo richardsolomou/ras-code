@@ -2,7 +2,7 @@
   "upstreamRemote": "t3code",
   "upstreamBranch": "main",
   "forkPoint": "e2d4d12a81516b55abbecdc64794971f781cacd8",
-  "lastReviewed": "3b6be3ef4daa848e10c095d8a088064ac836be7f",
+  "lastReviewed": "887ece307131bdc853cc10f3b82067dee77c4ecf",
   "entries": [
     {
       "upstream": "94401d01b956828eaa989ff4a80046c20d7b6088",
@@ -3725,6 +3725,15 @@
       "ours": "f123dcd41a64df5982fee6bfa7152b333d41bc98",
       "reason": "Took upstream's chunked tokenizer, which bounds the work per frame and aborts, in place of our tokenizeTimeLimit-only guard. Kept the limit itself at 0: their chunks still call codeToTokensBase with Shiki's 500ms default, which corrupts grammar state for everything after a slow chunk.",
       "reviewedAt": "2026-09-05T21:13:52.494Z"
+    },
+    {
+      "upstream": "887ece307131bdc853cc10f3b82067dee77c4ecf",
+      "pr": 9677,
+      "title": "perf(web): keep Markdown mounted during streaming",
+      "decision": "adopted",
+      "ours": "f1dba75a1af10dc1364bee67f93592ee95a9a9b4",
+      "reason": "Clean cherry-pick.",
+      "reviewedAt": "2026-09-05T21:14:41.460Z"
     }
   ]
 }
